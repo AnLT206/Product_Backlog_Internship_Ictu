@@ -3,18 +3,20 @@ services:
     image: mysql:8.0
     container_name: ictu_internship_db
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: ictu_internship
-      MYSQL_USER: ictu
-      MYSQL_PASSWORD: ictu
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-ictu_internship}
+      MYSQL_USER: ${DB_USER:-ictu}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-ictu}
     ports:
-      - "3306:3306"
+      - "${DB_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 10s
       timeout: 5s
       retries: 5
