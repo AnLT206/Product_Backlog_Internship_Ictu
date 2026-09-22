@@ -9,6 +9,7 @@ Số hóa quy trình quản lý thực tập sinh: tiếp nhận hồ sơ, phân
 | Tài liệu | Nội dung |
 | --- | --- |
 | [docs/software-specification.md](docs/software-specification.md) | **Đặc tả phần mềm (SRS) — chi tiết cho developer** |
+| [docs/folder-structure.md](docs/folder-structure.md) | **Cấu trúc thư mục chuẩn — cả nhóm phải bám** |
 | [docs/overview.md](docs/overview.md) | Chi tiết dự án, mục tiêu, vai trò, Epic |
 | [docs/flow.md](docs/flow.md) | Luồng nghiệp vụ & luồng làm việc nhóm |
 | [docs/git-conventions.md](docs/git-conventions.md) | Quy tắc đặt tên branch & commit |
@@ -73,81 +74,67 @@ npm ci
 npm run dev
 ```
 
-## Cấu trúc thư mục tổng quan
+## Cấu trúc thư mục chuẩn (mục tiêu — cả nhóm bám theo)
+
+> **Quan trọng:** Đây là cấu trúc **chuẩn cần đạt**, không phải mirror 100% thư mục đang có.  
+> Code mới phải đặt đúng chỗ. Chi tiết + quy tắc chia file: **[docs/folder-structure.md](docs/folder-structure.md)**.
 
 ```text
 Product_Backlog_Internship_Ictu/
+├── .github/workflows/ci.yml
 │
-├── .github/
-│   └── workflows/
-│       └── ci.yml                 # CI: Python + React + Docker validate
+├── backend/                          # Python API
+│   ├── app/
+│   │   ├── main.py                   # Entry API
+│   │   ├── api/routes/               # Endpoint (auth, interns, tasks…)
+│   │   ├── core/                     # config, database, security
+│   │   ├── models/                   # ORM / bảng
+│   │   ├── schemas/                  # Request / response
+│   │   ├── services/                 # Business logic
+│   │   └── utils/                    # Helper (hash, jwt…)
+│   ├── tests/
+│   └── requirements.txt
 │
-├── backend/                       # Backend Python
-│   ├── requirements.txt           # PyJWT, bcrypt, …
-│   └── utils/
-│       ├── hash_password.py       # Mã hóa / verify mật khẩu
-│       └── authenticate_login.py  # JWT login
-│
-├── frontend/                      # Frontend React + Vite
-│   ├── public/                    # Static assets
+├── frontend/                         # React + Vite
+│   ├── public/
 │   ├── src/
-│   │   ├── assets/                # Ảnh, SVG
-│   │   ├── App.jsx                # Component gốc
-│   │   ├── App.css
-│   │   ├── main.jsx               # Entry
-│   │   └── index.css
-│   ├── Dockerfile                 # Build nginx production
-│   ├── nginx.conf
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js
+│   │   ├── api/                      # Gọi backend
+│   │   ├── components/common/        # UI dùng chung
+│   │   ├── features/                 # Theo nghiệp vụ: auth, interns, tasks…
+│   │   ├── layouts/                  # Layout theo role
+│   │   ├── routes/                   # Router + guard
+│   │   ├── hooks/ | context/ | utils/ | styles/ | assets/
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── Dockerfile
+│   └── package.json
 │
 ├── database/
-│   └── schema.sql                 # roles, users, intern_profiles
+│   ├── schema.sql
+│   ├── migrations/                   # (tuỳ chọn)
+│   └── seeds/                        # Data mẫu (roles…)
 │
-├── docs/                          # Tài liệu dự án
-│   ├── software-specification.md  # Đặc tả (SRS) cho developer
-│   ├── overview.md
-│   ├── flow.md
-│   ├── git-conventions.md
-│   └── product-backlog.md
-│
-├── docker-compose.yml             # Stack pbi-ictu: MySQL + Frontend
-├── .env.example                   # Mẫu biến môi trường (copy → .env)
-├── .gitignore
+├── docs/                             # SRS, cấu trúc chuẩn, backlog…
+├── docker-compose.yml
+├── .env.example
 └── README.md
 ```
 
-### Sơ đồ quan hệ các phần
-
 ```mermaid
 flowchart LR
-  subgraph Repo
-    FE[frontend/ React]
-    BE[backend/ Python utils]
-    DB[(database/ schema.sql)]
-    DOC[docs/]
-    CI[.github/workflows]
-  end
+  FE[frontend/features + api]
+  BE[backend/app api → services → models]
+  DB[(database/)]
 
-  DC[docker-compose.yml]
-
-  DC --> FE
-  DC --> DB
-  FE -. gọi API sau này .-> BE
+  FE -->|JWT + JSON| BE
   BE --> DB
-  CI -. kiểm tra PR .-> FE
-  CI -. kiểm tra PR .-> BE
 ```
 
-| Thư mục / file | Vai trò |
+| Đang lệch / thiếu | Việc nhóm cần làm |
 | --- | --- |
-| `frontend/` | Giao diện người dùng (React) |
-| `backend/` | Logic auth / tiện ích Python (API sẽ mở rộng tại đây) |
-| `database/` | Schema MySQL khởi tạo cùng Docker |
-| `docs/` | Đặc tả, backlog, quy ước Git |
-| `docker-compose.yml` | Chạy nhanh MySQL + FE (`pbi-ictu-*`) |
-| `.github/workflows/ci.yml` | CI trước khi merge |
+| `backend/` mới có `utils/` | Khi dựng API: tạo `app/api`, `core`, `models`, `schemas`, `services` |
+| `frontend/src` mới có `App.jsx` + assets | Khi làm màn hình: tạo `api/`, `features/`, `layouts/`, `routes/` |
+| Chưa có `database/seeds` | Thêm seed roles khi implement auth |
 
 ## CI (GitHub Actions)
 
@@ -164,8 +151,9 @@ CI fail → không merge. Branch protection: bật **Require status checks** cho
 ## Đóng góp
 
 1. Tạo branch từ `main` theo [quy tắc đặt tên](docs/git-conventions.md).
-2. Commit theo [quy tắc commit](docs/git-conventions.md).
-3. Mở PR vào `main`, chờ CI pass rồi merge.
+2. Đặt file đúng [cấu trúc thư mục chuẩn](docs/folder-structure.md).
+3. Commit theo [quy tắc commit](docs/git-conventions.md).
+4. Mở PR vào `main`, chờ CI pass rồi merge.
 
 ## Tác giả / Nhóm
 
