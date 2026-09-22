@@ -138,9 +138,9 @@ flowchart LR
 
 | Đang lệch / thiếu | Việc nhóm cần làm |
 | --- | --- |
-| `backend/` mới có `app/` (register API) | Tiếp: login, me, upload documents |
-| `frontend/src` mới có `App.jsx` + assets | Khi làm màn hình: tạo `api/`, `features/`, `layouts/`, `routes/` |
-| Chưa có `database/seeds` | Thêm seed roles khi implement auth |
+| `backend/` đã có register API (TTS) | Tiếp: login, me, upload documents |
+| `frontend/` đã có `features/auth/` | Bổ sung `api/`, `layouts/`, `routes/` khi làm màn hình |
+| Seed roles trong `schema.sql` | DB volume cũ: chạy `database/migrate_register.sql` |
 
 ## CI (GitHub Actions)
 
@@ -148,7 +148,7 @@ PR vào `main` → `.github/workflows/ci.yml` chạy song song:
 
 | Job | Kiểm tra |
 | --- | --- |
-| **Backend (Python)** | Cài deps + `compileall` |
+| **Backend (Python)** | Cài deps + `compileall` + pytest validate |
 | **Frontend (React)** | `npm ci` + lint + build |
 | **Docker Compose config** | `docker compose config` hợp lệ |
 
