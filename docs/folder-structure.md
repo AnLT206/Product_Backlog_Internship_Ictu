@@ -92,6 +92,7 @@ backend/
 │   │   └── ...
 │   │
 │   └── utils/                  # Helper thuần (đã có)
+│       ├── __init__.py
 │       ├── hash_password.py
 │       └── authenticate_login.py
 │
@@ -118,10 +119,10 @@ backend/
 
 ### Map code hiện có → chuẩn
 
-| Hiện tại | Chuyển dần sang |
+| Hiện tại (đã chuyển) | Ghi chú |
 | --- | --- |
-| `backend/utils/hash_password.py` | `backend/app/utils/hash_password.py` (hoặc gọi từ `core/security.py`) |
-| `backend/utils/authenticate_login.py` | `backend/app/utils/` + logic login trong `services/auth_service.py` |
+| `backend/app/utils/hash_password.py` | Helper hash/verify |
+| `backend/app/utils/authenticate_login.py` | Helper JWT; logic login API sẽ vào `services/auth_service.py` sau |
 | (chưa có) | Tạo `app/main.py`, `api/`, `models/`, `schemas/` khi làm API |
 
 ---
@@ -248,7 +249,7 @@ docs/
 
 ## 8. Lộ trình chuyển từ hiện tại → chuẩn
 
-1. **Giữ** `backend/utils/*` đang chạy — khi dựng API, bọc vào `app/` như bảng map mục 2.  
+1. **Đã chuyển** `backend/app/utils/*` — khi dựng API, bổ sung `api/`, `core/`, `models`, `services`.  
 2. **Khi làm màn hình đầu tiên** (login/register): tạo ngay `frontend/src/api/`, `features/auth/`, `routes/`.  
 3. **Không** tạo thêm `backend/helpers/`, `frontend/misc/`, `temp/` ngoài chuẩn.  
 4. Refactor folder cũ theo từng PR nhỏ (`refactor/...`), không move cả repo một lần nếu đang có PR song song.
