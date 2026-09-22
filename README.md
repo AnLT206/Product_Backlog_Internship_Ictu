@@ -12,14 +12,19 @@ Kho quản lý **product backlog** và codebase cho kỳ thực tập tại Trư
 
 ```
 .
+├── .github/workflows/
+│   └── ci.yml                    # Kiểm tra code trên Pull Request
 ├── backend/
 │   ├── requirements.txt
+│   ├── tests/
 │   └── utils/
-│       ├── hash_password.py      # Mã hóa / kiểm tra mật khẩu (bcrypt)
-│       └── authenticate_login.py # Tạo / xác thực JWT khi đăng nhập
+│       ├── hash_password.py
+│       └── authenticate_login.py
 ├── database/
-│   └── schema.sql                # roles, users, intern_profiles
-├── docker-compose.yml            # MySQL 8 cho môi trường local
+│   └── schema.sql
+├── docker-compose.yml
+├── pytest.ini
+├── ruff.toml
 ├── .gitignore
 └── README.md
 ```
@@ -118,37 +123,34 @@ Mỗi hạng mục theo mẫu:
 - Trạng thái: **To do**, **In progress**, **Done**.
 - Cập nhật trạng thái khi bắt đầu làm và khi hoàn thành.
 
-## CI/CD (GitHub Actions)
+## CI (GitHub Actions)
 
-Repo dùng GitHub Actions cho Python + MySQL:
+Khi mở Pull Request vào `main`, workflow `.github/workflows/ci.yml` tự chạy để kiểm tra code trước khi merge:
 
-| Workflow | File | Khi nào chạy | Việc làm |
-| --- | --- | --- | --- |
-| **CI** | `.github/workflows/ci.yml` | Push / Pull Request | Cài dependency, chạy MySQL 8, nạp `schema.sql`, lint (Ruff), chạy pytest |
-| **CD** | `.github/workflows/cd.yml` | Push lên `main` (hoặc chạy tay) | Kiểm tra `docker-compose.yml`, đóng gói artifact schema để chuẩn bị deploy |
+1. Cài dependency Python
+2. Chạy MySQL 8 và nạp `database/schema.sql`
+3. Lint bằng Ruff
+4. Chạy pytest
 
-### Chạy test local
+Nếu CI fail, không nên merge PR.
+
+Chạy kiểm tra local:
 
 ```bash
 source venv/bin/activate
 pip install -r backend/requirements.txt
 docker compose up -d
+ruff check backend
 pytest -q
 ```
 
-Lint:
-
-```bash
-ruff check backend
-```
-
-> Job deploy thật (SSH / Docker Hub / GHCR) sẽ bổ sung khi có môi trường staging/production.
+> Trên GitHub: Settings → Branches → Branch protection rule cho `main` → bật **Require status checks to pass before merging** và chọn check `Check code`.
 
 ## Cách đóng góp
 
 1. Tạo nhánh từ `main`.
 2. Cập nhật code, schema hoặc tài liệu liên quan.
-3. Mở pull request để người hướng dẫn xem xét (CI sẽ chạy tự động).
+3. Mở pull request vào `main` — chờ CI pass rồi mới merge.
 
 ## Tác giả
 
