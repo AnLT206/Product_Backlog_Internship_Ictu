@@ -1,0 +1,148 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f3f6fa;
+}
+
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.register-card {
+  width: 100%;
+  max-width: 480px;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.register-header {
+  background: #1976d2;
+  color: white;
+  text-align: center;
+  padding: 30px 20px;
+}
+
+.user-icon {
+  width: 55px;
+  height: 55px;
+  margin: 0 auto 15px;
+  background: white;
+  color: #1976d2;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 25px;
+}
+
+.register-header h1 {
+  font-size: 23px;
+  margin-bottom: 8px;
+}
+
+.register-header p {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.register-form {
+  padding: 30px;
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 7px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d5dbe3;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+}
+
+.form-group input:focus {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+}
+
+.terms {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: #555;
+}
+
+.terms input {
+  width: 16px;
+  height: 16px;
+}
+
+.register-button {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 6px;
+  background: #1976d2;
+  color: white;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.register-button:hover {
+  background: #125ca8;
+}
+
+.login-link {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: #666;
+}
+
+.login-link a {
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.login-link a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 500px) {
+  .register-form {
+    padding: 22px;
+  }
+
+  .register-header {
+    padding: 25px 15px;
+  }
+
+  .register-header h1 {
+    font-size: 20px;
+  }
+}
