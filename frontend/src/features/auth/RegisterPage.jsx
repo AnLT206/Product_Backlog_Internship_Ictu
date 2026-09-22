@@ -41,7 +41,7 @@ function RegisterPage() {
             <span>Tôi đồng ý với điều khoản sử dụng</span>
           </div>
 
-          <button type="button" className="register-button">
+          <button className="register-button">
             ĐĂNG KÝ
           </button>
 

@@ -250,6 +250,6 @@ docs/
 
 1. **Giữ** `backend/utils/*` đang chạy — khi dựng API, bọc vào `app/` như bảng map mục 2.  
 2. **Khi làm màn hình tiếp theo** (login, dashboard…): đặt vào `frontend/src/features/<domain>/`, gọi API qua `src/api/`.  
-   *(Đã có khung: `api/`, `features/auth/RegisterPage`, `layouts/`, `routes/`, `styles/`.)*
+   *(FE đã có khung thư mục chuẩn; form đăng ký hiện tại nằm tại `features/auth/` — chỉ đổi vị trí, không thêm logic.)*
 3. **Không** tạo thêm `backend/helpers/`, `frontend/misc/`, `temp/` ngoài chuẩn.  
 4. Refactor folder cũ theo từng PR nhỏ (`refactor/...`), không move cả repo một lần nếu đang có PR song song.
