@@ -2,12 +2,13 @@
 
 Số hóa quy trình quản lý thực tập sinh: tiếp nhận hồ sơ, phân công mentor, chấm công, giao việc, báo cáo và đánh giá.
 
-**Product Backlog:** [Google Sheets](https://docs.google.com/spreadsheets/d/17i61fZQ3krRvMaMNQIsfMq-vq9pAVZQu/edit?gid=2128861429#gid=2128861429)
+**Product Backlog:** [Google Sheets](https://docs.google.com/spreadsheets/d/1jF0gj_Em33a7TeNolltgRWrO9OiZoeYr/edit?gid=405766727#gid=405766727)
 
 ## Tài liệu
 
 | Tài liệu | Nội dung |
 | --- | --- |
+| [docs/software-specification.md](docs/software-specification.md) | **Đặc tả phần mềm (SRS) chi tiết** |
 | [docs/overview.md](docs/overview.md) | Chi tiết dự án, mục tiêu, vai trò, Epic |
 | [docs/flow.md](docs/flow.md) | Luồng nghiệp vụ & luồng làm việc nhóm |
 | [docs/git-conventions.md](docs/git-conventions.md) | Quy tắc đặt tên branch & commit |
