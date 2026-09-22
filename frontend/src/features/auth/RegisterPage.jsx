@@ -8,9 +8,9 @@ function RegisterPage() {
         <div className="register-header">
           <div className="user-icon">👤</div>
 
-          <h1>Đăng ký tài khoản ứng viên</h1>
+          <h1>Đăng ký thực tập sinh</h1>
 
-          <p>Tạo tài khoản để quản lý hồ sơ của bạn</p>
+          <p>Tạo tài khoản TTS để nộp hồ sơ và theo dõi quá trình thực tập</p>
         </div>
 
         <div className="register-form">
@@ -61,7 +61,7 @@ function RegisterPage() {
           </div>
 
           <button className="register-button">
-            ĐĂNG KÝ
+            ĐĂNG KÝ TTS
           </button>
 
           <div className="login-link">

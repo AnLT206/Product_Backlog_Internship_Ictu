@@ -68,6 +68,12 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r backend/requirements.txt
 
+# Chạy API đăng ký (từ thư mục backend/)
+cd backend
+uvicorn app.main:app --reload --port 8000
+# Docs: http://localhost:8000/docs
+# POST /api/auth/register  (chỉ TTS / intern — không dùng cho HR/mentor)
+
 # Frontend
 cd frontend
 npm ci
@@ -130,13 +136,19 @@ flowchart LR
   BE --> DB
 ```
 
+| Đang lệch / thiếu | Việc nhóm cần làm |
+| --- | --- |
+| `backend/` đã có register API (TTS) | Tiếp: login, me, upload documents |
+| `frontend/` đã có `features/auth/` | Bổ sung `api/`, `layouts/`, `routes/` khi làm màn hình |
+| Seed roles trong `schema.sql` | DB volume cũ: chạy `database/migrate_register.sql` |
+
 ## CI (GitHub Actions)
 
 PR vào `main` → `.github/workflows/ci.yml` chạy song song:
 
 | Job | Kiểm tra |
 | --- | --- |
-| **Backend (Python)** | Cài deps + `compileall` |
+| **Backend (Python)** | Cài deps + `compileall` + pytest validate |
 | **Frontend (React)** | `npm ci` + lint + build |
 | **Docker Compose config** | `docker compose config` hợp lệ |
 
