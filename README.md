@@ -73,23 +73,81 @@ npm ci
 npm run dev
 ```
 
-## Cấu trúc repo
+## Cấu trúc thư mục tổng quan
 
-```
-.
-├── .github/workflows/ci.yml
-├── backend/
-│   ├── requirements.txt
+```text
+Product_Backlog_Internship_Ictu/
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml                 # CI: Python + React + Docker validate
+│
+├── backend/                       # Backend Python
+│   ├── requirements.txt           # PyJWT, bcrypt, …
 │   └── utils/
-├── frontend/                  # React + Vite
-│   ├── Dockerfile
-│   └── src/
-├── database/schema.sql
-├── docs/
-├── docker-compose.yml         # db + frontend (+ frontend-dev)
-├── .env.example
+│       ├── hash_password.py       # Mã hóa / verify mật khẩu
+│       └── authenticate_login.py  # JWT login
+│
+├── frontend/                      # Frontend React + Vite
+│   ├── public/                    # Static assets
+│   ├── src/
+│   │   ├── assets/                # Ảnh, SVG
+│   │   ├── App.jsx                # Component gốc
+│   │   ├── App.css
+│   │   ├── main.jsx               # Entry
+│   │   └── index.css
+│   ├── Dockerfile                 # Build nginx production
+│   ├── nginx.conf
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+│
+├── database/
+│   └── schema.sql                 # roles, users, intern_profiles
+│
+├── docs/                          # Tài liệu dự án
+│   ├── software-specification.md  # Đặc tả (SRS) cho developer
+│   ├── overview.md
+│   ├── flow.md
+│   ├── git-conventions.md
+│   └── product-backlog.md
+│
+├── docker-compose.yml             # Stack pbi-ictu: MySQL + Frontend
+├── .env.example                   # Mẫu biến môi trường (copy → .env)
+├── .gitignore
 └── README.md
 ```
+
+### Sơ đồ quan hệ các phần
+
+```mermaid
+flowchart LR
+  subgraph Repo
+    FE[frontend/ React]
+    BE[backend/ Python utils]
+    DB[(database/ schema.sql)]
+    DOC[docs/]
+    CI[.github/workflows]
+  end
+
+  DC[docker-compose.yml]
+
+  DC --> FE
+  DC --> DB
+  FE -. gọi API sau này .-> BE
+  BE --> DB
+  CI -. kiểm tra PR .-> FE
+  CI -. kiểm tra PR .-> BE
+```
+
+| Thư mục / file | Vai trò |
+| --- | --- |
+| `frontend/` | Giao diện người dùng (React) |
+| `backend/` | Logic auth / tiện ích Python (API sẽ mở rộng tại đây) |
+| `database/` | Schema MySQL khởi tạo cùng Docker |
+| `docs/` | Đặc tả, backlog, quy ước Git |
+| `docker-compose.yml` | Chạy nhanh MySQL + FE (`pbi-ictu-*`) |
+| `.github/workflows/ci.yml` | CI trước khi merge |
 
 ## CI (GitHub Actions)
 
