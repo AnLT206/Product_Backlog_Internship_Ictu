@@ -1,7 +1,10 @@
+# Tên stack trên Docker Desktop
+name: pbi-ictu
+
 services:
   db:
     image: mysql:8.0
-    container_name: ictu_internship_db
+    container_name: pbi-ictu-mysql
     restart: unless-stopped
     env_file:
       - .env
@@ -11,38 +14,44 @@ services:
       MYSQL_USER: ${DB_USER:-ictu}
       MYSQL_PASSWORD: ${DB_PASSWORD:-ictu}
     ports:
-      - "${DB_PORT:-3306}:3306"
+      # Host 3307 — tránh đụng MySQL khác (thường chiếm 3306)
+      - "${DB_PORT:-3307}:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - pbi_ictu_mysql_data:/var/lib/mysql
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - pbi-ictu-net
 
-  # Frontend production build (nginx) — chạy nhanh: docker compose up --build -d
+  # Build production (nginx) — docker compose up --build -d
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: ictu_internship_frontend
+    container_name: pbi-ictu-frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-8080}:80"
+      # Host 3000 — tránh đụng phpMyAdmin (8080), pgAdmin (8081)
+      - "${FRONTEND_PORT:-3000}:80"
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - pbi-ictu-net
 
-  # Frontend dev (Vite hot-reload): docker compose --profile dev up frontend-dev
+  # Hot-reload Vite — docker compose --profile dev up db frontend-dev
   frontend-dev:
     profiles: ["dev"]
     image: node:22-alpine
-    container_name: ictu_internship_frontend_dev
+    container_name: pbi-ictu-frontend-dev
     working_dir: /app
     volumes:
       - ./frontend:/app
-      - frontend_node_modules:/app/node_modules
+      - pbi_ictu_frontend_node_modules:/app/node_modules
     command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
     ports:
       - "${FRONTEND_DEV_PORT:-5173}:5173"
@@ -51,7 +60,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - pbi-ictu-net
 
 volumes:
-  mysql_data:
-  frontend_node_modules:
+  pbi_ictu_mysql_data:
+  pbi_ictu_frontend_node_modules:
+
+networks:
+  pbi-ictu-net:
+    name: pbi-ictu-net

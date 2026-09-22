@@ -21,20 +21,24 @@ Số hóa quy trình quản lý thực tập sinh: tiếp nhận hồ sơ, phân
 
 ## Chạy dự án nhanh (Docker)
 
+> Stack tên **`pbi-ictu`** (Product Backlog Internship ICTU).  
+> Port mặc định tránh đụng stack khác trên máy (MySQL 3306, phpMyAdmin 8080, pgAdmin 8081).
+
 ```bash
 git clone https://github.com/AnLT206/Product_Backlog_Internship_Ictu.git
 cd Product_Backlog_Internship_Ictu
 
 cp .env.example .env
+docker compose down
 docker compose up --build -d
 ```
 
 Sau khi chạy:
 
-| Service | URL / Port |
-| --- | --- |
-| Frontend (React + nginx) | http://localhost:8080 |
-| MySQL | `localhost:3306` — DB `ictu_internship` / user `ictu` / pass `ictu` |
+| Service | Container | URL / Port |
+| --- | --- | --- |
+| Frontend (React + nginx) | `pbi-ictu-frontend` | http://localhost:3000 |
+| MySQL | `pbi-ictu-mysql` | `localhost:3307` — DB `ictu_internship` / user `ictu` / pass `ictu` |
 
 Dừng:
 
@@ -51,10 +55,10 @@ docker compose down -v
 ### Frontend hot-reload (dev)
 
 ```bash
-docker compose --profile dev up frontend-dev db
+docker compose --profile dev up db frontend-dev
 ```
 
-Mở http://localhost:5173 (Vite). Service `frontend` (nginx :8080) vẫn có thể chạy song song.
+Mở http://localhost:5173 (container `pbi-ictu-frontend-dev`).
 
 ## Chạy local (không Docker FE)
 
