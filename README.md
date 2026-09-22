@@ -9,6 +9,7 @@ Số hóa quy trình quản lý thực tập sinh: tiếp nhận hồ sơ, phân
 | Tài liệu | Nội dung |
 | --- | --- |
 | [docs/software-specification.md](docs/software-specification.md) | **Đặc tả phần mềm (SRS) — chi tiết cho developer** |
+| [docs/api.md](docs/api.md) | **API Backend — hướng dẫn cho FE (endpoint, body, lỗi)** |
 | [docs/folder-structure.md](docs/folder-structure.md) | **Cấu trúc thư mục chuẩn — cả nhóm phải bám** |
 | [docs/overview.md](docs/overview.md) | Chi tiết dự án, mục tiêu, vai trò, Epic |
 | [docs/flow.md](docs/flow.md) | Luồng nghiệp vụ & luồng làm việc nhóm |
@@ -34,6 +35,7 @@ Sau khi chạy:
 
 | Service | URL / Port |
 | --- | --- |
+| Backend API (FastAPI) | http://localhost:8000 — docs: `/docs` — [api.md](docs/api.md) |
 | Frontend (React + nginx) | http://localhost:8080 |
 | MySQL | `localhost:3306` — DB `ictu_internship` / user `ictu` / pass `ictu` |
 
