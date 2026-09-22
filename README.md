@@ -68,6 +68,12 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r backend/requirements.txt
 
+# Chạy API đăng ký (từ thư mục backend/)
+cd backend
+uvicorn app.main:app --reload --port 8000
+# Docs: http://localhost:8000/docs
+# POST /api/auth/register  (chỉ TTS / intern — không dùng cho HR/mentor)
+
 # Frontend
 cd frontend
 npm ci
@@ -132,7 +138,7 @@ flowchart LR
 
 | Đang lệch / thiếu | Việc nhóm cần làm |
 | --- | --- |
-| `backend/` mới có `utils/` | Khi dựng API: tạo `app/api`, `core`, `models`, `schemas`, `services` |
+| `backend/` mới có `app/` (register API) | Tiếp: login, me, upload documents |
 | `frontend/src` mới có `App.jsx` + assets | Khi làm màn hình: tạo `api/`, `features/`, `layouts/`, `routes/` |
 | Chưa có `database/seeds` | Thêm seed roles khi implement auth |
 

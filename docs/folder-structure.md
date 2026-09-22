@@ -119,11 +119,12 @@ backend/
 
 ### Map code hiện có → chuẩn
 
-| Hiện tại (đã chuyển) | Ghi chú |
+| Hiện tại | Ghi chú |
 | --- | --- |
-| `backend/app/utils/hash_password.py` | Helper hash/verify |
-| `backend/app/utils/authenticate_login.py` | Helper JWT; logic login API sẽ vào `services/auth_service.py` sau |
-| (chưa có) | Tạo `app/main.py`, `api/`, `models/`, `schemas/` khi làm API |
+| `backend/app/utils/*` | Helper hash / JWT |
+| `backend/app/main.py` + `api/routes/auth.py` | `POST /api/auth/register` (**chỉ TTS**) |
+| `backend/app/schemas/auth.py` | `InternRegisterRequest` — không có field `role` |
+| (tiếp theo) | `login`, `me`; upload documents; admin tạo HR/mentor |
 
 ---
 

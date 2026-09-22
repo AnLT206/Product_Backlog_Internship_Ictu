@@ -200,9 +200,10 @@ TTS đăng ký (pending)
 
 | Layer | Việc |
 | --- | --- |
-| BE | `POST /api/auth/login`, `POST /api/auth/register`, `GET /api/auth/me` |
+| BE | `POST /api/auth/login`, `GET /api/auth/me` |
+| BE | `POST /api/auth/register` (**chỉ TTS** → `role=intern`; HR/mentor/admin do admin tạo) |
 | BE | Gọi sẵn `hash_password`, `verify_password`, `create_access_token`, `verify_access_token` |
-| FE | Trang `/login`, `/register`, lưu token (memory/localStorage), gắn header mọi request |
+| FE | Trang `/login`, `/register` (form TTS), lưu token (memory/localStorage), gắn header mọi request |
 | DB | Seed 4 roles nếu chưa có |
 
 ### 3.2. Màn hình Đăng nhập — `/login`
@@ -260,8 +261,9 @@ Authorization: Bearer <jwt>
 | Layer | Việc |
 | --- | --- |
 | DB | Dùng `users` + `intern_profiles`; **thêm** bảng `documents` (CV, đơn) |
-| BE | `POST /api/auth/register` (multipart hoặc 2 bước: đăng ký + upload) |
-| FE | Form `/register` |
+| BE | `POST /api/auth/register` (chỉ TTS; multipart hoặc 2 bước: đăng ký + upload) |
+| FE | Form `/register` (đăng ký thực tập sinh) |
+| — | HR / mentor / admin **không** dùng form/API đăng ký công khai |
 
 ### 4.2. Bảng `documents` (cần tạo)
 

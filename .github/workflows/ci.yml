@@ -31,6 +31,10 @@ jobs:
       - name: Check Python syntax
         run: python -m compileall -q backend
 
+      - name: Unit tests (validation)
+        working-directory: backend
+        run: python -m pytest tests/ -q
+
   frontend:
     name: Frontend (React)
     runs-on: ubuntu-latest
