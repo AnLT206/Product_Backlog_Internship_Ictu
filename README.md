@@ -16,53 +16,92 @@ Số hóa quy trình quản lý thực tập sinh: tiếp nhận hồ sơ, phân
 
 ## Yêu cầu
 
-- Python 3.10+
-- Docker & Docker Compose
-- Git
+- Docker & Docker Compose (cách nhanh nhất)
+- Hoặc: Python 3.10+, Node.js 22+, Git
 
-## Cài đặt nhanh
+## Chạy dự án nhanh (Docker)
 
 ```bash
 git clone https://github.com/AnLT206/Product_Backlog_Internship_Ictu.git
 cd Product_Backlog_Internship_Ictu
 
 cp .env.example .env
-
-python3 -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
-pip install -r backend/requirements.txt
-
-docker compose up -d
+docker compose up --build -d
 ```
 
-Kết nối MySQL mặc định: `localhost:3306` / DB `ictu_internship` / user `ictu` / password `ictu`  
-(chi tiết trong `.env.example`)
+Sau khi chạy:
 
-Dừng DB: `docker compose down` · Reset DB: `docker compose down -v`
+| Service | URL / Port |
+| --- | --- |
+| Frontend (React + nginx) | http://localhost:8080 |
+| MySQL | `localhost:3306` — DB `ictu_internship` / user `ictu` / pass `ictu` |
+
+Dừng:
+
+```bash
+docker compose down
+```
+
+Reset DB (xóa volume):
+
+```bash
+docker compose down -v
+```
+
+### Frontend hot-reload (dev)
+
+```bash
+docker compose --profile dev up frontend-dev db
+```
+
+Mở http://localhost:5173 (Vite). Service `frontend` (nginx :8080) vẫn có thể chạy song song.
+
+## Chạy local (không Docker FE)
+
+```bash
+cp .env.example .env
+docker compose up -d db
+
+# Backend utils
+python3 -m venv venv
+source venv/bin/activate
+pip install -r backend/requirements.txt
+
+# Frontend
+cd frontend
+npm ci
+npm run dev
+```
 
 ## Cấu trúc repo
 
 ```
 .
-├── .github/workflows/ci.yml   # CI kiểm tra PR
+├── .github/workflows/ci.yml
 ├── backend/
 │   ├── requirements.txt
-│   └── utils/                 # hash password, JWT login
+│   └── utils/
+├── frontend/                  # React + Vite
+│   ├── Dockerfile
+│   └── src/
 ├── database/schema.sql
 ├── docs/
-├── docker-compose.yml
+├── docker-compose.yml         # db + frontend (+ frontend-dev)
 ├── .env.example
 └── README.md
 ```
 
-## CI
+## CI (GitHub Actions)
 
-PR vào `main` → GitHub Actions (`.github/workflows/ci.yml`):
+PR vào `main` → `.github/workflows/ci.yml` chạy song song:
 
-- Cài `backend/requirements.txt`
-- Kiểm tra cú pháp Python (`compileall`)
+| Job | Kiểm tra |
+| --- | --- |
+| **Backend (Python)** | Cài deps + `compileall` |
+| **Frontend (React)** | `npm ci` + lint + build |
+| **Docker Compose config** | `docker compose config` hợp lệ |
 
-CI fail → không merge. Nên bật branch protection: **Require status checks** → `Check code`.
+CI fail → không merge. Branch protection: bật **Require status checks** cho các job trên.
 
 ## Đóng góp
 
