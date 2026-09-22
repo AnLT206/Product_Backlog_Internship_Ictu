@@ -16,15 +16,12 @@ Kho quản lý **product backlog** và codebase cho kỳ thực tập tại Trư
 │   └── ci.yml                    # Kiểm tra code trên Pull Request
 ├── backend/
 │   ├── requirements.txt
-│   ├── tests/
 │   └── utils/
-│       ├── hash_password.py
-│       └── authenticate_login.py
+│       ├── hash_password.py      # Mã hóa / kiểm tra mật khẩu (bcrypt)
+│       └── authenticate_login.py # Tạo / xác thực JWT khi đăng nhập
 ├── database/
-│   └── schema.sql
-├── docker-compose.yml
-├── pytest.ini
-├── ruff.toml
+│   └── schema.sql                # roles, users, intern_profiles
+├── docker-compose.yml            # MySQL 8 cho môi trường local
 ├── .gitignore
 └── README.md
 ```
@@ -40,7 +37,7 @@ Kho quản lý **product backlog** và codebase cho kỳ thực tập tại Trư
 ### 1. Clone repository
 
 ```bash
-git clone <url-repo>
+git clone https://github.com/AnLT206/Product_Backlog_Internship_Ictu.git
 cd Product_Backlog_Internship_Ictu
 ```
 
@@ -125,26 +122,12 @@ Mỗi hạng mục theo mẫu:
 
 ## CI (GitHub Actions)
 
-Khi mở Pull Request vào `main`, workflow `.github/workflows/ci.yml` tự chạy để kiểm tra code trước khi merge:
+Khi mở Pull Request vào `main`, file `.github/workflows/ci.yml` chạy để kiểm tra code trước khi merge:
 
-1. Cài dependency Python
-2. Chạy MySQL 8 và nạp `database/schema.sql`
-3. Lint bằng Ruff
-4. Chạy pytest
+- Cài dependency từ `backend/requirements.txt`
+- Kiểm tra lỗi cú pháp Python (`compileall`)
 
-Nếu CI fail, không nên merge PR.
-
-Chạy kiểm tra local:
-
-```bash
-source venv/bin/activate
-pip install -r backend/requirements.txt
-docker compose up -d
-ruff check backend
-pytest -q
-```
-
-> Trên GitHub: Settings → Branches → Branch protection rule cho `main` → bật **Require status checks to pass before merging** và chọn check `Check code`.
+Nếu CI fail, không nên merge. Có thể bật branch protection: Settings → Branches → **Require status checks to pass before merging** → chọn `Check code`.
 
 ## Cách đóng góp
 

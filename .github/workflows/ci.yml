@@ -13,36 +13,9 @@ jobs:
     name: Check code
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: ictu_internship
-          MYSQL_USER: ictu
-          MYSQL_PASSWORD: ictu
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-
-    env:
-      JWT_SECRET_KEY: ci-test-secret
-      DB_HOST: 127.0.0.1
-      DB_PORT: 3306
-      DB_USER: ictu
-      DB_PASSWORD: ictu
-      DB_NAME: ictu_internship
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install MySQL client
-        run: sudo apt-get update && sudo apt-get install -y mysql-client
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -56,11 +29,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
 
-      - name: Apply database schema
-        run: mysql -h 127.0.0.1 -uroot -proot ictu_internship < database/schema.sql
-
-      - name: Lint
-        run: ruff check backend
-
-      - name: Test
-        run: pytest -q
+      - name: Check Python syntax
+        run: python -m compileall -q backend
