@@ -1,552 +1,662 @@
-# Đặc tả phần mềm (Software Requirements Specification)
+# Đặc tả phần mềm — Hướng dẫn cho Developer
 
-**Tên hệ thống:** Hệ thống quản lý thực tập sinh — ICTU  
-**Phiên bản tài liệu:** 1.0  
-**Ngày:** 2026-09-22  
-**Nguồn yêu cầu:** [Product Backlog (Google Sheets)](https://docs.google.com/spreadsheets/d/1jF0gj_Em33a7TeNolltgRWrO9OiZoeYr/edit?gid=405766727#gid=405766727)
-
----
-
-## 1. Giới thiệu
-
-### 1.1. Mục đích tài liệu
-
-Tài liệu này mô tả chi tiết yêu cầu phần mềm cho hệ thống quản lý thực tập sinh, làm cơ sở cho:
-
-- Phân tích thiết kế, lập trình và kiểm thử
-- Thống nhất phạm vi giữa nhóm phát triển, HR và mentor
-- Theo dõi tiến độ theo Product Backlog (42 User Story / 10 Epic)
-
-
-
-### 1.2. Phạm vi sản phẩm
-
-Hệ thống số hóa toàn bộ vòng đời thực tập sinh trong doanh nghiệp:
-
-- Tiếp nhận & xét duyệt hồ sơ
-- Phân công mentor / chương trình
-- Chấm công, giao việc, báo cáo, đánh giá
-- Quản lý phụ cấp & yêu cầu hỗ trợ
-- Báo cáo thống kê, thông báo, tích hợp hệ thống ngoài
-- Quản trị tài khoản, phân quyền, bảo mật
-
-**Ngoài phạm vi (giai đoạn đầu):** ứng dụng mobile native đầy đủ, tích hợp HRM/QR chấm công sâu (chỉ định hướng trong backlog Epic 9).
-
-### 1.3. Định nghĩa & từ viết tắt
-
-
-| Thuật ngữ | Ý nghĩa                                   |
-| --------- | ----------------------------------------- |
-| TTS       | Thực tập sinh                             |
-| HR        | Nhân sự phụ trách chương trình thực tập   |
-| Mentor    | Người hướng dẫn TTS                       |
-| Admin     | Quản trị hệ thống                         |
-| JWT       | JSON Web Token — xác thực phiên đăng nhập |
-| SRS       | Software Requirements Specification       |
-| US        | User Story                                |
-| HRM       | Human Resource Management system          |
-| Epic      | Nhóm chức năng lớn trong backlog          |
-
-
-
-
-### 1.4. Tài liệu liên quan
-
-
-| Tài liệu            | Vị trí                                   |
-| ------------------- | ---------------------------------------- |
-| Product Backlog     | Google Sheets (link trên)                |
-| Tổng quan dự án     | [overview.md](overview.md)               |
-| Luồng nghiệp vụ     | [flow.md](flow.md)                       |
-| Chi tiết User Story | [product-backlog.md](product-backlog.md) |
-| Quy tắc Git         | [git-conventions.md](git-conventions.md) |
-| Schema DB hiện tại  | `database/schema.sql`                    |
-
+**Hệ thống:** Quản lý thực tập sinh — ICTU  
+**Phiên bản:** 2.1 (dành cho lập trình viên)  
+**Ngày:** 2026-09-23  
+**Backlog:** [Google Sheets](https://docs.google.com/spreadsheets/d/1jF0gj_Em33a7TeNolltgRWrO9OiZoeYr/edit?gid=405766727#gid=405766727)
 
 ---
 
+## Cách đọc tài liệu này
 
+Mỗi chức năng được viết theo khung:
 
-## 2. Tầm nhìn & mục tiêu
+1. **Dev phải làm gì** — FE / BE / DB  
+2. **Luồng người dùng** — từng bước bấm / điền  
+3. **Màn hình** — URL, ô nhập, nút  
+4. **API** — method, path, request/response  
+5. **Quy tắc nghiệp vụ** — validate, trạng thái  
+6. **Done khi nào** — checklist nghiệm thu  
 
+**Đã có trong repo (đừng làm lại):**
 
+| File | Việc đã xong |
+| --- | --- |
+| `database/schema.sql` | Bảng `roles`, `users`, `intern_profiles` |
+| `backend/utils/hash_password.py` | Hash / verify bcrypt |
+| `backend/utils/authenticate_login.py` | Tạo / verify JWT, login helper |
+| `docker-compose.yml` + `.env.example` | MySQL local |
+| `.github/workflows/ci.yml` | CI kiểm tra cú pháp Python |
 
-### 2.1. Tầm nhìn (Product Vision)
-
-> Tạo ra một hệ thống số hóa toàn diện để quản lý thực tập sinh, giúp doanh nghiệp tối ưu quy trình tuyển chọn, quản lý và đánh giá; đồng thời mang đến cho thực tập sinh trải nghiệm minh bạch, chuyên nghiệp và hiệu quả.
-
-
-
-### 2.2. Mục tiêu sản phẩm (Product Goals)
-
-1. **Chuẩn hóa và số hóa quy trình**
-  - Tự động hóa: tiếp nhận → phân công → chấm công → báo cáo → đánh giá
-  - Giảm Excel / email rời rạc
-2. **Tăng hiệu quả quản lý, giảm chi phí nhân sự**
-  - HR quản lý số lượng lớn TTS cùng lúc
-  - Tiết kiệm thời gian theo dõi, đánh giá cho HR và mentor
-  - Hướng tới tích hợp HRM, tránh trùng dữ liệu
-3. **Nâng cao trải nghiệm TTS**
-  - Cổng thông tin / ứng dụng: lịch, chấm công, báo cáo
-  - Minh bạch công việc, tiến độ, quyền lợi, đánh giá
-4. **Củng cố hợp tác doanh nghiệp — trường**
-  - Báo cáo chi tiết gửi trường
-  - Hỗ trợ thương hiệu tuyển dụng với sinh viên
-5. **Dữ liệu phân tích chiến lược**
-  - Thống kê theo trường / ngành
-  - Tỷ lệ hoàn thành, tỷ lệ được tuyển chính thức
-  - Cơ sở dự báo nguồn nhân lực trẻ
+**Chưa có — cần làm:** REST API, frontend, upload file, email, các bảng Epic còn lại.
 
 ---
 
+## 1. Bức tranh tổng thể
 
+### 1.1. Tầm nhìn
 
-## 3. Tổng quan hệ thống
+Số hóa tuyển chọn → quản lý → đánh giá thực tập sinh; TTS có trải nghiệm minh bạch.
 
+### 1.2. Vai trò (seed vào bảng `roles`)
 
+| `roles.name` | Ai | Sau login vào đâu |
+| --- | --- | --- |
+| `intern` | Thực tập sinh | `/intern/dashboard` |
+| `mentor` | Mentor | `/mentor/dashboard` |
+| `hr` | HR | `/hr/dashboard` |
+| `admin` | Admin | `/admin/dashboard` |
 
-### 3.1. Bối cảnh
+### 1.3. Luồng hoạt động chính (end-to-end)
 
-```text
-                    ┌─────────────────────┐
-                    │  Email / Thông báo  │
-                    └──────────▲──────────┘
-                               │
-┌──────────┐    ┌──────────────┴──────────────┐    ┌────────────┐
-│  TTS Web │───►│  Hệ thống quản lý TTS ICTU  │◄───│ HR / Mentor│
-│  / App   │    │  (Backend + DB + Auth)      │    │   Web      │
-└──────────┘    └──────────────┬──────────────┘    └────────────┘
-                               │
-                    ┌──────────▼──────────┐
-                    │ MySQL + (tương lai) │
-                    │ HRM / QR chấm công  │
-                    └─────────────────────┘
+#### 1.3.1. Sơ đồ tổng quan vòng đời thực tập sinh
+
+```mermaid
+flowchart TD
+    Start([Bắt đầu]) --> Register[TTS đăng ký + nộp hồ sơ + upload CV/đơn]
+    Register --> Pending[users.status = pending]
+
+    Pending --> HRReview{HR xét duyệt}
+    HRReview -->|Từ chối| Rejected[status = inactive]
+    Rejected --> EmailReject[Gửi email thông báo]
+    EmailReject --> EndReject([Kết thúc - không nhận])
+
+    HRReview -->|Duyệt| Active[status = active]
+    Active --> EmailOk[Gửi email thông báo]
+    EmailOk --> ContractHR[HR upload hợp đồng]
+    ContractHR --> ContractTTS{TTS xác nhận hợp đồng?}
+    ContractTTS -->|Chưa| WaitContract[Chờ xác nhận]
+    WaitContract --> ContractTTS
+    ContractTTS -->|Đã xác nhận| Assign[HR tạo chương trình + gán mentor]
+
+    Assign --> Parallel{Giai đoạn thực tập}
+
+    Parallel --> Attend[TTS: Check-in / Check-out / Nghỉ phép]
+    Parallel --> Tasks[Mentor giao việc → TTS cập nhật tiến độ]
+    Parallel --> Reports[TTS nộp báo cáo tuần → Mentor phản hồi]
+    Parallel --> Support[TTS gửi hỗ trợ / HR phụ cấp]
+
+    Attend --> Eval
+    Tasks --> Eval
+    Reports --> Eval
+    Support --> Eval
+
+    Eval[Mentor đánh giá kỹ năng & thái độ]
+    Eval --> Summary[HR tổng hợp + xuất báo cáo Excel/PDF]
+    Summary --> EndOk([Kết thúc chương trình])
 ```
 
-
-
-### 3.2. Đối tượng người dùng (Actors)
-
-
-| Actor             | Mô tả                           | Quyền chính                                                     |
-| ----------------- | ------------------------------- | --------------------------------------------------------------- |
-| **Thực tập sinh** | Sinh viên tham gia chương trình | Đăng ký, hồ sơ, chấm công, báo cáo, nghỉ phép, xem phụ cấp      |
-| **HR**            | Quản lý chương trình thực tập   | Hồ sơ, duyệt, chương trình, mentor, chấm công, phụ cấp, báo cáo |
-| **Mentor**        | Hướng dẫn TTS được phân công    | Giao việc, phản hồi báo cáo, đánh giá                           |
-| **Admin**         | Quản trị hệ thống               | Tài khoản, phân quyền, tích hợp, nhật ký, sao lưu               |
-| **Hệ thống**      | Tiến trình tự động              | Email thông báo, sao lưu định kỳ                                |
-
-
-
-
-### 3.3. Giả định & ràng buộc
-
-
-| Loại               | Nội dung                                                     |
-| ------------------ | ------------------------------------------------------------ |
-| Giả định           | Người dùng có trình duyệt hiện đại; email TTS hợp lệ         |
-| Giả định           | Mỗi TTS thuộc một chương trình / mentor (sau khi được duyệt) |
-| Ràng buộc kỹ thuật | Backend Python; DB MySQL 8; xác thực JWT                     |
-| Ràng buộc bảo mật  | Không commit `.env`; mật khẩu lưu dạng hash (bcrypt)         |
-| Ràng buộc vận hành | CI phải pass trước khi merge vào `main`                      |
-
-
-
-
-### 3.4. Stack kỹ thuật (hiện tại & hướng tới)
-
-
-| Lớp      | Hiện tại                                      | Hướng mở rộng             |
-| -------- | --------------------------------------------- | ------------------------- |
-| Backend  | Python utils (bcrypt, PyJWT)                  | REST API (FastAPI/Flask…) |
-| Database | MySQL 8 — `roles`, `users`, `intern_profiles` | Bổ sung bảng theo Epic    |
-| Cấu hình | `.env` / Docker Compose                       | Staging / Production      |
-| CI       | GitHub Actions — syntax check                 | Test / lint mở rộng       |
-
-
----
-
-
-
-## 4. Yêu cầu chức năng
-
-Quy ước ID: `FR-<Epic>-<STT>` map với User Story trong backlog.
-
-### 4.1. Epic 1 — Quản lý hồ sơ thực tập sinh (US 1–5)
-
-
-| ID      | Actor | Mô tả yêu cầu                     | Tiêu chí chấp nhận (tóm tắt)                             |
-| ------- | ----- | --------------------------------- | -------------------------------------------------------- |
-| FR-1-01 | HR    | Thêm mới hồ sơ TTS                | Tạo được hồ sơ với thông tin bắt buộc; lưu DB thành công |
-| FR-1-02 | HR    | Chỉnh sửa hồ sơ TTS               | Cập nhật được các trường cho phép; ghi `updated_at`      |
-| FR-1-03 | HR    | Tìm kiếm / lọc theo trường, ngành | Kết quả khớp bộ lọc; phân trang nếu danh sách lớn        |
-| FR-1-04 | TTS   | Upload CV và đơn xin thực tập     | File hợp lệ (loại/size); gắn với hồ sơ TTS               |
-| FR-1-05 | HR    | Xem và duyệt tài liệu             | Duyệt / từ chối kèm ghi chú; TTS thấy trạng thái         |
-
-
-**Dữ liệu liên quan (hiện có / mở rộng):** `intern_profiles`, bảng tài liệu (đề xuất: `documents`).
-
-### 4.2. Epic 2 — Tiếp nhận và xét duyệt (US 6–10)
-
-
-| ID      | Actor    | Mô tả yêu cầu                        | Tiêu chí chấp nhận                                                             |
-| ------- | -------- | ------------------------------------ | ------------------------------------------------------------------------------ |
-| FR-2-01 | TTS      | Đăng ký tài khoản + nộp hồ sơ online | Email unique; password hash; tạo `users` + `intern_profiles`; status `pending` |
-| FR-2-02 | HR       | Duyệt / từ chối hồ sơ                | Đổi trạng thái; không duyệt trùng logic sai                                    |
-| FR-2-03 | Hệ thống | Email thông báo kết quả xét duyệt    | Gửi sau khi HR quyết định; nội dung đúng kết quả                               |
-| FR-2-04 | HR       | Upload hợp đồng thực tập             | File gắn TTS đã duyệt                                                          |
-| FR-2-05 | TTS      | Xác nhận hợp đồng trên hệ thống      | TTS xác nhận; hệ thống ghi nhận thời điểm xác nhận                             |
-
-
-
-
-### 4.3. Epic 3 — Quản lý chương trình thực tập (US 11–14)
-
-
-| ID      | Actor | Mô tả yêu cầu                     | Tiêu chí chấp nhận                                 |
-| ------- | ----- | --------------------------------- | -------------------------------------------------- |
-| FR-3-01 | HR    | Tạo chương trình theo phòng ban   | Có tên, phòng ban, mô tả; lưu thành công           |
-| FR-3-02 | HR    | Phân công TTS cho mentor          | Mỗi TTS có mentor; mentor thấy danh sách được giao |
-| FR-3-03 | HR    | Thiết lập ngày bắt đầu / kết thúc | `start_date` ≤ `end_date`                          |
-| FR-3-04 | TTS   | Xem lịch thực tập cá nhân         | Chỉ thấy lịch của mình                             |
-
-
-
-
-### 4.4. Epic 4 — Quản lý công việc & đánh giá (US 15–20)
-
-
-| ID      | Actor  | Mô tả yêu cầu              | Tiêu chí chấp nhận                            |
-| ------- | ------ | -------------------------- | --------------------------------------------- |
-| FR-4-01 | Mentor | Giao nhiệm vụ cho TTS      | Task có tiêu đề, hạn, TTS nhận                |
-| FR-4-02 | TTS    | Cập nhật tiến độ công việc | Đổi % / trạng thái; mentor xem được           |
-| FR-4-03 | TTS    | Nộp báo cáo tuần           | Nội dung + thời gian nộp                      |
-| FR-4-04 | Mentor | Xem báo cáo & phản hồi     | Comment lưu được; TTS thấy phản hồi           |
-| FR-4-05 | Mentor | Đánh giá kỹ năng & thái độ | Điểm / nhận xét theo tiêu chí                 |
-| FR-4-06 | HR     | Tổng hợp đánh giá cuối kỳ  | Xuất báo cáo tổng hợp theo chương trình / TTS |
-
-
-
-
-### 4.5. Epic 5 — Quản lý chấm công & thời gian (US 21–24)
-
-
-| ID      | Actor | Mô tả yêu cầu                     | Tiêu chí chấp nhận                                 |
-| ------- | ----- | --------------------------------- | -------------------------------------------------- |
-| FR-5-01 | TTS   | Check-in / check-out              | Ghi nhận thời gian; không check-out trước check-in |
-| FR-5-02 | HR    | Xem báo cáo đi làm / nghỉ phép    | Lọc theo ngày, TTS, trạng thái                     |
-| FR-5-03 | HR    | Thiết lập lịch làm việc linh hoạt | Áp dụng theo nhóm / chương trình                   |
-| FR-5-04 | TTS   | Đăng ký nghỉ phép                 | Gửi yêu cầu; HR duyệt (luồng liên quan FR-5-02)    |
-
-
-
-
-### 4.6. Epic 6 — Quản lý hỗ trợ & quyền lợi (US 25–28)
-
-
-| ID      | Actor | Mô tả yêu cầu                             | Tiêu chí chấp nhận          |
-| ------- | ----- | ----------------------------------------- | --------------------------- |
-| FR-6-01 | HR    | Nhập thông tin phụ cấp                    | Số tiền, kỳ, TTS            |
-| FR-6-02 | TTS   | Xem lịch sử phụ cấp                       | Chỉ dữ liệu của chính TTS   |
-| FR-6-03 | TTS   | Gửi yêu cầu hỗ trợ (chứng nhận, giấy tờ…) | Tạo ticket với loại & mô tả |
-| FR-6-04 | HR    | Duyệt / phản hồi yêu cầu hỗ trợ           | Đổi trạng thái + phản hồi   |
-
-
-
-
-### 4.7. Epic 7 — Quản lý mentor & phòng ban (US 29–31)
-
-
-| ID      | Actor | Mô tả yêu cầu             | Tiêu chí chấp nhận               |
-| ------- | ----- | ------------------------- | -------------------------------- |
-| FR-7-01 | HR    | Thêm mới mentor           | Tạo user role mentor             |
-| FR-7-02 | HR    | Gán mentor cho TTS        | Cập nhật quan hệ mentor–TTS      |
-| FR-7-03 | HR    | Xem số lượng TTS / mentor | Dashboard / danh sách có cột đếm |
-
-
-
-
-### 4.8. Epic 8 — Báo cáo & thống kê (US 32–34)
-
-
-| ID      | Actor | Mô tả yêu cầu                     | Tiêu chí chấp nhận                         |
-| ------- | ----- | --------------------------------- | ------------------------------------------ |
-| FR-8-01 | HR    | Thống kê TTS theo trường / ngành  | Biểu đồ hoặc bảng số liệu đúng filter      |
-| FR-8-02 | HR    | Xem tỷ lệ hoàn thành chương trình | Công thức rõ; cập nhật theo trạng thái TTS |
-| FR-8-03 | HR    | Xuất Excel / PDF                  | File tải được; nội dung khớp bộ lọc        |
-
-
-
-
-### 4.9. Epic 9 — Tích hợp & thông báo (US 35–38)
-
-
-| ID      | Actor    | Mô tả yêu cầu                | Tiêu chí chấp nhận                         |
-| ------- | -------- | ---------------------------- | ------------------------------------------ |
-| FR-9-01 | Hệ thống | Email khi có lịch họp        | Gửi đúng người, đúng thời điểm cấu hình    |
-| FR-9-02 | TTS      | Nhận thông báo trên ứng dụng | Có danh sách / badge chưa đọc              |
-| FR-9-03 | Admin    | Tích hợp HRM đồng bộ nhân sự | Đồng bộ theo lịch hoặc thủ công; log lỗi   |
-| FR-9-04 | Admin    | Tích hợp chấm công QR / thẻ  | Bản ghi chấm công từ thiết bị vào hệ thống |
-
-
-
-
-### 4.10. Epic 10 — Quản trị hệ thống (US 39–42)
-
-
-| ID       | Actor    | Mô tả yêu cầu                    | Tiêu chí chấp nhận                                                  |
-| -------- | -------- | -------------------------------- | ------------------------------------------------------------------- |
-| FR-10-01 | Admin    | Tạo tài khoản HR / mentor / TTS  | Gán đúng `role`; có thể kích hoạt / khóa                            |
-| FR-10-02 | Admin    | Phân quyền chi tiết theo vai trò | Mỗi role chỉ truy cập chức năng được phép                           |
-| FR-10-03 | Hệ thống | Sao lưu dữ liệu định kỳ          | Backup thành công theo lịch; có thể khôi phục (môi trường cho phép) |
-| FR-10-04 | Admin    | Xem nhật ký hoạt động            | Audit log: ai, hành động, thời gian                                 |
-
-
----
-
-
-
-## 5. Luồng nghiệp vụ tổng thể
-
-```text
-Đăng ký / nộp hồ sơ (TTS)
-        → HR xét duyệt → (từ chối) → Email thông báo
-        → (duyệt) → Hợp đồng → TTS xác nhận
-        → HR tạo chương trình / lịch + gán mentor
-        → Thực hiện: chấm công | nhiệm vụ | báo cáo | nghỉ phép | hỗ trợ
-        → Mentor đánh giá → HR tổng hợp → Xuất báo cáo trường / lãnh đạo
+#### 1.3.2. Sơ đồ theo vai trò (ai làm gì)
+
+```mermaid
+sequenceDiagram
+    actor TTS as Thực tập sinh
+    actor HR as HR
+    actor Mentor as Mentor
+    participant Sys as Hệ thống
+
+    TTS->>Sys: Đăng ký / nộp hồ sơ
+    Sys-->>HR: Hồ sơ pending
+    HR->>Sys: Duyệt hoặc Từ chối
+    Sys-->>TTS: Email kết quả
+
+    alt Được duyệt
+        HR->>Sys: Upload hợp đồng
+        TTS->>Sys: Xác nhận hợp đồng
+        HR->>Sys: Tạo chương trình + gán Mentor
+        Sys-->>Mentor: Nhận TTS được phân công
+
+        loop Trong kỳ thực tập
+            TTS->>Sys: Chấm công / báo cáo / cập nhật task
+            Mentor->>Sys: Giao việc / phản hồi / đánh giá
+            HR->>Sys: Duyệt nghỉ phép / phụ cấp / hỗ trợ
+        end
+
+        Mentor->>Sys: Đánh giá cuối kỳ
+        HR->>Sys: Thống kê + xuất báo cáo
+    end
 ```
 
-Chi tiết thêm: [flow.md](flow.md).
+#### 1.3.3. Sơ đồ trạng thái tài khoản TTS
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending: Đăng ký thành công
+    pending --> active: HR duyệt
+    pending --> inactive: HR từ chối / Admin khóa
+    active --> inactive: Admin khóa / kết thúc & vô hiệu hóa
+    inactive --> active: Admin mở lại (nếu cho phép)
+    active --> [*]: Hoàn thành chương trình (logic nghiệp vụ)
+```
+
+#### 1.3.4. Tóm tắt chữ (đối chiếu nhanh)
+
+```text
+TTS đăng ký (pending)
+    → HR duyệt (active) / từ chối (inactive)
+    → HR upload hợp đồng → TTS xác nhận
+    → HR tạo chương trình + gán mentor
+    → TTS chấm công / làm task / báo cáo
+    → Mentor phản hồi / đánh giá
+    → HR thống kê + xuất báo cáo
+```
+
+### 1.4. Kiến trúc đề xuất cho team
+
+```text
+[Browser FE]
+     │  JSON + Bearer JWT
+     ▼
+[Backend API Python]  ← dùng lại hash_password + authenticate_login
+     │
+     ▼
+[MySQL 8]
+```
+
+- Auth header: `Authorization: Bearer <access_token>`  
+- Response lỗi thống nhất: `{ "detail": "..." }` + HTTP status  
+- Phân trang: `?page=1&page_size=20` → `{ items, total, page, page_size }`
 
 ---
 
+## 2. Chuẩn chung cho mọi API / form
 
+### 2.1. HTTP status
 
-## 6. Yêu cầu phi chức năng
+| Code | Khi nào dùng |
+| --- | --- |
+| 200 | Thành công (GET/PUT/PATCH) |
+| 201 | Tạo mới (POST) |
+| 400 | Validate fail |
+| 401 | Chưa login / JWT sai / hết hạn |
+| 403 | Sai role / không đủ quyền |
+| 404 | Không tìm thấy |
+| 409 | Trùng (email đã tồn tại…) |
+| 422 | Body không đúng schema |
 
+### 2.2. Validation chung
 
-| ID     | Nhóm        | Yêu cầu                                                          |
-| ------ | ----------- | ---------------------------------------------------------------- |
-| NFR-01 | Bảo mật     | Mật khẩu hash bcrypt; không lưu plain text                       |
-| NFR-02 | Bảo mật     | API sau này bắt buộc JWT hợp lệ; hết hạn theo cấu hình           |
-| NFR-03 | Bảo mật     | Phân quyền theo role; TTS không xem dữ liệu TTS khác             |
-| NFR-04 | Hiệu năng   | Danh sách hồ sơ / báo cáo hỗ trợ phân trang, lọc                 |
-| NFR-05 | Khả dụng    | Thời gian phản hồi thao tác thông thường < 3s (môi trường chuẩn) |
-| NFR-06 | Usability   | Giao diện tiếng Việt; thông báo lỗi rõ ràng                      |
-| NFR-07 | Tương thích | Hỗ trợ Chrome / Edge / Firefox phiên bản gần nhất                |
-| NFR-08 | Bảo trì     | Log lỗi phía server; audit log thao tác quan trọng               |
-| NFR-09 | Sao lưu     | Backup DB định kỳ (theo FR-10-03)                                |
-| NFR-10 | CI/CD       | PR vào `main` phải qua GitHub Actions CI                         |
+| Trường | Rule |
+| --- | --- |
+| Email | Đúng format, unique trong `users` |
+| Password | ≥ 6 ký tự; lưu **hash bcrypt** (dùng `hash_password`) |
+| File upload | PDF/DOC/DOCX; max **5MB** (thống nhất team) |
+| Date range | `start_date` ≤ `end_date` |
+| JWT | Secret từ `JWT_SECRET_KEY` trong `.env` |
 
+### 2.3. `users.status`
 
----
-
-
-
-## 7. Mô hình dữ liệu
-
-
-
-### 7.1. Đã triển khai (`database/schema.sql`)
-
-
-| Bảng              | Mục đích                                                    |
-| ----------------- | ----------------------------------------------------------- |
-| `roles`           | Vai trò: admin, hr, mentor, intern…                         |
-| `users`           | Tài khoản: email, password_hash, full_name, role_id, status |
-| `intern_profiles` | Hồ sơ TTS: SĐT, DOB, gender, university, major, GPA…        |
-
-
-**Quan hệ:** `users.role_id` → `roles.id`; `intern_profiles.user_id` → `users.id` (1–1, CASCADE).
-
-### 7.2. Thực thể đề xuất (các Epic còn lại)
-
-
-| Thực thể                          | Mô tả ngắn                  | Epic |
-| --------------------------------- | --------------------------- | ---- |
-| `documents`                       | CV, đơn, hợp đồng           | 1, 2 |
-| `applications` / trạng thái duyệt | Luồng xét duyệt             | 2    |
-| `programs`                        | Chương trình theo phòng ban | 3    |
-| `program_assignments`             | TTS ↔ chương trình ↔ mentor | 3, 7 |
-| `tasks`                           | Nhiệm vụ mentor giao        | 4    |
-| `weekly_reports`                  | Báo cáo tuần + phản hồi     | 4    |
-| `evaluations`                     | Đánh giá cuối kỳ            | 4    |
-| `attendance`                      | Check-in / out              | 5    |
-| `leave_requests`                  | Nghỉ phép                   | 5    |
-| `allowances`                      | Phụ cấp                     | 6    |
-| `support_tickets`                 | Yêu cầu hỗ trợ              | 6    |
-| `notifications`                   | Thông báo in-app            | 9    |
-| `audit_logs`                      | Nhật ký hoạt động           | 10   |
-
+| Giá trị | Ý nghĩa | Login được? |
+| --- | --- | --- |
+| `pending` | Mới đăng ký, chờ HR duyệt | Có (xem trạng thái) hoặc chặn chức năng thực tập — **chọn 1 và áp dụng thống nhất**: khuyến nghị **cho login nhưng chỉ xem “chờ duyệt”** |
+| `active` | Đã duyệt | Đầy đủ quyền theo role |
+| `inactive` | Từ chối / khóa | Không login (401/403) |
 
 ---
 
+## 3. MODULE AUTH (nền — làm trước)
 
+### 3.1. Dev phải làm gì
 
-## 8. Giao diện & tích hợp
+| Layer | Việc |
+| --- | --- |
+| BE | `POST /api/auth/login`, `POST /api/auth/register`, `GET /api/auth/me` |
+| BE | Gọi sẵn `hash_password`, `verify_password`, `create_access_token`, `verify_access_token` |
+| FE | Trang `/login`, `/register`, lưu token (memory/localStorage), gắn header mọi request |
+| DB | Seed 4 roles nếu chưa có |
 
+### 3.2. Màn hình Đăng nhập — `/login`
 
+| UI | Loại | Bắt buộc |
+| --- | --- | :---: |
+| Email | input | ✓ |
+| Mật khẩu | password | ✓ |
+| **Đăng nhập** | button | |
+| Link “Đăng ký thực tập” | link → `/register` | |
 
-### 8.1. Giao diện người dùng (UI)
+**Luồng:** điền → bấm Đăng nhập → gọi API → lưu JWT → redirect theo role.
 
+**API**
 
-| Module UI                        | Actor chính            |
-| -------------------------------- | ---------------------- |
-| Đăng ký / Đăng nhập              | TTS, HR, Mentor, Admin |
-| Dashboard                        | Theo role              |
-| Quản lý hồ sơ & tài liệu         | HR, TTS                |
-| Xét duyệt & hợp đồng             | HR, TTS                |
-| Chương trình & lịch              | HR, TTS                |
-| Nhiệm vụ & báo cáo & đánh giá    | Mentor, TTS, HR        |
-| Chấm công & nghỉ phép            | TTS, HR                |
-| Phụ cấp & hỗ trợ                 | TTS, HR                |
-| Thống kê / xuất báo cáo          | HR                     |
-| Quản trị user / phân quyền / log | Admin                  |
+```http
+POST /api/auth/login
+Content-Type: application/json
 
+{ "email": "a@example.com", "password": "Secret123" }
+```
 
+Response 200:
 
+```json
+{
+  "access_token": "<jwt>",
+  "token_type": "bearer",
+  "user": { "id": 1, "email": "a@example.com", "full_name": "...", "role": "hr", "status": "active" }
+}
+```
 
-### 8.2. Giao diện hệ thống
+### 3.3. API lấy user hiện tại
 
+```http
+GET /api/auth/me
+Authorization: Bearer <jwt>
+```
 
-| Hệ thống ngoài       | Hướng tích hợp                | Epic |
-| -------------------- | ----------------------------- | ---- |
-| SMTP / Email service | Thông báo xét duyệt, lịch họp | 2, 9 |
-| HRM                  | Đồng bộ nhân sự               | 9    |
-| Thiết bị QR / thẻ    | Chấm công                     | 9    |
+→ 200: thông tin user + role. Dùng để bảo vệ route FE.
 
+### 3.4. Done khi
 
-
-
-### 8.3. API (định hướng)
-
-- Kiểu: REST JSON
-- Auth: `Authorization: Bearer <JWT>`
-- Nhóm endpoint gợi ý: `/auth`, `/interns`, `/programs`, `/tasks`, `/attendance`, `/reports`, `/admin`…
-
-*(Chi tiết OpenAPI sẽ bổ sung khi dựng API server.)*
-
----
-
-
-
-## 9. Ma trận phân quyền (tóm tắt)
-
-
-| Chức năng                     | TTS              | Mentor        | HR           | Admin |
-| ----------------------------- | ---------------- | ------------- | ------------ | ----- |
-| Đăng ký / nộp hồ sơ           | ✓                |               |              |       |
-| Duyệt hồ sơ / hợp đồng        | xác nhận         |               | ✓            |       |
-| Quản lý chương trình / mentor | xem lịch         | xem được giao | ✓            |       |
-| Giao việc / đánh giá          | cập nhật tiến độ | ✓             | xem tổng hợp |       |
-| Chấm công / nghỉ phép         | ✓                |               | ✓            |       |
-| Phụ cấp / hỗ trợ              | xem / gửi        |               | ✓            |       |
-| Thống kê / xuất báo cáo       |                  |               | ✓            | ✓     |
-| Tạo user / phân quyền         |                  |               |              | ✓     |
-| Cấu hình tích hợp / xem audit |                  |               |              | ✓     |
-
+- [ ] Login đúng → có JWT; sai password → 401  
+- [ ] `inactive` → không vào được hệ thống  
+- [ ] FE redirect đúng dashboard theo role  
+- [ ] Không lộ `password_hash` ra response  
 
 ---
 
+## 4. MODULE ĐĂNG KÝ TTS (US 6, 4) — Epic 2 + 1
 
+### 4.1. Dev phải làm gì
 
-## 10. Ưu tiên triển khai đề xuất
+| Layer | Việc |
+| --- | --- |
+| DB | Dùng `users` + `intern_profiles`; **thêm** bảng `documents` (CV, đơn) |
+| BE | `POST /api/auth/register` (multipart hoặc 2 bước: đăng ký + upload) |
+| FE | Form `/register` |
 
+### 4.2. Bảng `documents` (cần tạo)
 
-| Giai đoạn | Nội dung                             | US            |
-| --------- | ------------------------------------ | ------------- |
-| **MVP 1** | Auth, phân quyền, đăng ký, hồ sơ TTS | 1–3, 6, 39–40 |
-| **MVP 2** | Xét duyệt, tài liệu, hợp đồng, email | 4–5, 7–10     |
-| **MVP 3** | Chương trình, mentor, lịch           | 11–14, 29–31  |
-| **MVP 4** | Task, báo cáo tuần, đánh giá         | 15–20         |
-| **MVP 5** | Chấm công, nghỉ phép                 | 21–24         |
-| **MVP 6** | Phụ cấp, hỗ trợ                      | 25–28         |
-| **MVP 7** | Thống kê, xuất Excel/PDF             | 32–34         |
-| **MVP 8** | Thông báo, tích hợp, backup, audit   | 35–38, 41–42  |
+```sql
+-- Gợi ý schema — dev implement trong database/schema.sql hoặc migration
+CREATE TABLE documents (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  doc_type ENUM('cv', 'application', 'contract', 'other') NOT NULL,
+  file_name VARCHAR(255) NOT NULL,
+  file_path VARCHAR(500) NOT NULL,
+  status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+  review_note VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
 
+### 4.3. Màn hình `/register`
+
+**Nhóm A — Tài khoản**
+
+| Ô | Map DB | Bắt buộc |
+| --- | --- | :---: |
+| Họ tên | `users.full_name` | ✓ |
+| Email | `users.email` | ✓ |
+| Mật khẩu | → `password_hash` | ✓ |
+| Xác nhận mật khẩu | chỉ FE | ✓ (khớp) |
+
+**Nhóm B — Hồ sơ**
+
+| Ô | Map DB | Bắt buộc |
+| --- | --- | :---: |
+| SĐT | `intern_profiles.phone_number` | |
+| Ngày sinh | `dob` | |
+| Giới tính | `gender` (male/female/other) | |
+| Trường | `university` | ✓ |
+| Ngành | `major` | ✓ |
+| Năm học | `academic_year` | |
+| GPA | `gpa` | |
+| Địa chỉ | `address` | |
+
+**Nhóm C — File**
+
+| Ô | doc_type | Bắt buộc |
+| --- | --- | :---: |
+| Upload CV | `cv` | ✓ |
+| Upload đơn xin TT | `application` | ✓ |
+
+**Nút:** **Gửi hồ sơ đăng ký** | **Hủy**
+
+### 4.4. Luồng xử lý BE khi đăng ký
+
+1. Validate email chưa tồn tại → else 409.  
+2. `password_hash = hash_password(password)`.  
+3. Insert `users`: `role_id = intern`, `status = pending`.  
+4. Insert `intern_profiles` với `user_id`.  
+5. Lưu 2 file → insert `documents`.  
+6. Response 201 + (optional) không auto-login, bảo về `/login`.
+
+### 4.5. Done khi
+
+- [ ] Đăng ký thành công → có user pending + profile + 2 documents  
+- [ ] Email trùng → 409, FE hiện lỗi rõ  
+- [ ] Password không lưu plain text  
+- [ ] File sai định dạng / quá size → 400  
 
 ---
 
+## 5. MODULE HR — HỒ SƠ & XÉT DUYỆT (US 1–3, 5, 7–8)
 
+### 5.1. Dev phải làm gì
 
-## 11. Kiểm thử & chấp nhận
+| API | Mô tả | Role |
+| --- | --- | --- |
+| `GET /api/hr/interns` | Danh sách + filter | hr, admin |
+| `POST /api/hr/interns` | Thêm hồ sơ hộ (US 1) | hr |
+| `GET /api/hr/interns/{id}` | Chi tiết + documents | hr |
+| `PUT /api/hr/interns/{id}` | Sửa hồ sơ (US 2) | hr |
+| `POST /api/hr/interns/{id}/approve` | Duyệt (US 7) | hr |
+| `POST /api/hr/interns/{id}/reject` | Từ chối + note | hr |
+| `POST /api/hr/documents/{id}/review` | Duyệt/từ chối file (US 5) | hr |
 
+Query list: `?university=&major=&status=&q=&page=`
 
+### 5.2. Màn hình `/hr/interns`
 
-### 11.1. Chiến lược
+| UI | Mô tả |
+| --- | --- |
+| Ô tìm kiếm | Tên / email (`q`) |
+| Select Trường, Ngành, Trạng thái | Filter |
+| Nút **Tìm**, **Xóa lọc**, **Thêm hồ sơ** | |
+| Bảng | Họ tên, Email, Trường, Ngành, Status, Ngày tạo, **Xem** / **Sửa** |
 
-- Unit test cho auth / hash password
-- API / integration test với MySQL
-- Kiểm thử phân quyền theo role
-- UAT với HR / mentor / TTS theo checklist từng US
+### 5.3. Màn hình `/hr/interns/{id}`
 
+1. Block thông tin cá nhân + nút **Sửa**.  
+2. Block tài liệu: mỗi file có **Tải về**, **Duyệt**, **Từ chối** (+ ô ghi chú).  
+3. Block quyết định hồ sơ:
+   - Textarea ghi chú  
+   - Nút **Duyệt hồ sơ** → `status=active` + gửi email (US 8)  
+   - Nút **Từ chối** → `status=inactive` + email  
 
+### 5.4. Quy tắc
 
-### 11.2. Điều kiện nghiệm thu module
+- Chỉ duyệt khi đang `pending`.  
+- Từ chối bắt buộc có `note` (khuyến nghị).  
+- Email: có thể stub log ra console giai đoạn 1; sau đó SMTP thật.
 
-Một User Story được coi là **Done** khi:
+### 5.5. Done khi
 
-1. Đúng actor và hành vi mô tả trong backlog
-2. Pass tiêu chí chấp nhận tương ứng mục 4
-3. Có phân quyền đúng
-4. Code qua CI trên PR
+- [ ] Filter trường/ngành đúng (US 3)  
+- [ ] Duyệt/từ chối đổi status đúng  
+- [ ] TTS thấy trạng thái tài liệu sau khi HR review  
+- [ ] Role khác hr/admin gọi API → 403  
 
 ---
 
+## 6. MODULE HỢP ĐỒNG (US 9–10)
 
+### 6.1. Dev phải làm gì
 
-## 12. Rủi ro
+| API | Ai |
+| --- | --- |
+| `POST /api/hr/interns/{id}/contract` (upload file, doc_type=`contract`) | HR |
+| `GET /api/intern/contract` | TTS |
+| `POST /api/intern/contract/confirm` | TTS |
 
+Cần thêm cột (hoặc bảng `contracts`): `confirmed_at DATETIME NULL`.
 
-| Rủi ro                     | Mức        | Hướng xử lý                              |
-| -------------------------- | ---------- | ---------------------------------------- |
-| Phạm vi 42 US quá rộng     | Cao        | Làm theo MVP từng giai đoạn              |
-| Tích hợp HRM / QR phức tạp | Trung bình | Để giai đoạn sau; thiết kế interface sẵn |
-| Email bị spam / fail       | Trung bình | Queue + retry; log lỗi                   |
-| Rò rỉ dữ liệu cá nhân TTS  | Cao        | JWT + RBAC + HTTPS + không commit secret |
+### 6.2. UI
 
+**HR:** trên trang chi tiết TTS — chọn file + **Tải lên hợp đồng**.  
+**TTS `/intern/contract`:** xem/tải file + checkbox “Đã đọc và đồng ý” + **Xác nhận hợp đồng** (disable nếu chưa tick).
+
+### 6.3. Done khi
+
+- [ ] Chỉ TTS đã `active` mới confirm  
+- [ ] Confirm 1 lần; HR thấy đã xác nhận + thời điểm  
 
 ---
 
+## 7. MODULE CHƯƠNG TRÌNH & MENTOR (US 11–14, 29–31)
 
+### 7.1. Bảng cần tạo
 
-## 13. Phụ lục
+- `programs` — name, department, description, start_date, end_date  
+- `program_members` — program_id, intern_user_id, mentor_user_id  
 
+### 7.2. API (role hr)
 
+| Method | Path | Việc |
+| --- | --- | --- |
+| GET/POST | `/api/hr/programs` | List / tạo chương trình |
+| PUT | `/api/hr/programs/{id}` | Sửa (kể cả ngày) |
+| POST | `/api/hr/programs/{id}/assign` | Body: `{ intern_ids[], mentor_id }` |
+| GET/POST | `/api/hr/mentors` | List / tạo mentor (tạo user role mentor) |
+| GET | `/api/hr/mentors/workload` | Đếm số TTS / mentor |
 
-### A. Mapping Epic ↔ số lượng US
+TTS: `GET /api/intern/schedule` — chỉ lịch của mình.
 
+### 7.3. UI chính
 
-| #   | Epic                          | Số US  |
-| --- | ----------------------------- | ------ |
-| 1   | Quản lý hồ sơ thực tập sinh   | 5      |
-| 2   | Tiếp nhận và xét duyệt        | 5      |
-| 3   | Quản lý chương trình thực tập | 4      |
-| 4   | Quản lý công việc & đánh giá  | 6      |
-| 5   | Quản lý chấm công & thời gian | 4      |
-| 6   | Quản lý hỗ trợ & quyền lợi    | 4      |
-| 7   | Quản lý mentor & phòng ban    | 3      |
-| 8   | Báo cáo & thống kê            | 3      |
-| 9   | Tích hợp & thông báo          | 4      |
-| 10  | Quản trị hệ thống             | 4      |
-|     | **Tổng**                      | **42** |
+| Trang | Ô / nút chính |
+| --- | --- |
+| `/hr/programs/new` | Tên*, Phòng ban*, Mô tả, Start*, End*, **Lưu** |
+| `/hr/programs/{id}/assign` | Multi-select TTS, Select mentor, **Gán** |
+| `/hr/mentors` | **Thêm mentor** (họ tên, email, password tạm), cột “Số TTS” |
+| `/intern/schedule` | Chỉ đọc: chương trình, ngày, mentor |
 
+### 7.4. Done khi
 
+- [ ] start ≤ end  
+- [ ] Mentor chỉ thấy TTS được gán cho mình  
+- [ ] Workload đếm đúng  
 
+---
 
-### B. Trạng thái codebase tại thời điểm viết SRS
+## 8. MODULE NHIỆM VỤ / BÁO CÁO / ĐÁNH GIÁ (US 15–20)
 
-- Đã có: schema `roles` / `users` / `intern_profiles`, hash password, JWT login, Docker MySQL, CI, docs  
-- Chưa có: REST API đầy đủ, UI, các bảng/module Epic 2–10
+### 8.1. Bảng
 
+- `tasks` — mentor_id, intern_id, title, description, due_at, status (`todo`/`doing`/`done`), progress (0–100)  
+- `weekly_reports` — intern_id, week_start, week_end, content, attachment_path, created_at  
+- `report_feedbacks` — report_id, mentor_id, content  
+- `evaluations` — intern_id, mentor_id, skill_score, attitude_score, comment  
 
+### 8.2. API tóm tắt
 
-### C. Lịch sử tài liệu
+| Ai | API |
+| --- | --- |
+| Mentor | `POST /api/mentor/tasks`, `GET /api/mentor/tasks` |
+| TTS | `PATCH /api/intern/tasks/{id}` (status, progress, note) |
+| TTS | `POST /api/intern/reports` |
+| Mentor | `POST /api/mentor/reports/{id}/feedback` |
+| Mentor | `POST /api/mentor/evaluations` |
+| HR | `GET /api/hr/evaluations/summary` |
 
+### 8.3. UI — Mentor giao việc `/mentor/tasks/new`
 
-| Phiên bản | Ngày       | Mô tả                                            |
-| --------- | ---------- | ------------------------------------------------ |
-| 1.0       | 2026-09-22 | Bản đầu — dựa trên Product Backlog Google Sheets |
+| Ô | Bắt buộc |
+| --- | :---: |
+| Select TTS (chỉ TTS mình phụ trách) | ✓ |
+| Tiêu đề | ✓ |
+| Mô tả | |
+| Hạn | ✓ |
+| Ưu tiên | |
+| Nút **Giao việc** | |
 
+TTS cập nhật: Select trạng thái + % + **Lưu**.
 
+### 8.4. Done khi
+
+- [ ] Mentor không giao task cho TTS không thuộc mình (403)  
+- [ ] TTS không sửa task của người khác  
+- [ ] Feedback hiện được phía TTS  
+
+---
+
+## 9. MODULE CHẤM CÔNG & NGHỈ PHÉP (US 21–24)
+
+### 9.1. Bảng
+
+- `attendance` — user_id, work_date, check_in_at, check_out_at  
+- `leave_requests` — user_id, from_date, to_date, reason, status (`pending`/`approved`/`rejected`)  
+- `work_schedules` — program_id, weekday, start_time, end_time  
+
+### 9.2. API
+
+| Path | Ai | Việc |
+| --- | --- | --- |
+| `POST /api/intern/attendance/check-in` | TTS | 1 lần/ngày |
+| `POST /api/intern/attendance/check-out` | TTS | Sau check-in |
+| `GET /api/intern/attendance` | TTS | Lịch sử |
+| `GET /api/hr/attendance` | HR | Filter ngày + TTS |
+| `POST /api/intern/leave` | TTS | Xin nghỉ |
+| `POST /api/hr/leave/{id}/approve\|reject` | HR | Duyệt |
+| `PUT /api/hr/work-schedules` | HR | Lịch làm việc |
+
+### 9.3. UI TTS `/intern/attendance`
+
+- Badge trạng thái hôm nay  
+- Nút **Check-in** / **Check-out** (enable đúng lúc)  
+- Bảng lịch sử  
+
+**Rule:** không check-out nếu chưa check-in; không check-in 2 lần cùng ngày.
+
+### 9.4. Done khi
+
+- [ ] Đủ rule trên  
+- [ ] HR lọc được báo cáo chuyên cần  
+
+---
+
+## 10. MODULE PHỤ CẤP & HỖ TRỢ (US 25–28)
+
+### 10.1. Bảng
+
+- `allowances` — intern_id, period (YYYY-MM), amount, note, created_by  
+- `support_tickets` — intern_id, type, description, status, hr_response  
+
+### 10.2. UI / API nhanh
+
+| Ai | Làm gì |
+| --- | --- |
+| HR | Form: TTS + kỳ + số tiền → `POST /api/hr/allowances` |
+| TTS | Chỉ GET lịch sử phụ cấp của mình |
+| TTS | Form hỗ trợ: loại* + mô tả* + file → `POST /api/intern/support` |
+| HR | Duyệt ticket: phản hồi + status |
+
+---
+
+## 11. MODULE THỐNG KÊ (US 32–34)
+
+### 11.1. Dev phải làm gì
+
+| API | Kết quả |
+| --- | --- |
+| `GET /api/hr/stats/by-university` | Đếm TTS theo trường |
+| `GET /api/hr/stats/by-major` | Đếm theo ngành |
+| `GET /api/hr/stats/completion-rate` | (số hoàn thành / tổng) * 100 — **định nghĩa “hoàn thành” = có evaluation hoặc status chương trình done** (team chốt 1 công thức) |
+| `GET /api/hr/stats/export?format=xlsx\|pdf` | File download |
+
+### 11.2. UI `/hr/analytics`
+
+Filter + chart/bảng + nút **Xuất Excel** / **Xuất PDF**.
+
+---
+
+## 12. MODULE THÔNG BÁO & TÍCH HỢP (US 35–38) — giai đoạn sau
+
+| Việc | Dev làm |
+| --- | --- |
+| Bảng `notifications` | user_id, title, body, is_read, created_at |
+| Job email lịch họp | Cron + SMTP |
+| FE chuông | Badge + list + đánh dấu đã đọc |
+| Admin integrations | Form config HRM / QR — stub interface trước |
+
+---
+
+## 13. MODULE ADMIN (US 39–42)
+
+| API / UI | Việc |
+| --- | --- |
+| `/admin/users` | CRUD user, gán role, khóa/mở (`inactive`/`active`) |
+| `/admin/roles` | Ma trận permission (checkbox theo module) — có thể hardcode permission map giai đoạn 1 |
+| `/admin/audit-logs` | Ghi log khi approve/reject/login fail/đổi role |
+| Backup | Script `mysqldump` theo cron (US 41) |
+
+Mọi API admin: chỉ role `admin` → else 403.
+
+---
+
+## 14. Ma trận quyền (implement middleware)
+
+| Module | intern | mentor | hr | admin |
+| --- | :---: | :---: | :---: | :---: |
+| Register (public) | ✓ | | | |
+| Login (public) | ✓ | ✓ | ✓ | ✓ |
+| Hồ sơ / duyệt | own | | ✓ | ✓ |
+| Chương trình / gán mentor | xem lịch | xem TTS của mình | ✓ | ✓ |
+| Tasks / reports | own | own mentees | xem | ✓ |
+| Attendance / leave | own | | ✓ | ✓ |
+| Allowances / support | own | | ✓ | ✓ |
+| Stats export | | | ✓ | ✓ |
+| Users / roles / audit | | | | ✓ |
+
+**Cách làm:** decorator/middleware đọc JWT `role` → check bảng trên.
+
+---
+
+## 15. Thứ tự implement đề xuất (để chia việc)
+
+| Sprint | Deliverable | US / FR |
+| --- | --- | --- |
+| **S0** | API skeleton + CORS + JWT dependency + seed roles | — |
+| **S1** | Login + Register + documents | 6, 4, Auth |
+| **S2** | HR list/filter/CRUD intern + approve/reject | 1–3, 5, 7–8 |
+| **S3** | Contract upload + confirm | 9–10 |
+| **S4** | Programs + mentors + assign + schedule | 11–14, 29–31 |
+| **S5** | Tasks + weekly reports + feedback | 15–18 |
+| **S6** | Evaluations + HR summary | 19–20 |
+| **S7** | Attendance + leave + schedules | 21–24 |
+| **S8** | Allowances + support | 25–28 |
+| **S9** | Stats + export | 32–34 |
+| **S10** | Notifications + admin + backup | 35–42 |
+
+Mỗi PR: 1 module nhỏ, đúng [git-conventions.md](git-conventions.md), CI pass.
+
+---
+
+## 16. Checklist “xong 1 user story”
+
+Dev chỉ merge khi:
+
+1. Có API (hoặc UI) đúng actor trong US  
+2. Validate + phân quyền đã test  
+3. Trạng thái / DB đúng mô tả  
+4. FE hiện lỗi rõ (tiếng Việt)  
+5. Không commit `.env`  
+6. CI xanh  
+
+---
+
+## 17. Phụ lục — Mapping nhanh US → việc code
+
+| US | Việc chính của dev |
+| --- | --- |
+| 1 | HR form tạo intern + `POST /api/hr/interns` |
+| 2 | HR form sửa + `PUT` |
+| 3 | Query filter university/major trên list |
+| 4 | Upload CV/đơn trong register |
+| 5 | Review document status |
+| 6 | Register full flow |
+| 7 | Approve / reject endpoints |
+| 8 | Gửi email sau duyệt (stub OK giai đoạn 1) |
+| 9–10 | Contract upload + confirm |
+| 11–14 | Programs CRUD + schedule |
+| 15–20 | Tasks, reports, evaluations |
+| 21–24 | Attendance + leave |
+| 25–28 | Allowances + support tickets |
+| 29–31 | Mentors CRUD + workload count |
+| 32–34 | Aggregation queries + export file |
+| 35–38 | Notifications + integration stubs |
+| 39–42 | Admin users/roles/audit/backup |
+
+Chi tiết wording US: [product-backlog.md](product-backlog.md).  
+Luồng ngắn: [flow.md](flow.md).
+
+---
+
+## 18. Lịch sử tài liệu
+
+| Ver | Ngày | Thay đổi |
+| --- | --- | --- |
+| 1.0 | 2026-09-22 | SRS tổng quan theo backlog |
+| 2.0 | 2026-09-22 | Viết lại hướng developer: màn hình, API, DB, Done checklist, thứ tự sprint |
+| 2.1 | 2026-09-23 | Thêm sơ đồ Mermaid luồng hoạt động chính (flowchart, sequence, state) |

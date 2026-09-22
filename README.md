@@ -8,7 +8,7 @@ Số hóa quy trình quản lý thực tập sinh: tiếp nhận hồ sơ, phân
 
 | Tài liệu | Nội dung |
 | --- | --- |
-| [docs/software-specification.md](docs/software-specification.md) | **Đặc tả phần mềm (SRS) chi tiết** |
+| [docs/software-specification.md](docs/software-specification.md) | **Đặc tả phần mềm (SRS) — chi tiết cho developer** |
 | [docs/overview.md](docs/overview.md) | Chi tiết dự án, mục tiêu, vai trò, Epic |
 | [docs/flow.md](docs/flow.md) | Luồng nghiệp vụ & luồng làm việc nhóm |
 | [docs/git-conventions.md](docs/git-conventions.md) | Quy tắc đặt tên branch & commit |
