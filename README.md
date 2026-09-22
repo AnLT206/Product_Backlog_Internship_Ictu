@@ -161,6 +161,8 @@ Phần đã có trong repo (nền tảng cho Epic **Tiếp nhận / Quản trị
 
 ```
 .
+├── .github/workflows/
+│   └── ci.yml                    # Kiểm tra code trên Pull Request
 ├── backend/
 │   ├── requirements.txt
 │   └── utils/
@@ -250,11 +252,20 @@ Từ thư mục `backend/utils` (hoặc import tương ứng trong code của b�
 
 > API server đầy đủ chưa được dựng trong repo; hiện mới có schema + tiện ích auth làm nền.
 
+## CI (GitHub Actions)
+
+Khi mở Pull Request vào `main`, file `.github/workflows/ci.yml` chạy để kiểm tra code trước khi merge:
+
+- Cài dependency từ `backend/requirements.txt`
+- Kiểm tra lỗi cú pháp Python (`compileall`)
+
+Nếu CI fail, không nên merge. Có thể bật branch protection: Settings → Branches → **Require status checks to pass before merging** → chọn `Check code`.
+
 ## Cách đóng góp
 
 1. Tạo nhánh từ `main` theo Epic / User Story (ví dụ: `feature/us-06-register`).
 2. Cập nhật schema, backend hoặc tài liệu.
-3. Mở pull request để nhóm / người hướng dẫn review.
+3. Mở pull request vào `main` — chờ CI pass rồi mới merge.
 
 ## Tài liệu liên quan
 
