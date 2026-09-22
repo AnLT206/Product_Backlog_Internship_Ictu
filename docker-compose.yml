@@ -21,5 +21,37 @@ services:
       timeout: 5s
       retries: 5
 
+  # Frontend production build (nginx) — chạy nhanh: docker compose up --build -d
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ictu_internship_frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Frontend dev (Vite hot-reload): docker compose --profile dev up frontend-dev
+  frontend-dev:
+    profiles: ["dev"]
+    image: node:22-alpine
+    container_name: ictu_internship_frontend_dev
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "${FRONTEND_DEV_PORT:-5173}:5173"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   mysql_data:
+  frontend_node_modules:
