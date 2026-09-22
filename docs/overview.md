@@ -55,8 +55,8 @@ Chi tiết từng story: [product-backlog.md](product-backlog.md).
 Đã có nền tảng cho Epic **Tiếp nhận / Quản trị / Hồ sơ**:
 
 - `database/schema.sql` — `roles`, `users`, `intern_profiles`
-- `backend/utils/hash_password.py` — mã hóa / verify mật khẩu
-- `backend/utils/authenticate_login.py` — JWT login
+- `backend/app/utils/hash_password.py` — mã hóa / verify mật khẩu
+- `backend/app/utils/authenticate_login.py` — JWT login
 - `docker-compose.yml` + `.env.example`
 
 Chưa có API server đầy đủ; các module còn lại sẽ bổ sung theo backlog.

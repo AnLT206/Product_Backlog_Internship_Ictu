@@ -23,8 +23,8 @@ Mỗi chức năng được viết theo khung:
 | File | Việc đã xong |
 | --- | --- |
 | `database/schema.sql` | Bảng `roles`, `users`, `intern_profiles` |
-| `backend/utils/hash_password.py` | Hash / verify bcrypt |
-| `backend/utils/authenticate_login.py` | Tạo / verify JWT, login helper |
+| `backend/app/utils/hash_password.py` | Hash / verify bcrypt |
+| `backend/app/utils/authenticate_login.py` | Tạo / verify JWT, login helper |
 | `docker-compose.yml` + `.env.example` | MySQL local |
 | `.github/workflows/ci.yml` | CI kiểm tra cú pháp Python |
 
