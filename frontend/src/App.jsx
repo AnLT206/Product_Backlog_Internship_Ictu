@@ -1,7 +1,7 @@
-import RegisterPage from './features/auth/RegisterPage.jsx'
+import AppRoutes from './routes/index.jsx'
 
 function App() {
-  return <RegisterPage />
+  return <AppRoutes />
 }
 
 export default App

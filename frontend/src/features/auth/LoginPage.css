@@ -1,4 +1,4 @@
-.register-page {
+.login-page {
   --fb-blue: #1877f2;
   --fb-blue-hover: #166fe5;
   --fb-blue-soft: #e7f3ff;
@@ -6,7 +6,6 @@
   --fb-body: #1c1e21;
   --fb-muted: #65676b;
   --fb-line: #e4e6eb;
-  --fb-bg: #f0f2f5;
   --fb-font: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
 
   position: relative;
@@ -23,37 +22,37 @@
   -webkit-font-smoothing: antialiased;
 }
 
-.register-page *,
-.register-page *::before,
-.register-page *::after {
+.login-page *,
+.login-page *::before,
+.login-page *::after {
   box-sizing: border-box;
 }
 
-.register-page__glow {
+.login-page__glow {
   position: absolute;
-  inset: -20% auto auto 40%;
-  width: min(720px, 90vw);
-  height: min(720px, 90vw);
+  inset: auto 35% -15% auto;
+  width: min(680px, 90vw);
+  height: min(680px, 90vw);
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 40% 40%, rgba(24, 119, 242, 0.16) 0%, rgba(24, 119, 242, 0.05) 42%, transparent 70%),
-    radial-gradient(circle at 70% 70%, rgba(14, 165, 233, 0.1) 0%, transparent 55%);
+    radial-gradient(circle at 45% 45%, rgba(24, 119, 242, 0.16) 0%, rgba(24, 119, 242, 0.05) 42%, transparent 70%),
+    radial-gradient(circle at 20% 70%, rgba(14, 165, 233, 0.1) 0%, transparent 55%);
   filter: blur(10px);
 }
 
-.register-shell {
+.login-shell {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 480px;
+  max-width: 440px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 20px;
 }
 
-.register-brand {
+.login-brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -65,7 +64,7 @@
   letter-spacing: -0.02em;
 }
 
-.register-brand img {
+.login-brand img {
   width: 36px;
   height: 36px;
   border-radius: 10px;
@@ -73,7 +72,7 @@
   box-shadow: 0 4px 12px rgba(24, 119, 242, 0.25);
 }
 
-.register-card {
+.login-card {
   width: 100%;
   background: #fff;
   border-radius: 24px;
@@ -84,12 +83,12 @@
   overflow: hidden;
 }
 
-.register-header {
+.login-header {
   padding: 32px 32px 8px;
   text-align: center;
 }
 
-.register-badge {
+.login-badge {
   display: inline-flex;
   margin: 0 0 16px;
   padding: 6px 12px;
@@ -103,7 +102,7 @@
   text-transform: uppercase;
 }
 
-.register-header h1 {
+.login-header h1 {
   margin: 0 0 12px;
   font-size: clamp(26px, 4vw, 32px);
   font-weight: 750;
@@ -112,11 +111,11 @@
   color: var(--fb-ink);
 }
 
-.register-header h1 span {
+.login-header h1 span {
   color: var(--fb-blue);
 }
 
-.register-lead {
+.login-lead {
   margin: 0 auto;
   max-width: 34ch;
   font-size: 15px;
@@ -124,14 +123,8 @@
   color: var(--fb-muted);
 }
 
-.register-form {
+.login-form {
   padding: 28px 32px 32px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
 }
 
 .form-group {
@@ -170,26 +163,44 @@
   box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
 }
 
-.terms {
+.login-meta {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 6px 0 20px;
-  font-size: 13px;
-  color: var(--fb-muted);
-  line-height: 1.45;
-  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 20px;
+  flex-wrap: wrap;
 }
 
-.terms input {
+.login-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--fb-muted);
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.login-remember input {
   width: 16px;
   height: 16px;
-  margin-top: 2px;
   accent-color: var(--fb-blue);
   flex-shrink: 0;
 }
 
-.register-button {
+.login-forgot {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fb-blue);
+  text-decoration: none;
+}
+
+.login-forgot:hover {
+  text-decoration: underline;
+}
+
+.login-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -207,12 +218,12 @@
   transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
-.register-button:hover {
+.login-button:hover {
   background: var(--fb-blue-hover);
   box-shadow: 0 10px 24px rgba(24, 119, 242, 0.34);
 }
 
-.login-link {
+.login-switch {
   text-align: center;
   margin: 18px 0 0;
   font-size: 14px;
@@ -220,17 +231,17 @@
   line-height: 1.4;
 }
 
-.login-link a {
+.login-switch a {
   color: var(--fb-blue);
   text-decoration: none;
   font-weight: 700;
 }
 
-.login-link a:hover {
+.login-switch a:hover {
   text-decoration: underline;
 }
 
-.register-back {
+.login-back {
   display: block;
   align-self: center;
   color: var(--fb-muted);
@@ -239,26 +250,21 @@
   text-decoration: none;
 }
 
-.register-back:hover {
+.login-back:hover {
   color: var(--fb-blue);
 }
 
 @media (max-width: 560px) {
-  .register-page {
+  .login-page {
     padding: 28px 16px;
     align-items: flex-start;
   }
 
-  .register-header {
+  .login-header {
     padding: 28px 22px 4px;
   }
 
-  .register-form {
+  .login-form {
     padding: 24px 22px 28px;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-    gap: 0;
   }
 }
