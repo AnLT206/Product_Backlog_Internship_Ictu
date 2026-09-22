@@ -2,9 +2,8 @@ import os
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from jwt import ExpiredSignatureError, InvalidTokenError
-
 from hash_password import verify_password
+from jwt import ExpiredSignatureError, InvalidTokenError
 
 SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "dev-secret-change-me")
 ALGORITHM = "HS256"

@@ -1,0 +1,51 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate-and-package:
+    name: Validate compose & package schema
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate docker-compose.yml
+        run: docker compose -f docker-compose.yml config
+
+      - name: Package database schema artifact
+        run: |
+          mkdir -p dist
+          cp database/schema.sql dist/schema.sql
+          cp docker-compose.yml dist/docker-compose.yml
+          echo "build=${GITHUB_SHA}" > dist/build-info.txt
+          echo "ref=${GITHUB_REF_NAME}" >> dist/build-info.txt
+          date -u +"%Y-%m-%dT%H:%M:%SZ" >> dist/build-info.txt
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ictu-internship-db-${{ github.sha }}
+          path: dist/
+          retention-days: 14
+
+  # Khi có server / registry, bổ sung job deploy tại đây
+  # (ví dụ: SSH deploy, Docker Hub / GHCR push).
+  notify-ready:
+    name: Mark main ready for deploy
+    needs: validate-and-package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        run: |
+          echo "CD validation passed for commit ${GITHUB_SHA}"
+          echo "Artifacts: schema.sql + docker-compose.yml"
+          echo "Bước deploy thực tế sẽ được thêm khi có môi trường staging/production."

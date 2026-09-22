@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "ci/**", "feature/**", "docs/**"]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    name: Lint & Test (Python + MySQL)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ictu_internship
+          MYSQL_USER: ictu
+          MYSQL_PASSWORD: ictu
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      JWT_SECRET_KEY: ci-test-secret
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: ictu
+      DB_PASSWORD: ictu
+      DB_NAME: ictu_internship
+      MYSQL_ROOT_PASSWORD: root
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install MySQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then
+              echo "MySQL is ready"
+              exit 0
+            fi
+            echo "Waiting for MySQL... ($i)"
+            sleep 2
+          done
+          echo "MySQL did not become ready in time"
+          exit 1
+
+      - name: Apply database schema
+        run: mysql -h 127.0.0.1 -uroot -proot ictu_internship < database/schema.sql
+
+      - name: Verify schema tables
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot -N -e "
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'ictu_internship'
+            ORDER BY table_name;
+          " | tee /tmp/tables.txt
+          grep -qx "intern_profiles" /tmp/tables.txt
+          grep -qx "roles" /tmp/tables.txt
+          grep -qx "users" /tmp/tables.txt
+
+      - name: Lint (Ruff)
+        run: ruff check backend
+
+      - name: Run unit tests
+        run: pytest -q

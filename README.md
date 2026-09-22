@@ -118,11 +118,37 @@ Mỗi hạng mục theo mẫu:
 - Trạng thái: **To do**, **In progress**, **Done**.
 - Cập nhật trạng thái khi bắt đầu làm và khi hoàn thành.
 
+## CI/CD (GitHub Actions)
+
+Repo dùng GitHub Actions cho Python + MySQL:
+
+| Workflow | File | Khi nào chạy | Việc làm |
+| --- | --- | --- | --- |
+| **CI** | `.github/workflows/ci.yml` | Push / Pull Request | Cài dependency, chạy MySQL 8, nạp `schema.sql`, lint (Ruff), chạy pytest |
+| **CD** | `.github/workflows/cd.yml` | Push lên `main` (hoặc chạy tay) | Kiểm tra `docker-compose.yml`, đóng gói artifact schema để chuẩn bị deploy |
+
+### Chạy test local
+
+```bash
+source venv/bin/activate
+pip install -r backend/requirements.txt
+docker compose up -d
+pytest -q
+```
+
+Lint:
+
+```bash
+ruff check backend
+```
+
+> Job deploy thật (SSH / Docker Hub / GHCR) sẽ bổ sung khi có môi trường staging/production.
+
 ## Cách đóng góp
 
 1. Tạo nhánh từ `main`.
 2. Cập nhật code, schema hoặc tài liệu liên quan.
-3. Mở pull request để người hướng dẫn xem xét.
+3. Mở pull request để người hướng dẫn xem xét (CI sẽ chạy tự động).
 
 ## Tác giả
 
