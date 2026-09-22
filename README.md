@@ -130,12 +130,6 @@ flowchart LR
   BE --> DB
 ```
 
-| Đang lệch / thiếu | Việc nhóm cần làm |
-| --- | --- |
-| `backend/` mới có `utils/` | Khi dựng API: tạo `app/api`, `core`, `models`, `schemas`, `services` |
-| `frontend/src` mới có `App.jsx` + assets | Khi làm màn hình: tạo `api/`, `features/`, `layouts/`, `routes/` |
-| Chưa có `database/seeds` | Thêm seed roles khi implement auth |
-
 ## CI (GitHub Actions)
 
 PR vào `main` → `.github/workflows/ci.yml` chạy song song:
