@@ -1,14 +1,10 @@
-import os
 from datetime import datetime, timedelta, timezone
 
 import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError
 
+from app.core.config import get_settings
 from .hash_password import verify_password
-
-SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "dev-secret-change-me")
-ALGORITHM = "HS256"
-TOKEN_EXPIRE_MINUTES = 60
 
 
 def create_access_token(user_id: int, role: str) -> str:
@@ -18,8 +14,9 @@ def create_access_token(user_id: int, role: str) -> str:
     if not isinstance(role, str) or not role.strip():
         raise ValueError("role không được rỗng.")
 
+    settings = get_settings()
     issued_at = datetime.now(timezone.utc)
-    expires_at = issued_at + timedelta(minutes=TOKEN_EXPIRE_MINUTES)
+    expires_at = issued_at + timedelta(minutes=settings.jwt_expire_minutes)
 
     payload = {
         "sub": str(user_id),
@@ -28,15 +25,20 @@ def create_access_token(user_id: int, role: str) -> str:
         "exp": expires_at,
     }
 
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
 def verify_access_token(token: str) -> dict | None:
     if not isinstance(token, str) or not token.strip():
         return None
 
+    settings = get_settings()
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return jwt.decode(
+            token,
+            settings.jwt_secret_key,
+            algorithms=[settings.jwt_algorithm],
+        )
     except (ExpiredSignatureError, InvalidTokenError, ValueError):
         return None
 
