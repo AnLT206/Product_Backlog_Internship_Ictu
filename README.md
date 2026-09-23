@@ -76,6 +76,12 @@ uvicorn app.main:app --reload --port 8000
 # Docs: http://localhost:8000/docs
 # POST /api/auth/register  (chỉ TTS / intern — không dùng cho HR/mentor)
 
+# Seed tài khoản admin (dev) — chạy 1 lần sau khi DB sẵn sàng
+# PYTHONPATH=. python -m scripts.seed_admin
+# Mặc định: admin@ictu.edu.vn / Admin@123  (đổi qua .env ADMIN_SEED_*)
+# Hoặc SQL: mysql ... < database/seeds/001_roles.sql
+#            mysql ... < database/seeds/002_admin_user.sql
+
 # Frontend
 cd frontend
 npm ci
@@ -141,6 +147,7 @@ flowchart LR
 | Đang lệch / thiếu | Việc nhóm cần làm |
 | --- | --- |
 | `backend/` đã có register API (TTS) | Tiếp: login, me, upload documents |
+| Seed admin (dev) | `PYTHONPATH=. python -m scripts.seed_admin` → `admin@ictu.edu.vn` / `Admin@123` |
 | `frontend/` đã có `features/auth/` | Bổ sung `api/`, `layouts/`, `routes/` khi làm màn hình |
 | Seed roles trong `schema.sql` | DB volume cũ: chạy `database/migrate_register.sql` |
 

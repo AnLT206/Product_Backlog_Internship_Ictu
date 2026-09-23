@@ -205,7 +205,8 @@ database/
 │   ├── 001_init.sql
 │   └── 002_add_documents.sql
 └── seeds/                      # Data mẫu
-    └── 001_roles.sql           # seed intern, hr, mentor, admin
+    ├── 001_roles.sql           # seed intern, hr, mentor, admin
+    └── 002_admin_user.sql      # seed admin@ictu.edu.vn (dev)
 ```
 
 - Đổi cấu trúc bảng → cập nhật `schema.sql` **và** (nếu dùng) thêm file trong `migrations/`.
