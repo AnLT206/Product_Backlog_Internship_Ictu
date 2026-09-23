@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.models.department import Department
 from app.models.role import Role
 from app.models.user import User
 from app.models.user_profile import UserProfile
@@ -46,6 +47,18 @@ class MentorService:
                 detail="Email đã được sử dụng.",
             )
 
+        if payload.department_id is not None:
+            department = (
+                self.db.query(Department)
+                .filter(Department.id == payload.department_id)
+                .first()
+            )
+            if department is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Phòng ban không tồn tại.",
+                )
+
         mentor_role = self.db.query(Role).filter(Role.name == MENTOR_ROLE_NAME).first()
         if mentor_role is None:
             raise HTTPException(
@@ -64,7 +77,6 @@ class MentorService:
             self.db.add(user)
             self.db.flush()
 
-            # TODO: Validate department_id after the departments table is available.
             profile = UserProfile(
                 user_id=user.id,
                 department_id=payload.department_id,
