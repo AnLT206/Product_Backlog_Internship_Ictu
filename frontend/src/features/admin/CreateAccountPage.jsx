@@ -32,9 +32,10 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /* ─────────────────────────────────────────────
    API helper
-   TODO: Thay BASE_URL và endpoint khi BE hoàn thành POST /api/admin/users
+   TODO: Thay endpoint khi BE hoàn thành POST /api/admin/users
+   TODO: const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+         (bỏ comment dòng trên khi chuyển sang fetch thật)
 ───────────────────────────────────────────── */
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
 /**
  * Gọi API tạo tài khoản (admin).
