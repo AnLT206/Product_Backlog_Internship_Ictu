@@ -6,7 +6,14 @@ from sqlalchemy.orm import Session
 from app.models.intern_profile import InternProfile
 from app.models.role import Role
 from app.models.user import User
-from app.schemas.auth import InternRegisterRequest, InternRegisterResponse
+from app.schemas.auth import (
+    InternRegisterRequest,
+    InternRegisterResponse,
+    LoginRequest,
+    LoginResponse,
+    LoginUserResponse,
+)
+from app.utils.authenticate_login import authenticate_login
 from app.utils.hash_password import hash_password
 
 TTS_ROLE_NAME = "intern"
@@ -72,4 +79,37 @@ class AuthService:
             role="intern",
             status=user.status,
             phone_number=profile.phone_number,
+        )
+
+    def login(self, payload: LoginRequest) -> LoginResponse:
+        user = self.db.query(User).filter(User.email == payload.email).first()
+        if user is None or user.status == "inactive":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Email hoặc mật khẩu không đúng.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        access_token = authenticate_login(
+            payload.password,
+            user.id,
+            user.role.name,
+            user.password_hash,
+        )
+        if access_token is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Email hoặc mật khẩu không đúng.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        return LoginResponse(
+            access_token=access_token,
+            user=LoginUserResponse(
+                id=user.id,
+                email=user.email,
+                full_name=user.full_name,
+                role=user.role.name,
+                status=user.status,
+            ),
         )

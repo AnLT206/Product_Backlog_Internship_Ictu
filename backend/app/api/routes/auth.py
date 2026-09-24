@@ -2,7 +2,12 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.schemas.auth import InternRegisterRequest, InternRegisterResponse
+from app.schemas.auth import (
+    InternRegisterRequest,
+    InternRegisterResponse,
+    LoginRequest,
+    LoginResponse,
+)
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -24,3 +29,8 @@ def register_intern(
     db: Session = Depends(get_db),
 ) -> InternRegisterResponse:
     return AuthService(db).register_intern(payload)
+
+
+@router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
+def login(payload: LoginRequest, db: Session = Depends(get_db)) -> LoginResponse:
+    return AuthService(db).login(payload)
