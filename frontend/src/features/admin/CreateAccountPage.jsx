@@ -3,34 +3,249 @@
  * Route dự kiến: /admin/users/new
  *
  * US: "Là admin, tôi muốn tạo tài khoản cho HR, mentor và thực tập sinh."
- * Task: Giao diện tĩnh (UI-only). Chưa validate logic / gọi API.
+ * Task 1: Giao diện tĩnh.
+ * Task 2: Validate form + tích hợp API (mock — TODO: thay bằng endpoint thật).
  *
- * Fields: Họ tên | Email | Dropdown Role | Password tạm | Nút "Tạo tài khoản"
+ * Fields : Họ tên | Email | Dropdown Role | Password tạm | Nút "Tạo tài khoản"
  * Theme  : kế thừa RegisterPage.css (màu, font, input, button)
  */
 
+import { useState } from 'react';
 import './CreateAccountPage.css';
+
+/* ─────────────────────────────────────────────
+   Hằng số
+───────────────────────────────────────────── */
 
 /**
  * Danh sách role hiển thị trong dropdown.
  * Giá trị (value) khớp với roles.name trong DB (software-specification.md §1.2).
  */
 const ROLE_OPTIONS = [
-  { value: 'intern',  label: 'Thực tập sinh' },
-  { value: 'mentor',  label: 'Mentor'         },
-  { value: 'hr',      label: 'HR'             },
+  { value: 'intern', label: 'Thực tập sinh' },
+  { value: 'mentor', label: 'Mentor' },
+  { value: 'hr',     label: 'HR' },
 ];
+
+/** Regex email chuẩn RFC 5322 (simplified — đủ cho production form) */
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/* ─────────────────────────────────────────────
+   API helper
+   TODO: Thay endpoint khi BE hoàn thành POST /api/admin/users
+   TODO: const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+         (bỏ comment dòng trên khi chuyển sang fetch thật)
+───────────────────────────────────────────── */
+
+/**
+ * Gọi API tạo tài khoản (admin).
+ *
+ * TODO: Endpoint POST /api/admin/users chưa tồn tại ở backend (chờ API thật).
+ *       Hiện tại hàm này giả lập (mock) luồng thành công/lỗi để FE có thể test độc lập.
+ *       Khi BE sẵn sàng: xóa khối mock bên dưới, bỏ comment fetch thật.
+ *
+ * @param {{ full_name: string, email: string, role: string, password: string }} body
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+async function apiCreateAccount(body) {
+  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
+  // Giả lập network delay
+  await new Promise((r) => setTimeout(r, 600));
+
+  // Mô phỏng 409 nếu email chứa "exists" (để test lỗi)
+  if (body.email.toLowerCase().includes('exists')) {
+    return {
+      ok: false,
+      status: 409,
+      data: { detail: 'Email đã được sử dụng.' },
+    };
+  }
+
+  // Mô phỏng thành công 201
+  return {
+    ok: true,
+    status: 201,
+    data: {
+      id: Math.floor(Math.random() * 1000),
+      email: body.email,
+      full_name: body.full_name,
+      role: body.role,
+      status: 'active',
+    },
+  };
+  /* ── END MOCK ─────────────────────────────────────────────────────────
+
+  // TODO: Bỏ comment khối này khi BE có POST /api/admin/users (role: admin only)
+  const token = localStorage.getItem('access_token') ?? '';
+  const res = await fetch(`${BASE_URL}/api/admin/users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  let data;
+  try { data = await res.json(); } catch { data = {}; }
+
+  return { ok: res.ok, status: res.status, data };
+  ─────────────────────────────────────────────────────────────────────── */
+}
+
+/* ─────────────────────────────────────────────
+   Validate helper
+───────────────────────────────────────────── */
+
+/**
+ * Validate toàn bộ form, trả về object errors.
+ * Trả về {} nếu hợp lệ.
+ *
+ * Rule theo docs/api.md:
+ *   - email : đúng format
+ *   - password: 6–128 ký tự
+ *   - role  : bắt buộc chọn
+ */
+function validateForm({ full_name, email, role, password }) {
+  const errors = {};
+
+  if (!full_name.trim()) {
+    errors.full_name = 'Vui lòng nhập họ tên.';
+  }
+
+  if (!email.trim()) {
+    errors.email = 'Vui lòng nhập email.';
+  } else if (!EMAIL_REGEX.test(email.trim())) {
+    errors.email = 'Email không đúng định dạng.';
+  }
+
+  if (!role) {
+    errors.role = 'Vui lòng chọn vai trò.';
+  }
+
+  if (!password) {
+    errors.password = 'Vui lòng nhập mật khẩu tạm.';
+  } else if (password.length < 6) {
+    errors.password = 'Mật khẩu phải có tối thiểu 6 ký tự.';
+  } else if (password.length > 128) {
+    errors.password = 'Mật khẩu không được vượt quá 128 ký tự.';
+  }
+
+  return errors;
+}
+
+/* ─────────────────────────────────────────────
+   Component
+───────────────────────────────────────────── */
 
 /**
  * CreateAccountPage
- * Giao diện form tạo tài khoản cho admin.
- * Chưa xử lý submit / validate — sẽ hoàn thiện ở task tiếp theo.
+ * Form tạo tài khoản cho admin — có validate + mock API call.
  */
 function CreateAccountPage() {
+  /* ── State ── */
+  const [form, setForm] = useState({
+    full_name: '',
+    email: '',
+    role: '',
+    password: '',
+  });
+  const [errors, setErrors]     = useState({});
+  const [loading, setLoading]   = useState(false);
+  const [toast, setToast]       = useState(null); // { type: 'success'|'error', message: string }
+
+  /* ── Handlers ── */
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    // Xóa lỗi của field vừa sửa ngay lập tức
+    if (errors[name]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
+  }
+
+  function showToast(type, message) {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+
+    // 1. Validate
+    const validationErrors = validateForm(form);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    // 2. Gọi API
+    setLoading(true);
+    setErrors({});
+    try {
+      const { ok, status, data } = await apiCreateAccount({
+        full_name: form.full_name.trim(),
+        email:     form.email.trim().toLowerCase(),
+        role:      form.role,
+        password:  form.password,
+      });
+
+      if (ok) {
+        // 201 — thành công
+        showToast('success', 'Tạo tài khoản thành công!');
+        setForm({ full_name: '', email: '', role: '', password: '' });
+      } else if (status === 409) {
+        // Email đã tồn tại
+        const msg = data?.detail ?? 'Email đã được sử dụng.';
+        setErrors({ email: msg });
+        showToast('error', msg);
+      } else if (status === 422) {
+        // Validate fail từ BE (format { detail: [...] } hoặc { detail: "..." })
+        const detail = data?.detail;
+        if (Array.isArray(detail)) {
+          // FastAPI validation errors — map theo field
+          const beErrors = {};
+          detail.forEach(({ loc, msg: beMsg }) => {
+            const field = loc?.[1]; // ["body", "field_name"]
+            if (field) beErrors[field] = beMsg;
+          });
+          setErrors(beErrors);
+          showToast('error', 'Dữ liệu không hợp lệ, vui lòng kiểm tra lại.');
+        } else {
+          showToast('error', detail ?? 'Dữ liệu không hợp lệ.');
+        }
+      } else {
+        showToast('error', data?.detail ?? 'Đã xảy ra lỗi, vui lòng thử lại.');
+      }
+    } catch {
+      showToast('error', 'Không thể kết nối tới máy chủ, vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* ── Render ── */
   return (
     <div className="create-account-page">
       {/* Glow nền (giống RegisterPage) */}
       <div className="create-account-page__glow" aria-hidden="true" />
+
+      {/* ── Toast thông báo ── */}
+      {toast && (
+        <div
+          id="admin-ca-toast"
+          className={`create-account-toast create-account-toast--${toast.type}`}
+          role="alert"
+          aria-live="polite"
+        >
+          {toast.type === 'success' ? '✓ ' : '✕ '}
+          {toast.message}
+        </div>
+      )}
 
       <div className="create-account-shell">
 
@@ -55,11 +270,12 @@ function CreateAccountPage() {
           <form
             className="create-account-form"
             id="admin-create-account-form"
-            /* onSubmit sẽ thêm ở task 2 */
+            onSubmit={handleSubmit}
+            noValidate
           >
 
             {/* Họ tên */}
-            <div className="form-group">
+            <div className={`form-group${errors.full_name ? ' form-group--error' : ''}`}>
               <label htmlFor="admin-ca-fullname">Họ tên</label>
               <input
                 id="admin-ca-fullname"
@@ -67,11 +283,19 @@ function CreateAccountPage() {
                 type="text"
                 placeholder="Nguyễn Văn A"
                 autoComplete="name"
+                value={form.full_name}
+                onChange={handleChange}
+                aria-describedby={errors.full_name ? 'err-fullname' : undefined}
               />
+              {errors.full_name && (
+                <span id="err-fullname" className="form-error" role="alert">
+                  {errors.full_name}
+                </span>
+              )}
             </div>
 
             {/* Email */}
-            <div className="form-group">
+            <div className={`form-group${errors.email ? ' form-group--error' : ''}`}>
               <label htmlFor="admin-ca-email">Email</label>
               <input
                 id="admin-ca-email"
@@ -79,16 +303,26 @@ function CreateAccountPage() {
                 type="email"
                 placeholder="example@ictu.edu.vn"
                 autoComplete="email"
+                value={form.email}
+                onChange={handleChange}
+                aria-describedby={errors.email ? 'err-email' : undefined}
               />
+              {errors.email && (
+                <span id="err-email" className="form-error" role="alert">
+                  {errors.email}
+                </span>
+              )}
             </div>
 
             {/* Dropdown Role */}
-            <div className="form-group">
+            <div className={`form-group${errors.role ? ' form-group--error' : ''}`}>
               <label htmlFor="admin-ca-role">Vai trò</label>
               <select
                 id="admin-ca-role"
                 name="role"
-                defaultValue=""
+                value={form.role}
+                onChange={handleChange}
+                aria-describedby={errors.role ? 'err-role' : undefined}
               >
                 <option value="" disabled>-- Chọn vai trò --</option>
                 {ROLE_OPTIONS.map((opt) => (
@@ -97,10 +331,15 @@ function CreateAccountPage() {
                   </option>
                 ))}
               </select>
+              {errors.role && (
+                <span id="err-role" className="form-error" role="alert">
+                  {errors.role}
+                </span>
+              )}
             </div>
 
             {/* Password tạm */}
-            <div className="form-group">
+            <div className={`form-group${errors.password ? ' form-group--error' : ''}`}>
               <label htmlFor="admin-ca-password">Mật khẩu tạm</label>
               <input
                 id="admin-ca-password"
@@ -108,7 +347,15 @@ function CreateAccountPage() {
                 type="password"
                 placeholder="Tối thiểu 6 ký tự"
                 autoComplete="new-password"
+                value={form.password}
+                onChange={handleChange}
+                aria-describedby={errors.password ? 'err-password' : undefined}
               />
+              {errors.password && (
+                <span id="err-password" className="form-error" role="alert">
+                  {errors.password}
+                </span>
+              )}
             </div>
 
             {/* Submit */}
@@ -116,8 +363,9 @@ function CreateAccountPage() {
               id="admin-ca-submit"
               type="submit"
               className="create-account-button"
+              disabled={loading}
             >
-              Tạo tài khoản
+              {loading ? 'Đang xử lý…' : 'Tạo tài khoản'}
             </button>
 
           </form>
