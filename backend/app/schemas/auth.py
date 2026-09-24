@@ -110,3 +110,26 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: Literal["bearer"] = "bearer"
     user: LoginUserResponse
+
+
+class UserProfileResponse(LoginUserResponse):
+    phone_number: str | None = None
+    dob: date | None = None
+    gender: str | None = None
+    university: str | None = None
+    major: str | None = None
+    academic_year: str | None = None
+    gpa: Decimal | None = None
+    address: str | None = None
+
+
+class UserProfileUpdateRequest(BaseModel):
+    full_name: str | None = Field(default=None, min_length=1, max_length=100)
+    phone_number: str | None = Field(default=None, max_length=20)
+    dob: date | None = None
+    gender: Literal["male", "female", "other"] | None = None
+    university: str | None = Field(default=None, max_length=150)
+    major: str | None = Field(default=None, max_length=150)
+    academic_year: str | None = Field(default=None, max_length=50)
+    gpa: Decimal | None = Field(default=None, ge=0, le=4)
+    address: str | None = Field(default=None, max_length=255)
