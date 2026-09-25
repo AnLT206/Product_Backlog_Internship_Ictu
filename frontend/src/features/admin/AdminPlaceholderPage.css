@@ -1,28 +1,46 @@
 .admin-placeholder {
+  --fb-blue: #1877f2;
+  --fb-blue-soft: #e7f3ff;
+  --fb-ink: #0f172a;
+  --fb-muted: #65676b;
+  --fb-line: #e4e6eb;
+
   max-width: 560px;
   padding: 28px;
-  border-radius: 16px;
+  border-radius: 24px;
   background: #fff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--fb-line);
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.03),
+    0 24px 48px rgba(15, 23, 42, 0.06);
 }
 
 .admin-placeholder h1 {
   margin: 0 0 10px;
-  font-size: 1.4rem;
+  font-size: 1.35rem;
+  color: var(--fb-ink);
+  letter-spacing: -0.02em;
 }
 
 .admin-placeholder p {
   margin: 0 0 18px;
-  color: #64748b;
+  color: var(--fb-muted);
   line-height: 1.55;
 }
 
 .admin-placeholder a {
-  color: #1877f2;
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--fb-blue-soft);
+  border: 1px solid #d0e4ff;
+  color: var(--fb-blue);
   font-weight: 700;
   text-decoration: none;
 }
 
 .admin-placeholder a:hover {
-  text-decoration: underline;
+  background: #dcebff;
 }

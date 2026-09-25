@@ -1,37 +1,77 @@
 .role-home {
+  --fb-blue: #1877f2;
+  --fb-blue-hover: #166fe5;
+  --fb-blue-soft: #e7f3ff;
+  --fb-ink: #0f172a;
+  --fb-muted: #65676b;
+  --fb-line: #e4e6eb;
+  --fb-font: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  position: relative;
+  isolation: isolate;
   min-height: 100svh;
   display: grid;
   place-items: center;
   padding: 24px;
-  background: #f1f5f9;
-  font-family: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-family: var(--fb-font);
+  background: #fff;
+  overflow: hidden;
+}
+
+.role-home::before {
+  content: '';
+  position: absolute;
+  inset: auto 30% -20% auto;
+  width: min(640px, 90vw);
+  height: min(640px, 90vw);
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 45% 45%,
+      rgba(24, 119, 242, 0.14) 0%,
+      rgba(24, 119, 242, 0.04) 42%,
+      transparent 70%
+    );
+  filter: blur(10px);
 }
 
 .role-home__card {
+  position: relative;
+  z-index: 1;
   width: min(480px, 100%);
-  padding: 28px;
-  border-radius: 16px;
+  padding: 28px 28px 24px;
+  border-radius: 24px;
   background: #fff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--fb-line);
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.03),
+    0 24px 48px rgba(15, 23, 42, 0.08);
 }
 
 .role-home__badge {
-  margin: 0 0 10px;
-  color: #1877f2;
-  font-size: 0.8rem;
+  display: inline-flex;
+  margin: 0 0 14px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--fb-blue-soft);
+  border: 1px solid #d0e4ff;
+  color: var(--fb-blue);
+  font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .role-home__card h1 {
   margin: 0 0 10px;
   font-size: 1.45rem;
+  color: var(--fb-ink);
+  letter-spacing: -0.02em;
 }
 
 .role-home__card p {
   margin: 0;
-  color: #64748b;
+  color: var(--fb-muted);
   line-height: 1.55;
 }
 
@@ -43,8 +83,8 @@
 
 .role-home__actions a,
 .role-home__actions button {
-  height: 40px;
-  padding: 0 14px;
+  height: 42px;
+  padding: 0 16px;
   border-radius: 999px;
   border: none;
   font: inherit;
@@ -56,11 +96,23 @@
 }
 
 .role-home__actions a {
-  background: #1877f2;
+  background: var(--fb-blue);
   color: #fff;
+  box-shadow: 0 8px 20px rgba(24, 119, 242, 0.28);
+}
+
+.role-home__actions a:hover {
+  background: var(--fb-blue-hover);
 }
 
 .role-home__actions button {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: #fff;
+  color: var(--fb-body, #1c1e21);
+  border: 1px solid var(--fb-line);
+}
+
+.role-home__actions button:hover {
+  background: var(--fb-blue-soft);
+  border-color: #d0e4ff;
+  color: var(--fb-blue);
 }

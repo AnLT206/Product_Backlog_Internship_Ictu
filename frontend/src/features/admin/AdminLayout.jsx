@@ -20,14 +20,18 @@ export default function AdminLayout() {
 
   return (
     <div className="admin-shell">
+      <div className="admin-shell__glow" aria-hidden="true" />
+
       <aside className="admin-sidebar">
         <div className="admin-sidebar__brand">
-          <img src={logoApp} alt="" width={32} height={32} />
+          <img src={logoApp} alt="" width={36} height={36} />
           <div>
             <strong>ICTU Admin</strong>
             <span>Quản trị hệ thống</span>
           </div>
         </div>
+
+        <p className="admin-sidebar__badge">Admin</p>
 
         <nav className="admin-sidebar__nav" aria-label="Menu admin">
           {NAV.map((item) => (
