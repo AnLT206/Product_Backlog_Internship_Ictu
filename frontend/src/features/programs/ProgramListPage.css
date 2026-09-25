@@ -1,0 +1,214 @@
+/* ============================================================
+   ProgramListPage.css  –  HR: Danh sách chương trình thực tập
+   Design tokens kế thừa từ features/auth/RegisterPage.css
+   ============================================================ */
+
+.program-list-page {
+  /* ── design tokens (đồng bộ RegisterPage.css) ── */
+  --fb-blue:       #1877f2;
+  --fb-blue-hover: #166fe5;
+  --fb-blue-soft:  #e7f3ff;
+  --fb-ink:        #0f172a;
+  --fb-body:       #1c1e21;
+  --fb-muted:      #65676b;
+  --fb-line:       #e4e6eb;
+  --fb-bg:         #f0f2f5;
+  --fb-font:       'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  min-height: 100svh;
+  background: var(--fb-bg);
+  font-family: var(--fb-font);
+  color: var(--fb-body);
+  padding: 40px 32px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.program-list-page *,
+.program-list-page *::before,
+.program-list-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── Page wrapper ── */
+.program-list-wrapper {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Header row ── */
+.program-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.program-list-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.program-list-title h1 {
+  margin: 0;
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  color: var(--fb-ink);
+  line-height: 1.2;
+}
+
+.program-list-title h1 span {
+  color: var(--fb-blue);
+}
+
+.program-list-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fb-muted);
+}
+
+/* ── "Tạo chương trình mới" button ── */
+.program-new-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 999px;
+  background: var(--fb-blue);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgba(24, 119, 242, 0.28);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.program-new-btn:hover {
+  background: var(--fb-blue-hover);
+  box-shadow: 0 8px 20px rgba(24, 119, 242, 0.36);
+}
+
+.program-new-btn__icon {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 400;
+}
+
+/* ── Card chứa bảng ── */
+.program-table-card {
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid var(--fb-line);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.03), 0 12px 32px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+/* ── Table ── */
+.program-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.program-table thead {
+  background: var(--fb-bg);
+}
+
+.program-table th {
+  padding: 13px 20px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fb-muted);
+  border-bottom: 1px solid var(--fb-line);
+  white-space: nowrap;
+}
+
+.program-table td {
+  padding: 14px 20px;
+  color: var(--fb-body);
+  border-bottom: 1px solid var(--fb-line);
+  vertical-align: middle;
+  line-height: 1.4;
+}
+
+.program-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.program-table tbody tr:hover {
+  background: #fafbff;
+  transition: background 0.12s ease;
+}
+
+/* ── Tên chương trình (bold) ── */
+.program-table .prog-name {
+  font-weight: 650;
+  color: var(--fb-ink);
+}
+
+/* ── Badge phòng ban ── */
+.prog-dept-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--fb-blue-soft);
+  border: 1px solid #d0e4ff;
+  color: var(--fb-blue);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── Date text ── */
+.program-table .prog-date {
+  font-variant-numeric: tabular-nums;
+  color: var(--fb-muted);
+  font-size: 13.5px;
+}
+
+/* ── Empty state ── */
+.program-empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--fb-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.program-empty__icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+/* ── Responsive ── */
+@media (max-width: 680px) {
+  .program-list-page {
+    padding: 28px 16px;
+  }
+
+  .program-list-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .program-table th,
+  .program-table td {
+    padding: 12px 14px;
+  }
+
+  /* Ẩn cột Mô tả trên mobile (chưa có trong task, phòng khi team thêm) */
+}
