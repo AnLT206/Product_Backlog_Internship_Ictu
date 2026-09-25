@@ -35,7 +35,7 @@
  * @param {number|string} internId - ID của thực tập sinh cần cập nhật.
  * @param {object} payload - Dữ liệu hồ sơ đã sửa. Các field được phép:
  *   full_name, phone_number, dob, gender, university, major, academic_year,
- *   gpa, address (software-specification.md §5.1 / docs/api.md)
+ *   gpa, address (software-specification.md §5.1)
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
  *
  * @example

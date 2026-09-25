@@ -44,7 +44,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * Validate toàn bộ form, trả về object errors.
  * Trả về {} nếu hợp lệ.
  *
- * Rule theo docs/api.md:
+ * Rule validate:
  *   - email : đúng format
  *   - password: 6–128 ký tự
  *   - role  : bắt buộc chọn

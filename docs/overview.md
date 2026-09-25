@@ -59,5 +59,5 @@ Chi tiết từng story: [product-backlog.md](product-backlog.md).
 - `backend/app/utils/` — hash bcrypt, JWT helper
 - `docker-compose.yml` + `.env.example`
 
-Tài liệu gọi API cho FE: **[api.md](api.md)**.  
+Swagger API: `http://localhost:8000/docs`.  
 Chưa có: login / me / upload CV — bổ sung theo backlog.
