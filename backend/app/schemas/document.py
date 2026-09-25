@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -16,5 +17,6 @@ class DocumentResponse(BaseModel):
     file_path: str
     status: str
     review_note: str | None = None
+    confirmed_at: datetime | None = None
 
     model_config = {"from_attributes": True}
