@@ -7,69 +7,95 @@
  *   → Nút chỉ hiển thị khi status === 'pending'.
  *   → Status khác: chỉ hiện StatusBadge.
  *
- * ⚠️  Component này KHÔNG gọi API (không có fetch/axios ở đây).
- *     Việc gọi API approve/reject là task 7 — thực hiện qua callback:
- *       onApprove(internId) → gọi POST /api/hr/interns/{id}/approve
- *       onReject(internId)  → gọi POST /api/hr/interns/{id}/reject
+ * Flow (task 7):
+ *   Bấm nút → mở ConfirmActionDialog → HR xác nhận
+ *           → dialog gọi API → thành công: đóng + onSuccess(toastPayload)
+ *                           → lỗi: giữ dialog, hiện lỗi trong popup
+ *
+ * Props:
+ *   internId  {number|string}
+ *   status    {'pending'|'active'|'inactive'}
+ *   onSuccess {(toast: { type, message }) => void}
+ *     Callback khi API thành công — nơi dùng cập nhật Badge + hiện toast.
  *
  * @example
- * // Dùng trong bảng danh sách hồ sơ TTS (/hr/interns):
  * import InternActionButtons from './components/InternActionButtons';
  *
  * <InternActionButtons
  *   internId={intern.id}
  *   status={intern.status}
- *   onApprove={(id) => handleApprove(id)}
- *   onReject={(id) => handleReject(id)}
+ *   onSuccess={({ type, message }) => {
+ *     setToast({ type, message });         // hiện toast ở màn hình cha
+ *     refetchInterns();                    // cập nhật lại danh sách
+ *   }}
  * />
  */
 
+import { useState } from 'react';
 import StatusBadge from './StatusBadge';
+import ConfirmActionDialog from './ConfirmActionDialog';
 import './InternComponents.css';
 
 /**
  * InternActionButtons
  *
  * @param {{
- *   internId: number|string,
- *   status: 'pending'|'active'|'inactive',
- *   onApprove: (internId: number|string) => void,
- *   onReject:  (internId: number|string) => void,
+ *   internId:  number|string,
+ *   status:    'pending'|'active'|'inactive',
+ *   onSuccess: (toast: { type: string, message: string }) => void,
  * }} props
  */
-function InternActionButtons({ internId, status, onApprove, onReject }) {
+function InternActionButtons({ internId, status, onSuccess }) {
+  // dialog = null | 'approve' | 'reject'
+  const [dialog, setDialog] = useState(null);
+
   // Chỉ hiển thị nút khi status === 'pending' (spec §5.4)
   if (status !== 'pending') {
     return <StatusBadge status={status} />;
   }
 
   return (
-    <div className="intern-action-buttons">
-      {/* Badge trạng thái */}
-      <StatusBadge status={status} />
+    <>
+      <div className="intern-action-buttons">
+        {/* Badge trạng thái */}
+        <StatusBadge status={status} />
 
-      {/* Nút Duyệt — bắn callback onApprove, KHÔNG gọi API trực tiếp */}
-      <button
-        type="button"
-        className="intern-action-btn intern-action-btn--approve"
-        id={`intern-approve-btn-${internId}`}
-        onClick={() => onApprove(internId)}
-        aria-label={`Duyệt hồ sơ #${internId}`}
-      >
-        ✓ Duyệt
-      </button>
+        {/* Nút Duyệt → mở dialog approve */}
+        <button
+          type="button"
+          className="intern-action-btn intern-action-btn--approve"
+          id={`intern-approve-btn-${internId}`}
+          onClick={() => setDialog('approve')}
+          aria-label={`Duyệt hồ sơ #${internId}`}
+        >
+          ✓ Duyệt
+        </button>
 
-      {/* Nút Từ chối — bắn callback onReject, KHÔNG gọi API trực tiếp */}
-      <button
-        type="button"
-        className="intern-action-btn intern-action-btn--reject"
-        id={`intern-reject-btn-${internId}`}
-        onClick={() => onReject(internId)}
-        aria-label={`Từ chối hồ sơ #${internId}`}
-      >
-        ✕ Từ chối
-      </button>
-    </div>
+        {/* Nút Từ chối → mở dialog reject */}
+        <button
+          type="button"
+          className="intern-action-btn intern-action-btn--reject"
+          id={`intern-reject-btn-${internId}`}
+          onClick={() => setDialog('reject')}
+          aria-label={`Từ chối hồ sơ #${internId}`}
+        >
+          ✕ Từ chối
+        </button>
+      </div>
+
+      {/* Popup xác nhận — render khi dialog !== null */}
+      {dialog && (
+        <ConfirmActionDialog
+          internId={internId}
+          action={dialog}
+          onClose={() => setDialog(null)}
+          onSuccess={(toastPayload) => {
+            setDialog(null);
+            onSuccess?.(toastPayload);
+          }}
+        />
+      )}
+    </>
   );
 }
 

@@ -1,0 +1,228 @@
+/* ============================================================
+   ConfirmActionDialog.css
+   Style cho popup xác nhận duyệt/từ chối hồ sơ.
+   Token màu kế thừa theme hiện có (RegisterPage.css / InternComponents.css).
+   ============================================================ */
+
+/* ── Backdrop ── */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  animation: backdrop-in 0.18s ease;
+}
+
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Panel ── */
+.dialog-panel {
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #e4e6eb;
+  box-shadow:
+    0 8px 16px rgba(15, 23, 42, 0.06),
+    0 32px 64px rgba(15, 23, 42, 0.12);
+  width: 100%;
+  max-width: 420px;
+  padding: 32px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  animation: panel-in 0.2s ease;
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* ── Icon vòng tròn ── */
+.dialog-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.dialog-icon--approve {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 2px solid #6ee7b7;
+}
+
+.dialog-icon--reject {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 2px solid #fca5a5;
+}
+
+/* ── Tiêu đề ── */
+.dialog-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  text-align: center;
+  line-height: 1.25;
+}
+
+/* ── Mô tả ── */
+.dialog-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #65676b;
+  text-align: center;
+  max-width: 34ch;
+}
+
+/* ── Textarea ghi chú (reject) ── */
+.dialog-note-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.dialog-note-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.dialog-required {
+  color: #e02424;
+  margin-left: 2px;
+}
+
+.dialog-note-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  border: 1.5px solid #e4e6eb;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #1c1e21;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dialog-note-textarea::placeholder { color: #8a8d91; }
+
+.dialog-note-textarea:focus {
+  border-color: #1877f2;
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+}
+
+.dialog-note-textarea:disabled {
+  background: #f0f2f5;
+  cursor: not-allowed;
+}
+
+/* ── Thông báo lỗi trong popup ── */
+.dialog-error {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ── Actions row ── */
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* Base button */
+.dialog-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dialog-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Hủy */
+.dialog-btn--cancel {
+  background: #f0f2f5;
+  border-color: #e4e6eb;
+  color: #65676b;
+}
+
+.dialog-btn--cancel:hover:not(:disabled) {
+  background: #e4e6eb;
+}
+
+/* Xác nhận — Duyệt */
+.dialog-btn--confirm.dialog-btn--approve {
+  background: #10b981;
+  border-color: #10b981;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.dialog-btn--confirm.dialog-btn--approve:hover:not(:disabled) {
+  background: #059669;
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+/* Xác nhận — Từ chối */
+.dialog-btn--confirm.dialog-btn--reject {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.dialog-btn--confirm.dialog-btn--reject:hover:not(:disabled) {
+  background: #dc2626;
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .dialog-panel {
+    padding: 24px 20px 22px;
+  }
+
+  .dialog-actions {
+    flex-direction: column-reverse;
+  }
+}
