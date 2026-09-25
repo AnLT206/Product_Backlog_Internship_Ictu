@@ -184,6 +184,22 @@ HR/admin upload hợp đồng (`multipart/form-data`, field `file`). Tạo `docu
 
 ---
 
+## POST `/api/intern/contract/confirm`
+
+TTS (`role=intern`, `status=active`) xác nhận hợp đồng chưa `confirmed_at`. Gán `status=approved` + `confirmed_at`.
+
+**Out `200`:** DocumentResponse.
+
+### Lỗi
+
+| Code | Khi |
+| --- | --- |
+| 403 | Không phải intern |
+| 404 | Không có hợp đồng cần xác nhận |
+| 409 | TTS chưa `active` |
+
+---
+
 ## Chưa có
 
 | Method | Path |
