@@ -105,3 +105,19 @@ def test_programs_crud_flow(integration_client):
         headers=headers,
     )
     assert missing.status_code == 404
+
+
+def test_create_program_rejects_end_date_not_after_start(integration_client):
+    token = create_access_token(user_id=1, role="hr")
+    headers = {"Authorization": f"Bearer {token}"}
+    response = integration_client.post(
+        "/api/hr/programs",
+        json={
+            "name": "Chuong trinh sai ngay",
+            "department": "CNTT",
+            "start_date": "2026-08-31",
+            "end_date": "2026-06-01",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 422
