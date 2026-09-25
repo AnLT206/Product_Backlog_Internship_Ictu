@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ProgramCreateRequest(BaseModel):
@@ -10,6 +10,12 @@ class ProgramCreateRequest(BaseModel):
     start_date: date
     end_date: date
 
+    @model_validator(mode="after")
+    def end_after_start(self) -> "ProgramCreateRequest":
+        if self.end_date <= self.start_date:
+            raise ValueError("end_date phải lớn hơn start_date.")
+        return self
+
 
 class ProgramUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=150)
@@ -17,6 +23,16 @@ class ProgramUpdateRequest(BaseModel):
     description: str | None = Field(default=None, max_length=500)
     start_date: date | None = None
     end_date: date | None = None
+
+    @model_validator(mode="after")
+    def end_after_start_when_both(self) -> "ProgramUpdateRequest":
+        if (
+            self.start_date is not None
+            and self.end_date is not None
+            and self.end_date <= self.start_date
+        ):
+            raise ValueError("end_date phải lớn hơn start_date.")
+        return self
 
 
 class ProgramResponse(BaseModel):

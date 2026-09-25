@@ -87,6 +87,14 @@ class ProgramService:
         if "description" in data and isinstance(data["description"], str):
             data["description"] = data["description"].strip() or None
 
+        next_start = data.get("start_date", row.start_date)
+        next_end = data.get("end_date", row.end_date)
+        if next_end <= next_start:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="end_date phải lớn hơn start_date.",
+            )
+
         for key, value in data.items():
             setattr(row, key, value)
 
