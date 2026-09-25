@@ -38,6 +38,17 @@ Sau khi chạy:
 | Backend API (FastAPI) | http://localhost:8000 — docs: `/docs` — [api.md](docs/api.md) |
 | Frontend (React + nginx) | http://localhost:8080 |
 | MySQL | `localhost:3306` — DB `ictu_internship` / user `ictu` / pass `ictu` |
+| Admin (dev, seed tự động) | `admin@ictu.edu.vn` / `Admin@123` — tắt bằng `ADMIN_SEED_ON_STARTUP=false` |
+
+**Tài khoản admin cố định cho cả team:**
+
+| Lần chạy | Hành vi |
+| --- | --- |
+| `docker compose up` lần đầu / DB trống | Tự tạo `admin@ictu.edu.vn` / `Admin@123` (role admin, active) |
+| `up` lần sau (giữ volume) | **Giữ nguyên** nick đó — không tạo trùng, không đổi mật khẩu |
+| `docker compose down -v` rồi `up` lại | Xóa hết data → seed tạo lại đúng nick cố định |
+
+Backend Docker sẽ **tự seed admin** trước khi mở API (idempotent). Volume DB mới cũng chạy `database/seeds/002_admin_user.sql`.
 
 Dừng:
 
@@ -147,7 +158,7 @@ flowchart LR
 | Đang lệch / thiếu | Việc nhóm cần làm |
 | --- | --- |
 | `backend/` đã có register API (TTS) | Tiếp: login, me, upload documents |
-| Seed admin (dev) | `PYTHONPATH=. python -m scripts.seed_admin` → `admin@ictu.edu.vn` / `Admin@123` |
+| Seed admin (dev) | Docker backend tự seed; hoặc `PYTHONPATH=. python -m scripts.seed_admin` → `admin@ictu.edu.vn` / `Admin@123` |
 | `frontend/` đã có `features/auth/` | Bổ sung `api/`, `layouts/`, `routes/` khi làm màn hình |
 | Seed roles trong `schema.sql` | DB volume cũ: chạy `database/migrate_register.sql` |
 
