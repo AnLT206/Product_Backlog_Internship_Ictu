@@ -1,0 +1,124 @@
+/* ============================================================
+   InternComponents.css
+   Style chung cho StatusBadge và InternActionButtons.
+   Design tokens kế thừa từ RegisterPage.css / CreateAccountPage.css —
+   chỉ thêm biến thể màu nhạt cho badge trạng thái, không tự chế bảng màu mới.
+   ============================================================ */
+
+/* ─── Design tokens (đồng bộ theme hiện có) ─── */
+.intern-components {
+  --fb-blue:         #1877f2;
+  --fb-blue-hover:   #166fe5;
+  --fb-blue-soft:    #e7f3ff;
+  --fb-ink:          #0f172a;
+  --fb-body:         #1c1e21;
+  --fb-muted:        #65676b;
+  --fb-line:         #e4e6eb;
+  --fb-font:         'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+/* ─────────────────────────────────────────────
+   StatusBadge
+   3 trạng thái theo software-specification.md §2.3
+───────────────────────────────────────────── */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.6;
+}
+
+/* pending → vàng/cam nhạt */
+.status-badge--pending {
+  background: #fff8e6;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
+
+/* active → xanh lá nhạt */
+.status-badge--active {
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #065f46;
+}
+
+/* inactive → đỏ nhạt */
+.status-badge--inactive {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
+
+/* Chấm tròn trước text */
+.status-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-badge--pending .status-badge__dot  { background: #f59e0b; }
+.status-badge--active  .status-badge__dot  { background: #10b981; }
+.status-badge--inactive .status-badge__dot { background: #ef4444; }
+
+/* ─────────────────────────────────────────────
+   InternActionButtons
+───────────────────────────────────────────── */
+
+.intern-action-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+/* Base button style */
+.intern-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+/* Nút "Duyệt" — xanh lá */
+.intern-action-btn--approve {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #065f46;
+}
+
+.intern-action-btn--approve:hover {
+  background: #d1fae5;
+  border-color: #34d399;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+}
+
+/* Nút "Từ chối" — đỏ nhạt */
+.intern-action-btn--reject {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.intern-action-btn--reject:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
