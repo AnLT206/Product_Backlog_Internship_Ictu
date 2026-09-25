@@ -147,6 +147,28 @@ HR/admin tạo hồ sơ TTS (`users` + `intern_profiles`). Mặc định `status
 
 ---
 
+## POST `/api/hr/documents/{id}/review`
+
+HR/admin duyệt hoặc từ chối tài liệu. Khi `status=rejected` → tạo notification cho TTS sở hữu file.
+
+### In
+
+| Field | Type | Required | Rule |
+| --- | --- | :---: | --- |
+| `status` | string | ✓ | `approved` \| `rejected` |
+| `review_note` | string \| null | | bắt buộc khi `rejected`, max 255 |
+
+**Out `200`:** `{ id, user_id, doc_type, file_name, file_path, status, review_note }`
+
+### Lỗi
+
+| Code | Khi |
+| --- | --- |
+| 404 | Không tìm thấy tài liệu |
+| 422 | Reject thiếu `review_note` |
+
+---
+
 ## Chưa có
 
 | Method | Path |
