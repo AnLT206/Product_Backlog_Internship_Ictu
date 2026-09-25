@@ -1,0 +1,28 @@
+.admin-placeholder {
+  max-width: 560px;
+  padding: 28px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-placeholder h1 {
+  margin: 0 0 10px;
+  font-size: 1.4rem;
+}
+
+.admin-placeholder p {
+  margin: 0 0 18px;
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.admin-placeholder a {
+  color: #1877f2;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.admin-placeholder a:hover {
+  text-decoration: underline;
+}

@@ -1,0 +1,159 @@
+.admin-shell {
+  --admin-blue: #1877f2;
+  --admin-blue-hover: #166fe5;
+  --admin-ink: #0f172a;
+  --admin-muted: #64748b;
+  --admin-line: #e2e8f0;
+  --admin-bg: #f1f5f9;
+  --admin-card: #ffffff;
+  --admin-font: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100svh;
+  font-family: var(--admin-font);
+  color: var(--admin-ink);
+  background: var(--admin-bg);
+}
+
+.admin-shell *,
+.admin-shell *::before,
+.admin-shell *::after {
+  box-sizing: border-box;
+}
+
+.admin-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px 18px;
+  background: #0b1220;
+  color: #e2e8f0;
+}
+
+.admin-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 8px;
+}
+
+.admin-sidebar__brand img {
+  border-radius: 8px;
+  background: #fff;
+}
+
+.admin-sidebar__brand strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.admin-sidebar__brand span {
+  display: block;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.admin-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.admin-nav-link {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.92rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-nav-link:hover {
+  background: rgba(148, 163, 184, 0.12);
+  color: #fff;
+}
+
+.admin-nav-link.is-active {
+  background: var(--admin-blue);
+  color: #fff;
+}
+
+.admin-sidebar__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.admin-user__name {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.admin-user__email {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  word-break: break-all;
+}
+
+.admin-logout {
+  height: 40px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+  background: transparent;
+  color: #e2e8f0;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-logout:hover {
+  background: rgba(248, 113, 113, 0.15);
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.admin-main {
+  padding: 28px 32px 40px;
+  overflow: auto;
+}
+
+.admin-main .create-account-page {
+  min-height: auto;
+  padding: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.admin-main .create-account-page__glow {
+  display: none;
+}
+
+.admin-main .create-account-shell {
+  max-width: 560px;
+}
+
+.admin-main .create-account-brand {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    gap: 16px;
+  }
+
+  .admin-sidebar__nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
