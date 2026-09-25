@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -86,6 +87,49 @@ class DocumentService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Không thể tải lên hợp đồng.",
+            ) from None
+
+        return DocumentResponse.model_validate(doc)
+
+    def confirm_contract(self, current_user: User) -> DocumentResponse:
+        if current_user.role.name != "intern":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Chỉ thực tập sinh mới xác nhận được hợp đồng.",
+            )
+        if current_user.status != "active":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Chỉ TTS đang active mới xác nhận được hợp đồng.",
+            )
+
+        doc = (
+            self.db.query(Document)
+            .filter(
+                Document.user_id == current_user.id,
+                Document.doc_type == "contract",
+                Document.confirmed_at.is_(None),
+            )
+            .order_by(Document.id.desc())
+            .first()
+        )
+        if doc is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Không có hợp đồng cần xác nhận.",
+            )
+
+        doc.status = "approved"
+        doc.confirmed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        try:
+            self.db.commit()
+            self.db.refresh(doc)
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể xác nhận hợp đồng.",
             ) from None
 
         return DocumentResponse.model_validate(doc)
