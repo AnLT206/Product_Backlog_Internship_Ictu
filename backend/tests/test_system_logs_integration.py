@@ -134,3 +134,40 @@ def test_login_is_not_written_to_system_logs(integration_client):
     }
     request = Request(scope)
     assert should_log(request, 200) is False
+
+
+def test_list_system_logs_supports_time_filter(integration_client):
+    from datetime import datetime, timedelta, timezone
+
+    hr_token = create_access_token(user_id=2, role="hr")
+    create_response = integration_client.post(
+        "/api/hr/mentors",
+        headers={"Authorization": f"Bearer {hr_token}"},
+        json={
+            "full_name": "Mentor Time",
+            "email": "mentor.time@example.com",
+            "password": "Secret1",
+        },
+    )
+    assert create_response.status_code == 201
+
+    admin_token = create_access_token(user_id=1, role="admin")
+    now = datetime.now(timezone.utc)
+    future = (now + timedelta(days=1)).isoformat()
+    past = (now - timedelta(days=1)).isoformat()
+
+    empty = integration_client.get(
+        "/api/admin/system-logs",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        params={"from_at": future},
+    )
+    assert empty.status_code == 200
+    assert empty.json()["total"] == 0
+
+    filled = integration_client.get(
+        "/api/admin/system-logs",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        params={"from_at": past, "to_at": future},
+    )
+    assert filled.status_code == 200
+    assert filled.json()["total"] >= 1
