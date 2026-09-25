@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.department import Department
@@ -10,6 +10,14 @@ from app.schemas.mentor import MentorCreateRequest, MentorResponse, MentorUpdate
 from app.utils.hash_password import hash_password
 
 MENTOR_ROLE_NAME = "mentor"
+
+
+def _is_unique_constraint_error(error: IntegrityError) -> bool:
+    message = str(error.orig).lower()
+    return any(
+        marker in message
+        for marker in ("duplicate entry", "unique constraint", "duplicate key")
+    )
 
 
 class MentorService:
@@ -47,6 +55,16 @@ class MentorService:
                 detail="Email đã được sử dụng.",
             )
 
+        if payload.cccd is not None:
+            existing_cccd = (
+                self.db.query(User).filter(User.cccd == payload.cccd).first()
+            )
+            if existing_cccd:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="CCCD đã được sử dụng.",
+                )
+
         if payload.department_id is not None:
             department = (
                 self.db.query(Department)
@@ -69,6 +87,7 @@ class MentorService:
         try:
             user = User(
                 email=payload.email,
+                cccd=payload.cccd,
                 password_hash=hash_password(payload.password),
                 full_name=payload.full_name,
                 role_id=mentor_role.id,
@@ -88,6 +107,17 @@ class MentorService:
             self.db.commit()
             self.db.refresh(user)
             self.db.refresh(profile)
+        except IntegrityError as error:
+            self.db.rollback()
+            if not _is_unique_constraint_error(error):
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Không thể tạo tài khoản Mentor.",
+                ) from None
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email hoặc CCCD đã được sử dụng.",
+            ) from None
         except SQLAlchemyError:
             self.db.rollback()
             raise HTTPException(
@@ -134,6 +164,28 @@ class MentorService:
                 )
 
             updates = payload.model_dump(exclude_unset=True)
+            changed = False
+            if "cccd" in updates:
+                requested_cccd = updates["cccd"]
+                if user.cccd is None:
+                    existing_cccd = (
+                        self.db.query(User)
+                        .filter(User.cccd == requested_cccd, User.id != user.id)
+                        .first()
+                    )
+                    if existing_cccd:
+                        raise HTTPException(
+                            status_code=status.HTTP_409_CONFLICT,
+                            detail="CCCD đã được sử dụng bởi người dùng khác.",
+                        )
+                    user.cccd = requested_cccd
+                    changed = True
+                elif user.cccd != requested_cccd:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="CCCD đã được xác nhận và không được thay đổi.",
+                    )
+
             if "department_id" in updates and updates["department_id"] is not None:
                 department = (
                     self.db.query(Department)
@@ -146,7 +198,6 @@ class MentorService:
                         detail="Phòng ban không tồn tại.",
                     )
 
-            changed = False
             if "full_name" in updates and user.full_name != updates["full_name"]:
                 user.full_name = updates["full_name"]
                 changed = True
@@ -171,6 +222,17 @@ class MentorService:
                 position=profile.position,
                 department_id=profile.department_id,
             )
+        except IntegrityError as error:
+            self.db.rollback()
+            if not _is_unique_constraint_error(error):
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Không thể cập nhật hồ sơ Mentor.",
+                ) from None
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="CCCD đã được sử dụng bởi người dùng khác.",
+            ) from None
         except SQLAlchemyError:
             self.db.rollback()
             raise HTTPException(
