@@ -1,41 +1,35 @@
 /**
- * updateIntern.js
- * Service: Gọi API PUT /api/hr/interns/{id} để cập nhật hồ sơ thực tập sinh.
+ * src/api/interns.js
+ * Tất cả lời gọi API liên quan đến thực tập sinh (intern).
+ * Dùng helper apiFetch từ ./client.js (base URL + JWT header tự động).
  *
- * US: "Là HR, tôi muốn chỉnh sửa hồ sơ thực tập sinh để cập nhật thông tin
- *     thay đổi." (software-specification.md §5.1, §5.3)
- *
- * ⚠️  CHƯA CÓ UI form sửa hồ sơ trong repo (features/interns/ chưa tồn tại).
- *     File này cung cấp sẵn hàm gọi API và helper showToast để người phụ
- *     trách UI tích hợp vào màn hình /hr/interns/{id} khi làm xong giao diện.
- *
- * TODO: Endpoint PUT /api/hr/interns/{id} chưa tồn tại ở backend (chờ API thật).
- *       Hiện tại hàm này giả lập (mock) để FE có thể test độc lập.
- *       Khi BE sẵn sàng: xóa khối MOCK, bỏ comment phần fetch thật bên dưới.
+ * Quy tắc folder-structure.md §3: "Gọi API → src/api/, không fetch rải
+ * trong mọi component/feature."
  */
 
 /* ─────────────────────────────────────────────
    Cách tích hợp vào UI form sửa hồ sơ (dành cho người phụ trách UI):
 
-   import { updateIntern, showInternToast } from
-     '../../features/interns/services/updateIntern';
+   import { updateIntern, buildToast } from '../api/interns';
 
    async function handleSave(internId, formData) {
      const { ok, status, data } = await updateIntern(internId, formData);
-     showInternToast(ok, status, data);
+     setToast(buildToast(ok, status, data));
+     setTimeout(() => setToast(null), 4000);
    }
 ───────────────────────────────────────────── */
 
+// TODO: Bỏ comment import bên dưới và xóa khối MOCK khi BE có endpoint thật
+// import apiFetch from './client';
+
 /* ─────────────────────────────────────────────
-   API helper
-   TODO: const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
-         (bỏ comment dòng trên khi chuyển sang fetch thật)
+   updateIntern
 ───────────────────────────────────────────── */
 
 /**
  * Gọi API cập nhật hồ sơ thực tập sinh.
  *
- * TODO: PUT /api/hr/interns/{id} chưa có trong backend.
+ * TODO: PUT /api/hr/interns/{id} chưa có trong backend (chờ API thật).
  *       Khi BE sẵn sàng: xóa khối MOCK bên dưới, bỏ comment fetch thật.
  *
  * @param {number|string} internId - ID của thực tập sinh cần cập nhật.
@@ -45,6 +39,8 @@
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
  *
  * @example
+ * import { updateIntern } from '../api/interns';
+ *
  * const result = await updateIntern(42, {
  *   full_name: 'Nguyễn Văn B',
  *   university: 'ICTU',
@@ -91,31 +87,16 @@ export async function updateIntern(internId, payload) {
   /* ── END MOCK ─────────────────────────────────────────────────────────
 
   // TODO: Bỏ comment khối này khi BE có PUT /api/hr/interns/{id}
-  //       (yêu cầu role: hr hoặc admin — Authorization: Bearer <jwt>)
-  const token = localStorage.getItem('access_token') ?? '';
-  const res = await fetch(`${BASE_URL}/api/hr/interns/${internId}`, {
+  //       (yêu cầu role: hr hoặc admin — apiFetch tự gắn Authorization header)
+  return apiFetch(`/api/hr/interns/${internId}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
     body: JSON.stringify(payload),
   });
-
-  let data;
-  try { data = await res.json(); } catch { data = {}; }
-
-  return { ok: res.ok, status: res.status, data };
   ─────────────────────────────────────────────────────────────────────── */
 }
 
 /* ─────────────────────────────────────────────
-   Toast helper
-   Không có Toast component dùng chung trong repo hiện tại.
-   Dùng callback pattern để UI tự xử lý hiển thị.
-
-   showInternToast trả về { type, message } để UI gọi setState.
-   Xem ví dụ sử dụng trong JSDoc bên dưới.
+   buildToast
 ───────────────────────────────────────────── */
 
 /**
@@ -128,7 +109,8 @@ export async function updateIntern(internId, payload) {
  * @returns {{ type: 'success'|'error', message: string }}
  *
  * @example
- * // Trong component form sửa hồ sơ:
+ * import { updateIntern, buildToast } from '../api/interns';
+ *
  * const [toast, setToast] = useState(null);
  *
  * async function handleSave() {
@@ -154,7 +136,6 @@ export function buildToast(ok, status, data) {
   if (status === 422) {
     const detail = data?.detail;
     if (Array.isArray(detail)) {
-      // Gộp tất cả lỗi thành 1 chuỗi để hiển thị trong toast
       const msgs = detail.map((e) => e.msg).join('; ');
       return { type: 'error', message: msgs || 'Dữ liệu không hợp lệ.' };
     }
