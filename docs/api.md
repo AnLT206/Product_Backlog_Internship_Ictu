@@ -114,6 +114,55 @@ Không dùng cho HR / mentor / admin. Không trả JWT.
 
 ---
 
+## GET `/api/admin/system-logs`
+
+Admin xem nhật ký hoạt động (Thêm/Sửa/Xóa). Cần JWT role=`admin`.
+
+Action Filter (`ActivityLogFilterMiddleware`) tự ghi log khi `POST`/`PUT`/`PATCH`/`DELETE` trả `2xx` (bỏ qua `/api/auth/login`, `/health`, docs).
+
+### Query
+
+| Param | Type | Default | Rule |
+| --- | --- | --- | --- |
+| `limit` | int | `50` | 1–200 |
+| `offset` | int | `0` | ≥ 0 |
+| `action` | string \| null | | `CREATE` \| `UPDATE` \| `DELETE` |
+| `user_id` | int \| null | | ≥ 1 |
+
+### Out `200`
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "role": "hr",
+      "action": "CREATE",
+      "method": "POST",
+      "path": "/api/hr/mentors",
+      "resource": "hr/mentors",
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0",
+      "status_code": 201,
+      "created_at": "2026-09-25T07:00:00"
+    }
+  ],
+  "total": 1,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+### Lỗi
+
+| Code | Khi |
+| --- | --- |
+| 401 | Thiếu / sai token |
+| 403 | Không phải admin |
+
+---
+
 ## POST `/api/hr/interns`
 
 HR/admin tạo hồ sơ TTS (`users` + `intern_profiles`). Mặc định `status=pending`.
@@ -184,6 +233,7 @@ HR/admin upload hợp đồng (`multipart/form-data`, field `file`). Tạo `docu
 
 ---
 
+
 ## POST `/api/intern/contract/confirm`
 
 TTS (`role=intern`, `status=active`) xác nhận hợp đồng chưa `confirmed_at`. Gán `status=approved` + `confirmed_at`, đồng thời tạo notification cho mọi HR `active`.
@@ -204,5 +254,4 @@ TTS (`role=intern`, `status=active`) xác nhận hợp đồng chưa `confirmed_
 
 | Method | Path |
 | --- | --- |
-| GET | `/api/auth/me` |
 | — | Upload CV / đơn |
