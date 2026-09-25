@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS `documents` (
     `file_path` VARCHAR(500) NOT NULL,
     `status` ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     `review_note` VARCHAR(255) NULL,
+    `confirmed_at` DATETIME NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_documents_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
