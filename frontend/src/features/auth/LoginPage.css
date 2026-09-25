@@ -223,6 +223,23 @@
   box-shadow: 0 10px 24px rgba(24, 119, 242, 0.34);
 }
 
+.login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.login-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .login-switch {
   text-align: center;
   margin: 18px 0 0;

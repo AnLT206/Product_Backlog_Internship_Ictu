@@ -1,0 +1,66 @@
+.role-home {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #f1f5f9;
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+.role-home__card {
+  width: min(480px, 100%);
+  padding: 28px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.role-home__badge {
+  margin: 0 0 10px;
+  color: #1877f2;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.role-home__card h1 {
+  margin: 0 0 10px;
+  font-size: 1.45rem;
+}
+
+.role-home__card p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.role-home__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.role-home__actions a,
+.role-home__actions button {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: none;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.role-home__actions a {
+  background: #1877f2;
+  color: #fff;
+}
+
+.role-home__actions button {
+  background: #e2e8f0;
+  color: #0f172a;
+}
