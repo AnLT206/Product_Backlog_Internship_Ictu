@@ -233,7 +233,6 @@ HR/admin upload hợp đồng (`multipart/form-data`, field `file`). Tạo `docu
 
 ---
 
-
 ## CRUD `/api/hr/programs`
 
 Quản lý chương trình thực tập. Role: `hr`, `admin`.
@@ -289,6 +288,22 @@ Cập nhật từng phần (các field tùy chọn, cùng rule với POST).
 | 404 | Không tìm thấy chương trình |
 | 409 | Trùng `name` |
 | 422 | Validate body / `end_date` ≤ `start_date` |
+
+---
+
+## POST `/api/intern/contract/confirm`
+
+TTS (`role=intern`, `status=active`) xác nhận hợp đồng chưa `confirmed_at`. Gán `status=approved` + `confirmed_at`.
+
+**Out `200`:** DocumentResponse.
+
+### Lỗi
+
+| Code | Khi |
+| --- | --- |
+| 403 | Không phải intern |
+| 404 | Không có hợp đồng cần xác nhận |
+| 409 | TTS chưa `active` |
 
 ---
 
