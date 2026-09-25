@@ -123,7 +123,7 @@ HR/admin tạo hồ sơ TTS (`users` + `intern_profiles`). Mặc định `status
 | Field | Type | Required | Rule |
 | --- | --- | :---: | --- |
 | `full_name` | string | ✓ | 1–100 |
-| `email` | string | ✓ | lưu lowercase |
+| `email` | string (email) | ✓ | bắt buộc, format hợp lệ → lưu lowercase |
 | `password` | string | ✓ | 6–128 |
 | `phone_number` | string \| null | | max 20 |
 | `dob` | date \| null | | `YYYY-MM-DD` |
@@ -143,7 +143,7 @@ HR/admin tạo hồ sơ TTS (`users` + `intern_profiles`). Mặc định `status
 | --- | --- |
 | 401 / 403 | Thiếu token / sai role |
 | 409 | Email đã tồn tại |
-| 422 | Validate body |
+| 422 | Validate body / email trống hoặc sai format |
 
 ---
 
