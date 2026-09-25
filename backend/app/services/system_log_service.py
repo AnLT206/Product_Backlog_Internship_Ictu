@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 
 from app.models.system_log import SystemLog
@@ -15,6 +17,8 @@ class SystemLogService:
         offset: int = 0,
         action: str | None = None,
         user_id: int | None = None,
+        from_at: datetime | None = None,
+        to_at: datetime | None = None,
     ) -> SystemLogListResponse:
         query = self.db.query(SystemLog)
 
@@ -22,6 +26,10 @@ class SystemLogService:
             query = query.filter(SystemLog.action == action)
         if user_id is not None:
             query = query.filter(SystemLog.user_id == user_id)
+        if from_at is not None:
+            query = query.filter(SystemLog.created_at >= from_at)
+        if to_at is not None:
+            query = query.filter(SystemLog.created_at <= to_at)
 
         total = query.count()
         rows = (

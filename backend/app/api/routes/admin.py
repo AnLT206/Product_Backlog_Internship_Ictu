@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -20,6 +21,14 @@ def list_system_logs(
     offset: int = Query(default=0, ge=0),
     action: Literal["CREATE", "UPDATE", "DELETE"] | None = Query(default=None),
     user_id: int | None = Query(default=None, ge=1),
+    from_at: datetime | None = Query(
+        default=None,
+        description="Lọc từ thời điểm (ISO 8601), inclusive",
+    ),
+    to_at: datetime | None = Query(
+        default=None,
+        description="Lọc đến thời điểm (ISO 8601), inclusive",
+    ),
     db: Session = Depends(get_db),
     _: object = Depends(require_roles("admin")),
 ) -> SystemLogListResponse:
@@ -28,4 +37,6 @@ def list_system_logs(
         offset=offset,
         action=action,
         user_id=user_id,
+        from_at=from_at,
+        to_at=to_at,
     )

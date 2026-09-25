@@ -128,6 +128,8 @@ Action Filter (`ActivityLogFilterMiddleware`) tự ghi log khi `POST`/`PUT`/`PAT
 | `offset` | int | `0` | ≥ 0 |
 | `action` | string \| null | | `CREATE` \| `UPDATE` \| `DELETE` |
 | `user_id` | int \| null | | ≥ 1 |
+| `from_at` | datetime \| null | | ISO 8601, lọc `created_at >= from_at` |
+| `to_at` | datetime \| null | | ISO 8601, lọc `created_at <= to_at` |
 
 ### Out `200`
 
