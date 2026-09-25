@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS `roles` (
 CREATE TABLE IF NOT EXISTS `users` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `email` VARCHAR(255) NOT NULL UNIQUE,
+    `cccd` VARCHAR(12) NULL UNIQUE,
     `password_hash` VARCHAR(255) NOT NULL,
     `full_name` VARCHAR(100) NULL,
     `role_id` INT NOT NULL,

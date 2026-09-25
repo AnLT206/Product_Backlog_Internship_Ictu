@@ -1,13 +1,24 @@
+import re
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+
+def _normalize_cccd(value: object) -> str:
+    if not isinstance(value, str):
+        raise ValueError("CCCD phải gồm đúng 12 chữ số.")
+    cleaned = value.strip()
+    if re.fullmatch(r"[0-9]{12}", cleaned) is None:
+        raise ValueError("CCCD phải gồm đúng 12 chữ số.")
+    return cleaned
 
 
 class MentorCreateRequest(BaseModel):
     full_name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
     password: str = Field(..., min_length=6, max_length=128)
+    cccd: str | None = None
     phone_number: str | None = Field(default=None, max_length=20)
     dob: date | None = None
     position: str | None = Field(default=None, max_length=100)
@@ -26,6 +37,11 @@ class MentorCreateRequest(BaseModel):
     def normalize_email(cls, value: EmailStr) -> str:
         return str(value).strip().lower()
 
+    @field_validator("cccd", mode="before")
+    @classmethod
+    def validate_cccd(cls, value: object) -> str:
+        return _normalize_cccd(value)
+
     @field_validator("password")
     @classmethod
     def validate_password(cls, value: str) -> str:
@@ -43,11 +59,19 @@ class MentorCreateRequest(BaseModel):
 
 
 class MentorUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     full_name: str | None = Field(default=None, min_length=1, max_length=100)
     phone_number: str | None = Field(default=None, max_length=20)
     dob: date | None = None
     position: str | None = Field(default=None, max_length=100)
     department_id: int | None = None
+    cccd: str | None = None
+
+    @field_validator("cccd", mode="before")
+    @classmethod
+    def validate_cccd(cls, value: object) -> str:
+        return _normalize_cccd(value)
 
     @field_validator("full_name")
     @classmethod
