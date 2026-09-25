@@ -114,10 +114,67 @@ Không dùng cho HR / mentor / admin. Không trả JWT.
 
 ---
 
+## CRUD `/api/hr/programs`
+
+Quản lý chương trình thực tập. Role: `hr`, `admin`.
+
+### GET `/api/hr/programs`
+
+**Out `200`:** danh sách chương trình (mới nhất trước).
+
+### POST `/api/hr/programs`
+
+**In**
+
+| Field | Type | Required | Rule |
+| --- | --- | :---: | --- |
+| `name` | string | ✓ | 1–150, unique |
+| `department` | string | ✓ | 1–100 |
+| `description` | string \| null | | max 500 |
+| `start_date` | date | ✓ | `YYYY-MM-DD` |
+| `end_date` | date | ✓ | `YYYY-MM-DD` |
+
+**Out `201`**
+
+```json
+{
+  "id": 1,
+  "name": "Thuc tap Soft Dev 2026",
+  "department": "Cong nghe thong tin",
+  "description": "Chuong trinh TTS ky he",
+  "start_date": "2026-06-01",
+  "end_date": "2026-08-31",
+  "created_at": "2026-09-25T10:00:00",
+  "updated_at": "2026-09-25T10:00:00"
+}
+```
+
+### GET `/api/hr/programs/{id}`
+
+**Out `200`:** chi tiết một chương trình. `404` nếu không tìm thấy.
+
+### PUT `/api/hr/programs/{id}`
+
+Cập nhật từng phần (các field tùy chọn, cùng rule với POST).
+
+### DELETE `/api/hr/programs/{id}`
+
+**Out `204`.** `404` nếu không tìm thấy.
+
+### Lỗi
+
+| Code | Khi |
+| --- | --- |
+| 401 / 403 | Thiếu token / sai role |
+| 404 | Không tìm thấy chương trình |
+| 409 | Trùng `name` |
+| 422 | Validate body |
+
+---
+
 ## Chưa có
 
 | Method | Path |
 | --- | --- |
-| POST | `/api/auth/login` |
 | GET | `/api/auth/me` |
 | — | Upload CV / đơn |
