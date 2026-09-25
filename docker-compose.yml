@@ -14,14 +14,16 @@ services:
       - "${DB_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      # Chỉ chạy khi volume DB mới (lần đầu). Volume cũ: dựa vào seed Python khi backend start.
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seeds/002_admin_user.sql:/docker-entrypoint-initdb.d/02-admin-user.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Backend API (FastAPI)
+  # Backend API (FastAPI) — seed admin tự chạy trước uvicorn (dev)
   backend:
     image: python:3.11-slim
     container_name: ictu_internship_backend
@@ -29,12 +31,17 @@ services:
     volumes:
       - ./backend:/app
       - ./database:/database:ro
-    command: sh -c "pip install --no-cache-dir -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: sh /app/scripts/docker_entrypoint.sh
     env_file:
       - .env
     environment:
       DB_HOST: db
       DB_PORT: 3306
+      # Tài khoản admin cố định cho cả team (idempotent — đã có thì giữ nguyên)
+      ADMIN_SEED_ON_STARTUP: ${ADMIN_SEED_ON_STARTUP:-true}
+      ADMIN_SEED_EMAIL: ${ADMIN_SEED_EMAIL:-admin@ictu.edu.vn}
+      ADMIN_SEED_PASSWORD: ${ADMIN_SEED_PASSWORD:-Admin@123}
+      ADMIN_SEED_FULL_NAME: ${ADMIN_SEED_FULL_NAME:-System Admin}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
