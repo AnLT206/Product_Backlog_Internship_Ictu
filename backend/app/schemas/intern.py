@@ -4,14 +4,14 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class InternCreateRequest(BaseModel):
     """Body HR thêm hồ sơ thực tập sinh."""
 
     full_name: str = Field(..., min_length=1, max_length=100)
-    email: str = Field(..., min_length=1, max_length=150)
+    email: EmailStr = Field(..., description="Email đăng nhập TTS — bắt buộc, hợp lệ")
     password: str = Field(..., min_length=6, max_length=128)
     phone_number: str | None = Field(default=None, max_length=20)
     dob: date | None = None
@@ -33,8 +33,11 @@ class InternCreateRequest(BaseModel):
 
     @field_validator("email")
     @classmethod
-    def normalize_email(cls, value: str) -> str:
-        return value.strip().lower()
+    def normalize_email(cls, value: EmailStr) -> str:
+        cleaned = str(value).strip().lower()
+        if not cleaned:
+            raise ValueError("Email không được để trống.")
+        return cleaned
 
     @field_validator("password")
     @classmethod
