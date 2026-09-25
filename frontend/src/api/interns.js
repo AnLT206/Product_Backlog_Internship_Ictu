@@ -19,7 +19,7 @@
    }
 ───────────────────────────────────────────── */
 
-// TODO: Bỏ comment import bên dưới và xóa khối MOCK khi BE có endpoint thật
+// TODO: Bỏ comment import bên dưới và xóa toàn bộ khối MOCK khi BE có endpoint thật
 // import apiFetch from './client';
 
 /* ─────────────────────────────────────────────
@@ -103,9 +103,10 @@ export async function updateIntern(internId, payload) {
  * Phân tích kết quả API và trả về nội dung toast tương ứng.
  * UI tự gọi setState để hiển thị (xem pattern trong CreateAccountPage.jsx).
  *
- * @param {boolean} ok       - res.ok từ updateIntern
- * @param {number}  status   - HTTP status code
- * @param {object}  data     - Body JSON từ server
+ * @param {boolean} ok              - res.ok từ API call
+ * @param {number}  status          - HTTP status code
+ * @param {object}  data            - Body JSON từ server
+ * @param {string}  [successMessage='Cập nhật hồ sơ thành công!'] - Message khi thành công
  * @returns {{ type: 'success'|'error', message: string }}
  *
  * @example
@@ -119,9 +120,9 @@ export async function updateIntern(internId, payload) {
  *   setTimeout(() => setToast(null), 4000);
  * }
  */
-export function buildToast(ok, status, data) {
+export function buildToast(ok, status, data, successMessage = 'Cập nhật hồ sơ thành công!') {
   if (ok) {
-    return { type: 'success', message: 'Cập nhật hồ sơ thành công!' };
+    return { type: 'success', message: successMessage };
   }
 
   // 404 — Không tìm thấy
@@ -147,4 +148,101 @@ export function buildToast(ok, status, data) {
     type: 'error',
     message: data?.detail ?? 'Đã xảy ra lỗi, vui lòng thử lại.',
   };
+}
+
+/* ─────────────────────────────────────────────
+   approveIntern
+───────────────────────────────────────────── */
+
+/**
+ * Gọi API duyệt hồ sơ thực tập sinh.
+ *
+ * TODO: POST /api/hr/interns/{id}/approve đã có trong backend (routes/interns.py).
+ *       Khi sẵn sàng tích hợp: xóa khối MOCK, bỏ comment fetch thật bên dưới.
+ *
+ * @param {number|string} internId - ID thực tập sinh cần duyệt.
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ *
+ * @example
+ * import { approveIntern, buildToast } from '../api/interns';
+ *
+ * const { ok, status, data } = await approveIntern(internId);
+ * setToast(buildToast(ok, status, data, 'Duyệt hồ sơ thành công!'));
+ */
+export async function approveIntern(internId) {
+  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
+  await new Promise((r) => setTimeout(r, 600));
+
+  // Mô phỏng 404 nếu internId = 0 (để test lỗi)
+  if (Number(internId) === 0) {
+    return {
+      ok: false,
+      status: 404,
+      data: { detail: 'Không tìm thấy hồ sơ thực tập sinh.' },
+    };
+  }
+
+  // Mô phỏng thành công 200
+  return {
+    ok: true,
+    status: 200,
+    data: { id: Number(internId), status: 'active' },
+  };
+  /* ── END MOCK ─────────────────────────────────────────────────────────
+
+  // TODO: Bỏ comment khối này khi sẵn sàng dùng API thật
+  //       (endpoint đã có: POST /api/hr/interns/{id}/approve — role: hr/admin)
+  return apiFetch(`/api/hr/interns/${internId}/approve`, { method: 'POST' });
+  ─────────────────────────────────────────────────────────────────────── */
+}
+
+/* ─────────────────────────────────────────────
+   rejectIntern
+───────────────────────────────────────────── */
+
+/**
+ * Gọi API từ chối hồ sơ thực tập sinh.
+ * Theo software-specification.md §5.4: "Từ chối bắt buộc có note."
+ *
+ * TODO: POST /api/hr/interns/{id}/reject chưa có trong backend (chờ API thật).
+ *       Khi BE sẵn sàng: xóa khối MOCK, bỏ comment fetch thật bên dưới.
+ *
+ * @param {number|string} internId - ID thực tập sinh cần từ chối.
+ * @param {string} note            - Lý do từ chối (bắt buộc — spec §5.4).
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ *
+ * @example
+ * import { rejectIntern, buildToast } from '../api/interns';
+ *
+ * const { ok, status, data } = await rejectIntern(internId, 'Không đủ điều kiện');
+ * setToast(buildToast(ok, status, data, 'Đã từ chối hồ sơ.'));
+ */
+export async function rejectIntern(internId, note) {
+  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
+  await new Promise((r) => setTimeout(r, 600));
+
+  // Mô phỏng 404 nếu internId = 0 (để test lỗi)
+  if (Number(internId) === 0) {
+    return {
+      ok: false,
+      status: 404,
+      data: { detail: 'Không tìm thấy hồ sơ thực tập sinh.' },
+    };
+  }
+
+  // Mô phỏng thành công 200
+  return {
+    ok: true,
+    status: 200,
+    data: { id: Number(internId), status: 'inactive', note },
+  };
+  /* ── END MOCK ─────────────────────────────────────────────────────────
+
+  // TODO: Bỏ comment khối này khi BE có POST /api/hr/interns/{id}/reject
+  //       Body: { note } — apiFetch tự gắn Authorization header
+  return apiFetch(`/api/hr/interns/${internId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  });
+  ─────────────────────────────────────────────────────────────────────── */
 }
