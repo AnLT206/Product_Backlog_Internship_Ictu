@@ -42,6 +42,32 @@ class MentorCreateRequest(BaseModel):
         return cleaned or None
 
 
+class MentorUpdateRequest(BaseModel):
+    full_name: str | None = Field(default=None, min_length=1, max_length=100)
+    phone_number: str | None = Field(default=None, max_length=20)
+    dob: date | None = None
+    position: str | None = Field(default=None, max_length=100)
+    department_id: int | None = None
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, value: str | None) -> str:
+        if value is None:
+            raise ValueError("Họ và tên không được để trống.")
+        cleaned = " ".join(value.split())
+        if not cleaned:
+            raise ValueError("Họ và tên không được để trống.")
+        return cleaned
+
+    @field_validator("phone_number", "position")
+    @classmethod
+    def strip_optional_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+
 class MentorResponse(BaseModel):
     id: int
     email: str
