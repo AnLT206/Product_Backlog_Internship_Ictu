@@ -11,6 +11,7 @@
  */
 
 import { useState } from 'react';
+import { createAccount } from '../../api/admin';
 import './CreateAccountPage.css';
 
 /* ─────────────────────────────────────────────
@@ -31,67 +32,9 @@ const ROLE_OPTIONS = [
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /* ─────────────────────────────────────────────
-   API helper
-   TODO: Thay endpoint khi BE hoàn thành POST /api/admin/users
-   TODO: const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
-         (bỏ comment dòng trên khi chuyển sang fetch thật)
+   API: dùng createAccount từ src/api/admin.js
+   (đã chuyển ra đúng vị trí theo folder-structure.md §3)
 ───────────────────────────────────────────── */
-
-/**
- * Gọi API tạo tài khoản (admin).
- *
- * TODO: Endpoint POST /api/admin/users chưa tồn tại ở backend (chờ API thật).
- *       Hiện tại hàm này giả lập (mock) luồng thành công/lỗi để FE có thể test độc lập.
- *       Khi BE sẵn sàng: xóa khối mock bên dưới, bỏ comment fetch thật.
- *
- * @param {{ full_name: string, email: string, role: string, password: string }} body
- * @returns {Promise<{ ok: boolean, status: number, data: object }>}
- */
-async function apiCreateAccount(body) {
-  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
-  // Giả lập network delay
-  await new Promise((r) => setTimeout(r, 600));
-
-  // Mô phỏng 409 nếu email chứa "exists" (để test lỗi)
-  if (body.email.toLowerCase().includes('exists')) {
-    return {
-      ok: false,
-      status: 409,
-      data: { detail: 'Email đã được sử dụng.' },
-    };
-  }
-
-  // Mô phỏng thành công 201
-  return {
-    ok: true,
-    status: 201,
-    data: {
-      id: Math.floor(Math.random() * 1000),
-      email: body.email,
-      full_name: body.full_name,
-      role: body.role,
-      status: 'active',
-    },
-  };
-  /* ── END MOCK ─────────────────────────────────────────────────────────
-
-  // TODO: Bỏ comment khối này khi BE có POST /api/admin/users (role: admin only)
-  const token = localStorage.getItem('access_token') ?? '';
-  const res = await fetch(`${BASE_URL}/api/admin/users`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  let data;
-  try { data = await res.json(); } catch { data = {}; }
-
-  return { ok: res.ok, status: res.status, data };
-  ─────────────────────────────────────────────────────────────────────── */
-}
 
 /* ─────────────────────────────────────────────
    Validate helper
@@ -187,7 +130,7 @@ function CreateAccountPage() {
     setLoading(true);
     setErrors({});
     try {
-      const { ok, status, data } = await apiCreateAccount({
+      const { ok, status, data } = await createAccount({
         full_name: form.full_name.trim(),
         email:     form.email.trim().toLowerCase(),
         role:      form.role,
