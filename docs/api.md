@@ -169,6 +169,21 @@ HR/admin duyệt hoặc từ chối tài liệu. Khi `status=rejected` → tạo
 
 ---
 
+## POST `/api/hr/interns/{id}/contract`
+
+HR/admin upload hợp đồng (`multipart/form-data`, field `file`). Tạo `documents` với `doc_type=contract` và gửi notification cho TTS để xác nhận.
+
+**Out `201`:** DocumentResponse (kèm `confirmed_at` null).
+
+### Lỗi
+
+| Code | Khi |
+| --- | --- |
+| 404 | Không tìm thấy TTS |
+| 422 | File trống / thiếu tên |
+
+---
+
 ## Chưa có
 
 | Method | Path |
