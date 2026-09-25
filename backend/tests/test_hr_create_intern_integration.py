@@ -77,3 +77,18 @@ def test_hr_create_intern_creates_user_and_profile(integration_client):
     assert body["full_name"] == payload["full_name"]
     assert body["role"] == "intern"
     assert body["status"] == "pending"
+
+
+def test_hr_create_intern_rejects_invalid_email(integration_client):
+    token = create_access_token(user_id=1, role="hr")
+    headers = {"Authorization": f"Bearer {token}"}
+    response = integration_client.post(
+        "/api/hr/interns",
+        json={
+            "full_name": "Tran Thi B",
+            "email": "not-an-email",
+            "password": "Secret1",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 422
