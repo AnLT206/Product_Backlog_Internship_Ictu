@@ -132,7 +132,7 @@ Quản lý chương trình thực tập. Role: `hr`, `admin`.
 | `department` | string | ✓ | 1–100 |
 | `description` | string \| null | | max 500 |
 | `start_date` | date | ✓ | `YYYY-MM-DD` |
-| `end_date` | date | ✓ | `YYYY-MM-DD` |
+| `end_date` | date | ✓ | `YYYY-MM-DD`, phải **lớn hơn** `start_date` |
 
 **Out `201`**
 
@@ -168,7 +168,7 @@ Cập nhật từng phần (các field tùy chọn, cùng rule với POST).
 | 401 / 403 | Thiếu token / sai role |
 | 404 | Không tìm thấy chương trình |
 | 409 | Trùng `name` |
-| 422 | Validate body |
+| 422 | Validate body / `end_date` ≤ `start_date` |
 
 ---
 
