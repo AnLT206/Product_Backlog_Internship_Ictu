@@ -33,3 +33,6 @@ dist/
 build/
 *.egg-info/
 node_modules/
+
+# Uploaded files
+backend/uploads/

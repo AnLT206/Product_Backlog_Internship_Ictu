@@ -114,6 +114,126 @@ Không dùng cho HR / mentor / admin. Không trả JWT.
 
 ---
 
+## GET `/api/admin/system-logs`
+
+Admin xem nhật ký hoạt động (Thêm/Sửa/Xóa). Cần JWT role=`admin`.
+
+Action Filter (`ActivityLogFilterMiddleware`) tự ghi log khi `POST`/`PUT`/`PATCH`/`DELETE` trả `2xx` (bỏ qua `/api/auth/login`, `/health`, docs).
+
+### Query
+
+| Param | Type | Default | Rule |
+| --- | --- | --- | --- |
+| `limit` | int | `50` | 1–200 |
+| `offset` | int | `0` | ≥ 0 |
+| `action` | string \| null | | `CREATE` \| `UPDATE` \| `DELETE` |
+| `user_id` | int \| null | | ≥ 1 |
+
+### Out `200`
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "role": "hr",
+      "action": "CREATE",
+      "method": "POST",
+      "path": "/api/hr/mentors",
+      "resource": "hr/mentors",
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0",
+      "status_code": 201,
+      "created_at": "2026-09-25T07:00:00"
+    }
+  ],
+  "total": 1,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+### Lỗi
+
+| Code | Khi |
+| --- | --- |
+| 401 | Thiếu / sai token |
+| 403 | Không phải admin |
+
+---
+
+## POST `/api/hr/interns`
+
+HR/admin tạo hồ sơ TTS (`users` + `intern_profiles`). Mặc định `status=pending`.
+
+### In
+
+| Field | Type | Required | Rule |
+| --- | --- | :---: | --- |
+| `full_name` | string | ✓ | 1–100 |
+| `email` | string (email) | ✓ | bắt buộc, format hợp lệ → lưu lowercase |
+| `password` | string | ✓ | 6–128 |
+| `phone_number` | string \| null | | max 20 |
+| `dob` | date \| null | | `YYYY-MM-DD` |
+| `gender` | string \| null | | `male` \| `female` \| `other` |
+| `university` | string \| null | | max 150 |
+| `major` | string \| null | | max 150 |
+| `academic_year` | string \| null | | max 50 |
+| `gpa` | number \| null | | 0–4 |
+| `address` | string \| null | | max 255 |
+| `status` | string | | `pending` (mặc định) \| `active` |
+
+**Out `201`:** cùng shape với register (`id`, `email`, `full_name`, `role`, `status`, `phone_number`).
+
+### Lỗi
+
+| Code | Khi |
+| --- | --- |
+| 401 / 403 | Thiếu token / sai role |
+| 409 | Email đã tồn tại |
+| 422 | Validate body / email trống hoặc sai format |
+
+---
+
+## POST `/api/hr/documents/{id}/review`
+
+HR/admin duyệt hoặc từ chối tài liệu. Khi `status=rejected` → tạo notification cho TTS sở hữu file.
+
+### In
+
+| Field | Type | Required | Rule |
+| --- | --- | :---: | --- |
+| `status` | string | ✓ | `approved` \| `rejected` |
+| `review_note` | string \| null | | bắt buộc khi `rejected`, max 255 |
+
+**Out `200`:** `{ id, user_id, doc_type, file_name, file_path, status, review_note }`
+
+### Lỗi
+
+| Code | Khi |
+| --- | --- |
+| 404 | Không tìm thấy tài liệu |
+| 422 | Reject thiếu `review_note` |
+
+---
+
+## POST `/api/hr/interns/{id}/contract`
+
+HR/admin upload hợp đồng (`multipart/form-data`, field `file`). Tạo `documents` với `doc_type=contract` và gửi notification cho TTS để xác nhận.
+
+**Out `201`:** DocumentResponse (kèm `confirmed_at` null).
+
+### Lỗi
+
+| Code | Khi |
+| --- | --- |
+| 404 | Không tìm thấy TTS |
+| 422 | File trống / thiếu tên |
+
+---
+
+
 ## CRUD `/api/hr/programs`
 
 Quản lý chương trình thực tập. Role: `hr`, `admin`.
@@ -176,5 +296,4 @@ Cập nhật từng phần (các field tùy chọn, cùng rule với POST).
 
 | Method | Path |
 | --- | --- |
-| GET | `/api/auth/me` |
 | — | Upload CV / đơn |

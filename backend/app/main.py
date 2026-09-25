@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.activity_log_filter import ActivityLogFilterMiddleware
 from app.api.routes import api_router
 from app.core.config import get_settings
 
@@ -20,6 +21,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Đặt sau CORS: Starlette chạy middleware theo thứ tự ngược (last added = outermost).
+app.add_middleware(ActivityLogFilterMiddleware)
 
 app.include_router(api_router)
 
