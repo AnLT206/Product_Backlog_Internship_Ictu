@@ -11,70 +11,13 @@
  */
 
 import { useState } from 'react';
+import { createProgram } from '../../api/programs';
 import './ProgramFormPage.css';
 
 /* ─────────────────────────────────────────────
-   API helper
-   TODO: Thay endpoint khi BE hoàn thành POST /api/hr/programs
-   TODO: const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
-         (bỏ comment dòng trên khi chuyển sang fetch thật)
+   API: dùng createProgram từ src/api/programs.js
+   (đã chuyển ra đúng vị trí theo folder-structure.md §3)
 ───────────────────────────────────────────── */
-
-/**
- * Gọi API tạo chương trình thực tập.
- *
- * TODO: Endpoint POST /api/hr/programs chưa tồn tại ở backend (chờ API thật).
- *       Hiện tại hàm này giả lập (mock) để FE có thể test độc lập.
- *       Khi BE sẵn sàng: xóa khối mock, bỏ comment phần fetch thật bên dưới.
- *
- * @param {{ name: string, department: string, description: string,
- *            start_date: string, end_date: string }} body
- * @returns {Promise<{ ok: boolean, status: number, data: object }>}
- */
-async function apiCreateProgram(body) {
-  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
-  await new Promise((r) => setTimeout(r, 600));
-
-  // Mô phỏng 409 nếu tên chứa "duplicate" (để test)
-  if (body.name.toLowerCase().includes('duplicate')) {
-    return {
-      ok: false,
-      status: 409,
-      data: { detail: 'Tên chương trình đã tồn tại.' },
-    };
-  }
-
-  return {
-    ok: true,
-    status: 201,
-    data: {
-      id: Math.floor(Math.random() * 1000),
-      name: body.name,
-      department: body.department,
-      description: body.description,
-      start_date: body.start_date,
-      end_date: body.end_date,
-    },
-  };
-  /* ── END MOCK ─────────────────────────────────────────────────────────
-
-  // TODO: Bỏ comment khối này khi BE có POST /api/hr/programs (role: hr only)
-  const token = localStorage.getItem('access_token') ?? '';
-  const res = await fetch(`${BASE_URL}/api/hr/programs`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  let data;
-  try { data = await res.json(); } catch { data = {}; }
-
-  return { ok: res.ok, status: res.status, data };
-  ─────────────────────────────────────────────────────────────────────── */
-}
 
 /* ─────────────────────────────────────────────
    Validate helper
@@ -175,7 +118,7 @@ function ProgramFormPage() {
     setLoading(true);
     setErrors({});
     try {
-      const { ok, status, data } = await apiCreateProgram({
+      const { ok, status, data } = await createProgram({
         name:        form.name.trim(),
         department:  form.department.trim(),
         description: form.description.trim(),
