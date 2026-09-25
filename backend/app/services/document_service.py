@@ -123,6 +123,22 @@ class DocumentService:
         doc.confirmed_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
         try:
+            hr_users = (
+                self.db.query(User)
+                .join(Role, User.role_id == Role.id)
+                .filter(Role.name == "hr", User.status == "active")
+                .all()
+            )
+            intern_name = current_user.full_name or current_user.email
+            for hr in hr_users:
+                NotificationService(self.db).create_notification(
+                    user_id=hr.id,
+                    title="TTS đã xác nhận hợp đồng",
+                    body=(
+                        f"{intern_name} đã xác nhận hợp đồng '{doc.file_name}'."
+                    ),
+                    commit=False,
+                )
             self.db.commit()
             self.db.refresh(doc)
         except SQLAlchemyError:
