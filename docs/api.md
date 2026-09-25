@@ -114,10 +114,42 @@ Không dùng cho HR / mentor / admin. Không trả JWT.
 
 ---
 
+## POST `/api/hr/interns`
+
+HR/admin tạo hồ sơ TTS (`users` + `intern_profiles`). Mặc định `status=pending`.
+
+### In
+
+| Field | Type | Required | Rule |
+| --- | --- | :---: | --- |
+| `full_name` | string | ✓ | 1–100 |
+| `email` | string | ✓ | lưu lowercase |
+| `password` | string | ✓ | 6–128 |
+| `phone_number` | string \| null | | max 20 |
+| `dob` | date \| null | | `YYYY-MM-DD` |
+| `gender` | string \| null | | `male` \| `female` \| `other` |
+| `university` | string \| null | | max 150 |
+| `major` | string \| null | | max 150 |
+| `academic_year` | string \| null | | max 50 |
+| `gpa` | number \| null | | 0–4 |
+| `address` | string \| null | | max 255 |
+| `status` | string | | `pending` (mặc định) \| `active` |
+
+**Out `201`:** cùng shape với register (`id`, `email`, `full_name`, `role`, `status`, `phone_number`).
+
+### Lỗi
+
+| Code | Khi |
+| --- | --- |
+| 401 / 403 | Thiếu token / sai role |
+| 409 | Email đã tồn tại |
+| 422 | Validate body |
+
+---
+
 ## Chưa có
 
 | Method | Path |
 | --- | --- |
-| POST | `/api/auth/login` |
 | GET | `/api/auth/me` |
 | — | Upload CV / đơn |
