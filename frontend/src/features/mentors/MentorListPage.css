@@ -1,0 +1,306 @@
+/* ============================================================
+   MentorListPage.css  –  HR: Danh sách Mentor (US 29)
+   Design tokens kế thừa từ CreateAccountPage.css / PermissionMatrixPage.css
+   KHÔNG thêm thư viện ngoài, KHÔNG tự chế theme mới.
+   ============================================================ */
+
+.mentor-list-page {
+  /* ── design tokens (đồng bộ các trang admin/hr hiện có) ── */
+  --fb-blue:        #1877f2;
+  --fb-blue-hover:  #166fe5;
+  --fb-blue-soft:   #e7f3ff;
+  --fb-ink:         #0f172a;
+  --fb-body:        #1c1e21;
+  --fb-muted:       #65676b;
+  --fb-line:        #e4e6eb;
+  --fb-bg:          #f0f2f5;
+  --fb-font:        'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  padding: 36px 28px 60px;
+  font-family: var(--fb-font);
+  color: var(--fb-body);
+  background: var(--fb-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.mentor-list-page *,
+.mentor-list-page *::before,
+.mentor-list-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── Glow nền ── */
+.mentor-list-page__glow {
+  position: fixed;
+  inset: -20% auto auto 30%;
+  width: min(900px, 110vw);
+  height: min(900px, 110vw);
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 40% 40%, rgba(24, 119, 242, 0.08) 0%, rgba(24, 119, 242, 0.02) 42%, transparent 70%),
+    radial-gradient(circle at 70% 70%, rgba(14, 165, 233, 0.05) 0%, transparent 55%);
+  filter: blur(14px);
+}
+
+/* ── Shell ── */
+.mentor-list-shell {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Page header ── */
+.mentor-list-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.mentor-list-header__left { flex: 1; }
+
+.mentor-list-badge {
+  display: inline-flex;
+  margin: 0 0 10px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--fb-blue-soft);
+  border: 1px solid #d0e4ff;
+  color: var(--fb-blue);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mentor-list-header h1 {
+  margin: 0 0 6px;
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--fb-ink);
+}
+
+.mentor-list-header h1 span { color: var(--fb-blue); }
+
+.mentor-list-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fb-muted);
+  line-height: 1.55;
+}
+
+/* ── Nút Thêm mentor ── */
+.mentor-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--fb-blue);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--fb-font);
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(24, 119, 242, 0.28);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.mentor-add-btn:hover {
+  background: var(--fb-blue-hover);
+  box-shadow: 0 8px 22px rgba(24, 119, 242, 0.36);
+}
+
+/* ── Table card ── */
+.mentor-list-card {
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid var(--fb-line);
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.03),
+    0 16px 40px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+/* ── Scroll wrapper ── */
+.mentor-list-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Table ── */
+.mentor-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.mentor-list-table thead tr {
+  background: #f8fafc;
+  border-bottom: 1.5px solid var(--fb-line);
+}
+
+.mentor-list-table th {
+  padding: 14px 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fb-muted);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.mentor-list-table th.col-no     { width: 52px;  text-align: center; }
+.mentor-list-table th.col-name   { min-width: 200px; }
+.mentor-list-table th.col-email  { min-width: 220px; }
+.mentor-list-table th.col-dept   { min-width: 160px; }
+.mentor-list-table th.col-count  { min-width: 130px; text-align: center; }
+
+/* ── Table body ── */
+.mentor-list-table tbody tr {
+  border-bottom: 1px solid var(--fb-line);
+  transition: background 0.1s ease;
+}
+.mentor-list-table tbody tr:last-child { border-bottom: none; }
+.mentor-list-table tbody tr:hover      { background: #f5f9ff; }
+
+.mentor-list-table td {
+  padding: 14px 20px;
+  vertical-align: middle;
+  color: var(--fb-body);
+  font-size: 13.5px;
+}
+
+.mentor-list-table td.col-no {
+  text-align: center;
+  color: var(--fb-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* ── Avatar + tên ── */
+.mentor-cell-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mentor-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--fb-blue-soft);
+  border: 1px solid #d0e4ff;
+  color: var(--fb-blue);
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+.mentor-name-text {
+  font-weight: 600;
+  color: var(--fb-ink);
+  font-size: 13.5px;
+}
+
+/* ── Email ── */
+.mentor-email {
+  font-size: 13px;
+  color: var(--fb-muted);
+}
+
+/* ── Phòng ban tag ── */
+.mentor-dept-tag {
+  display: inline-flex;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid var(--fb-line);
+  color: var(--fb-body);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── Số TTS badge ── */
+.mentor-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--fb-blue-soft);
+  color: var(--fb-blue);
+  font-size: 13px;
+  font-weight: 800;
+  border: 1px solid #d0e4ff;
+}
+
+/* ── Footer ── */
+.mentor-list-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--fb-line);
+  background: #fafbfc;
+  font-size: 13px;
+  color: var(--fb-muted);
+}
+
+/* ── Empty state ── */
+.mentor-list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 60px 24px;
+  color: var(--fb-muted);
+  font-size: 15px;
+}
+.mentor-list-empty__icon { font-size: 36px; opacity: 0.4; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .mentor-list-page   { padding: 24px 16px 48px; }
+  .mentor-list-header { flex-direction: column; align-items: flex-start; }
+}
+
+/* ── Toast ── */
+.mentor-list-toast {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 9999;
+  max-width: 400px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--fb-font, 'Plus Jakarta Sans', sans-serif);
+  background: #e6f9f0;
+  color: #14a05a;
+  border: 1px solid #b5efcf;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  animation: mentor-toast-in 0.2s ease;
+}
+@keyframes mentor-toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
