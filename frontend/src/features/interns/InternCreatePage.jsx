@@ -4,27 +4,25 @@
  *
  * US 1: "Là HR, tôi muốn thêm mới hồ sơ thực tập sinh để lưu trữ thông tin."
  *
- * Task 1 — Giao diện tĩnh (UI + state):
- *   - Tất cả field hồ sơ cá nhân theo software-specification.md §4.3 (Nhóm B)
- *     và §5.1 (POST /api/hr/interns).
- *   - KHÔNG bao gồm password/confirm_password — đây là hồ sơ do HR nhập hộ,
- *     không phải đăng ký tài khoản tự đăng nhập. Xem TODO bên dưới nếu cần bàn lại.
- *   - Nút "Lưu hồ sơ" chưa gọi API — stub console.log để dễ tích hợp task 2.
+ * Task 1 — Giao diện tĩnh (UI + state): done (PR trước).
+ * Task 2 — Validate đầu vào + tích hợp API createIntern():
+ *   - Validate client-side toàn bộ field theo rule software-specification.md §2.2 + §4.3.
+ *   - Gọi createIntern() từ src/api/interns.js (không fetch trực tiếp trong component).
+ *   - Dùng buildToast() có sẵn — không viết lại toast logic.
+ *   - Xử lý response 201, 409, 422, 500 đúng pattern CreateAccountPage.jsx.
  *
- * TODO (cần bàn với nhóm/backend trước task 2):
- *   1. HR có cần tạo luôn tài khoản đăng nhập (email + mật khẩu tạm) khi thêm hồ sơ?
- *      - Nếu CÓ → thêm section "Tài khoản" (email bắt buộc, password tạm)
- *        và gọi API POST /api/hr/interns (tạo user + profile cùng 1 request).
- *      - Nếu KHÔNG → chỉ cần field email (lưu vào intern_profiles hoặc tham chiếu users),
- *        flow tạo tài khoản tách riêng.
- *      Hiện tại: GIỮ email ở section hồ sơ (required) và bỏ password/confirm_password.
- *   2. Mapping chính xác các field với schema DB — xác nhận với BE trước khi gọi API thật.
+ * TODO (chưa bàn xong với nhóm):
+ *   1. HR có cần set password tạm khi thêm hồ sơ không?
+ *      Nếu CÓ → bổ sung field password vào INITIAL_FORM và validateForm.
+ *   2. Sau khi tạo thành công, redirect về /hr/interns hay ở lại form reset?
+ *      Hiện tại: reset form, hiện toast success, ở lại trang.
  *
  * Theme: kế thừa CreateAccountPage.css (design tokens, form-group, button, toast).
  * Pattern: bám đúng CreateAccountPage.jsx — useState, handleChange, showToast.
  */
 
 import { useState } from 'react';
+import { createIntern, buildToast } from '../../api/interns';
 import './InternCreatePage.css';
 
 /* ─────────────────────────────────────────────
@@ -53,21 +51,159 @@ const ACADEMIC_YEAR_OPTIONS = [
 ];
 
 /* ─────────────────────────────────────────────
-   Initial form state — khớp đúng field spec §4.3 (Nhóm B) + email (Nhóm A)
+   Regex helpers
+───────────────────────────────────────────── */
+
+/** Email đúng format — khớp rule spec §2.2 */
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Số điện thoại — "0..." hoặc "+84..." theo rule docs/api.md §2.2.
+ * Chấp nhận khoảng trắng / dấu gạch giữa các nhóm số.
+ */
+const PHONE_REGEX = /^(0[0-9]{8,10}|\+84[0-9]{8,10})$/;
+
+/** Ngày sinh định dạng YYYY-MM-DD (value của input[type=date]) */
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+/* ─────────────────────────────────────────────
+   Initial form state — field spec §4.3 (Nhóm B) + email (Nhóm A)
    KHÔNG có password/confirm_password (xem TODO ở đầu file).
 ───────────────────────────────────────────── */
 const INITIAL_FORM = {
   full_name:     '',   // users.full_name (bắt buộc)
-  email:         '',   // users.email (bắt buộc — xem TODO tài khoản)
-  phone_number:  '',   // intern_profiles.phone_number
-  dob:           '',   // intern_profiles.dob (date string YYYY-MM-DD)
-  gender:        '',   // intern_profiles.gender (male/female/other)
+  email:         '',   // users.email (bắt buộc)
+  phone_number:  '',   // intern_profiles.phone_number (tuỳ chọn)
+  dob:           '',   // intern_profiles.dob YYYY-MM-DD (tuỳ chọn)
+  gender:        '',   // intern_profiles.gender (tuỳ chọn)
   university:    '',   // intern_profiles.university (bắt buộc — spec §4.3)
   major:         '',   // intern_profiles.major (bắt buộc — spec §4.3)
-  academic_year: '',   // intern_profiles.academic_year
-  gpa:           '',   // intern_profiles.gpa (number, chuỗi rỗng để hiện placeholder)
-  address:       '',   // intern_profiles.address
+  academic_year: '',   // intern_profiles.academic_year (tuỳ chọn)
+  gpa:           '',   // intern_profiles.gpa number 0–4 (tuỳ chọn)
+  address:       '',   // intern_profiles.address (tuỳ chọn)
 };
+
+/* ─────────────────────────────────────────────
+   Validate helper
+   Trả về object { fieldName: 'message lỗi tiếng Việt' }.
+   Trả về {} nếu tất cả hợp lệ.
+
+   Rule theo software-specification.md §2.2 + §4.3 + yêu cầu task:
+     full_name    : bắt buộc, 1–100 ký tự
+     email        : bắt buộc, đúng format email
+     phone_number : tuỳ chọn — nếu có: "0..." hoặc "+84..."
+     dob          : tuỳ chọn — nếu có: YYYY-MM-DD
+     gender       : tuỳ chọn — nếu có: male/female/other
+     university   : bắt buộc (spec §4.3), max 150 ký tự
+     major        : bắt buộc (spec §4.3), max 150 ký tự
+     academic_year: tuỳ chọn — nếu có: max 50 ký tự
+     gpa          : tuỳ chọn — nếu có: số trong khoảng 0–4
+     address      : tuỳ chọn — nếu có: max 255 ký tự
+───────────────────────────────────────────── */
+function validateForm(form) {
+  const errors = {};
+
+  /* full_name — bắt buộc, 1–100 ký tự */
+  const fullName = form.full_name.trim();
+  if (!fullName) {
+    errors.full_name = 'Vui lòng nhập họ và tên.';
+  } else if (fullName.length > 100) {
+    errors.full_name = 'Họ và tên không được vượt quá 100 ký tự.';
+  }
+
+  /* email — bắt buộc, đúng format */
+  const email = form.email.trim();
+  if (!email) {
+    errors.email = 'Vui lòng nhập email.';
+  } else if (!EMAIL_REGEX.test(email)) {
+    errors.email = 'Email không đúng định dạng.';
+  }
+
+  /* phone_number — tuỳ chọn, nếu có phải đúng format */
+  const phone = form.phone_number.trim();
+  if (phone) {
+    // Bỏ khoảng trắng/dấu gạch trước khi test
+    const phoneSanitised = phone.replace(/[\s-]/g, '');
+    if (!PHONE_REGEX.test(phoneSanitised)) {
+      errors.phone_number = 'Số điện thoại phải bắt đầu bằng "0" (10–11 số) hoặc "+84" (10–11 số).';
+    }
+  }
+
+  /* dob — tuỳ chọn, nếu có phải YYYY-MM-DD */
+  if (form.dob && !DATE_REGEX.test(form.dob)) {
+    errors.dob = 'Ngày sinh không đúng định dạng.';
+  }
+
+  /* gender — tuỳ chọn, nếu có phải là 1 trong 3 giá trị hợp lệ */
+  const validGenders = ['male', 'female', 'other'];
+  if (form.gender && !validGenders.includes(form.gender)) {
+    errors.gender = 'Giới tính không hợp lệ.';
+  }
+
+  /* university — bắt buộc (spec §4.3), max 150 ký tự */
+  const university = form.university.trim();
+  if (!university) {
+    errors.university = 'Vui lòng nhập tên trường.';
+  } else if (university.length > 150) {
+    errors.university = 'Tên trường không được vượt quá 150 ký tự.';
+  }
+
+  /* major — bắt buộc (spec §4.3), max 150 ký tự */
+  const major = form.major.trim();
+  if (!major) {
+    errors.major = 'Vui lòng nhập ngành học.';
+  } else if (major.length > 150) {
+    errors.major = 'Ngành học không được vượt quá 150 ký tự.';
+  }
+
+  /* academic_year — tuỳ chọn, nếu có: max 50 ký tự */
+  if (form.academic_year && form.academic_year.length > 50) {
+    errors.academic_year = 'Năm học không được vượt quá 50 ký tự.';
+  }
+
+  /* gpa — tuỳ chọn, nếu có: số, 0 ≤ gpa ≤ 4 */
+  if (form.gpa !== '') {
+    const gpaNum = Number(form.gpa);
+    if (Number.isNaN(gpaNum)) {
+      errors.gpa = 'GPA phải là số.';
+    } else if (gpaNum < 0 || gpaNum > 4) {
+      errors.gpa = 'GPA phải trong khoảng 0 – 4.';
+    }
+  }
+
+  /* address — tuỳ chọn, nếu có: max 255 ký tự */
+  if (form.address.trim().length > 255) {
+    errors.address = 'Địa chỉ không được vượt quá 255 ký tự.';
+  }
+
+  return errors;
+}
+
+/* ─────────────────────────────────────────────
+   Chuẩn hoá dữ liệu trước khi gửi API
+   - email: lowercase + trim
+   - Loại bỏ field rỗng (không gửi null lên BE)
+   - gpa: chuyển thành number nếu có
+───────────────────────────────────────────── */
+function buildPayload(form) {
+  const payload = {
+    full_name: form.full_name.trim(),
+    email:     form.email.trim().toLowerCase(),
+  };
+
+  if (form.phone_number.trim()) {
+    payload.phone_number = form.phone_number.trim().replace(/[\s-]/g, '');
+  }
+  if (form.dob)           payload.dob           = form.dob;
+  if (form.gender)        payload.gender         = form.gender;
+  if (form.university.trim()) payload.university = form.university.trim();
+  if (form.major.trim())  payload.major          = form.major.trim();
+  if (form.academic_year) payload.academic_year  = form.academic_year;
+  if (form.gpa !== '')    payload.gpa            = Number(form.gpa);
+  if (form.address.trim()) payload.address       = form.address.trim();
+
+  return payload;
+}
 
 /* ─────────────────────────────────────────────
    Component
@@ -76,8 +212,7 @@ const INITIAL_FORM = {
 /**
  * InternCreatePage
  *
- * Form HR nhập hồ sơ thực tập sinh mới.
- * Task 1: giao diện tĩnh — state đã sẵn sàng, validate + API call sẽ bổ sung ở task 2.
+ * Form HR nhập hồ sơ thực tập sinh mới — đã có validate + gọi API (task 2).
  */
 function InternCreatePage() {
   /* ── State ── */
@@ -105,23 +240,54 @@ function InternCreatePage() {
     setTimeout(() => setToast(null), 4000);
   }
 
-  /**
-   * handleSubmit — Task 1: chỉ log dữ liệu, chưa gọi API.
-   *
-   * TODO (task 2):
-   *   1. Thêm hàm validateForm(form) trả về { errors } — validate required fields.
-   *   2. Import createIntern từ '../../api/interns' (hàm sẽ tạo ở task 2).
-   *   3. Xử lý response 201, 409, 422, 500 đúng pattern CreateAccountPage.jsx.
-   */
   async function handleSubmit(e) {
     e.preventDefault();
-    // TODO task 2: thay bằng validate + API call
+
+    // 1. Validate client-side
+    const validationErrors = validateForm(form);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    // 2. Gọi API — createIntern từ src/api/interns.js
     setLoading(true);
+    setErrors({});
     try {
-      // Stub — xóa khi có API thật (task 2)
-      await new Promise((r) => setTimeout(r, 300));
-      console.log('[InternCreatePage] Form data (stub — task 2 sẽ gọi API):', form);
-      showToast('success', 'Hồ sơ đã được lưu thành công! (stub)');
+      const payload = buildPayload(form);
+      const { ok, status, data } = await createIntern(payload);
+
+      if (ok) {
+        // 201 — thành công (tái sử dụng buildToast — pattern chuẩn project)
+        const t = buildToast(ok, status, data, 'Thêm hồ sơ thực tập sinh thành công!');
+        showToast(t.type, t.message);
+        setForm(INITIAL_FORM); // Reset form (xem TODO: có thể thay bằng redirect)
+      } else if (status === 409) {
+        // Email trùng
+        const msg = data?.detail ?? 'Email đã được sử dụng trong hệ thống.';
+        setErrors({ email: msg });
+        showToast('error', msg);
+      } else if (status === 422) {
+        // Validate fail từ BE (format FastAPI: { detail: [...] } hoặc { detail: "..." })
+        const detail = data?.detail;
+        if (Array.isArray(detail)) {
+          const beErrors = {};
+          detail.forEach(({ loc, msg: beMsg }) => {
+            const field = loc?.[1]; // ["body", "field_name"]
+            if (field) beErrors[field] = beMsg;
+          });
+          setErrors(beErrors);
+          showToast('error', 'Dữ liệu không hợp lệ, vui lòng kiểm tra lại.');
+        } else {
+          showToast('error', detail ?? 'Dữ liệu không hợp lệ.');
+        }
+      } else {
+        // 500 hoặc lỗi khác — tái sử dụng buildToast
+        const t = buildToast(ok, status, data);
+        showToast(t.type, t.message);
+      }
+    } catch {
+      showToast('error', 'Không thể kết nối tới máy chủ, vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
