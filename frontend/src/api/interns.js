@@ -318,3 +318,63 @@ export async function createIntern(body) {
   });
   ─────────────────────────────────────────────────────────────────────── */
 }
+
+/* ─────────────────────────────────────────────
+   getInternById
+───────────────────────────────────────────── */
+
+/**
+ * Lấy chi tiết hồ sơ thực tập sinh theo ID.
+ *
+ * TODO: GET /api/hr/interns/{id} chưa tồn tại ở backend
+ *       (backend/app/api/routes/interns.py chỉ có POST, POST approve, POST contract).
+ *       Khi BE sẵn sàng: xóa khối MOCK bên dưới, bỏ comment fetch thật.
+ *       Không cần đổi tên hàm hay shape trả về — InternEditPage sẽ không
+ *       phải sửa 1 dòng nào khi chuyển từ MOCK sang API thật.
+ *
+ * @param {number|string} internId - ID của thực tập sinh cần lấy chi tiết.
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ *   data có shape khớp InternRegisterResponse:
+ *     { id, email, full_name, status, role, phone_number, dob, gender,
+ *       university, major, academic_year, gpa, address }
+ *
+ * @example
+ * import { getInternById } from '../api/interns';
+ *
+ * const { ok, status, data } = await getInternById(42);
+ * if (ok) {
+ *   // Đổ data vào form state
+ * }
+ */
+export async function getInternById(internId) {
+  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
+  // Giả lập network delay
+  await new Promise((r) => setTimeout(r, 400));
+
+  // Trả về dữ liệu mẫu đủ field để InternEditPage pre-fill
+  return {
+    ok: true,
+    status: 200,
+    data: {
+      id:            Number(internId),
+      email:         `intern${internId}@ictu.edu.vn`,
+      full_name:     'Nguyễn Văn Mẫu',
+      status:        'pending',
+      role:          'intern',
+      phone_number:  '0912345678',
+      dob:           '2002-05-15',
+      gender:        'male',
+      university:    'Đại học Công nghệ thông tin và Truyền thông',
+      major:         'Công nghệ thông tin',
+      academic_year: '3',
+      gpa:           '3.2',
+      address:       '123 Đường ABC, Thái Nguyên',
+    },
+  };
+  /* ── END MOCK ─────────────────────────────────────────────────────────
+
+  // TODO: Bỏ comment khối này khi BE có GET /api/hr/interns/{id}
+  //       (role: hr hoặc admin — apiFetch tự gắn Authorization header)
+  return apiFetch(`/api/hr/interns/${internId}`, { method: 'GET' });
+  ─────────────────────────────────────────────────────────────────────── */
+}
