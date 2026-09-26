@@ -7,6 +7,11 @@
  *   → Nút chỉ hiển thị khi status === 'pending'.
  *   → Status khác: chỉ hiện StatusBadge.
  *
+ * Permission guard (task B — US 40):
+ *   → Nút chỉ render khi user có quyền 'interns_approve'.
+ *   → Nếu không có quyền: chỉ hiện StatusBadge (bất kể status).
+ *   → Kiểm tra qua hasPermission() — không if/else role trực tiếp.
+ *
  * Flow (task 7):
  *   Bấm nút → mở ConfirmActionDialog → HR xác nhận
  *           → dialog gọi API → thành công: đóng + onSuccess(toastPayload)
@@ -32,6 +37,8 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '../../../context/AuthContext';
+import { hasPermission } from '../../../hooks/usePermission';
 import StatusBadge from './StatusBadge';
 import ConfirmActionDialog from './ConfirmActionDialog';
 import './InternComponents.css';
@@ -48,6 +55,14 @@ import './InternComponents.css';
 function InternActionButtons({ internId, status, onSuccess }) {
   // dialog = null | 'approve' | 'reject'
   const [dialog, setDialog] = useState(null);
+
+  const { user } = useAuth();
+
+  // Kiểm tra quyền trước (hasPermission — không if/else role trực tiếp)
+  // Nếu không có quyền 'interns_approve' → chỉ hiện StatusBadge, không hiện nút
+  if (!hasPermission(user, 'interns_approve')) {
+    return <StatusBadge status={status} />;
+  }
 
   // Chỉ hiển thị nút khi status === 'pending' (spec §5.4)
   if (status !== 'pending') {
