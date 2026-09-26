@@ -84,7 +84,7 @@ function MentorListPage() {
   /* TODO (task 2): Thay useState(MOCK_MENTORS) bằng useState([]) + useEffect fetch */
   const [mentors,    setMentors]    = useState(MOCK_MENTORS);
   const [showModal,  setShowModal]  = useState(false);
-  const [toastMsg,   setToastMsg]   = useState(null);
+  const [toast,      setToast]      = useState(null); // { type, message } từ buildToast
 
   /* ── Mở modal ── */
   function handleOpenModal() {
@@ -96,12 +96,17 @@ function MentorListPage() {
     setShowModal(false);
   }
 
-  /* ── Nhận mentor mới từ modal (task 1: mock; task 2: dữ liệu thật từ API) ── */
+  /* ── Nhận toast từ MentorFormModal (qua prop onToast) ── */
+  function handleToast(t) {
+    setToast(t);
+    setTimeout(() => setToast(null), 4000);
+  }
+
+  /* ── Nhận mentor mới từ modal — dữ liệu thật từ POST /api/hr/mentors ── */
   function handleSaved(newMentor) {
     setMentors((prev) => [newMentor, ...prev]);
     setShowModal(false);
-    setToastMsg(`Đã thêm mentor "${newMentor.full_name}" thành công.`);
-    setTimeout(() => setToastMsg(null), 4000);
+    // Toast đã được gửi qua handleToast bởi MentorFormModal
   }
 
   return (
@@ -110,14 +115,14 @@ function MentorListPage() {
       <div className="mentor-list-page__glow" aria-hidden="true" />
 
       {/* ── Toast thông báo ── */}
-      {toastMsg && (
+      {toast && (
         <div
           id="mentor-list-toast"
-          className="mentor-list-toast"
-          role="status"
+          className={`mentor-list-toast mentor-list-toast--${toast.type}`}
+          role={toast.type === 'error' ? 'alert' : 'status'}
           aria-live="polite"
         >
-          ✓ {toastMsg}
+          {toast.type === 'error' ? '✕ ' : '✓ '}{toast.message}
         </div>
       )}
 
@@ -225,6 +230,7 @@ function MentorListPage() {
         <MentorFormModal
           onClose={handleCloseModal}
           onSaved={handleSaved}
+          onToast={handleToast}
         />
       )}
     </div>
