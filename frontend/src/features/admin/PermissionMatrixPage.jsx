@@ -19,7 +19,7 @@
  *   [x] KHÔNG có search, export, phân trang
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getPermissionMatrix, updatePermissionMatrix } from '../../api/admin';
 import { buildToast } from '../../api/interns';
 import './PermissionMatrixPage.css';
@@ -62,29 +62,37 @@ function PermissionMatrixPage() {
   const [toast,   setToast]   = useState(null); // { type, message }
 
   /* ── Load dữ liệu lần đầu ── */
-  // setLoading(true) đặt trong useEffect (không nằm trong callback)
-  // để tránh lỗi react-hooks/set-state-in-effect (setState đồng bộ trong effect)
-  const loadMatrix = useCallback(async () => {
-    try {
-      const { ok, data } = await getPermissionMatrix();
-      if (ok) {
-        setRoles(data.roles);
-        setModules(data.modules);
-        setMatrix(data.matrix);
-      } else {
-        showToast('error', data?.detail ?? 'Không thể tải dữ liệu phân quyền.');
-      }
-    } catch {
-      showToast('error', 'Không thể kết nối tới máy chủ.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    setLoading(true); // Đặt ở đây: rõ ràng là trong effect, trước await nên ESLint không bắt lỗi
+    let ignore = false;
+
+    async function loadMatrix() {
+      try {
+        const { ok, data } = await getPermissionMatrix();
+        if (ignore) return;
+        if (ok) {
+          setRoles(data.roles);
+          setModules(data.modules);
+          setMatrix(data.matrix);
+        } else {
+          showToast('error', data?.detail ?? 'Không thể tải dữ liệu phân quyền.');
+        }
+      } catch {
+        if (!ignore) {
+          showToast('error', 'Không thể kết nối tới máy chủ.');
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
     loadMatrix();
-  }, [loadMatrix]);
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   /* ── Toast helpers ── */
   function showToast(type, message) {
