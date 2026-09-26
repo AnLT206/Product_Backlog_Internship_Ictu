@@ -3,12 +3,29 @@ import smtplib
 from email.message import EmailMessage
 from email.utils import formataddr
 
+from fastapi import BackgroundTasks
+
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 
 class EmailService:
+    @staticmethod
+    def enqueue_email(
+        background_tasks: BackgroundTasks,
+        to_email: str,
+        subject: str,
+        body: str,
+    ) -> None:
+        """Schedule lightweight email work after the response is sent.
+
+        FastAPI BackgroundTasks is suitable for small same-process work. If
+        delivery retries must survive worker/server failures, use a durable
+        queue such as Celery or RQ in a future task instead.
+        """
+        background_tasks.add_task(EmailService.send_email, to_email, subject, body)
+
     @staticmethod
     def send_email(to_email: str, subject: str, body: str) -> bool:
         settings = get_settings()
