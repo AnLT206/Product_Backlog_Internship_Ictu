@@ -451,3 +451,174 @@
     font-size: 12px;
   }
 }
+
+/* ============================================================
+   TASK 2 — styles bổ sung: Toast, Search, Loading, Pagination
+   ============================================================ */
+
+/* ── Toast thông báo lỗi ── */
+.sys-logs-toast {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 9999;
+  max-width: 400px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--fb-font, 'Plus Jakarta Sans', sans-serif);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  animation: sys-toast-in 0.2s ease;
+}
+.sys-logs-toast--error {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.sys-logs-toast--success {
+  background: #e6f9f0;
+  color: #14a05a;
+  border: 1px solid #b5efcf;
+}
+@keyframes sys-toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Thanh tìm kiếm ── */
+.sys-logs-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sys-logs-search__input {
+  height: 40px;
+  padding: 0 14px;
+  border: 1.5px solid var(--fb-line, #e4e6eb);
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-family: var(--fb-font, 'Plus Jakarta Sans', sans-serif);
+  color: var(--fb-ink, #0f172a);
+  background: #fff;
+  outline: none;
+  width: 180px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  /* Ẩn spinner mặc định của input[type=number] */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.sys-logs-search__input::-webkit-inner-spin-button,
+.sys-logs-search__input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.sys-logs-search__input:focus {
+  border-color: var(--fb-blue, #1877f2);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.12);
+}
+.sys-logs-search__input::placeholder { color: var(--fb-muted, #65676b); }
+
+.sys-logs-search__btn {
+  height: 40px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 10px;
+  background: var(--fb-blue, #1877f2);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 700;
+  font-family: var(--fb-font, 'Plus Jakarta Sans', sans-serif);
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+  white-space: nowrap;
+}
+.sys-logs-search__btn:hover:not(:disabled) {
+  background: var(--fb-blue-hover, #166fe5);
+}
+.sys-logs-search__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Loading state trong bảng ── */
+.sys-logs-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 24px;
+  color: var(--fb-muted, #65676b);
+  font-size: 14px;
+  font-weight: 500;
+}
+.sys-logs-loading__spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid var(--fb-line, #e4e6eb);
+  border-top-color: var(--fb-blue, #1877f2);
+  border-radius: 50%;
+  animation: sl-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes sl-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Phân trang ── */
+.sys-logs-pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sys-logs-page-btn {
+  height: 36px;
+  padding: 0 16px;
+  border: 1.5px solid var(--fb-line, #e4e6eb);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--fb-body, #1c1e21);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--fb-font, 'Plus Jakarta Sans', sans-serif);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+  white-space: nowrap;
+}
+.sys-logs-page-btn:hover:not(:disabled) {
+  background: var(--fb-blue-soft, #e7f3ff);
+  border-color: var(--fb-blue, #1877f2);
+  color: var(--fb-blue, #1877f2);
+}
+.sys-logs-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sys-logs-page-indicator {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fb-body, #1c1e21);
+  min-width: 54px;
+  text-align: center;
+}
+
+/* ── Responsive bổ sung cho search và pagination ── */
+@media (max-width: 768px) {
+  .sys-logs-search {
+    width: 100%;
+  }
+  .sys-logs-search__input {
+    flex: 1;
+    width: auto;
+  }
+  .sys-logs-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
