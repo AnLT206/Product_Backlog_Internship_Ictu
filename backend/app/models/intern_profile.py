@@ -18,6 +18,11 @@ class InternProfile(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    status: Mapped[str] = mapped_column(
+        Enum("pending", "approved", "rejected", name="intern_profile_status"),
+        default="pending",
+        nullable=False,
+    )
     phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
     dob: Mapped[date | None] = mapped_column(Date, nullable=True)
     gender: Mapped[str | None] = mapped_column(

@@ -4,7 +4,11 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db, require_roles
 from app.schemas.auth import InternRegisterResponse
 from app.schemas.document import DocumentResponse
-from app.schemas.intern import InternCreateRequest
+from app.schemas.intern import (
+    InternCreateRequest,
+    InternProfileStatusResponse,
+    InternProfileStatusUpdateRequest,
+)
 from app.services.document_service import DocumentService
 from app.services.intern_service import InternService
 
@@ -35,6 +39,20 @@ def approve_intern(
     db: Session = Depends(get_db),
 ) -> InternRegisterResponse:
     return InternService(db).approve(intern_id)
+
+
+@router.patch(
+    "/{intern_id}/status",
+    response_model=InternProfileStatusResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def update_intern_status(
+    intern_id: int,
+    payload: InternProfileStatusUpdateRequest,
+    db: Session = Depends(get_db),
+) -> InternProfileStatusResponse:
+    return InternService(db).update_profile_status(intern_id, payload.status)
 
 
 @router.post(

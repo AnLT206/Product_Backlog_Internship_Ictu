@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class InternCreateRequest(BaseModel):
@@ -53,3 +53,17 @@ class InternCreateRequest(BaseModel):
             return None
         cleaned = value.strip()
         return cleaned or None
+
+
+class InternProfileStatusUpdateRequest(BaseModel):
+    status: Literal["approved", "rejected"]
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class InternProfileStatusResponse(BaseModel):
+    id: int
+    email: str
+    full_name: str | None
+    profile_status: Literal["pending", "approved", "rejected"]
+    account_status: Literal["pending", "active", "inactive"]

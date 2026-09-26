@@ -6,7 +6,10 @@ from app.models.intern_profile import InternProfile
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.auth import InternRegisterResponse
-from app.schemas.intern import InternCreateRequest
+from app.schemas.intern import (
+    InternCreateRequest,
+    InternProfileStatusResponse,
+)
 from app.utils.hash_password import hash_password
 
 TTS_ROLE_NAME = "intern"
@@ -74,26 +77,18 @@ class InternService:
         )
 
     def approve(self, intern_id: int) -> InternRegisterResponse:
-        user = (
-            self.db.query(User)
-            .join(Role, User.role_id == Role.id)
-            .filter(User.id == intern_id, Role.name == "intern")
-            .first()
-        )
-        if user is None:
+        user, profile = self._get_pending_intern(intern_id)
+        try:
+            profile.status = "approved"
+            user.status = "active"
+            self.db.commit()
+            self.db.refresh(user)
+        except SQLAlchemyError:
+            self.db.rollback()
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Không tìm thấy hồ sơ thực tập sinh.",
-            )
-        if user.status != "pending":
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Chỉ hồ sơ đang chờ duyệt mới được duyệt.",
-            )
-
-        user.status = "active"
-        self.db.commit()
-        self.db.refresh(user)
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể duyệt hồ sơ thực tập sinh.",
+            ) from None
         return InternRegisterResponse(
             id=user.id,
             email=user.email,
@@ -104,3 +99,56 @@ class InternService:
             if user.intern_profile
             else None,
         )
+
+    def update_profile_status(
+        self, intern_id: int, profile_status: str
+    ) -> InternProfileStatusResponse:
+        user, profile = self._get_pending_intern(intern_id)
+        try:
+            profile.status = profile_status
+            user.status = "active" if profile_status == "approved" else "inactive"
+            self.db.commit()
+            self.db.refresh(user)
+            self.db.refresh(profile)
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể cập nhật trạng thái hồ sơ thực tập sinh.",
+            ) from None
+
+        return InternProfileStatusResponse(
+            id=user.id,
+            email=user.email,
+            full_name=user.full_name,
+            profile_status=profile.status,
+            account_status=user.status,
+        )
+
+    def _get_pending_intern(self, intern_id: int) -> tuple[User, InternProfile]:
+        try:
+            user = (
+                self.db.query(User)
+                .join(Role, User.role_id == Role.id)
+                .filter(User.id == intern_id, Role.name == TTS_ROLE_NAME)
+                .first()
+            )
+            if user is None or user.intern_profile is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Không tìm thấy hồ sơ thực tập sinh.",
+                )
+            if user.intern_profile.status != "pending":
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Chỉ hồ sơ đang chờ duyệt mới được cập nhật.",
+                )
+            return user, user.intern_profile
+        except HTTPException:
+            raise
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể truy vấn hồ sơ thực tập sinh.",
+            ) from None
