@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -10,6 +10,7 @@ from app.schemas.intern import (
     InternCreateRequest,
     InternProfileStatusResponse,
 )
+from app.services.email_service import EmailService
 from app.utils.hash_password import hash_password
 
 TTS_ROLE_NAME = "intern"
@@ -76,13 +77,25 @@ class InternService:
             phone_number=profile.phone_number,
         )
 
-    def approve(self, intern_id: int) -> InternRegisterResponse:
+    def approve(
+        self, intern_id: int, background_tasks: BackgroundTasks
+    ) -> InternRegisterResponse:
         user, profile = self._get_pending_intern(intern_id)
         try:
             profile.status = "approved"
             user.status = "active"
             self.db.commit()
             self.db.refresh(user)
+            EmailService.enqueue_email(
+                background_tasks,
+                user.email,
+                "Hồ sơ thực tập sinh đã được duyệt",
+                (
+                    f"Xin chào {user.full_name or 'bạn'},\n\n"
+                    "Hồ sơ thực tập sinh của bạn đã được duyệt. "
+                    "Bạn có thể dùng email và mật khẩu đã đăng ký để đăng nhập hệ thống."
+                ),
+            )
         except SQLAlchemyError:
             self.db.rollback()
             raise HTTPException(
@@ -101,7 +114,10 @@ class InternService:
         )
 
     def update_profile_status(
-        self, intern_id: int, profile_status: str
+        self,
+        intern_id: int,
+        profile_status: str,
+        background_tasks: BackgroundTasks,
     ) -> InternProfileStatusResponse:
         user, profile = self._get_pending_intern(intern_id)
         try:
@@ -110,6 +126,27 @@ class InternService:
             self.db.commit()
             self.db.refresh(user)
             self.db.refresh(profile)
+            if profile_status == "approved":
+                EmailService.enqueue_email(
+                    background_tasks,
+                    user.email,
+                    "Hồ sơ thực tập sinh đã được duyệt",
+                    (
+                        f"Xin chào {user.full_name or 'bạn'},\n\n"
+                        "Hồ sơ thực tập sinh của bạn đã được duyệt. "
+                        "Bạn có thể dùng email và mật khẩu đã đăng ký để đăng nhập hệ thống."
+                    ),
+                )
+            else:
+                EmailService.enqueue_email(
+                    background_tasks,
+                    user.email,
+                    "Thông báo kết quả hồ sơ thực tập sinh",
+                    (
+                        f"Xin chào {user.full_name or 'bạn'},\n\n"
+                        "Hồ sơ thực tập sinh của bạn hiện chưa được chấp nhận."
+                    ),
+                )
         except SQLAlchemyError:
             self.db.rollback()
             raise HTTPException(

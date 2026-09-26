@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_roles
@@ -36,9 +36,10 @@ def create_intern(
 )
 def approve_intern(
     intern_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ) -> InternRegisterResponse:
-    return InternService(db).approve(intern_id)
+    return InternService(db).approve(intern_id, background_tasks)
 
 
 @router.patch(
@@ -50,9 +51,12 @@ def approve_intern(
 def update_intern_status(
     intern_id: int,
     payload: InternProfileStatusUpdateRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ) -> InternProfileStatusResponse:
-    return InternService(db).update_profile_status(intern_id, payload.status)
+    return InternService(db).update_profile_status(
+        intern_id, payload.status, background_tasks
+    )
 
 
 @router.post(
