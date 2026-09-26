@@ -157,11 +157,11 @@ export async function updatePermissionMatrix(matrix) {
   // Giả lập network delay
   await new Promise((r) => setTimeout(r, 700));
 
-  // Mô phỏng thành công 200
+  // Mô phỏng thành công 200 — echo lại matrix vừa lưu (giả lập)
   return {
     ok: true,
     status: 200,
-    data: { detail: 'Lưu phân quyền thành công.' },
+    data: { detail: 'Lưu phân quyền thành công.', matrix },
   };
   /* ── END MOCK ─────────────────────────────────────────────────────────
 

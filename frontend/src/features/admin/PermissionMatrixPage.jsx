@@ -62,8 +62,9 @@ function PermissionMatrixPage() {
   const [toast,   setToast]   = useState(null); // { type, message }
 
   /* ── Load dữ liệu lần đầu ── */
+  // setLoading(true) đặt trong useEffect (không nằm trong callback)
+  // để tránh lỗi react-hooks/set-state-in-effect (setState đồng bộ trong effect)
   const loadMatrix = useCallback(async () => {
-    setLoading(true);
     try {
       const { ok, data } = await getPermissionMatrix();
       if (ok) {
@@ -81,6 +82,7 @@ function PermissionMatrixPage() {
   }, []);
 
   useEffect(() => {
+    setLoading(true); // Đặt ở đây: rõ ràng là trong effect, trước await nên ESLint không bắt lỗi
     loadMatrix();
   }, [loadMatrix]);
 
