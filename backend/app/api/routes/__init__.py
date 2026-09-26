@@ -5,7 +5,8 @@ from app.api.routes import admin, auth, departments, documents, intern_contract,
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth.router)
 api_router.include_router(departments.router)
-api_router.include_router(documents.router)
+api_router.include_router(documents.router)           # /api/hr/documents/*
+api_router.include_router(documents.intern_router)    # /api/intern/documents/*
 api_router.include_router(intern_contract.router)
 api_router.include_router(interns.router)
 api_router.include_router(mentors.router)
