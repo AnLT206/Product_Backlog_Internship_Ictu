@@ -246,3 +246,75 @@ export async function rejectIntern(internId, note) {
   });
   ─────────────────────────────────────────────────────────────────────── */
 }
+
+/* ─────────────────────────────────────────────
+   createIntern
+───────────────────────────────────────────── */
+
+/**
+ * Gọi API thêm mới hồ sơ thực tập sinh (HR nhập hộ).
+ *
+ * TODO: POST /api/hr/interns chưa tồn tại ở backend (chờ API thật).
+ *       Khi BE sẵn sàng: xóa khối MOCK bên dưới, bỏ comment fetch thật.
+ *       Không cần đổi tên hàm hay shape trả về — InternCreatePage sẽ
+ *       không phải sửa 1 dòng nào khi chuyển từ MOCK sang API thật.
+ *
+ * @param {{
+ *   full_name:     string,
+ *   email:         string,
+ *   phone_number?: string,
+ *   dob?:          string,
+ *   gender?:       'male'|'female'|'other',
+ *   university?:   string,
+ *   major?:        string,
+ *   academic_year?: string,
+ *   gpa?:          number,
+ *   address?:      string,
+ * }} body  Dữ liệu hồ sơ — field bắt buộc theo software-specification.md §4.3
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ *
+ * @example
+ * import { createIntern, buildToast } from '../api/interns';
+ *
+ * const { ok, status, data } = await createIntern({
+ *   full_name: 'Nguyễn Văn A',
+ *   email: 'a@ictu.edu.vn',
+ *   university: 'ICTU',
+ *   major: 'CNTT',
+ * });
+ * setToast(buildToast(ok, status, data, 'Thêm hồ sơ thành công!'));
+ */
+export async function createIntern(body) {
+  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
+  // Giả lập network delay
+  await new Promise((r) => setTimeout(r, 700));
+
+  // Mô phỏng 409 nếu email chứa "exists" (để test lỗi trùng email)
+  if (body.email?.toLowerCase().includes('exists')) {
+    return {
+      ok: false,
+      status: 409,
+      data: { detail: 'Email đã được sử dụng trong hệ thống.' },
+    };
+  }
+
+  // Mô phỏng thành công 201
+  return {
+    ok: true,
+    status: 201,
+    data: {
+      id: Math.floor(Math.random() * 10000),
+      ...body,
+      status: 'pending',
+    },
+  };
+  /* ── END MOCK ─────────────────────────────────────────────────────────
+
+  // TODO: Bỏ comment khối này khi BE có POST /api/hr/interns (role: hr/admin)
+  //       apiFetch tự gắn Authorization: Bearer <token> từ localStorage
+  return apiFetch('/api/hr/interns', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  ─────────────────────────────────────────────────────────────────────── */
+}
