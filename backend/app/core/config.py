@@ -2,6 +2,25 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# ─── Hằng số upload file ─────────────────────────────────────────────────────
+# Định nghĩa 1 lần duy nhất ở đây — import ở bất kỳ service/route nào cần.
+# Không hardcode rải rác trong từng hàm.
+#
+# Spec §2.2: "File upload: PDF/DOC/DOCX; max 5MB (thống nhất team)"
+# Task hiện tại giới hạn: PDF và DOCX (không bao gồm DOC).
+# Nếu nhóm quyết định thêm DOC, chỉ cần sửa 2 set dưới đây.
+
+MAX_FILE_SIZE: int = 5 * 1024 * 1024  # 5 MB tính bằng byte
+
+ALLOWED_EXTENSIONS: frozenset[str] = frozenset({".pdf", ".docx"})
+
+# MIME type tương ứng — kiểm tra cả header Content-Type lẫn magic bytes
+# để tránh giả mạo đuôi file.
+ALLOWED_MIME_TYPES: frozenset[str] = frozenset({
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+})
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(

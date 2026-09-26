@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Literal
 from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile, status
@@ -10,6 +11,7 @@ from app.models.document import Document
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.document import DocumentResponse, DocumentReviewRequest
+from app.services.file_validator import validate_upload_file
 from app.services.notification_service import NotificationService
 
 UPLOAD_ROOT = Path(__file__).resolve().parents[2] / "uploads" / "contracts"
@@ -40,18 +42,16 @@ class DocumentService:
                 detail="Thiếu tên file hợp đồng.",
             )
 
+        # Validate dung lượng + định dạng trước khi lưu (dùng hàm dùng chung)
+        # validate_upload_file đọc và trả về content — không cần đọc lại.
+        content = validate_upload_file(file)
+
         UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
         safe_name = Path(file.filename).name
         stored_name = f"{intern_id}_{uuid4().hex}_{safe_name}"
         dest = UPLOAD_ROOT / stored_name
 
         try:
-            content = file.file.read()
-            if not content:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail="File hợp đồng trống.",
-                )
             dest.write_bytes(content)
 
             doc = Document(
@@ -190,6 +190,84 @@ class DocumentService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Không thể duyệt tài liệu.",
+            ) from None
+
+        return DocumentResponse.model_validate(doc)
+
+    # ── Upload CV / đơn xin thực tập (TTS tự nộp) ───────────────────────────
+
+    def upload_intern_document(
+        self,
+        intern_id: int,
+        doc_type: str,
+        file: UploadFile,
+    ) -> DocumentResponse:
+        """
+        TTS upload CV hoặc đơn xin thực tập.
+
+        Parameters
+        ----------
+        intern_id : int
+            ID của TTS hiện tại (lấy từ JWT qua get_current_user).
+        doc_type : str
+            ``'cv'`` hoặc ``'application'``.
+        file : UploadFile
+            File multipart từ request.
+
+        Returns
+        -------
+        DocumentResponse
+
+        Raises
+        ------
+        HTTPException 422
+            - Sai doc_type.
+            - File sai định dạng (không phải PDF/DOCX).
+            - File vượt quá 5 MB.
+        """
+        # Validate doc_type
+        allowed_doc_types: frozenset[str] = frozenset({"cv", "application"})
+        if doc_type not in allowed_doc_types:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="doc_type chỉ chấp nhận 'cv' hoặc 'application'.",
+            )
+
+        # Validate file: dung lượng + định dạng (tách biệt khỏi logic lưu file)
+        content = validate_upload_file(file)
+
+        # Lưu file vào thư mục uploads/intern_docs/
+        upload_root = Path(__file__).resolve().parents[2] / "uploads" / "intern_docs"
+        upload_root.mkdir(parents=True, exist_ok=True)
+        safe_name = Path(file.filename).name
+        stored_name = f"{intern_id}_{doc_type}_{uuid4().hex}_{safe_name}"
+        dest = upload_root / stored_name
+
+        try:
+            dest.write_bytes(content)
+
+            doc = Document(
+                user_id=intern_id,
+                doc_type=doc_type,
+                file_name=safe_name,
+                file_path=str(dest),
+                status="pending",
+            )
+            self.db.add(doc)
+            self.db.commit()
+            self.db.refresh(doc)
+        except HTTPException:
+            self.db.rollback()
+            if dest.exists():
+                dest.unlink(missing_ok=True)
+            raise
+        except SQLAlchemyError:
+            self.db.rollback()
+            if dest.exists():
+                dest.unlink(missing_ok=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể lưu tài liệu, vui lòng thử lại.",
             ) from None
 
         return DocumentResponse.model_validate(doc)
