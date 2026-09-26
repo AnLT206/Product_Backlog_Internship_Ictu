@@ -1,0 +1,500 @@
+/* ============================================================
+   InternUploadPage.css — TTS: Upload CV / đơn xin thực tập
+   Design token lấy từ CreateAccountPage.css — KHÔNG tự chế theme mới.
+   ============================================================ */
+
+.intern-upload-page {
+  /* --- design tokens (đồng bộ CreateAccountPage.css) --- */
+  --fb-blue:        #1877f2;
+  --fb-blue-hover:  #166fe5;
+  --fb-blue-soft:   #e7f3ff;
+  --fb-ink:         #0f172a;
+  --fb-body:        #1c1e21;
+  --fb-muted:       #65676b;
+  --fb-line:        #e4e6eb;
+  --fb-bg:          #f0f2f5;
+  --fb-font:        'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 20px 60px;
+  font-family: var(--fb-font);
+  color: var(--fb-body);
+  background: #fff;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.intern-upload-page *,
+.intern-upload-page *::before,
+.intern-upload-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── glow background ── */
+.intern-upload-page__glow {
+  position: absolute;
+  inset: -20% auto auto 40%;
+  width: min(720px, 90vw);
+  height: min(720px, 90vw);
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 40% 40%, rgba(24, 119, 242, 0.16) 0%, rgba(24, 119, 242, 0.05) 42%, transparent 70%),
+    radial-gradient(circle at 70% 70%, rgba(14, 165, 233, 0.1) 0%, transparent 55%);
+  filter: blur(10px);
+}
+
+/* ── shell / wrapper ── */
+.intern-upload-shell {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 8px;
+}
+
+/* ── back link ── */
+.intern-upload-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  color: var(--fb-muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.intern-upload-brand:hover {
+  color: var(--fb-blue);
+}
+
+/* ── card ── */
+.intern-upload-card {
+  width: 100%;
+  background: #fff;
+  border-radius: 24px;
+  border: 1px solid var(--fb-line);
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.03),
+    0 24px 48px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+/* ── header ── */
+.intern-upload-header {
+  padding: 32px 32px 12px;
+  text-align: center;
+  border-bottom: 1px solid var(--fb-line);
+}
+
+.intern-upload-badge {
+  display: inline-flex;
+  margin: 0 0 16px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--fb-blue-soft);
+  border: 1px solid #d0e4ff;
+  color: var(--fb-blue);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.intern-upload-header h1 {
+  margin: 0 0 10px;
+  font-size: clamp(22px, 4vw, 28px);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: var(--fb-ink);
+}
+
+.intern-upload-header h1 span {
+  color: var(--fb-blue);
+}
+
+.intern-upload-lead {
+  margin: 0 auto;
+  max-width: 38ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--fb-muted);
+}
+
+/* ── form ── */
+.intern-upload-form {
+  padding: 28px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── form-group (kế thừa CreateAccountPage pattern) ── */
+.intern-upload-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.intern-upload-form .form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fb-ink);
+  line-height: 1.3;
+}
+
+/* Dấu * */
+.intern-upload-required {
+  color: #e02424;
+  margin-left: 2px;
+}
+
+/* ── select ── */
+.intern-upload-form .form-group select {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1.5px solid var(--fb-line);
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--fb-body);
+  outline: none;
+  background: #fff;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2365676b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.intern-upload-form .form-group select:focus {
+  border-color: var(--fb-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+}
+
+/* ── file input ── */
+.intern-upload-file-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1.5px dashed var(--fb-line);
+  border-radius: 12px;
+  background: var(--fb-bg);
+  transition: border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.intern-upload-file-wrapper:has(.intern-upload-file-input:focus) {
+  border-color: var(--fb-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+}
+
+.intern-upload-file-input {
+  /* Ẩn input gốc nhưng vẫn accessible */
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Label bọc file wrapper sẽ trigger input ẩn */
+.intern-upload-file-wrapper {
+  position: relative;
+}
+
+.intern-upload-file-input {
+  position: static;
+  opacity: 1;
+  width: 100%;
+  height: 46px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--fb-body);
+  border: none;
+  background: transparent;
+  outline: none;
+}
+
+.intern-upload-file-name {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fb-muted);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── hint text ── */
+.intern-upload-hint {
+  font-size: 12px;
+  color: var(--fb-muted);
+  line-height: 1.4;
+}
+
+/* ── error state (kế thừa pattern CreateAccountPage) ── */
+.intern-upload-form .form-group--error .intern-upload-file-wrapper {
+  border-color: #e02424;
+  box-shadow: 0 0 0 3px rgba(224, 36, 36, 0.12);
+}
+
+.intern-upload-form .form-error {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e02424;
+  line-height: 1.35;
+}
+
+/* ── submit button ── */
+.intern-upload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 999px;
+  background: var(--fb-blue);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(24, 119, 242, 0.28);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  margin-top: 4px;
+}
+
+.intern-upload-button:hover:not(:disabled) {
+  background: var(--fb-blue-hover);
+  box-shadow: 0 10px 24px rgba(24, 119, 242, 0.34);
+}
+
+.intern-upload-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Loading spinner */
+.intern-upload-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: iu-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes iu-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Toast thông báo ── */
+.intern-upload-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  min-width: 260px;
+  max-width: 440px;
+  padding: 13px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--fb-font);
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  animation: iu-toast-in 0.22s ease;
+}
+
+.intern-upload-toast--success {
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #065f46;
+}
+
+.intern-upload-toast--error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
+
+@keyframes iu-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Kết quả upload ── */
+.intern-upload-results {
+  width: 100%;
+}
+
+.intern-upload-results__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fb-ink);
+  margin: 0 0 12px;
+  letter-spacing: -0.01em;
+}
+
+.intern-upload-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.intern-upload-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid var(--fb-line);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: box-shadow 0.15s ease;
+}
+
+.intern-upload-item:hover {
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.intern-upload-item__info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.intern-upload-item__icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.intern-upload-item__name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fb-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+.intern-upload-item__type {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--fb-muted);
+}
+
+/* Actions: preview + download links */
+.intern-upload-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.intern-upload-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* Xem trước — outlined */
+.intern-upload-link--preview {
+  border: 1.5px solid var(--fb-blue);
+  color: var(--fb-blue);
+  background: transparent;
+}
+
+.intern-upload-link--preview:hover {
+  background: var(--fb-blue-soft);
+}
+
+/* Tải xuống — filled */
+.intern-upload-link--download {
+  border: 1.5px solid var(--fb-blue);
+  background: var(--fb-blue);
+  color: #fff;
+}
+
+.intern-upload-link--download:hover {
+  background: var(--fb-blue-hover);
+  border-color: var(--fb-blue-hover);
+}
+
+.intern-upload-item__no-url {
+  font-size: 12px;
+  color: var(--fb-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 560px) {
+  .intern-upload-page {
+    padding: 24px 16px 48px;
+  }
+
+  .intern-upload-header {
+    padding: 24px 20px 10px;
+  }
+
+  .intern-upload-form {
+    padding: 20px 20px 24px;
+  }
+
+  .intern-upload-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .intern-upload-item__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .intern-upload-item__name {
+    max-width: 100%;
+  }
+}
