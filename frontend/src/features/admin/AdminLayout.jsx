@@ -4,8 +4,9 @@ import { useAuth } from '../../context/AuthContext'
 import './AdminLayout.css'
 
 const NAV = [
-  { to: '/admin/dashboard', label: 'Tổng quan', end: true },
-  { to: '/admin/users/new', label: 'Tạo tài khoản' },
+  { to: '/admin/dashboard',  label: 'Tổng quan',      end: true },
+  { to: '/admin/users/new',  label: 'Tạo tài khoản' },
+  { to: '/admin/roles',      label: 'Phân quyền' },
   { to: '/admin/system-logs', label: 'Nhật ký hệ thống' },
 ]
 

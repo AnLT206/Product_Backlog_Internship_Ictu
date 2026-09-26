@@ -8,6 +8,7 @@ import AdminLayout from '../features/admin/AdminLayout.jsx'
 import AdminDashboardPage from '../features/admin/AdminDashboardPage.jsx'
 import AdminPlaceholderPage from '../features/admin/AdminPlaceholderPage.jsx'
 import CreateAccountPage from '../features/admin/CreateAccountPage.jsx'
+import PermissionMatrixPage from '../features/admin/PermissionMatrixPage.jsx'
 import RequireAuth from './RequireAuth.jsx'
 
 export default function AppRoutes() {
@@ -30,6 +31,7 @@ export default function AppRoutes() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route path="users/new" element={<CreateAccountPage />} />
+          <Route path="roles" element={<PermissionMatrixPage />} />
           <Route
             path="system-logs"
             element={
