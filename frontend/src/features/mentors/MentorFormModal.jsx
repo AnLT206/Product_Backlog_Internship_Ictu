@@ -4,62 +4,90 @@
  *
  * US 29 (spec §7.3): "Là HR, tôi muốn thêm mới mentor để phân công cho TTS."
  *
- * TASK 1 (task này):
- *   - Giao diện tĩnh: form Họ tên*, Email*, Phòng ban* (dropdown placeholder).
- *   - Validate phía client: bắt buộc + format email đơn giản.
- *   - Nút Lưu / Hủy — đóng modal khi Hủy hoặc submit thành công giả.
- *   - CHƯA gọi API (task 2 sẽ nối POST /api/hr/mentors).
+ * TASK 1 (đã xong): Giao diện tĩnh, validate client, dropdown placeholder.
+ *
+ * TASK 2 (task này):
+ *   - Khi mở popup: gọi getDepartments() → đổ vào dropdown (thay placeholder tĩnh).
+ *   - Khi submit: gọi createMentor() → xử lý 201/409/422.
+ *   - Tái sử dụng buildToast() từ src/api/interns.js (quy ước project).
+ *
+ * API đã dùng (đã có thật ở backend):
+ *   GET  /api/departments  → [{ id, name }]
+ *   POST /api/hr/mentors   → { id, email, full_name, ... }
  *
  * Props:
- *   onClose  {() => void}       — đóng modal (bấm Hủy hoặc backdrop)
- *   onSaved  {(mentor) => void} — callback khi "lưu" (task 1: trả về mock data)
- *
- * TODO (task 2):
- *   - Import { createMentor } from '../../api/mentors' và gọi API thật.
- *   - Dropdown phòng ban: lấy từ GET /api/hr/departments (hoặc danh sách cố định).
+ *   onClose  {() => void}            — đóng modal (bấm Hủy hoặc backdrop)
+ *   onSaved  {(mentor) => void}      — callback khi tạo thành công (truyền MentorResponse)
+ *   onToast  {(toast) => void}       — callback hiển thị toast ở MentorListPage
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getDepartments, createMentor } from '../../api/mentors';
+import { buildToast } from '../../api/interns';
 import './MentorFormModal.css';
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Danh sách phòng ban tạm thời (placeholder)
-   TODO (task 2): Thay bằng dữ liệu thật từ API hoặc constants/departments.js
+   Validate helper
+   Fields bắt buộc theo MentorCreateRequest (backend/app/schemas/mentor.py):
+     full_name  — min 1 ký tự
+     email      — định dạng email hợp lệ
+     password   — min 6 ký tự
+     department_id — optional, nhưng form yêu cầu chọn (UX)
    ───────────────────────────────────────────────────────────────────────── */
-const DEPT_OPTIONS = [
-  'Công nghệ thông tin',
-  'Kỹ thuật phần mềm',
-  'Hạ tầng & Vận hành',
-  'Thiết kế & Trải nghiệm',
-  'Kinh doanh & Marketing',
-];
-
-/** Regex email đơn giản — đủ cho client-side validate */
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Validate helper
-   ───────────────────────────────────────────────────────────────────────── */
-function validateForm({ full_name, email, department }) {
+function validateForm({ full_name, email, password, department_id }) {
   const errors = {};
-  if (!full_name.trim())        errors.full_name   = 'Vui lòng nhập họ tên.';
-  if (!email.trim())            errors.email       = 'Vui lòng nhập email.';
-  else if (!EMAIL_REGEX.test(email.trim())) errors.email = 'Email không đúng định dạng.';
-  if (!department)              errors.department  = 'Vui lòng chọn phòng ban.';
+  if (!full_name.trim())
+    errors.full_name = 'Vui lòng nhập họ tên.';
+  if (!email.trim())
+    errors.email = 'Vui lòng nhập email.';
+  else if (!EMAIL_REGEX.test(email.trim()))
+    errors.email = 'Email không đúng định dạng.';
+  if (!password)
+    errors.password = 'Vui lòng nhập mật khẩu tạm.';
+  else if (password.length < 6)
+    errors.password = 'Mật khẩu tối thiểu 6 ký tự.';
+  if (!department_id)
+    errors.department_id = 'Vui lòng chọn phòng ban.';
   return errors;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Component
    ───────────────────────────────────────────────────────────────────────── */
-function MentorFormModal({ onClose, onSaved }) {
+function MentorFormModal({ onClose, onSaved, onToast }) {
   const [form, setForm] = useState({
-    full_name:  '',
-    email:      '',
-    department: '',
+    full_name:     '',
+    email:         '',
+    password:      '',
+    department_id: '',
   });
-  const [errors,  setErrors]  = useState({});
-  const [loading, setLoading] = useState(false);
+  const [errors,       setErrors]       = useState({});
+  const [submitting,   setSubmitting]   = useState(false);
+
+  /* ── Departments state ── */
+  const [departments,  setDepartments]  = useState([]);
+  const [deptLoading,  setDeptLoading]  = useState(true);
+  const [deptError,    setDeptError]    = useState(null);
+
+  /* ── Load danh sách phòng ban khi mở modal ──
+     Mọi setState đặt SAU await → tránh react-hooks/set-state-in-effect  */
+  async function loadDepartments() {
+    const { ok, data } = await getDepartments();
+    if (ok) {
+      setDepartments(data ?? []);
+    } else {
+      setDeptError('Không tải được danh sách phòng ban.');
+    }
+    setDeptLoading(false);
+  }
+
+  /* void trước lời gọi hàm — eslint-disable vì mọi setState đều SAU await */
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadDepartments();
+  }, []);
 
   /* ── Handlers ── */
   function handleChange(e) {
@@ -70,7 +98,7 @@ function MentorFormModal({ onClose, onSaved }) {
     }
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const validationErrors = validateForm(form);
     if (Object.keys(validationErrors).length > 0) {
@@ -78,26 +106,37 @@ function MentorFormModal({ onClose, onSaved }) {
       return;
     }
 
-    // TODO (task 2): Thay khối mock bên dưới bằng gọi API thật:
-    //   const { ok, status, data } = await createMentor({ ...form });
-    setLoading(true);
-    setTimeout(() => {
-      // Mock: giả lập lưu thành công, trả về mentor vừa tạo
-      const saved = {
-        id:         Math.floor(Math.random() * 9000) + 1000,
-        full_name:  form.full_name.trim(),
-        email:      form.email.trim().toLowerCase(),
-        department: form.department,
-        intern_count: 0,
-      };
-      setLoading(false);
-      onSaved(saved);
-    }, 500);
+    setSubmitting(true);
+
+    const body = {
+      full_name:     form.full_name.trim(),
+      email:         form.email.trim().toLowerCase(),
+      password:      form.password,
+      department_id: form.department_id ? Number(form.department_id) : null,
+    };
+
+    const { ok, status, data } = await createMentor(body);
+
+    setSubmitting(false);
+
+    if (ok) {
+      // Gọi callback thành công — trả về MentorResponse từ API
+      onSaved(data);
+      // Toast thành công — tái sử dụng buildToast (quy ước project)
+      onToast(buildToast(ok, status, data, `Đã thêm mentor "${data.full_name}" thành công!`));
+    } else if (status === 409) {
+      // Email trùng
+      setErrors({ email: data?.detail ?? 'Email này đã được sử dụng.' });
+    } else {
+      // 422 validate backend hoặc lỗi khác
+      const t = buildToast(ok, status, data);
+      onToast(t);
+    }
   }
 
   /* ── Đóng khi click backdrop ── */
   function handleBackdropClick(e) {
-    if (e.target === e.currentTarget && !loading) onClose();
+    if (e.target === e.currentTarget && !submitting) onClose();
   }
 
   /* ── Render ── */
@@ -124,7 +163,7 @@ function MentorFormModal({ onClose, onSaved }) {
             type="button"
             className="mentor-modal-close"
             onClick={onClose}
-            disabled={loading}
+            disabled={submitting}
             aria-label="Đóng popup"
           >
             ×
@@ -184,27 +223,53 @@ function MentorFormModal({ onClose, onSaved }) {
             )}
           </div>
 
-          {/* Phòng ban * — dropdown placeholder, task 2 nối API */}
-          <div className={`mentor-form-group${errors.department ? ' mentor-form-group--error' : ''}`}>
+          {/* Mật khẩu tạm * */}
+          <div className={`mentor-form-group${errors.password ? ' mentor-form-group--error' : ''}`}>
+            <label htmlFor="mentor-password">
+              Mật khẩu tạm <span className="required">*</span>
+            </label>
+            <input
+              id="mentor-password"
+              name="password"
+              type="password"
+              placeholder="Tối thiểu 6 ký tự"
+              autoComplete="new-password"
+              value={form.password}
+              onChange={handleChange}
+              aria-describedby={errors.password ? 'err-mentor-password' : undefined}
+            />
+            {errors.password && (
+              <span id="err-mentor-password" className="mentor-form-error" role="alert">
+                {errors.password}
+              </span>
+            )}
+          </div>
+
+          {/* Phòng ban * — dữ liệu thật từ GET /api/departments */}
+          <div className={`mentor-form-group${errors.department_id ? ' mentor-form-group--error' : ''}`}>
             <label htmlFor="mentor-department">
               Phòng ban <span className="required">*</span>
             </label>
             <select
               id="mentor-department"
-              name="department"
-              value={form.department}
+              name="department_id"
+              value={form.department_id}
               onChange={handleChange}
-              aria-describedby={errors.department ? 'err-mentor-dept' : undefined}
+              disabled={deptLoading}
+              aria-describedby={errors.department_id ? 'err-mentor-dept' : undefined}
             >
-              {/* TODO (task 2): Thay options này bằng dữ liệu thật từ API */}
-              <option value="">— Chọn phòng ban —</option>
-              {DEPT_OPTIONS.map((dept) => (
-                <option key={dept} value={dept}>{dept}</option>
+              <option value="">
+                {deptLoading ? 'Đang tải…' : deptError ? 'Lỗi tải phòng ban' : '— Chọn phòng ban —'}
+              </option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name}
+                </option>
               ))}
             </select>
-            {errors.department && (
+            {errors.department_id && (
               <span id="err-mentor-dept" className="mentor-form-error" role="alert">
-                {errors.department}
+                {errors.department_id}
               </span>
             )}
           </div>
@@ -217,7 +282,7 @@ function MentorFormModal({ onClose, onSaved }) {
             type="button"
             className="mentor-modal-cancel"
             onClick={onClose}
-            disabled={loading}
+            disabled={submitting}
           >
             Hủy
           </button>
@@ -226,9 +291,9 @@ function MentorFormModal({ onClose, onSaved }) {
             type="submit"
             form="mentor-add-form"
             className="mentor-modal-submit"
-            disabled={loading}
+            disabled={submitting || deptLoading}
           >
-            {loading ? 'Đang lưu…' : 'Lưu mentor'}
+            {submitting ? 'Đang lưu…' : 'Lưu mentor'}
           </button>
         </div>
 
