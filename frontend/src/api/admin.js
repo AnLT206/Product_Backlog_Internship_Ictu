@@ -7,8 +7,7 @@
  * trong mọi component/feature."
  */
 
-// TODO: Bỏ comment import bên dưới và xóa toàn bộ khối MOCK khi BE có endpoint thật
-// import apiFetch from './client';
+import apiFetch from './client';
 
 /* ─────────────────────────────────────────────
    createAccount
@@ -172,4 +171,56 @@ export async function updatePermissionMatrix(matrix) {
     body: JSON.stringify({ matrix }),
   });
   ─────────────────────────────────────────────────────────────────────── */
+}
+
+/* ─────────────────────────────────────────────
+   getSystemLogs
+───────────────────────────────────────────── */
+
+/**
+ * Lấy danh sách nhật ký hoạt động hệ thống (admin only).
+ *
+ * Endpoint đã có thật, gọi trực tiếp, không cần mock.
+ * Route: GET /api/admin/system-logs
+ * (backend/app/api/routes/admin.py — đã merge PR us-42-system-logs-get-api)
+ *
+ * Query params hỗ trợ (tên lấy CHÍNH XÁC từ backend route):
+ *   limit    {number}  1–200, default 50
+ *   offset   {number}  >= 0,  default 0
+ *   action   {'CREATE'|'UPDATE'|'DELETE'|undefined}
+ *   user_id  {number|undefined}  phải là integer >= 1
+ *
+ * Response shape (SystemLogListResponse):
+ *   { items: SystemLogResponse[], total: number, limit: number, offset: number }
+ *   (KHÔNG có total_pages / has_next — FE tự tính từ total và limit)
+ *
+ * @param {{
+ *   limit?:   number,
+ *   offset?:  number,
+ *   action?:  'CREATE'|'UPDATE'|'DELETE',
+ *   user_id?: number,
+ * }} [params]
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ *
+ * @example
+ * import { getSystemLogs } from '../api/admin';
+ *
+ * const { ok, status, data } = await getSystemLogs({ limit: 20, offset: 0 });
+ * if (ok) {
+ *   // data.items  — mảng log
+ *   // data.total  — tổng bản ghi (dùng để tính số trang: Math.ceil(total / limit))
+ *   // data.limit  — giá trị limit đã dùng
+ *   // data.offset — giá trị offset đã dùng
+ * }
+ */
+export async function getSystemLogs(params = {}) {
+  // Xây dựng query string — chỉ đưa param vào URL nếu có giá trị thật
+  const qs = new URLSearchParams();
+  if (params.limit  != null) qs.set('limit',   String(params.limit));
+  if (params.offset != null) qs.set('offset',  String(params.offset));
+  if (params.action)         qs.set('action',  params.action);
+  if (params.user_id != null) qs.set('user_id', String(params.user_id));
+
+  const query = qs.toString() ? `?${qs.toString()}` : '';
+  return apiFetch(`/api/admin/system-logs${query}`, { method: 'GET' });
 }

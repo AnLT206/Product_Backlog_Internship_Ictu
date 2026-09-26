@@ -5,153 +5,34 @@
  * US 42 (spec §13): "Là admin, tôi muốn xem nhật ký hoạt động để theo dõi
  * các thao tác trong hệ thống."
  *
- * TASK 1 (task này):
- *   - Dựng Data Table hiển thị danh sách nhật ký.
- *   - Cột dựa CHÍNH XÁC theo schema thật đọc từ backend:
- *       backend/app/schemas/system_log.py → SystemLogResponse
- *     Fields: id, user_id, role, action, method, path, resource,
- *             ip_address, user_agent, status_code, created_at
- *   - Endpoint thật: GET /api/admin/system-logs
- *     (backend/app/api/routes/admin.py, đã merge qua PR us-42-system-logs-get-api)
- *   - Dữ liệu GIẢ (mock tĩnh) — KHÔNG gọi API (task 2 sẽ nối API thật).
+ * TASK 1 (đã xong — task trước):
+ *   - Dựng Data Table với cột khớp đúng SystemLogResponse từ backend.
  *
- * TASK 2 (chưa làm):
- *   - Nối API thật: GET /api/admin/system-logs
- *   - Thêm phân trang / filter theo action, user_id, khoảng thời gian.
+ * TASK 2 (task này):
+ *   - Tích hợp API thật: GET /api/admin/system-logs
+ *     (query params: limit, offset, user_id — lấy đúng tên từ backend route)
+ *   - State: logs, loading, error/toast, currentPage, userIdInput
+ *   - Phân trang Next/Prev dựa vào response.total + response.limit (offset/limit)
+ *     (backend KHÔNG trả total_pages/has_next — FE tự tính: totalPages = Math.ceil(total/limit))
+ *   - Tìm kiếm theo user_id (integer) — nút "Tìm" hoặc Enter, không debounce
+ *     (hook debounce không có trong repo, chọn cách đơn giản theo yêu cầu)
  *
- * Ghi chú docs: docs/api.md chưa có mô tả endpoint GET /api/admin/system-logs.
- *   → Cần bổ sung vào docs/api.md khi task 2 hoàn thành.
+ * Ghi chú: docs/api.md chưa có mô tả GET /api/admin/system-logs → cần bổ sung.
  */
 
+import { useState, useEffect } from 'react';
+import { getSystemLogs } from '../../api/admin';
 import './SystemLogsPage.css';
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   MOCK DATA
-   Cấu trúc khớp 100% với SystemLogResponse (backend/app/schemas/system_log.py):
-     id            int
-     user_id       int | None
-     role          str | None
-     action        "CREATE" | "UPDATE" | "DELETE"
-     method        str       (HTTP verb thật của request)
-     path          str       (đường dẫn endpoint)
-     resource      str | None
-     ip_address    str | None
-     user_agent    str | None
-     status_code   int       (HTTP status code thật)
-     created_at    datetime  (ISO 8601)
-
-   TODO (task 2): Xóa mảng này, thay bằng state + useEffect gọi
-     GET /api/admin/system-logs?limit=50&offset=0
+   Hằng số phân trang
    ───────────────────────────────────────────────────────────────────────── */
-const MOCK_LOGS = [
-  {
-    id: 12,
-    user_id: 3,
-    role: 'hr',
-    action: 'CREATE',
-    method: 'POST',
-    path: '/api/hr/interns',
-    resource: 'intern#7',
-    ip_address: '192.168.1.42',
-    user_agent: 'Mozilla/5.0 (Windows NT 10.0)',
-    status_code: 201,
-    created_at: '2026-09-26T14:32:11.000Z',
-  },
-  {
-    id: 11,
-    user_id: 3,
-    role: 'hr',
-    action: 'UPDATE',
-    method: 'POST',
-    path: '/api/hr/interns/5/approve',
-    resource: 'intern#5',
-    ip_address: '192.168.1.42',
-    user_agent: 'Mozilla/5.0 (Windows NT 10.0)',
-    status_code: 200,
-    created_at: '2026-09-26T13:50:04.000Z',
-  },
-  {
-    id: 10,
-    user_id: 1,
-    role: 'admin',
-    action: 'CREATE',
-    method: 'POST',
-    path: '/api/admin/users',
-    resource: 'user#6',
-    ip_address: '10.0.0.5',
-    user_agent: 'Mozilla/5.0 (Macintosh)',
-    status_code: 201,
-    created_at: '2026-09-26T10:15:22.000Z',
-  },
-  {
-    id: 9,
-    user_id: 2,
-    role: 'admin',
-    action: 'UPDATE',
-    method: 'PUT',
-    path: '/api/admin/users/4/role',
-    resource: 'user#4',
-    ip_address: '10.0.0.5',
-    user_agent: 'Mozilla/5.0 (Macintosh)',
-    status_code: 200,
-    created_at: '2026-09-25T17:08:55.000Z',
-  },
-  {
-    id: 8,
-    user_id: 3,
-    role: 'hr',
-    action: 'UPDATE',
-    method: 'POST',
-    path: '/api/hr/interns/3/reject',
-    resource: 'intern#3',
-    ip_address: '192.168.1.42',
-    user_agent: 'Mozilla/5.0 (Windows NT 10.0)',
-    status_code: 200,
-    created_at: '2026-09-25T11:40:18.000Z',
-  },
-  {
-    id: 7,
-    user_id: null,
-    role: null,
-    action: 'CREATE',
-    method: 'POST',
-    path: '/api/auth/login',
-    resource: null,
-    ip_address: '203.113.1.99',
-    user_agent: 'curl/7.88.1',
-    status_code: 401,
-    created_at: '2026-09-25T09:12:03.000Z',
-  },
-  {
-    id: 6,
-    user_id: 1,
-    role: 'admin',
-    action: 'DELETE',
-    method: 'DELETE',
-    path: '/api/admin/users/9',
-    resource: 'user#9',
-    ip_address: '10.0.0.5',
-    user_agent: 'Mozilla/5.0 (Macintosh)',
-    status_code: 204,
-    created_at: '2026-09-24T16:05:47.000Z',
-  },
-  {
-    id: 5,
-    user_id: 4,
-    role: 'mentor',
-    action: 'UPDATE',
-    method: 'PATCH',
-    path: '/api/mentor/tasks/2',
-    resource: 'task#2',
-    ip_address: '172.16.0.10',
-    user_agent: 'Mozilla/5.0 (X11; Linux)',
-    status_code: 200,
-    created_at: '2026-09-24T14:30:00.000Z',
-  },
-];
+
+const PAGE_LIMIT = 20; // số dòng mỗi trang — backend cho phép 1–200
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Helper: thống kê nhanh từ dữ liệu hiện tại để render stat bar
+   (giữ nguyên từ task 1)
    ───────────────────────────────────────────────────────────────────────── */
 
 function countByAction(logs) {
@@ -164,6 +45,7 @@ function countByAction(logs) {
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Helper: định dạng ISO datetime → hiển thị thân thiện (2 dòng)
+   (giữ nguyên từ task 1)
    ───────────────────────────────────────────────────────────────────────── */
 
 function formatDatetime(isoStr) {
@@ -180,9 +62,7 @@ function formatDatetime(isoStr) {
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Helper: phân loại status_code → CSS modifier
-   - 2xx → ok
-   - 4xx / 5xx → err
-   - 3xx → warn
+   (giữ nguyên từ task 1)
    ───────────────────────────────────────────────────────────────────────── */
 
 function statusClass(code) {
@@ -201,24 +81,127 @@ function statusClass(code) {
  * Hiển thị bảng nhật ký hoạt động hệ thống (admin only).
  * Cột dựa trực tiếp theo SystemLogResponse từ backend/app/schemas/system_log.py.
  *
- * TODO (task 2):
- *   1. Thêm state logs, loading, error.
- *   2. useEffect → import { getSystemLogs } from '../../api/admin'
- *      và điền kết quả vào state.
- *   3. Thêm phân trang dựa vào response.total / limit / offset.
- *   4. Thêm filter theo action, user_id, from_at, to_at.
+ * Logic phân trang:
+ *   - Backend dùng offset/limit, response trả { items, total, limit, offset }
+ *   - FE tính: totalPages = Math.ceil(total / PAGE_LIMIT)
+ *   - Prev disable khi currentPage === 1
+ *   - Next disable khi currentPage >= totalPages (hoặc total === 0)
+ *
+ * Logic tìm kiếm:
+ *   - Ô nhập user_id (integer) → bấm "Tìm" hoặc Enter → reset về trang 1 + gọi API
+ *   - Xóa trắng ô tìm kiếm → bấm "Tìm" → tìm tất cả (bỏ filter user_id)
  */
 function SystemLogsPage() {
-  /* TODO (task 2): đổi thành state + fetch thật */
-  const logs = MOCK_LOGS;
-  const total = MOCK_LOGS.length;  /* TODO: lấy từ response.total */
 
+  /* ── State ── */
+  const [logs,         setLogs]         = useState([]);
+  const [total,        setTotal]        = useState(0);
+  const [loading,      setLoading]      = useState(true);
+  const [toast,        setToast]        = useState(null); // { type: 'error', message }
+  const [currentPage,  setCurrentPage]  = useState(1);
+  // Giá trị đang nhập trong ô tìm kiếm (chưa submit)
+  const [userIdInput,  setUserIdInput]  = useState('');
+  // Giá trị đã submit — chỉ thay đổi khi bấm Tìm/Enter
+  const [appliedUserId, setAppliedUserId] = useState(null); // null = không lọc
+
+  /* ── Tính số trang từ total/limit (backend không trả sẵn) ── */
+  const totalPages = total > 0 ? Math.ceil(total / PAGE_LIMIT) : 1;
+
+  /* ── Hàm load dữ liệu ── */
+  // Tất cả setState nằm BÊN TRONG hàm async này, không đặt trong thân useEffect
+  async function loadLogs(page, userId) {
+    setToast(null);
+
+    const offset = (page - 1) * PAGE_LIMIT;
+    const params = { limit: PAGE_LIMIT, offset };
+    if (userId != null) params.user_id = userId;
+
+    try {
+      const { ok, status, data } = await getSystemLogs(params);
+
+      if (ok) {
+        setLogs(data.items ?? []);
+        setTotal(data.total ?? 0);
+      } else {
+        // Hiện toast lỗi — format đơn giản, không phụ thuộc domain interns
+        const msg = data?.detail
+          ?? (status === 403
+            ? 'Bạn không có quyền xem nhật ký hệ thống.'
+            : `Lỗi ${status} — vui lòng thử lại.`);
+        setToast({ type: 'error', message: msg });
+        setLogs([]);
+        setTotal(0);
+      }
+    } catch {
+      setToast({ type: 'error', message: 'Không thể kết nối tới máy chủ, vui lòng thử lại.' });
+      setLogs([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* ── Effect: gọi lại khi currentPage hoặc appliedUserId thay đổi ──
+     setState KHÔNG đặt trong thân useEffect — chỉ gọi loadLogs()      */
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadLogs(currentPage, appliedUserId);
+  }, [currentPage, appliedUserId]);
+
+  /* ── Tự ẩn toast sau 5 giây ── */
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(id);
+  }, [toast]);
+
+  /* ── Handler: submit tìm kiếm (Enter hoặc nút Tìm) ── */
+  function handleSearch(e) {
+    e.preventDefault();
+    const trimmed = userIdInput.trim();
+    const parsed  = trimmed === '' ? null : parseInt(trimmed, 10);
+
+    // Validate: phải là số nguyên dương nếu nhập
+    if (trimmed !== '' && (Number.isNaN(parsed) || parsed < 1)) {
+      setToast({ type: 'error', message: 'User ID phải là số nguyên dương (>= 1).' });
+      return;
+    }
+
+    // Reset về trang 1 và áp dụng filter mới
+    setCurrentPage(1);
+    setAppliedUserId(parsed);
+  }
+
+  /* ── Handler: phân trang ── */
+  function handlePrev() {
+    if (currentPage > 1) setCurrentPage((p) => p - 1);
+  }
+
+  function handleNext() {
+    if (currentPage < totalPages) setCurrentPage((p) => p + 1);
+  }
+
+  /* ── Thống kê action theo trang hiện tại ── */
   const counts = countByAction(logs);
 
+  /* ── Render ── */
   return (
     <div className="sys-logs-page">
       {/* Glow nền */}
       <div className="sys-logs-page__glow" aria-hidden="true" />
+
+      {/* ── Toast ── */}
+      {toast && (
+        <div
+          id="sys-logs-toast"
+          className={`sys-logs-toast sys-logs-toast--${toast.type}`}
+          role="alert"
+          aria-live="polite"
+        >
+          {toast.type === 'error' ? '✕ ' : '✓ '}
+          {toast.message}
+        </div>
+      )}
 
       <div className="sys-logs-shell">
 
@@ -234,17 +217,45 @@ function SystemLogsPage() {
             <h1>Nhật ký <span>hoạt động</span></h1>
             <p className="sys-logs-subtitle">
               Theo dõi các thao tác tạo, sửa, xóa dữ liệu trong hệ thống.
-              Endpoint thật: <code>GET /api/admin/system-logs</code>
+              Endpoint: <code>GET /api/admin/system-logs</code>
             </p>
           </div>
+
+          {/* ── Thanh tìm kiếm theo user_id ── */}
+          <form
+            id="sys-logs-search-form"
+            className="sys-logs-search"
+            onSubmit={handleSearch}
+            aria-label="Tìm kiếm nhật ký theo User ID"
+          >
+            <input
+              id="sys-logs-search-input"
+              type="number"
+              min="1"
+              step="1"
+              className="sys-logs-search__input"
+              placeholder="Tìm theo User ID…"
+              value={userIdInput}
+              onChange={(e) => setUserIdInput(e.target.value)}
+              aria-label="Nhập User ID cần tìm"
+            />
+            <button
+              id="sys-logs-search-btn"
+              type="submit"
+              className="sys-logs-search__btn"
+              disabled={loading}
+            >
+              Tìm
+            </button>
+          </form>
         </div>
 
-        {/* ── Stat summary bar ── */}
-        <div className="sys-logs-stats" role="region" aria-label="Thống kê nhật ký">
+        {/* ── Stat summary bar (tính từ trang hiện tại) ── */}
+        <div className="sys-logs-stats" role="region" aria-label="Thống kê nhật ký trang hiện tại">
           <div className="sys-logs-stat-item">
             <span className="sys-logs-stat-item__dot sys-logs-stat-item__dot--total" />
             Tổng cộng
-            <span className="sys-logs-stat-item__count">{total}</span>
+            <span className="sys-logs-stat-item__count">{loading ? '…' : total}</span>
           </div>
           <div className="sys-logs-stat-item">
             <span className="sys-logs-stat-item__dot sys-logs-stat-item__dot--create" />
@@ -263,51 +274,56 @@ function SystemLogsPage() {
           </div>
         </div>
 
-        {/* ── Data Table card ── */}
+        {/* ── Data Table card (cấu trúc giữ nguyên từ task 1) ── */}
         <div className="sys-logs-card">
           <div className="sys-logs-scroll">
             <table
               className="sys-logs-table"
               id="sys-logs-data-table"
               aria-label="Bảng nhật ký hoạt động hệ thống"
+              aria-busy={loading}
             >
               {/* ── Column headers — tên cột khớp đúng field backend ── */}
               <thead>
                 <tr>
-                  {/* id */}
-                  <th className="col-id" scope="col">#</th>
-                  {/* created_at */}
-                  <th className="col-time" scope="col">Thời gian</th>
-                  {/* user_id */}
-                  <th className="col-user" scope="col">User ID</th>
-                  {/* role */}
-                  <th className="col-role" scope="col">Vai trò</th>
-                  {/* action: CREATE | UPDATE | DELETE */}
+                  <th className="col-id"     scope="col">#</th>
+                  <th className="col-time"   scope="col">Thời gian</th>
+                  <th className="col-user"   scope="col">User ID</th>
+                  <th className="col-role"   scope="col">Vai trò</th>
                   <th className="col-action" scope="col">Action</th>
-                  {/* method: GET | POST | PUT | PATCH | DELETE */}
                   <th className="col-method" scope="col">Method</th>
-                  {/* path */}
-                  <th className="col-path" scope="col">Endpoint</th>
-                  {/* resource */}
-                  <th className="col-res" scope="col">Đối tượng</th>
-                  {/* status_code */}
+                  <th className="col-path"   scope="col">Endpoint</th>
+                  <th className="col-res"    scope="col">Đối tượng</th>
                   <th className="col-status" scope="col">Status</th>
-                  {/* ip_address */}
-                  <th className="col-ip" scope="col">IP</th>
+                  <th className="col-ip"     scope="col">IP</th>
                 </tr>
               </thead>
 
               <tbody>
-                {logs.length === 0 ? (
+                {/* Trạng thái đang tải */}
+                {loading ? (
+                  <tr>
+                    <td colSpan={10}>
+                      <div className="sys-logs-loading">
+                        <span className="sys-logs-loading__spinner" aria-hidden="true" />
+                        Đang tải dữ liệu…
+                      </div>
+                    </td>
+                  </tr>
+                ) : logs.length === 0 ? (
+                  /* Empty state */
                   <tr>
                     <td colSpan={10}>
                       <div className="sys-logs-empty">
                         <span className="sys-logs-empty__icon">📋</span>
-                        Chưa có nhật ký nào.
+                        {appliedUserId != null
+                          ? `Không tìm thấy nhật ký của User ID ${appliedUserId}.`
+                          : 'Chưa có nhật ký nào.'}
                       </div>
                     </td>
                   </tr>
                 ) : (
+                  /* Danh sách log — render y chang task 1 */
                   logs.map((log) => {
                     const { date, time } = formatDatetime(log.created_at);
                     return (
@@ -398,15 +414,43 @@ function SystemLogsPage() {
             </table>
           </div>
 
-          {/* Footer: tổng số dòng + ghi chú */}
+          {/* ── Footer: thông tin trang + nút phân trang ── */}
           <div className="sys-logs-footer">
             <span className="sys-logs-footer__count">
-              Hiển thị {logs.length} / {total} bản ghi
+              {loading
+                ? 'Đang tải…'
+                : `Trang ${currentPage} / ${totalPages} — ${logs.length} / ${total} bản ghi`}
+              {appliedUserId != null && (
+                <> · Lọc User ID: <strong>{appliedUserId}</strong></>
+              )}
             </span>
-            <span className="sys-logs-footer__note">
-              {/* TODO (task 2): thay bằng phân trang thật khi nối API */}
-              Phân trang sẽ được bổ sung ở task 2 — nối GET /api/admin/system-logs
-            </span>
+
+            {/* Nút phân trang */}
+            <div className="sys-logs-pagination" role="navigation" aria-label="Phân trang nhật ký">
+              <button
+                id="sys-logs-prev-btn"
+                type="button"
+                className="sys-logs-page-btn"
+                onClick={handlePrev}
+                disabled={loading || currentPage <= 1}
+                aria-label="Trang trước"
+              >
+                ← Trước
+              </button>
+              <span className="sys-logs-page-indicator" aria-current="page">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                id="sys-logs-next-btn"
+                type="button"
+                className="sys-logs-page-btn"
+                onClick={handleNext}
+                disabled={loading || currentPage >= totalPages}
+                aria-label="Trang sau"
+              >
+                Sau →
+              </button>
+            </div>
           </div>
         </div>
 
