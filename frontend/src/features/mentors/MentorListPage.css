@@ -304,3 +304,15 @@
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Toast variants (task 2: error state) ── */
+.mentor-list-toast--success {
+  background: #e6f9f0;
+  color: #14a05a;
+  border-color: #b5efcf;
+}
+.mentor-list-toast--error {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
