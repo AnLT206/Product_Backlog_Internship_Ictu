@@ -96,7 +96,7 @@ function SystemLogsPage() {
   /* ── State ── */
   const [logs,         setLogs]         = useState([]);
   const [total,        setTotal]        = useState(0);
-  const [loading,      setLoading]      = useState(false);
+  const [loading,      setLoading]      = useState(true);
   const [toast,        setToast]        = useState(null); // { type: 'error', message }
   const [currentPage,  setCurrentPage]  = useState(1);
   // Giá trị đang nhập trong ô tìm kiếm (chưa submit)
@@ -110,7 +110,6 @@ function SystemLogsPage() {
   /* ── Hàm load dữ liệu ── */
   // Tất cả setState nằm BÊN TRONG hàm async này, không đặt trong thân useEffect
   async function loadLogs(page, userId) {
-    setLoading(true);
     setToast(null);
 
     const offset = (page - 1) * PAGE_LIMIT;
@@ -145,8 +144,8 @@ function SystemLogsPage() {
   /* ── Effect: gọi lại khi currentPage hoặc appliedUserId thay đổi ──
      setState KHÔNG đặt trong thân useEffect — chỉ gọi loadLogs()      */
   useEffect(() => {
-    loadLogs(currentPage, appliedUserId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadLogs(currentPage, appliedUserId);
   }, [currentPage, appliedUserId]);
 
   /* ── Tự ẩn toast sau 5 giây ── */
