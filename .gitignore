@@ -36,3 +36,7 @@ node_modules/
 
 # Uploaded files
 backend/uploads/
+
+# Agents
+.agents/
+learning/
