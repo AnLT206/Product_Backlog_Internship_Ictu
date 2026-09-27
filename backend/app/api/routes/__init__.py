@@ -12,3 +12,5 @@ api_router.include_router(interns.router)
 api_router.include_router(mentors.router)
 api_router.include_router(programs.router)
 api_router.include_router(admin.router)
+api_router.include_router(admin.users_router)
+
