@@ -1,38 +1,31 @@
 /**
  * InternListPage.jsx
- * Route dự kiến: /hr/interns
+ * Route: /hr/interns
  *
  * US 3: "Là HR, tôi muốn tìm kiếm và lọc thực tập sinh theo trường/ngành
  *        để dễ dàng quản lý."
  *
- * KHỞI TẠO TỐI THIỂU — ghi vào PR:
- *   Đây là bản khởi tạo mới (InternListPage chưa tồn tại trong repo).
- *   Bảng hiển thị: Họ tên, Email, Trường, Ngành, Trạng thái, nút Sửa.
- *   Dữ liệu dùng MOCK — task 2 sẽ nối GET /api/hr/interns thật.
- *   Cột Action (Duyệt/Từ chối với InternActionButtons) để chỗ trống để
- *   tích hợp sau mà không phá vỡ cấu trúc bảng này.
+ * Task 1 (done): Giao diện tĩnh + bộ lọc client-side trên mock data.
  *
- * PHẠM VI TASK NÀY (filter UI):
- *   - Dropdown "Ngành" (major) — dữ liệu mock tạm
- *   - Input tìm kiếm (q) — placeholder "Tìm theo tên, email..."
- *   - State lưu giá trị lọc hiện tại (filterMajor, filterQ)
- *   - Lọc client-side trên mock data (task 2 sẽ đổi sang gọi API thật)
- *   - Nút "Xóa lọc" — reset về trạng thái ban đầu
- *   KHÔNG: debounce (task 2), gọi API (task 2), lọc theo university/status
+ * Task 2 (task này):
+ *   - Tạo useDebounce (frontend/src/hooks/useDebounce.js) — mới.
+ *   - Thêm getInterns() vào src/api/interns.js — MOCK, TODO khi BE có thật.
+ *   - Áp dụng debounce 300ms cho ô tìm kiếm.
+ *   - Dropdown Ngành thay đổi → gọi API ngay (không debounce).
+ *   - Thay lọc client-side (useMemo) bằng useEffect + getInterns().
+ *   - Hiển thị trạng thái loading, empty state rõ ràng.
  *
- * TODO (task 2):
- *   - Thay MOCK_INTERNS + MOCK_MAJORS bằng state + useEffect gọi
- *     GET /api/hr/interns?major=&q=&page= thật.
- *   - Tích hợp InternActionButtons vào cột Action.
- *   - Thêm phân trang.
+ * KHÔNG thêm: phân trang (task chưa yêu cầu — page param dự phòng trong API).
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
+import useDebounce from '../../hooks/useDebounce';
+import { getInterns } from '../../api/interns';
 import './InternListPage.css';
 
 /* ─────────────────────────────────────────────
-   MOCK: Danh sách ngành mẫu
-   TODO (task 2): Thay bằng danh sách từ API hoặc constants/majors.js
+   MOCK: Danh sách ngành mẫu cho Dropdown
+   TODO: Thay bằng danh sách từ API hoặc constants/majors.js
 ───────────────────────────────────────────── */
 const MOCK_MAJORS = [
   'Công nghệ thông tin',
@@ -41,54 +34,6 @@ const MOCK_MAJORS = [
   'An toàn thông tin',
   'Khoa học máy tính',
   'Truyền thông đa phương tiện',
-];
-
-/* ─────────────────────────────────────────────
-   MOCK: Danh sách TTS mẫu — đủ cấu trúc field
-   theo InternRegisterResponse (backend/app/schemas)
-   TODO (task 2): Xóa, thay bằng state + fetch GET /api/hr/interns
-───────────────────────────────────────────── */
-const MOCK_INTERNS = [
-  {
-    id: 1,
-    full_name:   'Nguyễn Văn An',
-    email:       'an.nv@ictu.edu.vn',
-    university:  'Đại học Công nghệ thông tin và Truyền thông',
-    major:       'Công nghệ thông tin',
-    status:      'pending',
-  },
-  {
-    id: 2,
-    full_name:   'Trần Thị Bình',
-    email:       'binh.tt@ictu.edu.vn',
-    university:  'Đại học Bách Khoa Hà Nội',
-    major:       'Kỹ thuật phần mềm',
-    status:      'active',
-  },
-  {
-    id: 3,
-    full_name:   'Lê Hoàng Cường',
-    email:       'cuong.lh@ictu.edu.vn',
-    university:  'Học viện Công nghệ Bưu chính Viễn thông',
-    major:       'An toàn thông tin',
-    status:      'active',
-  },
-  {
-    id: 4,
-    full_name:   'Phạm Thị Dung',
-    email:       'dung.pt@ictu.edu.vn',
-    university:  'Đại học Công nghệ thông tin và Truyền thông',
-    major:       'Hệ thống thông tin',
-    status:      'inactive',
-  },
-  {
-    id: 5,
-    full_name:   'Hoàng Văn Em',
-    email:       'em.hv@ictu.edu.vn',
-    university:  'Đại học Thái Nguyên',
-    major:       'Công nghệ thông tin',
-    status:      'pending',
-  },
 ];
 
 /* ─────────────────────────────────────────────
@@ -120,31 +65,51 @@ const STATUS_LABEL = {
  * Route: /hr/interns
  */
 function InternListPage() {
-  /* ──────────────────────────────────
-     Filter state
-     filterQ    : giá trị ô tìm kiếm (q)
-     filterMajor: ngành được chọn trong dropdown
-     TODO (task 2): truyền những state này vào query param khi gọi API thật
-  ────────────────────────────────── */
+  /* ── Filter state ── */
   const [filterQ,     setFilterQ]     = useState('');
   const [filterMajor, setFilterMajor] = useState('');
+
+  /* ── Debounce chỉ trên ô tìm kiếm text (300ms) ──
+     Dropdown Ngành sẽ gọi API ngay (không qua debounce)    */
+  const debouncedQuery = useDebounce(filterQ, 300);
+
+  /* ── Data state ── */
+  const [interns,  setInterns]  = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [loadErr,  setLoadErr]  = useState(null);
 
   /* Kiểm tra có lọc nào đang áp dụng không */
   const hasActiveFilter = filterQ.trim() !== '' || filterMajor !== '';
 
-  /* ── Lọc client-side trên mock data ──
-     TODO (task 2): Xóa useMemo này, thay bằng gọi API với query params
-  ────────────────────────────────────── */
-  const filteredInterns = useMemo(() => {
-    const q = filterQ.trim().toLowerCase();
-    return MOCK_INTERNS.filter((intern) => {
-      const matchMajor = filterMajor === '' || intern.major === filterMajor;
-      const matchQ     = q === ''
-        || intern.full_name.toLowerCase().includes(q)
-        || intern.email.toLowerCase().includes(q);
-      return matchMajor && matchQ;
+  /* ─────────────────────────────────────────────
+     loadInterns — khai báo TRƯỚC useEffect
+     Mọi setState đều SAU await → tránh ESLint set-state-in-effect
+  ───────────────────────────────────────────── */
+  async function loadInterns() {
+    const { ok, data } = await getInterns({
+      major: filterMajor,
+      q:     debouncedQuery.trim(),
+      page:  1,
     });
-  }, [filterQ, filterMajor]);
+    if (ok) {
+      setInterns(data.items ?? []);
+      setLoadErr(null);
+    } else {
+      setLoadErr('Không thể tải danh sách thực tập sinh, vui lòng thử lại.');
+    }
+    setLoading(false);
+  }
+
+  /* ── useEffect:
+     - Chạy lại khi debouncedQuery đổi (sau 300ms ngừng gõ)
+     - Chạy lại ngay khi filterMajor đổi (dropdown — không debounce)
+     ESLint: "void" + setState SAU await (trong loadInterns)             */
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true);
+    void loadInterns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery, filterMajor]);
 
   /* ── Reset bộ lọc ── */
   function handleClearFilter() {
@@ -176,16 +141,16 @@ function InternListPage() {
         </div>
 
         {/* ══════════════════════════════════════
-            BỘ LỌC — phạm vi task này
-            Dropdown Ngành + Input tìm kiếm
-            Không có: lọc theo trường, lọc theo status
+            BỘ LỌC
+            - Input tìm kiếm: debounce 300ms
+            - Dropdown Ngành: gọi API ngay
             ══════════════════════════════════════ */}
         <div
           className="intern-filter-bar"
           role="search"
           aria-label="Bộ lọc danh sách thực tập sinh"
         >
-          {/* ── Ô tìm kiếm (q) ── */}
+          {/* ── Ô tìm kiếm (q) — có debounce ── */}
           <div className="intern-filter-group">
             <label className="intern-filter-label" htmlFor="intern-filter-q">
               Tìm kiếm
@@ -202,7 +167,7 @@ function InternListPage() {
             />
           </div>
 
-          {/* ── Dropdown Ngành (major) ── */}
+          {/* ── Dropdown Ngành (major) — gọi API ngay ── */}
           <div className="intern-filter-group">
             <label className="intern-filter-label" htmlFor="intern-filter-major">
               Ngành học
@@ -214,7 +179,7 @@ function InternListPage() {
               onChange={(e) => setFilterMajor(e.target.value)}
               aria-label="Lọc theo ngành học"
             >
-              {/* TODO (task 2): thay options bằng dữ liệu thật từ API */}
+              {/* TODO: thay options bằng dữ liệu thật từ API */}
               <option value="">— Tất cả ngành —</option>
               {MOCK_MAJORS.map((major) => (
                 <option key={major} value={major}>{major}</option>
@@ -234,10 +199,10 @@ function InternListPage() {
             ✕ Xóa lọc
           </button>
 
-          {/* ── Hint khi đang lọc ── */}
-          {hasActiveFilter && (
+          {/* ── Hint khi đang lọc và đã có kết quả ── */}
+          {!loading && hasActiveFilter && (
             <p className="intern-filter-active-hint" role="status" aria-live="polite">
-              Đang lọc — hiển thị {filteredInterns.length} / {MOCK_INTERNS.length} hồ sơ
+              Đang lọc — hiển thị {interns.length} hồ sơ
             </p>
           )}
         </div>
@@ -251,6 +216,7 @@ function InternListPage() {
               className="intern-list-table"
               id="intern-list-data-table"
               aria-label="Bảng danh sách thực tập sinh"
+              aria-busy={loading}
             >
               <thead>
                 <tr>
@@ -266,19 +232,44 @@ function InternListPage() {
               </thead>
 
               <tbody>
-                {filteredInterns.length === 0 ? (
+                {/* ── Loading ── */}
+                {loading ? (
+                  <tr>
+                    <td colSpan={7}>
+                      <div className="intern-list-empty" role="status" aria-live="polite">
+                        <span style={{ fontSize: 26, opacity: 0.5 }}>⏳</span>
+                        Đang tải dữ liệu…
+                      </div>
+                    </td>
+                  </tr>
+
+                ) : loadErr ? (
+                  /* ── Lỗi tải ── */
+                  <tr>
+                    <td colSpan={7}>
+                      <div className="intern-list-empty" role="alert">
+                        <span className="intern-list-empty__icon">⚠️</span>
+                        {loadErr}
+                      </div>
+                    </td>
+                  </tr>
+
+                ) : interns.length === 0 ? (
+                  /* ── Empty state ── */
                   <tr>
                     <td colSpan={7}>
                       <div className="intern-list-empty">
                         <span className="intern-list-empty__icon">🔍</span>
                         {hasActiveFilter
-                          ? 'Không tìm thấy hồ sơ phù hợp với bộ lọc hiện tại.'
+                          ? 'Không tìm thấy thực tập sinh phù hợp.'
                           : 'Chưa có hồ sơ thực tập sinh nào.'}
                       </div>
                     </td>
                   </tr>
+
                 ) : (
-                  filteredInterns.map((intern, idx) => (
+                  /* ── Dữ liệu ── */
+                  interns.map((intern, idx) => (
                     <tr key={intern.id}>
                       {/* STT */}
                       <td className="col-no">{idx + 1}</td>
@@ -339,11 +330,13 @@ function InternListPage() {
           </div>
 
           {/* Footer */}
-          <div className="intern-list-footer">
-            {hasActiveFilter
-              ? `${filteredInterns.length} / ${MOCK_INTERNS.length} hồ sơ`
-              : `${MOCK_INTERNS.length} hồ sơ`}
-          </div>
+          {!loading && !loadErr && (
+            <div className="intern-list-footer">
+              {hasActiveFilter
+                ? `${interns.length} hồ sơ khớp bộ lọc`
+                : `${interns.length} hồ sơ`}
+            </div>
+          )}
         </div>
 
       </div>
