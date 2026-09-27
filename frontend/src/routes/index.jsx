@@ -10,6 +10,7 @@ import CreateAccountPage from '../features/admin/CreateAccountPage.jsx'
 import PermissionMatrixPage from '../features/admin/PermissionMatrixPage.jsx'
 import SystemLogsPage from '../features/admin/SystemLogsPage.jsx'
 import RequireAuth from './RequireAuth.jsx'
+import InternListPage from '../features/interns/InternListPage.jsx'
 import InternEditPage from '../features/interns/InternEditPage.jsx'
 
 export default function AppRoutes() {
@@ -57,6 +58,15 @@ export default function AppRoutes() {
           element={
             <RequireAuth roles={['intern']}>
               <RoleHomePage roleLabel="Thực tập sinh" />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/hr/interns"
+          element={
+            <RequireAuth roles={['hr', 'admin']}>
+              <InternListPage />
             </RequireAuth>
           }
         />
