@@ -318,3 +318,160 @@ export async function createIntern(body) {
   });
   ─────────────────────────────────────────────────────────────────────── */
 }
+
+/* ─────────────────────────────────────────────
+   getInternById
+───────────────────────────────────────────── */
+
+/**
+ * Lấy chi tiết hồ sơ thực tập sinh theo ID.
+ *
+ * TODO: GET /api/hr/interns/{id} chưa tồn tại ở backend
+ *       (backend/app/api/routes/interns.py chỉ có POST, POST approve, POST contract).
+ *       Khi BE sẵn sàng: xóa khối MOCK bên dưới, bỏ comment fetch thật.
+ *       Không cần đổi tên hàm hay shape trả về — InternEditPage sẽ không
+ *       phải sửa 1 dòng nào khi chuyển từ MOCK sang API thật.
+ *
+ * @param {number|string} internId - ID của thực tập sinh cần lấy chi tiết.
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ *   data có shape khớp InternRegisterResponse:
+ *     { id, email, full_name, status, role, phone_number, dob, gender,
+ *       university, major, academic_year, gpa, address }
+ *
+ * @example
+ * import { getInternById } from '../api/interns';
+ *
+ * const { ok, status, data } = await getInternById(42);
+ * if (ok) {
+ *   // Đổ data vào form state
+ * }
+ */
+export async function getInternById(internId) {
+  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
+  // Giả lập network delay
+  await new Promise((r) => setTimeout(r, 400));
+
+  // Trả về dữ liệu mẫu đủ field để InternEditPage pre-fill
+  return {
+    ok: true,
+    status: 200,
+    data: {
+      id:            Number(internId),
+      email:         `intern${internId}@ictu.edu.vn`,
+      full_name:     'Nguyễn Văn Mẫu',
+      status:        'pending',
+      role:          'intern',
+      phone_number:  '0912345678',
+      dob:           '2002-05-15',
+      gender:        'male',
+      university:    'Đại học Công nghệ thông tin và Truyền thông',
+      major:         'Công nghệ thông tin',
+      academic_year: '3',
+      gpa:           '3.2',
+      address:       '123 Đường ABC, Thái Nguyên',
+    },
+  };
+  /* ── END MOCK ─────────────────────────────────────────────────────────
+
+  // TODO: Bỏ comment khối này khi BE có GET /api/hr/interns/{id}
+  //       (role: hr hoặc admin — apiFetch tự gắn Authorization header)
+  return apiFetch(`/api/hr/interns/${internId}`, { method: 'GET' });
+  ─────────────────────────────────────────────────────────────────────── */
+}
+
+/* ─────────────────────────────────────────────
+   getInterns
+───────────────────────────────────────────── */
+
+/**
+ * Lấy danh sách thực tập sinh với bộ lọc tuỳ chọn.
+ *
+ * TODO: GET /api/hr/interns chưa tồn tại ở backend
+ *       (backend/app/api/routes/interns.py chỉ có POST, PATCH status,
+ *        POST approve, POST contract — không có GET list).
+ *       Khi BE sẵn sàng: xóa khối MOCK bên dưới, bỏ comment fetch thật.
+ *       Không cần đổi tên hàm hay shape trả về — InternListPage sẽ không
+ *       phải sửa 1 dòng nào khi chuyển từ MOCK sang API thật.
+ *
+ * @param {{
+ *   major?: string,  - Lọc theo ngành học (khớp chính xác)
+ *   q?:     string,  - Tìm kiếm theo tên hoặc email (full-text)
+ *   page?:  number,  - Số trang (1-based, mặc định 1)
+ * }} [params={}]
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ *   data có shape: { items: InternRegisterResponse[], total: number, page: number }
+ *
+ * @example
+ * import { getInterns } from '../api/interns';
+ *
+ * const { ok, data } = await getInterns({ major: 'Công nghệ thông tin', q: 'An' });
+ * if (ok) {
+ *   setInterns(data.items);
+ * }
+ */
+export async function getInterns({ major = '', q = '', page = 1 } = {}) {
+  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
+  // Giả lập network delay
+  await new Promise((r) => setTimeout(r, 450));
+
+  // Dữ liệu mẫu — đủ cấu trúc field theo InternRegisterResponse
+  const ALL_INTERNS = [
+    {
+      id: 1, full_name: 'Nguyễn Văn An',    email: 'an.nv@ictu.edu.vn',
+      university: 'Đại học Công nghệ thông tin và Truyền thông',
+      major: 'Công nghệ thông tin', status: 'pending',
+    },
+    {
+      id: 2, full_name: 'Trần Thị Bình',  email: 'binh.tt@ictu.edu.vn',
+      university: 'Đại học Bách Khoa Hà Nội',
+      major: 'Kỹ thuật phần mềm', status: 'active',
+    },
+    {
+      id: 3, full_name: 'Lê Hoàng Cường', email: 'cuong.lh@ictu.edu.vn',
+      university: 'Học viện Công nghệ Bưu chính Viễn thông',
+      major: 'An toàn thông tin', status: 'active',
+    },
+    {
+      id: 4, full_name: 'Phạm Thị Dung',  email: 'dung.pt@ictu.edu.vn',
+      university: 'Đại học Công nghệ thông tin và Truyền thông',
+      major: 'Hệ thống thông tin', status: 'inactive',
+    },
+    {
+      id: 5, full_name: 'Hoàng Văn Em',   email: 'em.hv@ictu.edu.vn',
+      university: 'Đại học Thái Nguyên',
+      major: 'Công nghệ thông tin', status: 'pending',
+    },
+  ];
+
+  // Lọc theo major
+  let result = major
+    ? ALL_INTERNS.filter((i) => i.major === major)
+    : ALL_INTERNS;
+
+  // Lọc theo q (tên / email, case-insensitive)
+  if (q.trim()) {
+    const needle = q.trim().toLowerCase();
+    result = result.filter(
+      (i) =>
+        i.full_name.toLowerCase().includes(needle) ||
+        i.email.toLowerCase().includes(needle)
+    );
+  }
+
+  return {
+    ok:     true,
+    status: 200,
+    data:   { items: result, total: result.length, page },
+  };
+  /* ── END MOCK ─────────────────────────────────────────────────────────
+
+  // TODO: Bỏ comment khối này khi BE có GET /api/hr/interns
+  //       (role: hr hoặc admin — apiFetch tự gắn Authorization header)
+  const params = new URLSearchParams();
+  if (major) params.set('major', major);
+  if (q)     params.set('q', q);
+  if (page)  params.set('page', String(page));
+  const qs = params.toString();
+  return apiFetch(`/api/hr/interns${qs ? `?${qs}` : ''}`, { method: 'GET' });
+  ─────────────────────────────────────────────────────────────────────── */
+}

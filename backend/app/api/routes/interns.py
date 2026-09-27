@@ -1,6 +1,14 @@
 from typing import Literal
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Query,
+    UploadFile,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_roles
@@ -9,7 +17,10 @@ from app.schemas.document import DocumentResponse
 from app.schemas.intern import (
     InternCreateRequest,
     InternFilterOptionsResponse,
+    InternListItem,
     InternListResponse,
+    InternProfileStatusResponse,
+    InternProfileStatusUpdateRequest,
 )
 from app.services.document_service import DocumentService
 from app.services.intern_service import InternService
@@ -80,9 +91,27 @@ def create_intern(
 )
 def approve_intern(
     intern_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ) -> InternRegisterResponse:
-    return InternService(db).approve(intern_id)
+    return InternService(db).approve(intern_id, background_tasks)
+
+
+@router.patch(
+    "/{intern_id}/status",
+    response_model=InternProfileStatusResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def update_intern_status(
+    intern_id: int,
+    payload: InternProfileStatusUpdateRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> InternProfileStatusResponse:
+    return InternService(db).update_profile_status(
+        intern_id, payload.status, background_tasks
+    )
 
 
 @router.post(

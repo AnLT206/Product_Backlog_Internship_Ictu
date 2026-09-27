@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS `user_profiles` (
 CREATE TABLE IF NOT EXISTS `intern_profiles` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT NOT NULL UNIQUE,
+    `status` ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
     `phone_number` VARCHAR(20) NULL,
     `dob` DATE NULL,
     `gender` ENUM('male', 'female', 'other') DEFAULT 'other',

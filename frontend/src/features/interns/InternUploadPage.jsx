@@ -23,7 +23,7 @@
  * Theme: kế thừa CreateAccountPage.css (design tokens đồng bộ).
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { uploadDocument } from '../../api/documents';
 import { buildToast } from '../../api/interns';
 import './InternUploadPage.css';
@@ -84,15 +84,48 @@ function InternUploadPage() {
    */
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
+  /* ── Drag & drop state ── */
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef(null);
+
+  /* ── Upload progress state ──
+     Dùng dạng indeterminate (0 → 100% giả lập theo thời gian MOCK).
+     TODO: Khi BE thật và dùng XMLHttpRequest, thay bằng progress event thật.
+  ── */
+  const [progress, setProgress] = useState(0); // 0..100
+
   /* ── Handlers ── */
   function handleDocTypeChange(e) {
     setDocType(e.target.value);
   }
 
+  /* ── Drag & drop handlers ── */
+  function handleDragOver(e) {
+    e.preventDefault();
+    setIsDragOver(true);
+  }
+
+  function handleDragLeave() {
+    setIsDragOver(false);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setIsDragOver(false);
+    const dropped = e.dataTransfer.files?.[0] ?? null;
+    if (dropped) {
+      setFile(dropped);
+      setFileError(validateFile(dropped) ?? '');
+    }
+  }
+
+  function handleUploadAreaClick() {
+    fileInputRef.current?.click();
+  }
+
   function handleFileChange(e) {
     const selected = e.target.files?.[0] ?? null;
     setFile(selected);
-    // Validate ngay khi chọn file để feedback sớm
     if (selected) {
       setFileError(validateFile(selected) ?? '');
     } else {
@@ -115,35 +148,40 @@ function InternUploadPage() {
       return;
     }
 
-    // 2. Gọi API — uploadDocument từ src/api/documents.js
+    // 2. Bắt đầu progress bar (indeterminate giả lập)
+    //    TODO: Khi BE thật dùng XHR, thay bằng xhr.upload.onprogress thật.
     setLoading(true);
+    setProgress(0);
+    // Giả lập tiến trình tăng dần mỗi 80ms cho đến khi API trả về
+    const tick = setInterval(() => {
+      setProgress((prev) => (prev < 85 ? prev + 5 : prev));
+    }, 80);
+
     try {
       const { ok, status, data } = await uploadDocument(file, docType);
 
+      // Kết thúc progress bar
+      clearInterval(tick);
+      setProgress(100);
+
       if (ok) {
-        // Thêm file vừa upload vào danh sách hiển thị
         setUploadedFiles((prev) => [
           {
             id:        data.id,
             file_name: data.file_name ?? file.name,
             doc_type:  data.doc_type  ?? docType,
-            // TODO: Xác nhận tên field với BE — hiện giả định data.file_url
             file_url:  data.file_url  ?? null,
           },
           ...prev,
         ]);
 
-        // Toast thành công — tái sử dụng buildToast()
         const t = buildToast(ok, status, data, 'Tải lên tài liệu thành công!');
         showToast(t.type, t.message);
 
-        // Reset input file (giữ docType để tiện upload thêm cùng loại)
         setFile(null);
         setFileError('');
-        // Reset giá trị input DOM để cho phép chọn lại cùng file
         e.target.reset();
       } else if (status === 422) {
-        // Validate fail từ BE (format FastAPI: { detail: "..." } hoặc { detail: [...] })
         const detail = data?.detail;
         const msg = Array.isArray(detail)
           ? detail.map((d) => d.msg).join('; ')
@@ -151,14 +189,18 @@ function InternUploadPage() {
         setFileError(msg);
         showToast('error', msg);
       } else {
-        // 409 / 500 / lỗi khác — tái sử dụng buildToast()
         const t = buildToast(ok, status, data);
         showToast(t.type, t.message);
       }
     } catch {
+      clearInterval(tick);
       showToast('error', 'Không thể kết nối tới máy chủ, vui lòng thử lại.');
     } finally {
-      setLoading(false);
+      // Delay ẩn progress bar 400ms để người dùng thấy 100%
+      setTimeout(() => {
+        setLoading(false);
+        setProgress(0);
+      }, 400);
     }
   }
 
@@ -232,13 +274,27 @@ function InternUploadPage() {
               </select>
             </div>
 
-            {/* Chọn file */}
+            {/* ── Upload area (drag & drop + nút chọn file) ── */}
             <div className={`form-group${fileError ? ' form-group--error' : ''}`}>
               <label htmlFor="intern-upload-file">
-                Chọn file <span className="intern-upload-required" aria-hidden="true">*</span>
+                Tải lên file <span className="intern-upload-required" aria-hidden="true">*</span>
               </label>
-              <div className="intern-upload-file-wrapper">
+
+              {/* Vùng kéo-thả nổi bật */}
+              <div
+                className={`intern-upload-dropzone${isDragOver ? ' intern-upload-dropzone--active' : ''}${file ? ' intern-upload-dropzone--has-file' : ''}`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={handleUploadAreaClick}
+                role="button"
+                tabIndex={0}
+                aria-label="Khu vực kéo thả hoặc nhấn để chọn file"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleUploadAreaClick(); }}
+              >
+                {/* Input ẩn — trigger bằng click vào dropzone */}
                 <input
+                  ref={fileInputRef}
                   id="intern-upload-file"
                   name="file"
                   type="file"
@@ -246,14 +302,39 @@ function InternUploadPage() {
                   onChange={handleFileChange}
                   className="intern-upload-file-input"
                   aria-describedby={fileError ? 'err-upload-file' : 'hint-upload-file'}
+                  style={{ display: 'none' }}
                 />
-                {/* Hiển thị tên file đã chọn */}
-                <span className="intern-upload-file-name">
-                  {file ? file.name : 'Chưa chọn file'}
-                </span>
+
+                {file ? (
+                  /* File đã chọn: hiển thị icon + tên */
+                  <div className="intern-upload-dropzone__file">
+                    <span className="intern-upload-dropzone__file-icon" aria-hidden="true">
+                      {file.name.toLowerCase().endsWith('.pdf') ? '📄' : '📝'}
+                    </span>
+                    <div className="intern-upload-dropzone__file-info">
+                      <span className="intern-upload-dropzone__file-name">{file.name}</span>
+                      <span className="intern-upload-dropzone__file-size">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </span>
+                    </div>
+                    <span className="intern-upload-dropzone__change">Đổi file</span>
+                  </div>
+                ) : (
+                  /* Chưa chọn file: placeholder */
+                  <div className="intern-upload-dropzone__placeholder">
+                    <span className="intern-upload-dropzone__icon" aria-hidden="true">⬆</span>
+                    <p className="intern-upload-dropzone__text">
+                      {isDragOver ? 'Thả file vào đây…' : 'Kéo & thả file vào đây hoặc'}
+                    </p>
+                    {!isDragOver && (
+                      <span className="intern-upload-dropzone__cta">Chọn file từ máy tính</span>
+                    )}
+                  </div>
+                )}
               </div>
+
               <span id="hint-upload-file" className="intern-upload-hint">
-                PDF hoặc DOCX, tối đa 5 MB
+                Chỉ chấp nhận <strong>PDF</strong> hoặc <strong>DOCX</strong>, tối đa <strong>5 MB</strong>
               </span>
               {fileError && (
                 <span id="err-upload-file" className="form-error" role="alert">
@@ -262,12 +343,22 @@ function InternUploadPage() {
               )}
             </div>
 
+            {/* ── Progress bar — hiện khi đang upload, ẩn sau khi xong ── */}
+            {loading && (
+              <div className="intern-upload-progress-wrap" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="Tiến trình tải lên">
+                <div className="intern-upload-progress-bar" style={{ width: `${progress}%` }} />
+                <span className="intern-upload-progress-text">
+                  {progress < 100 ? `Đang tải lên… ${progress}%` : 'Hoàn thành!'}
+                </span>
+              </div>
+            )}
+
             {/* Submit */}
             <button
               id="intern-upload-submit"
               type="submit"
               className="intern-upload-button"
-              disabled={loading || !file}
+              disabled={loading || !file || !!fileError}
             >
               {loading ? (
                 <>
