@@ -271,3 +271,32 @@ class DocumentService:
             ) from None
 
         return DocumentResponse.model_validate(doc)
+
+    def get_intern_documents(
+        self,
+        intern_id: int,
+        status_filter: str | None = None,
+        doc_type: str | None = None,
+    ) -> list[DocumentResponse]:
+        """Lấy danh sách tài liệu cần duyệt hoặc tất cả tài liệu của TTS (SCRUM-24)."""
+        intern = (
+            self.db.query(User)
+            .join(Role, User.role_id == Role.id)
+            .filter(User.id == intern_id, Role.name == "intern")
+            .first()
+        )
+        if intern is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Không tìm thấy hồ sơ thực tập sinh.",
+            )
+
+        query = self.db.query(Document).filter(Document.user_id == intern_id)
+        if status_filter is not None:
+            query = query.filter(Document.status == status_filter)
+        if doc_type is not None:
+            query = query.filter(Document.doc_type == doc_type)
+
+        docs = query.order_by(Document.created_at.desc(), Document.id.desc()).all()
+        return [DocumentResponse.model_validate(doc) for doc in docs]
+

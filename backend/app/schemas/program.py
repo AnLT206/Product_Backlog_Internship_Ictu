@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -9,6 +10,7 @@ class ProgramCreateRequest(BaseModel):
     description: str | None = Field(default=None, max_length=500)
     start_date: date
     end_date: date
+    max_interns: int = Field(default=50, ge=1, description="Số lượng TTS tối đa của kỳ")
 
     @model_validator(mode="after")
     def end_after_start(self) -> "ProgramCreateRequest":
@@ -23,6 +25,8 @@ class ProgramUpdateRequest(BaseModel):
     description: str | None = Field(default=None, max_length=500)
     start_date: date | None = None
     end_date: date | None = None
+    max_interns: int | None = Field(default=None, ge=1, description="Số lượng TTS tối đa")
+    status: Literal["open", "closed"] | None = Field(default=None, description="Trạng thái mở/đóng kỳ")
 
     @model_validator(mode="after")
     def end_after_start_when_both(self) -> "ProgramUpdateRequest":
@@ -42,7 +46,24 @@ class ProgramResponse(BaseModel):
     description: str | None = None
     start_date: date
     end_date: date
+    max_interns: int = 50
+    status: str = "open"
+    is_deleted: bool = False
+    current_interns: int = 0
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+
+class ProgramAssignRequest(BaseModel):
+    intern_ids: list[int] = Field(..., min_length=1, description="Danh sách ID thực tập sinh cần gán")
+    mentor_id: int | None = Field(default=None, description="ID mentor hướng dẫn (tuỳ chọn)")
+
+
+class ProgramAssignResponse(BaseModel):
+    program_id: int
+    assigned_count: int
+    intern_ids: list[int]
+    mentor_id: int | None = None
+    message: str

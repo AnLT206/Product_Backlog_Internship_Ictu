@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from typing import Literal
+
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, require_roles
@@ -7,6 +9,32 @@ from app.schemas.document import DocumentResponse, DocumentReviewRequest
 from app.services.document_service import DocumentService
 
 router = APIRouter(prefix="/hr/documents", tags=["documents"])
+
+
+@router.get(
+    "/intern/{intern_id}",
+    response_model=list[DocumentResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Lấy danh sách tài liệu của một thực tập sinh (SCRUM-24 alias)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def get_intern_documents_by_id(
+    intern_id: int,
+    status: Literal["pending", "approved", "rejected"] | None = Query(
+        default=None,
+        description="Lọc theo trạng thái tài liệu",
+    ),
+    doc_type: Literal["cv", "application", "contract", "other"] | None = Query(
+        default=None,
+        description="Lọc theo loại tài liệu",
+    ),
+    db: Session = Depends(get_db),
+) -> list[DocumentResponse]:
+    return DocumentService(db).get_intern_documents(
+        intern_id=intern_id,
+        status_filter=status,
+        doc_type=doc_type,
+    )
 
 
 @router.post(
@@ -21,6 +49,7 @@ def review_document(
     db: Session = Depends(get_db),
 ) -> DocumentResponse:
     return DocumentService(db).review_document(document_id, payload)
+
 
 
 # ── TTS upload CV / đơn xin thực tập ─────────────────────────────────────────
