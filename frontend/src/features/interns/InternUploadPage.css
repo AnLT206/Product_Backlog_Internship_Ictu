@@ -498,3 +498,156 @@
     max-width: 100%;
   }
 }
+
+/* ══════════════════════════════════════════════
+   UPLOAD DROPZONE — Khu vực kéo & thả + chọn file
+   Được thêm ở task "progress-bar-ui"
+   ══════════════════════════════════════════════ */
+
+.intern-upload-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 28px 20px;
+  border: 2px dashed var(--fb-line, #e4e6eb);
+  border-radius: 14px;
+  background: #f8fafc;
+  cursor: pointer;
+  text-align: center;
+  transition:
+    border-color 0.18s ease,
+    background   0.18s ease,
+    box-shadow   0.18s ease;
+  outline: none;
+  user-select: none;
+}
+.intern-upload-dropzone:focus-visible {
+  border-color: var(--fb-blue, #1877f2);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+}
+.intern-upload-dropzone:hover {
+  border-color: var(--fb-blue, #1877f2);
+  background: #eef4ff;
+}
+
+/* Trạng thái đang kéo file qua */
+.intern-upload-dropzone--active {
+  border-color: var(--fb-blue, #1877f2);
+  background: #deeaff;
+  box-shadow: 0 0 0 4px rgba(24, 119, 242, 0.12);
+}
+
+/* Đã chọn file — viền liền thay vì đứt */
+.intern-upload-dropzone--has-file {
+  border-style: solid;
+  border-color: var(--fb-blue, #1877f2);
+  background: #eef4ff;
+}
+
+/* ── Placeholder (chưa chọn file) ── */
+.intern-upload-dropzone__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.intern-upload-dropzone__icon {
+  font-size: 28px;
+  line-height: 1;
+  color: var(--fb-blue, #1877f2);
+  opacity: 0.7;
+}
+.intern-upload-dropzone__text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fb-muted, #65676b);
+  line-height: 1.4;
+}
+.intern-upload-dropzone__cta {
+  display: inline-block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--fb-blue, #1877f2);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.intern-upload-dropzone__cta:hover { opacity: 0.8; }
+
+/* ── File đã chọn ── */
+.intern-upload-dropzone__file {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 2px 4px;
+}
+.intern-upload-dropzone__file-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.intern-upload-dropzone__file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  flex: 1;
+  min-width: 0;
+}
+.intern-upload-dropzone__file-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--fb-ink, #0f172a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.intern-upload-dropzone__file-size {
+  font-size: 12px;
+  color: var(--fb-muted, #65676b);
+}
+.intern-upload-dropzone__change {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fb-blue, #1877f2);
+  text-decoration: underline;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.intern-upload-dropzone__change:hover { opacity: 0.75; }
+
+/* ══════════════════════════════════════════════
+   PROGRESS BAR
+   Hiện khi loading=true, ẩn sau khi upload xong/lỗi.
+   Dạng có % giả lập (tăng đến 85% → nhảy 100% khi API trả về).
+   TODO: Khi BE thật dùng XHR, xoá giả lập, nối vào xhr.upload.onprogress.
+   ══════════════════════════════════════════════ */
+
+.intern-upload-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: #eef4ff;
+  border-radius: 10px;
+  border: 1px solid #d0e4ff;
+}
+
+.intern-upload-progress-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1877f2 0%, #0ea5e9 100%);
+  transition: width 0.08s linear;
+  box-shadow: 0 2px 6px rgba(24, 119, 242, 0.28);
+  min-width: 4px; /* luôn hiển thị dù progress = 0 */
+}
+
+.intern-upload-progress-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fb-blue, #1877f2);
+  text-align: right;
+}
