@@ -1,6 +1,6 @@
 """Schema HR tạo hồ sơ TTS."""
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
@@ -53,3 +53,44 @@ class InternCreateRequest(BaseModel):
             return None
         cleaned = value.strip()
         return cleaned or None
+
+
+class InternListItem(BaseModel):
+    """Thông tin tóm tắt TTS trả về trong danh sách tìm kiếm/lọc."""
+
+    id: int
+    email: str
+    full_name: str | None = None
+    role: str = "intern"
+    status: str
+    phone_number: str | None = None
+    dob: date | None = None
+    gender: str | None = None
+    university: str | None = None
+    major: str | None = None
+    academic_year: str | None = None
+    gpa: Decimal | None = None
+    address: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class InternListResponse(BaseModel):
+    """Kết quả phân trang danh sách TTS."""
+
+    items: list[InternListItem]
+    total: int
+    page: int = Field(default=1, ge=1)
+    page_size: int = Field(default=20, ge=1, le=100)
+    total_pages: int
+
+
+class InternFilterOptionsResponse(BaseModel):
+    """Các tùy chọn phục vụ cho dropdown lọc trên UI."""
+
+    universities: list[str]
+    majors: list[str]
+    statuses: list[str] = ["pending", "active", "inactive"]
+
