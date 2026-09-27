@@ -25,8 +25,8 @@ class InternProfile(Base):
         default="other",
         nullable=True,
     )
-    university: Mapped[str | None] = mapped_column(String(150), nullable=True)
-    major: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    university: Mapped[str | None] = mapped_column(String(150), nullable=True, index=True)
+    major: Mapped[str | None] = mapped_column(String(150), nullable=True, index=True)
     academic_year: Mapped[str | None] = mapped_column(String(50), nullable=True)
     gpa: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), nullable=True)
     address: Mapped[str | None] = mapped_column(String(255), nullable=True)
