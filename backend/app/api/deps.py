@@ -63,4 +63,28 @@ def require_roles(*allowed_roles: str) -> Callable:
 
 	return role_dependency
 
-__all__ = ["get_db", "get_current_user", "require_roles"]
+
+def require_permission(permission_key: str) -> Callable:
+	"""Dependency chặn quyền động dựa trên ma trận role_permissions trong database (SCRUM-19)."""
+	def permission_dependency(
+		current_user: User = Depends(get_current_user),
+		db: Session = Depends(get_db),
+	) -> User:
+		# Admin luôn có toàn quyền trong hệ thống
+		if current_user.role.name == "admin":
+			return current_user
+
+		from app.services.permission_service import PermissionService
+
+		if not PermissionService(db).has_permission(current_user.role.name, permission_key):
+			raise HTTPException(
+				status_code=status.HTTP_403_FORBIDDEN,
+				detail=f"Bạn không có quyền thực hiện thao tác này (thiếu quyền: {permission_key}).",
+			)
+		return current_user
+
+	return permission_dependency
+
+
+__all__ = ["get_db", "get_current_user", "require_roles", "require_permission"]
+
