@@ -27,6 +27,12 @@ app.add_middleware(ActivityLogFilterMiddleware)
 app.include_router(api_router)
 
 
+@app.get("/")
+def root() -> dict[str, str]:
+    return {"message": "ICTU Internship API is running", "docs": "/docs", "health": "/health"}
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+

@@ -8,9 +8,11 @@ import AdminLayout from '../features/admin/AdminLayout.jsx'
 import AdminDashboardPage from '../features/admin/AdminDashboardPage.jsx'
 import CreateAccountPage from '../features/admin/CreateAccountPage.jsx'
 import UsersPage from '../features/admin/UsersPage.jsx'
-import RolesPermissionsPage from '../features/admin/RolesPermissionsPage.jsx'
+import PermissionMatrixPage from '../features/admin/PermissionMatrixPage.jsx'
 import SystemLogsPage from '../features/admin/SystemLogsPage.jsx'
 import RequireAuth from './RequireAuth.jsx'
+import InternListPage from '../features/interns/InternListPage.jsx'
+import InternEditPage from '../features/interns/InternEditPage.jsx'
 
 export default function AppRoutes() {
   return (
@@ -33,7 +35,7 @@ export default function AppRoutes() {
           <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="users/new" element={<CreateAccountPage />} />
-          <Route path="roles" element={<RolesPermissionsPage />} />
+          <Route path="roles" element={<PermissionMatrixPage />} />
           <Route path="system-logs" element={<SystemLogsPage />} />
         </Route>
 
@@ -58,6 +60,24 @@ export default function AppRoutes() {
           element={
             <RequireAuth roles={['intern']}>
               <RoleHomePage roleLabel="Thực tập sinh" />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/hr/interns"
+          element={
+            <RequireAuth roles={['hr', 'admin']}>
+              <InternListPage />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/hr/interns/:id/edit"
+          element={
+            <RequireAuth roles={['hr', 'admin']}>
+              <InternEditPage />
             </RequireAuth>
           }
         />

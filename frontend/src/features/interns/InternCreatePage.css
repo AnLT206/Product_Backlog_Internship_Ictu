@@ -1,0 +1,429 @@
+/* ============================================================
+   InternCreatePage.css — HR: Thêm hồ sơ thực tập sinh mới
+   Design token và component classes kế thừa từ CreateAccountPage.css.
+   KHÔNG thêm thư viện ngoài, KHÔNG tự chế theme mới.
+   ============================================================ */
+
+.intern-create-page {
+  /* --- design tokens (đồng bộ CreateAccountPage.css) --- */
+  --fb-blue:        #1877f2;
+  --fb-blue-hover:  #166fe5;
+  --fb-blue-soft:   #e7f3ff;
+  --fb-ink:         #0f172a;
+  --fb-body:        #1c1e21;
+  --fb-muted:       #65676b;
+  --fb-line:        #e4e6eb;
+  --fb-bg:          #f0f2f5;
+  --fb-font:        'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 20px 60px;
+  font-family: var(--fb-font);
+  color: var(--fb-body);
+  background: #fff;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.intern-create-page *,
+.intern-create-page *::before,
+.intern-create-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── glow background (giống CreateAccountPage) ── */
+.intern-create-page__glow {
+  position: absolute;
+  inset: -20% auto auto 40%;
+  width: min(720px, 90vw);
+  height: min(720px, 90vw);
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 40% 40%, rgba(24, 119, 242, 0.16) 0%, rgba(24, 119, 242, 0.05) 42%, transparent 70%),
+    radial-gradient(circle at 70% 70%, rgba(14, 165, 233, 0.1) 0%, transparent 55%);
+  filter: blur(10px);
+}
+
+/* ── shell / wrapper ── */
+.intern-create-shell {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 8px;
+}
+
+/* ── brand / back link ── */
+.intern-create-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  color: var(--fb-muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.intern-create-brand:hover {
+  color: var(--fb-blue);
+}
+
+/* ── card ── */
+.intern-create-card {
+  width: 100%;
+  background: #fff;
+  border-radius: 24px;
+  border: 1px solid var(--fb-line);
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.03),
+    0 24px 48px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+/* ── header ── */
+.intern-create-header {
+  padding: 32px 32px 12px;
+  text-align: center;
+  border-bottom: 1px solid var(--fb-line);
+}
+
+.intern-create-badge {
+  display: inline-flex;
+  margin: 0 0 16px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--fb-blue-soft);
+  border: 1px solid #d0e4ff;
+  color: var(--fb-blue);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.intern-create-header h1 {
+  margin: 0 0 10px;
+  font-size: clamp(22px, 4vw, 28px);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  color: var(--fb-ink);
+}
+
+.intern-create-header h1 span {
+  color: var(--fb-blue);
+}
+
+.intern-create-lead {
+  margin: 0 auto;
+  max-width: 40ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--fb-muted);
+}
+
+.intern-create-lead abbr {
+  color: #e02424;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: help;
+}
+
+/* ── form ── */
+.intern-create-form {
+  padding: 0 0 28px;
+}
+
+/* ── section (fieldset) ── */
+.intern-create-section {
+  margin: 0;
+  padding: 24px 32px 8px;
+  border: none;
+  border-bottom: 1px solid var(--fb-line);
+}
+
+.intern-create-section:last-of-type {
+  border-bottom: none;
+}
+
+.intern-create-section__title {
+  display: block;
+  width: 100%;
+  padding: 0 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fb-blue);
+}
+
+/* ── form-group (kế thừa CreateAccountPage pattern) ── */
+.intern-create-form .form-group {
+  margin-bottom: 14px;
+}
+
+.intern-create-form .form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fb-ink);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+/* Dấu * required */
+.intern-create-required {
+  color: #e02424;
+  margin-left: 2px;
+}
+
+/* ── input ── */
+.intern-create-form .form-group input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1.5px solid var(--fb-line);
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--fb-body);
+  outline: none;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.intern-create-form .form-group input::placeholder {
+  color: #8a8d91;
+}
+
+.intern-create-form .form-group input:focus {
+  border-color: var(--fb-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+}
+
+/* input[type=date] — đồng bộ height */
+.intern-create-form .form-group input[type="date"] {
+  padding: 0 12px;
+  color: var(--fb-body);
+}
+
+/* input[type=number] */
+.intern-create-form .form-group input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.intern-create-form .form-group input[type="number"]::-webkit-inner-spin-button,
+.intern-create-form .form-group input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.5;
+}
+
+/* ── select ── */
+.intern-create-form .form-group select {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1.5px solid var(--fb-line);
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--fb-body);
+  outline: none;
+  background: #fff;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2365676b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.intern-create-form .form-group select:focus {
+  border-color: var(--fb-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+}
+
+.intern-create-form .form-group select option[value=""] {
+  color: #8a8d91;
+}
+
+/* ── 2-column row (SĐT + ngày sinh; năm + GPA) ── */
+.intern-create-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+
+/* ── error state ── */
+.intern-create-form .form-group--error input,
+.intern-create-form .form-group--error select {
+  border-color: #e02424;
+  box-shadow: 0 0 0 3px rgba(224, 36, 36, 0.12);
+}
+
+.intern-create-form .form-error {
+  display: block;
+  margin-top: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e02424;
+  line-height: 1.35;
+}
+
+/* ── actions bar ── */
+.intern-create-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 24px 32px 0;
+}
+
+/* Cancel link */
+.intern-create-cancel {
+  padding: 0 20px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1.5px solid var(--fb-line);
+  color: var(--fb-muted);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.intern-create-cancel:hover {
+  border-color: var(--fb-blue);
+  color: var(--fb-blue);
+}
+
+/* Submit button — giống create-account-button */
+.intern-create-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 140px;
+  height: 48px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 999px;
+  background: var(--fb-blue);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(24, 119, 242, 0.28);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.intern-create-button:hover {
+  background: var(--fb-blue-hover);
+  box-shadow: 0 10px 24px rgba(24, 119, 242, 0.34);
+}
+
+.intern-create-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Loading spinner */
+.intern-create-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: ic-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes ic-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Toast thông báo ── */
+.intern-create-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  min-width: 260px;
+  max-width: 440px;
+  padding: 13px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--fb-font);
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  animation: ic-toast-in 0.22s ease;
+}
+
+.intern-create-toast--success {
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #065f46;
+}
+
+.intern-create-toast--error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
+
+@keyframes ic-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .intern-create-page {
+    padding: 24px 16px 48px;
+  }
+
+  .intern-create-header {
+    padding: 24px 20px 10px;
+  }
+
+  .intern-create-section {
+    padding: 20px 20px 4px;
+  }
+
+  .intern-create-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .intern-create-actions {
+    flex-direction: column-reverse;
+    padding: 20px 20px 0;
+  }
+
+  .intern-create-cancel,
+  .intern-create-button {
+    width: 100%;
+    justify-content: center;
+  }
+}

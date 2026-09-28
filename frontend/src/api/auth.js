@@ -55,3 +55,38 @@ export function dashboardPathForRole(role) {
       return '/';
   }
 }
+
+/**
+ * POST /api/auth/register
+ * Đăng ký tài khoản TTS mới.
+ *
+ * Backend ĐÃ CÓ THẬT — KHÔNG mock.
+ *
+ * @param {{
+ *   full_name:     string,
+ *   email:         string,
+ *   password:      string,
+ *   confirm_password: string,
+ *   phone_number?: string,
+ *   dob?:          string,
+ *   gender?:       string,
+ *   university?:   string,
+ *   major?:        string,
+ *   academic_year?: string,
+ *   gpa?:          number,
+ *   address?:      string,
+ * }} payload
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ *   201 → { id, full_name, email, role, ... }
+ *   409 → { detail: "Email đã tồn tại." }
+ *   422 → { detail: [{ loc, msg, type }, ...] }
+ *
+ * @example
+ * const { ok, status, data } = await registerIntern({ full_name, email, password, confirm_password });
+ */
+export async function registerIntern(payload) {
+  return apiFetch('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}

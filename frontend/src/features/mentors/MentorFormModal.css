@@ -1,0 +1,251 @@
+/* ============================================================
+   MentorFormModal.css  –  HR: Popup form thêm mới Mentor (US 29)
+   Design tokens kế thừa từ CreateAccountPage.css
+   KHÔNG thêm thư viện ngoài, KHÔNG tự chế theme mới.
+   ============================================================ */
+
+/* ── Backdrop ── */
+.mentor-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: mentor-backdrop-in 0.18s ease;
+}
+
+@keyframes mentor-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Dialog ── */
+.mentor-modal-dialog {
+  /* design tokens */
+  --fb-blue:        #1877f2;
+  --fb-blue-hover:  #166fe5;
+  --fb-blue-soft:   #e7f3ff;
+  --fb-ink:         #0f172a;
+  --fb-body:        #1c1e21;
+  --fb-muted:       #65676b;
+  --fb-line:        #e4e6eb;
+  --fb-bg:          #f0f2f5;
+  --fb-font:        'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid var(--fb-line);
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.04),
+    0 24px 60px rgba(15, 23, 42, 0.16);
+  width: 100%;
+  max-width: 480px;
+  font-family: var(--fb-font);
+  color: var(--fb-body);
+  -webkit-font-smoothing: antialiased;
+  animation: mentor-dialog-in 0.2s ease;
+}
+
+@keyframes mentor-dialog-in {
+  from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.mentor-modal-dialog *,
+.mentor-modal-dialog *::before,
+.mentor-modal-dialog *::after {
+  box-sizing: border-box;
+}
+
+/* ── Header ── */
+.mentor-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px 0;
+  gap: 12px;
+}
+
+.mentor-modal-title-wrap {}
+
+.mentor-modal-badge {
+  display: inline-flex;
+  margin: 0 0 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--fb-blue-soft);
+  border: 1px solid #d0e4ff;
+  color: var(--fb-blue);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mentor-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--fb-ink);
+  line-height: 1.25;
+}
+
+.mentor-modal-header h2 span { color: var(--fb-blue); }
+
+/* ── Close button ── */
+.mentor-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fb-muted);
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+  flex-shrink: 0;
+}
+.mentor-modal-close:hover {
+  background: var(--fb-bg);
+  color: var(--fb-ink);
+}
+
+/* ── Divider ── */
+.mentor-modal-divider {
+  margin: 18px 24px 0;
+  border: none;
+  border-top: 1px solid var(--fb-line);
+}
+
+/* ── Form body ── */
+.mentor-modal-body {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Form group ── */
+.mentor-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mentor-form-group label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--fb-ink);
+}
+
+.mentor-form-group .required {
+  color: #e5342a;
+  margin-left: 2px;
+}
+
+.mentor-form-group input,
+.mentor-form-group select {
+  height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid var(--fb-line);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--fb-font);
+  color: var(--fb-ink);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.mentor-form-group input:focus,
+.mentor-form-group select:focus {
+  border-color: var(--fb-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.12);
+}
+
+.mentor-form-group input::placeholder { color: var(--fb-muted); }
+
+.mentor-form-group select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2365676b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+/* Error state */
+.mentor-form-group--error input,
+.mentor-form-group--error select {
+  border-color: #e5342a;
+  box-shadow: 0 0 0 3px rgba(229, 52, 42, 0.1);
+}
+
+.mentor-form-error {
+  font-size: 12.5px;
+  color: #e5342a;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Footer buttons ── */
+.mentor-modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 0 24px 22px;
+  justify-content: flex-end;
+}
+
+.mentor-modal-cancel {
+  height: 42px;
+  padding: 0 20px;
+  border: 1.5px solid var(--fb-line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--fb-muted);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--fb-font);
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+.mentor-modal-cancel:hover {
+  border-color: var(--fb-body);
+  color: var(--fb-body);
+}
+
+.mentor-modal-submit {
+  height: 42px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 10px;
+  background: var(--fb-blue);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--fb-font);
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(24, 119, 242, 0.28);
+  transition: background 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+.mentor-modal-submit:hover:not(:disabled) {
+  background: var(--fb-blue-hover);
+  box-shadow: 0 6px 18px rgba(24, 119, 242, 0.36);
+}
+.mentor-modal-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}

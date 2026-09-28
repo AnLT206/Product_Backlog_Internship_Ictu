@@ -18,6 +18,11 @@ class InternProfile(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    status: Mapped[str] = mapped_column(
+        Enum("pending", "approved", "rejected", name="intern_profile_status"),
+        default="pending",
+        nullable=False,
+    )
     phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
     dob: Mapped[date | None] = mapped_column(Date, nullable=True)
     gender: Mapped[str | None] = mapped_column(
@@ -25,8 +30,8 @@ class InternProfile(Base):
         default="other",
         nullable=True,
     )
-    university: Mapped[str | None] = mapped_column(String(150), nullable=True)
-    major: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    university: Mapped[str | None] = mapped_column(String(150), nullable=True, index=True)
+    major: Mapped[str | None] = mapped_column(String(150), nullable=True, index=True)
     academic_year: Mapped[str | None] = mapped_column(String(50), nullable=True)
     gpa: Mapped[Decimal | None] = mapped_column(Numeric(3, 2), nullable=True)
     address: Mapped[str | None] = mapped_column(String(255), nullable=True)

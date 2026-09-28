@@ -18,5 +18,7 @@ class DocumentResponse(BaseModel):
     status: str
     review_note: str | None = None
     confirmed_at: datetime | None = None
+    created_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
