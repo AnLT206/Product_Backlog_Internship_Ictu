@@ -5,8 +5,9 @@
 -- Chạy SAU schema.sql và 001_roles.sql.
 -- Idempotent theo email: đã có admin@ictu.edu.vn thì bỏ qua.
 
-INSERT INTO `users` (`email`, `password_hash`, `full_name`, `role_id`, `status`)
+INSERT INTO `users` (`code`, `email`, `password_hash`, `full_name`, `role_id`, `status`)
 SELECT
+    'AD0001',
     'admin@ictu.edu.vn',
     '$2b$12$07pFqmYtJoYF4rXgU4D1T.4p5FAObCXaGeRF43ydZ6SPiOcDPR6N2',
     'System Admin',
