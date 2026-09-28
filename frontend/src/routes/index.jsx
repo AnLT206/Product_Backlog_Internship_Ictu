@@ -13,6 +13,9 @@ import SystemLogsPage from '../features/admin/SystemLogsPage.jsx'
 import RequireAuth from './RequireAuth.jsx'
 import InternListPage from '../features/interns/InternListPage.jsx'
 import InternEditPage from '../features/interns/InternEditPage.jsx'
+import ProgramListPage from '../features/programs/ProgramListPage.jsx'
+import ProgramFormPage from '../features/programs/ProgramFormPage.jsx'
+import MentorListPage from '../features/mentors/MentorListPage.jsx'
 
 export default function AppRoutes() {
   return (
@@ -44,6 +47,30 @@ export default function AppRoutes() {
           element={
             <RequireAuth roles={['hr', 'admin']}>
               <RoleHomePage roleLabel="HR" />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/hr/programs"
+          element={
+            <RequireAuth roles={['hr', 'admin']}>
+              <ProgramListPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/hr/programs/new"
+          element={
+            <RequireAuth roles={['hr', 'admin']}>
+              <ProgramFormPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/hr/mentors"
+          element={
+            <RequireAuth roles={['hr', 'admin']}>
+              <MentorListPage />
             </RequireAuth>
           }
         />
