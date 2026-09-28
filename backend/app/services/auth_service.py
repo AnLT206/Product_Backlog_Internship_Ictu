@@ -15,6 +15,7 @@ from app.schemas.auth import (
 )
 from app.utils.authenticate_login import authenticate_login
 from app.utils.hash_password import hash_password
+from app.utils.user_code import next_user_code
 
 TTS_ROLE_NAME = "intern"
 
@@ -47,6 +48,7 @@ class AuthService:
         tts_role = self._get_tts_role()
 
         user = User(
+            code=next_user_code(self.db, TTS_ROLE_NAME),
             email=payload.email,
             password_hash=hash_password(payload.password),
             full_name=payload.full_name,

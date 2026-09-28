@@ -10,6 +10,7 @@ from app.models.user import User
 from app.models.user_profile import UserProfile
 from app.schemas.admin import AdminUserCreateRequest, AdminUserResponse
 from app.utils.hash_password import hash_password
+from app.utils.user_code import next_user_code
 
 
 class AdminService:
@@ -37,6 +38,7 @@ class AdminService:
         try:
             # 3. Tạo user với mật khẩu băm (bcrypt)
             user = User(
+                code=next_user_code(self.db, payload.role),
                 email=payload.email,
                 password_hash=hash_password(payload.password),
                 full_name=payload.full_name,

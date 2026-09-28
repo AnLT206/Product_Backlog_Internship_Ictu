@@ -158,6 +158,7 @@ flowchart LR
 | --- | --- |
 | `backend/` đã có register API (TTS) | Tiếp: login, me, upload documents |
 | Seed admin (dev) | Docker backend tự seed; hoặc `PYTHONPATH=. python -m scripts.seed_admin` → `admin@ictu.edu.vn` / `Admin@123` |
+| Seed users HR/Mentor/TTS | `PYTHONPATH=. python -m scripts.seed_users` → mật khẩu mặc định `User@123` |
 | `frontend/` đã có `features/auth/` | Bổ sung `api/`, `layouts/`, `routes/` khi làm màn hình |
 | Seed roles trong `schema.sql` | DB volume cũ: chạy `database/migrate_register.sql` |
 

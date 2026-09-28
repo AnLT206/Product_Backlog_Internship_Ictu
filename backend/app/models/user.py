@@ -17,6 +17,7 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     cccd: Mapped[str | None] = mapped_column(String(12), unique=True, nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)

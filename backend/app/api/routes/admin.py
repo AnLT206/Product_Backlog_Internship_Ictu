@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_roles
 from app.schemas.admin import AdminUserCreateRequest, AdminUserResponse
+from app.schemas.admin_user import AdminManagedRole, AdminUserListResponse
 from app.schemas.permission import (
     PermissionActionResponse,
     PermissionMatrixResponse,
@@ -14,6 +15,7 @@ from app.schemas.permission import (
 )
 from app.schemas.system_log import SystemLogListResponse
 from app.services.admin_service import AdminService
+from app.services.admin_user_service import AdminUserService
 from app.services.permission_service import PermissionService
 from app.services.system_log_service import SystemLogService
 
@@ -42,6 +44,19 @@ def create_user(
 ) -> AdminUserResponse:
     return AdminService(db).create_user(payload)
 
+
+
+@router.get(
+    "/users",
+    response_model=AdminUserListResponse,
+    summary="Danh sách người dùng theo vai trò (admin)",
+)
+def list_users(
+    role: AdminManagedRole = Query(..., description="hr | mentor | intern"),
+    db: Session = Depends(get_db),
+    _: object = Depends(require_roles("admin")),
+) -> AdminUserListResponse:
+    return AdminUserService(db).list_users(role)
 
 
 @router.get(

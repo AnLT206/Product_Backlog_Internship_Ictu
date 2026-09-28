@@ -27,7 +27,7 @@
   align-items: center;
   gap: 5px;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   font-size: 12px;
   font-weight: 700;
   font-family: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
@@ -87,7 +87,7 @@
   justify-content: center;
   height: 32px;
   padding: 0 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 700;
   font-family: inherit;

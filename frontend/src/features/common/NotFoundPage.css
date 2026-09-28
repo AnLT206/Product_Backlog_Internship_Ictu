@@ -62,7 +62,7 @@
   justify-content: center;
   height: 36px;
   padding: 0 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
   font-size: 15px;
   text-decoration: none;
