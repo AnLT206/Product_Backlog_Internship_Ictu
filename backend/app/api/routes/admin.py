@@ -1,14 +1,48 @@
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_roles
+from app.schemas.admin_user import (
+    AdminManagedRole,
+    AdminUserCreateRequest,
+    AdminUserListResponse,
+    AdminUserResponse,
+)
 from app.schemas.system_log import SystemLogListResponse
+from app.services.admin_user_service import AdminUserService
 from app.services.system_log_service import SystemLogService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+@router.get(
+    "/users",
+    response_model=AdminUserListResponse,
+    summary="Danh sách người dùng theo vai trò (admin)",
+)
+def list_users(
+    role: AdminManagedRole = Query(..., description="hr | mentor | intern"),
+    db: Session = Depends(get_db),
+    _: object = Depends(require_roles("admin")),
+) -> AdminUserListResponse:
+    return AdminUserService(db).list_users(role)
+
+
+@router.post(
+    "/users",
+    response_model=AdminUserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Tạo tài khoản nội bộ HR / Mentor (admin)",
+)
+def create_user(
+    payload: AdminUserCreateRequest,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_roles("admin")),
+) -> AdminUserResponse:
+    return AdminUserService(db).create_user(payload)
 
 
 @router.get(

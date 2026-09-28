@@ -6,8 +6,10 @@ import NotFoundPage from '../features/common/NotFoundPage.jsx'
 import RoleHomePage from '../features/common/RoleHomePage.jsx'
 import AdminLayout from '../features/admin/AdminLayout.jsx'
 import AdminDashboardPage from '../features/admin/AdminDashboardPage.jsx'
-import AdminPlaceholderPage from '../features/admin/AdminPlaceholderPage.jsx'
 import CreateAccountPage from '../features/admin/CreateAccountPage.jsx'
+import UsersPage from '../features/admin/UsersPage.jsx'
+import RolesPermissionsPage from '../features/admin/RolesPermissionsPage.jsx'
+import SystemLogsPage from '../features/admin/SystemLogsPage.jsx'
 import RequireAuth from './RequireAuth.jsx'
 
 export default function AppRoutes() {
@@ -29,16 +31,10 @@ export default function AppRoutes() {
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboardPage />} />
+          <Route path="users" element={<UsersPage />} />
           <Route path="users/new" element={<CreateAccountPage />} />
-          <Route
-            path="system-logs"
-            element={
-              <AdminPlaceholderPage
-                title="Nhật ký hệ thống"
-                description="UI danh sách system-logs sẽ kết nối GET /api/admin/system-logs."
-              />
-            }
-          />
+          <Route path="roles" element={<RolesPermissionsPage />} />
+          <Route path="system-logs" element={<SystemLogsPage />} />
         </Route>
 
         <Route

@@ -8,6 +8,7 @@ from app.models.user import User
 from app.schemas.auth import InternRegisterResponse
 from app.schemas.intern import InternCreateRequest
 from app.utils.hash_password import hash_password
+from app.utils.user_code import next_user_code
 
 TTS_ROLE_NAME = "intern"
 
@@ -33,6 +34,7 @@ class InternService:
 
         try:
             user = User(
+                code=next_user_code(self.db, TTS_ROLE_NAME),
                 email=payload.email,
                 password_hash=hash_password(payload.password),
                 full_name=payload.full_name,

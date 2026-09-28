@@ -1,32 +1,18 @@
-/* ============================================================
-   CreateAccountPage.css  –  Admin: Tạo tài khoản
-   Design token lấy từ features/auth/RegisterPage.css
-   KHÔNG thêm thư viện ngoài, KHÔNG tự chế theme mới.
-   ============================================================ */
+/* CreateAccountPage — form gọn + panel lưu ý / hướng dẫn */
 
 .create-account-page {
-  /* --- design tokens (đồng bộ RegisterPage.css) --- */
-  --fb-blue:        #1877f2;
-  --fb-blue-hover:  #166fe5;
-  --fb-blue-soft:   #e7f3ff;
-  --fb-ink:         #0f172a;
-  --fb-body:        #1c1e21;
-  --fb-muted:       #65676b;
-  --fb-line:        #e4e6eb;
-  --fb-bg:          #f0f2f5;
-  --fb-font:        'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+  --admin-primary: #1877f2;
+  --admin-primary-hover: #166fe5;
+  --admin-primary-soft: #e7f3ff;
+  --admin-ink: #1a2332;
+  --admin-body: #334155;
+  --admin-muted: #64748b;
+  --admin-line: #e2e8f0;
+  --admin-font: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
 
-  position: relative;
-  isolation: isolate;
-  min-height: 100svh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 20px;
-  font-family: var(--fb-font);
-  color: var(--fb-body);
-  background: #fff;
-  overflow: hidden;
+  width: 100%;
+  font-family: var(--admin-font);
+  color: var(--admin-body);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -36,294 +22,349 @@
   box-sizing: border-box;
 }
 
-/* ── glow background (giống RegisterPage) ── */
-.create-account-page__glow {
-  position: absolute;
-  inset: -20% auto auto 40%;
-  width: min(720px, 90vw);
-  height: min(720px, 90vw);
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 40% 40%, rgba(24, 119, 242, 0.16) 0%, rgba(24, 119, 242, 0.05) 42%, transparent 70%),
-    radial-gradient(circle at 70% 70%, rgba(14, 165, 233, 0.1) 0%, transparent 55%);
-  filter: blur(10px);
-}
-
-/* ── shell / wrapper ── */
 .create-account-shell {
-  position: relative;
-  z-index: 1;
   width: 100%;
-  max-width: 480px;
+  max-width: 960px;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 20px;
+  gap: 14px;
 }
 
-/* ── brand logo ── */
-.create-account-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  align-self: center;
-  text-decoration: none;
-  color: var(--fb-ink);
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.create-account-brand img {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  object-fit: cover;
-  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.25);
-}
-
-/* ── card ── */
-.create-account-card {
-  width: 100%;
+.create-account-pagehead {
+  padding: 14px 16px;
   background: #fff;
-  border-radius: 24px;
-  border: 1px solid var(--fb-line);
-  box-shadow:
-    0 4px 6px rgba(15, 23, 42, 0.03),
-    0 24px 48px rgba(15, 23, 42, 0.08);
-  overflow: hidden;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-/* ── header ── */
-.create-account-header {
-  padding: 32px 32px 8px;
-  text-align: center;
-}
-
-.create-account-badge {
-  display: inline-flex;
-  margin: 0 0 16px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--fb-blue-soft);
-  border: 1px solid #d0e4ff;
-  color: var(--fb-blue);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.create-account-header h1 {
-  margin: 0 0 12px;
-  font-size: clamp(22px, 4vw, 28px);
-  font-weight: 750;
-  letter-spacing: -0.035em;
-  line-height: 1.15;
-  color: var(--fb-ink);
-}
-
-.create-account-header h1 span {
-  color: var(--fb-blue);
-}
-
-.create-account-lead {
-  margin: 0 auto;
-  max-width: 34ch;
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--fb-muted);
-}
-
-/* ── form body ── */
-.create-account-form {
-  padding: 28px 32px 32px;
-}
-
-/* ── form-group (kế thừa RegisterPage style) ── */
-.create-account-form .form-group {
-  margin-bottom: 14px;
-}
-
-.create-account-form .form-group label {
-  display: block;
-  font-size: 13px;
+.create-account-crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: var(--fb-ink);
-  margin-bottom: 6px;
-  line-height: 1.3;
+  color: var(--admin-muted);
 }
 
-/* --- input (giống RegisterPage.css) --- */
-.create-account-form .form-group input {
-  width: 100%;
-  height: 46px;
-  padding: 0 14px;
-  border: 1.5px solid var(--fb-line);
-  border-radius: 12px;
-  font-size: 15px;
-  font-family: inherit;
-  color: var(--fb-body);
-  outline: none;
-  background: #fff;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+.create-account-crumb a {
+  color: var(--admin-primary);
+  text-decoration: none;
 }
 
-.create-account-form .form-group input::placeholder {
-  color: #8a8d91;
+.create-account-pagehead__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
-.create-account-form .form-group input:focus {
-  border-color: var(--fb-blue);
-  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+.create-account-pagehead h1 {
+  margin: 0 0 2px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--admin-ink);
 }
 
-/* --- dropdown select role (cùng style input) --- */
-.create-account-form .form-group select {
-  width: 100%;
-  height: 46px;
-  padding: 0 14px;
-  border: 1.5px solid var(--fb-line);
-  border-radius: 12px;
-  font-size: 15px;
-  font-family: inherit;
-  color: var(--fb-body);
-  outline: none;
-  background: #fff;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2365676b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  padding-right: 40px;
-  cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+.create-account-pagehead p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--admin-muted);
 }
 
-.create-account-form .form-group select:focus {
-  border-color: var(--fb-blue);
-  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
-}
-
-.create-account-form .form-group select option[value=""] {
-  color: #8a8d91;
-}
-
-/* ── submit button (giống register-button) ── */
-.create-account-button {
+.create-account-back {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 48px;
-  border: none;
-  border-radius: 999px;
-  background: var(--fb-blue);
-  color: #fff;
-  font-size: 15px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  box-shadow: 0 8px 20px rgba(24, 119, 242, 0.28);
-  transition: background 0.15s ease, box-shadow 0.15s ease;
-  margin-top: 8px;
-}
-
-.create-account-button:hover {
-  background: var(--fb-blue-hover);
-  box-shadow: 0 10px 24px rgba(24, 119, 242, 0.34);
-}
-
-/* ── back link ── */
-.create-account-back {
-  display: block;
-  align-self: center;
-  color: var(--fb-muted);
-  font-size: 14px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--admin-ink);
+  font-size: 0.82rem;
   font-weight: 600;
   text-decoration: none;
 }
 
 .create-account-back:hover {
-  color: var(--fb-blue);
+  border-color: #b6d4fe;
+  background: var(--admin-primary-soft);
+  color: var(--admin-primary);
 }
 
-/* ── Lỗi validate inline (task 2) ── */
-
-/* Viền đỏ cho field lỗi */
-.create-account-form .form-group--error input,
-.create-account-form .form-group--error select {
-  border-color: #e02424;
-  box-shadow: 0 0 0 3px rgba(224, 36, 36, 0.12);
+.create-account-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(240px, 0.75fr);
+  gap: 14px;
+  align-items: start;
 }
 
-/* Text lỗi bên dưới field */
+.create-account-card {
+  background: #fff;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--admin-line);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.create-account-form {
+  padding: 16px;
+}
+
+.create-account-form__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.create-account-form .form-group {
+  margin-bottom: 12px;
+}
+
+.create-account-form .form-group label,
+.create-account-form .form-label {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--admin-ink);
+  margin-bottom: 4px;
+}
+
+.create-account-form .form-group input {
+  width: 100%;
+  height: 38px;
+  padding: 0 11px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: var(--admin-body);
+  outline: none;
+  background: #fff;
+}
+
+.create-account-form .form-group input:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.15);
+}
+
+.create-account-form .form-group input::placeholder {
+  color: #94a3b8;
+}
+
+.role-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.role-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--admin-line);
+  background: #fff;
+  cursor: pointer;
+}
+
+.role-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.role-card:hover {
+  border-color: #b6d4fe;
+  background: var(--admin-primary-soft);
+}
+
+.role-card.is-selected {
+  border-color: var(--admin-primary);
+  background: var(--admin-primary-soft);
+  box-shadow: inset 3px 0 0 var(--admin-primary);
+}
+
+.role-card__title {
+  display: block;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--admin-ink);
+}
+
+.role-card__desc {
+  display: block;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--admin-muted);
+}
+
+.create-account-form__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--admin-line);
+}
+
+.create-account-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+  height: 38px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--admin-primary);
+  color: #fff;
+  font-size: 0.86rem;
+  font-weight: 650;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.create-account-button:hover {
+  background: var(--admin-primary-hover);
+}
+
+.create-account-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.create-account-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.create-account-side-card {
+  padding: 14px 14px 12px;
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.create-account-side-card h2 {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--admin-ink);
+}
+
+.create-account-side-card ul,
+.create-account-side-card ol {
+  margin: 0;
+  padding: 0 0 0 16px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--admin-muted);
+}
+
+.create-account-side-card li + li {
+  margin-top: 5px;
+}
+
+.create-account-form .form-group--error input {
+  border-color: #dc2626;
+}
+
 .create-account-form .form-error {
   display: block;
-  margin-top: 5px;
-  font-size: 12.5px;
+  margin-top: 4px;
+  font-size: 0.72rem;
   font-weight: 600;
-  color: #e02424;
-  line-height: 1.35;
+  color: #dc2626;
 }
 
-/* ── Toast thông báo (task 2) ── */
 .create-account-toast {
   position: fixed;
-  top: 20px;
+  top: 16px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
-  min-width: 260px;
-  max-width: 420px;
-  padding: 13px 20px;
-  border-radius: 12px;
-  font-size: 14px;
+  min-width: 220px;
+  max-width: 380px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
   font-weight: 600;
-  font-family: var(--fb-font);
-  line-height: 1.4;
   text-align: center;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
-  animation: toast-in 0.22s ease;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
 }
 
 .create-account-toast--success {
   background: #ecfdf5;
-  border: 1px solid #6ee7b7;
+  border: 1px solid #a7f3d0;
   color: #065f46;
 }
 
 .create-account-toast--error {
   background: #fef2f2;
-  border: 1px solid #fca5a5;
+  border: 1px solid #fecaca;
   color: #991b1b;
 }
 
-@keyframes toast-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-
-/* ── Button disabled state ── */
-.create-account-button:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-/* ── responsive ── */
-@media (max-width: 560px) {
-  .create-account-page {
-    padding: 28px 16px;
-    align-items: flex-start;
+@media (max-width: 840px) {
+  .create-account-layout {
+    grid-template-columns: 1fr;
   }
 
-  .create-account-header {
-    padding: 28px 22px 4px;
+  .create-account-shell {
+    max-width: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .create-account-pagehead {
+    padding: 12px 14px;
+  }
+
+  .create-account-pagehead h1 {
+    font-size: 1.05rem;
   }
 
   .create-account-form {
-    padding: 24px 22px 28px;
+    padding: 14px;
+  }
+
+  .create-account-form__grid,
+  .role-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .create-account-pagehead__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .create-account-back {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .create-account-form__footer {
+    justify-content: stretch;
+  }
+
+  .create-account-button {
+    width: 100%;
+  }
+
+  .create-account-toast {
+    left: 12px;
+    right: 12px;
+    transform: none;
+    max-width: none;
+    min-width: 0;
   }
 }

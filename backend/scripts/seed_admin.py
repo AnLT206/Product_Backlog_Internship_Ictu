@@ -29,6 +29,7 @@ from app.core.database import SessionLocal
 from app.models.role import Role
 from app.models.user import User
 from app.utils.hash_password import hash_password
+from app.utils.user_code import backfill_user_codes, next_user_code
 
 DEFAULT_ROLES: list[tuple[str, str]] = [
     ("intern", "Thực tập sinh (TTS) — đăng ký công khai qua /api/auth/register"),
@@ -78,6 +79,7 @@ def ensure_admin(db: Session, roles: dict[str, Role]) -> None:
         return
 
     user = User(
+        code=next_user_code(db, "admin"),
         email=ADMIN_EMAIL,
         password_hash=hash_password(ADMIN_PASSWORD),
         full_name=ADMIN_FULL_NAME or "System Admin",
@@ -96,6 +98,9 @@ def run_seed() -> None:
     try:
         roles = ensure_roles(db)
         ensure_admin(db, roles)
+        filled = backfill_user_codes(db)
+        if filled:
+            print(f"[seed] gán mã hiển thị cho {filled} user(s)")
         db.commit()
         print("[seed] xong.")
     except Exception:

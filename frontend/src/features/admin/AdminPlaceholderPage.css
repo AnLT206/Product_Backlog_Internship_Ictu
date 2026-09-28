@@ -1,46 +1,48 @@
 .admin-placeholder {
-  --fb-blue: #1877f2;
-  --fb-blue-soft: #e7f3ff;
-  --fb-ink: #0f172a;
-  --fb-muted: #65676b;
-  --fb-line: #e4e6eb;
+  --admin-primary: #1877f2;
+  --admin-primary-soft: #e7f3ff;
+  --admin-ink: #1a2332;
+  --admin-muted: #64748b;
+  --admin-line: #e2e8f0;
 
   max-width: 560px;
-  padding: 28px;
-  border-radius: 24px;
+  padding: 20px 22px;
+  border-radius: var(--radius-md);
   background: #fff;
-  border: 1px solid var(--fb-line);
-  box-shadow:
-    0 4px 6px rgba(15, 23, 42, 0.03),
-    0 24px 48px rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--admin-line);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .admin-placeholder h1 {
-  margin: 0 0 10px;
-  font-size: 1.35rem;
-  color: var(--fb-ink);
-  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--admin-ink);
+  letter-spacing: -0.01em;
 }
 
 .admin-placeholder p {
-  margin: 0 0 18px;
-  color: var(--fb-muted);
-  line-height: 1.55;
+  margin: 0 0 14px;
+  color: var(--admin-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
 }
 
 .admin-placeholder a {
   display: inline-flex;
   align-items: center;
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: var(--fb-blue-soft);
-  border: 1px solid #d0e4ff;
-  color: var(--fb-blue);
-  font-weight: 700;
+  height: auto;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  color: var(--admin-primary);
+  font-weight: 600;
+  font-size: 0.84rem;
   text-decoration: none;
 }
 
 .admin-placeholder a:hover {
-  background: #dcebff;
+  background: transparent;
+  text-decoration: underline;
 }

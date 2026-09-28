@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.user_profile import UserProfile
 from app.schemas.mentor import MentorCreateRequest, MentorResponse
 from app.utils.hash_password import hash_password
+from app.utils.user_code import next_user_code
 
 MENTOR_ROLE_NAME = "mentor"
 
@@ -68,6 +69,7 @@ class MentorService:
 
         try:
             user = User(
+                code=next_user_code(self.db, MENTOR_ROLE_NAME),
                 email=payload.email,
                 password_hash=hash_password(payload.password),
                 full_name=payload.full_name,

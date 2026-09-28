@@ -40,7 +40,7 @@
   z-index: 1;
   width: min(480px, 100%);
   padding: 28px 28px 24px;
-  border-radius: 24px;
+  border-radius: var(--radius-md);
   background: #fff;
   border: 1px solid var(--fb-line);
   box-shadow:
@@ -52,7 +52,7 @@
   display: inline-flex;
   margin: 0 0 14px;
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-xs);
   background: var(--fb-blue-soft);
   border: 1px solid #d0e4ff;
   color: var(--fb-blue);
@@ -85,7 +85,7 @@
 .role-home__actions button {
   height: 42px;
   padding: 0 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   border: none;
   font: inherit;
   font-weight: 700;
