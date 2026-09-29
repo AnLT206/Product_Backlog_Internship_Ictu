@@ -9,6 +9,7 @@ from app.api.routes import (
     intern_contract,
     interns,
     mentors,
+    mentor_assignments,
     programs,
     support_requests,
     tasks,
@@ -22,6 +23,7 @@ api_router.include_router(documents.intern_router)    # /api/intern/documents/*
 api_router.include_router(intern_contract.router)
 api_router.include_router(interns.router)
 api_router.include_router(mentors.router)
+api_router.include_router(mentor_assignments.router)
 api_router.include_router(programs.router)
 api_router.include_router(admin.router)
 api_router.include_router(admin.users_router)
