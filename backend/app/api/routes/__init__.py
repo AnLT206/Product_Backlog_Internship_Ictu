@@ -13,6 +13,7 @@ from app.api.routes import (
     programs,
     support_requests,
     tasks,
+    weekly_reports,
 )
 
 api_router = APIRouter(prefix="/api")
@@ -30,4 +31,5 @@ api_router.include_router(admin.users_router)
 api_router.include_router(tasks.router)
 api_router.include_router(attendance.router)
 api_router.include_router(support_requests.router)
+api_router.include_router(weekly_reports.router)
 

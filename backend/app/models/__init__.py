@@ -12,6 +12,7 @@ from app.models.support_request import SupportRequest
 from app.models.task import Task
 from app.models.user import User
 from app.models.user_profile import UserProfile
+from app.models.weekly_report import ReportFeedback, WeeklyReport
 
 __all__ = [
     "Attendance",
@@ -21,6 +22,7 @@ __all__ = [
     "Permission",
     "RolePermission",
     "Role",
+    "ReportFeedback",
     "SupportRequest",
     "SystemLog",
     "Task",
@@ -29,6 +31,7 @@ __all__ = [
     "InternshipProgram",
     "ProgramMember",
     "UserProfile",
+    "WeeklyReport",
 ]
 
 
