@@ -309,7 +309,7 @@ function InternUploadPage() {
                   /* File đã chọn: hiển thị icon + tên */
                   <div className="intern-upload-dropzone__file">
                     <span className="intern-upload-dropzone__file-icon" aria-hidden="true">
-                      {file.name.toLowerCase().endsWith('.pdf') ? '📄' : '📝'}
+                      
                     </span>
                     <div className="intern-upload-dropzone__file-info">
                       <span className="intern-upload-dropzone__file-name">{file.name}</span>
@@ -401,7 +401,7 @@ function InternUploadPage() {
                   {/* Icon + tên file */}
                   <div className="intern-upload-item__info">
                     <span className="intern-upload-item__icon" aria-hidden="true">
-                      {doc.file_name.endsWith('.pdf') ? '📄' : '📝'}
+                      
                     </span>
                     <div>
                       <p className="intern-upload-item__name">{doc.file_name}</p>
@@ -422,7 +422,7 @@ function InternUploadPage() {
                         className="intern-upload-link intern-upload-link--preview"
                         id={`preview-link-${doc.id}`}
                       >
-                        👁 Xem trước
+                        Xem trước
                       </a>
 
                       {/* Tải xuống — dùng thuộc tính download */}

@@ -170,7 +170,7 @@ export default function ContractTab({ internId, onSaveContract }) {
       {/* Thông báo lỗi nếu có */}
       {errorMessage && (
         <div className="contract-error-alert" role="alert">
-          <span aria-hidden="true">⚠️</span>
+          
           <span>{errorMessage}</span>
         </div>
       )}

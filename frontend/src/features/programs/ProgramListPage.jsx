@@ -82,7 +82,7 @@ function ProgramListPage() {
         <div className="program-table-card">
           {programs.length === 0 ? (
             <div className="program-empty">
-              <span className="program-empty__icon">📋</span>
+              
               Chưa có chương trình thực tập nào.
               <br />
               Bấm <strong>Tạo chương trình mới</strong> để bắt đầu.

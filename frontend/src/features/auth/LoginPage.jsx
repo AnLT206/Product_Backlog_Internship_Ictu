@@ -30,6 +30,12 @@ const QUICK_ACCOUNTS = [
     password: 'Intern@123',
     variant: 'intern',
   },
+  {
+    role: 'Ứng viên',
+    email: 'ungvien@ictu.edu.vn',
+    password: 'Intern@123',
+    variant: 'intern',
+  },
 ]
 
 function LoginPage() {

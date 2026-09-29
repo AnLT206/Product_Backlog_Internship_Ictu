@@ -372,7 +372,7 @@ function InternCreatePage() {
               {/* ── Cột 1: Thông tin cơ bản ── */}
               <fieldset className="intern-create-col">
                 <legend className="intern-create-section__title">
-                  <span>👤</span> Thông tin cơ bản
+                  Thông tin cơ bản
                 </legend>
 
                 {/* Họ tên */}
@@ -508,7 +508,7 @@ function InternCreatePage() {
               {/* ── Cột 2: Thông tin học vấn ── */}
               <fieldset className="intern-create-col">
                 <legend className="intern-create-section__title">
-                  <span>🎓</span> Thông tin học vấn
+                  Thông tin học vấn
                 </legend>
 
                 {/* Trường */}
@@ -624,7 +624,7 @@ function InternCreatePage() {
             {/* ── Khu vực Upload CV của ứng viên (ở phía dưới 2 cột) ── */}
             <div className="intern-create-cv-section">
               <div className="intern-create-section__title">
-                <span>📄</span> Hồ sơ & CV của ứng viên
+                Hồ sơ & CV của ứng viên
               </div>
               <p style={{ margin: '0 0 16px', fontSize: 13.5, color: '#65676b' }}>
                 Tải lên bản CV của ứng viên để lưu trữ vào hệ thống xét duyệt và quản lý hồ sơ thực tập.
@@ -687,7 +687,7 @@ function InternCreatePage() {
                       className="intern-cv-remove-btn"
                       onClick={() => { setCvFile(null); setCvError(''); }}
                     >
-                      ✕ Hủy file
+                      Hủy file
                     </button>
                   </div>
                 </div>
@@ -717,7 +717,7 @@ function InternCreatePage() {
                     Đang lưu…
                   </>
                 ) : (
-                  '💾 Lưu hồ sơ'
+                  'Lưu hồ sơ'
                 )}
               </button>
             </div>

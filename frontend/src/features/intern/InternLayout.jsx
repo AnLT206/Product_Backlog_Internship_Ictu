@@ -14,7 +14,7 @@ import './InternLayout.css'
  * - Hợp đồng & quyền lợi
  */
 const INTERN_NAV = [
-  { to: '/intern/dashboard', label: 'Tổng quan', end: true, icon: '📊' },
+  { to: '/intern/dashboard', label: 'Tổng quan', end: true },
 ]
 
 export default function InternLayout() {
@@ -101,7 +101,6 @@ export default function InternLayout() {
                 `intern-nav-link${isActive ? ' is-active' : ''}`
               }
             >
-              <span className="intern-nav-link__icon" aria-hidden="true">{item.icon}</span>
               <span className="intern-nav-link__label">{item.label}</span>
             </NavLink>
           ))}

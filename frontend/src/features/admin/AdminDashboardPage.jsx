@@ -86,7 +86,7 @@ export default function AdminDashboardPage() {
             <span aria-hidden="true">/</span>
             <span>Tổng quan</span>
           </nav>
-          <h1>Xin chào, {user?.full_name || 'Quản trị viên'} 👋</h1>
+          <h1>Xin chào, {user?.full_name || 'Quản trị viên'}</h1>
           <p className="admin-dash__lead">
             Quản trị người dùng và theo dõi hoạt động hệ thống thực tập ICTU.
           </p>

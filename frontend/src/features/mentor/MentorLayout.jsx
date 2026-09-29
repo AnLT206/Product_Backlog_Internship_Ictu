@@ -14,7 +14,7 @@ import './MentorLayout.css'
  * - Đánh giá năng lực cuối kỳ (Evaluations)
  */
 const MENTOR_NAV = [
-  { to: '/mentor/dashboard', label: 'Tổng quan', end: true, icon: '📊' },
+  { to: '/mentor/dashboard', label: 'Tổng quan', end: true },
 ]
 
 export default function MentorLayout() {
@@ -101,7 +101,6 @@ export default function MentorLayout() {
                 `mentor-nav-link${isActive ? ' is-active' : ''}`
               }
             >
-              <span className="mentor-nav-link__icon" aria-hidden="true">{item.icon}</span>
               <span className="mentor-nav-link__label">{item.label}</span>
             </NavLink>
           ))}

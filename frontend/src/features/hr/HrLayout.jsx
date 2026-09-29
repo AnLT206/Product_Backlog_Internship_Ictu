@@ -13,12 +13,12 @@ import './HrLayout.css'
  * - Quản lý Mentor & phòng ban
  */
 const HR_NAV = [
-  { to: '/hr/dashboard', label: 'Tổng quan', end: true, icon: '📊' },
-  { to: '/hr/interns', label: 'Hồ sơ thực tập sinh', end: true, icon: '👥' },
-  { to: '/hr/interns/new', label: 'Thêm mới TTS', icon: '➕' },
-  { to: '/hr/programs', label: 'Chương trình thực tập', end: true, icon: '🎓' },
-  { to: '/hr/programs/new', label: 'Tạo chương trình', icon: '📝' },
-  { to: '/hr/mentors', label: 'Danh sách Mentor', icon: '👨‍🏫' },
+  { to: '/hr/dashboard', label: 'Tổng quan', end: true },
+  { to: '/hr/interns', label: 'Hồ sơ thực tập sinh', end: true },
+  { to: '/hr/interns/new', label: 'Thêm mới TTS' },
+  { to: '/hr/programs', label: 'Chương trình thực tập', end: true },
+  { to: '/hr/programs/new', label: 'Tạo chương trình' },
+  { to: '/hr/mentors', label: 'Danh sách Mentor' },
 ]
 
 export default function HrLayout() {
@@ -105,7 +105,6 @@ export default function HrLayout() {
                 `hr-nav-link${isActive ? ' is-active' : ''}`
               }
             >
-              <span className="hr-nav-link__icon" aria-hidden="true">{item.icon}</span>
               <span className="hr-nav-link__label">{item.label}</span>
             </NavLink>
           ))}

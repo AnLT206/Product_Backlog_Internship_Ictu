@@ -381,7 +381,7 @@ function InternEditPage() {
               {/* ── Cột 1: Thông tin cơ bản ── */}
               <fieldset className="intern-create-col">
                 <legend className="intern-create-section__title">
-                  <span>👤</span> Thông tin cơ bản
+                  Thông tin cơ bản
                 </legend>
 
                 {/* Họ và tên */}
@@ -481,7 +481,7 @@ function InternEditPage() {
               {/* ── Cột 2: Thông tin học vấn ── */}
               <fieldset className="intern-create-col">
                 <legend className="intern-create-section__title">
-                  <span>🎓</span> Thông tin học vấn
+                  Thông tin học vấn
                 </legend>
 
                 {/* Trường đại học */}
@@ -582,7 +582,7 @@ function InternEditPage() {
             {/* ── Khu vực Upload CV của ứng viên (ở phía dưới 2 cột) ── */}
             <div className="intern-create-cv-section">
               <div className="intern-create-section__title">
-                <span>📄</span> Hồ sơ & CV của ứng viên
+                Hồ sơ & CV của ứng viên
               </div>
               <p style={{ margin: '0 0 16px', fontSize: 13.5, color: '#65676b' }}>
                 Cập nhật bản CV hoặc tài liệu đính kèm của ứng viên (PDF, DOC, DOCX - tối đa 5MB).
@@ -645,7 +645,7 @@ function InternEditPage() {
                       className="intern-cv-remove-btn"
                       onClick={() => { setCvFile(null); setCvError(''); }}
                     >
-                      ✕ Hủy file mới
+                      Hủy file mới
                     </button>
                   </div>
                 </div>

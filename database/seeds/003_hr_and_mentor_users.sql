@@ -3,8 +3,10 @@
 --    Email: hr@ictu.edu.vn | Pass: Hr@123 | Role: hr
 -- 2. Mentor:
 --    Email: mentor@ictu.edu.vn | Pass: Mentor@123 | Role: mentor
--- 3. Thực tập sinh (Intern):
+-- 3. Thực tập sinh (Intern - Approved):
 --    Email: intern@ictu.edu.vn | Pass: Intern@123 | Role: intern
+-- 4. Thực tập sinh Ứng viên chờ duyệt (Intern Applicant - Pending - Test nộp CV & Dashboard ứng viên):
+--    Email: ungvien@ictu.edu.vn | Pass: Intern@123 | Role: intern
 --
 -- Chạy SAU schema.sql, 001_roles.sql và 002_admin_user.sql.
 -- Idempotent theo email: đã có thì bỏ qua.
@@ -83,3 +85,34 @@ WHERE u.`email` = 'intern@ictu.edu.vn'
   AND NOT EXISTS (
       SELECT 1 FROM `intern_profiles` ip WHERE ip.`user_id` = u.`id`
   );
+
+-- Thực tập sinh Ứng viên chờ duyệt (Intern Applicant - Pending)
+INSERT INTO `users` (`code`, `email`, `password_hash`, `full_name`, `role_id`, `status`)
+SELECT
+    'TTS9999',
+    'ungvien@ictu.edu.vn',
+    '$2b$12$KfwR80jYu/hwl9a5InqpEeV9X9zXwOODZvj8fQJOlKEj6n6vMygMK',
+    'Nguyễn Văn An',
+    r.`id`,
+    'pending'
+FROM `roles` r
+WHERE r.`name` = 'intern'
+  AND NOT EXISTS (
+      SELECT 1 FROM `users` u WHERE u.`email` = 'ungvien@ictu.edu.vn'
+  );
+
+INSERT INTO `intern_profiles` (`user_id`, `status`, `phone_number`, `university`, `major`, `academic_year`, `gpa`)
+SELECT
+    u.`id`,
+    'pending',
+    '0987654321',
+    'Đại học Công nghệ Thông tin và Truyền thông (ICTU)',
+    'Công nghệ thông tin',
+    '2022 - 2026',
+    3.55
+FROM `users` u
+WHERE u.`email` = 'ungvien@ictu.edu.vn'
+  AND NOT EXISTS (
+      SELECT 1 FROM `intern_profiles` ip WHERE ip.`user_id` = u.`id`
+  );
+

@@ -24,7 +24,7 @@ export default function ContractSigningPage({ internName = 'Nguyễn Văn A', on
         await onConfirmSign();
       } else {
         await new Promise((resolve) => setTimeout(resolve, 800));
-        alert('🎉 Bạn đã ký kết hợp đồng thực tập thành công!');
+        alert('Bạn đã ký kết hợp đồng thực tập thành công!');
       }
     } catch (error) {
       console.error('Lỗi khi ký hợp đồng:', error);
@@ -130,7 +130,7 @@ export default function ContractSigningPage({ internName = 'Nguyễn Văn A', on
           <div className="contract-actions-row">
             <span className={`contract-status-hint ${isChecked ? 'has-agreed' : ''}`}>
               {isChecked
-                ? '✓ Đã xác nhận đồng ý điều khoản'
+                ? 'Đã xác nhận đồng ý điều khoản'
                 : 'Vui lòng tích vào ô xác nhận để mở nút ký hợp đồng'}
             </span>
 

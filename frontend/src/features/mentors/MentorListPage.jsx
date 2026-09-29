@@ -170,7 +170,7 @@ function MentorListPage() {
                   <tr>
                     <td colSpan={5}>
                       <div className="mentor-list-empty">
-                        <span className="mentor-list-empty__icon">👥</span>
+                        
                         Chưa có mentor nào. Bấm "Thêm mentor mới" để bắt đầu.
                       </div>
                     </td>

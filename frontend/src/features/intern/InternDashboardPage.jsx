@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { getContract, confirmContract, getDocumentDownloadUrl } from '../../api/documents'
+import InternApplicantDashboard from './InternApplicantDashboard'
 import './InternDashboardPage.css'
 
 // Dữ liệu mẫu ban đầu bám sát software-specification.md và product-backlog.md
@@ -171,10 +172,25 @@ export default function InternDashboardPage() {
     type: 'Cấp giấy tờ / Chứng nhận',
     content: '',
   })
+  const [isContractSignedLocally, setIsContractSignedLocally] = useState(false)
 
   function showToast(message, type = 'success') {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3500)
+  }
+
+  // Nếu là ứng viên chưa duyệt (hoặc tài khoản ở trạng thái pending và chưa ký HĐ)
+  if (user?.status === 'pending' && !isContractSignedLocally) {
+    return (
+      <InternApplicantDashboard
+        user={user}
+        onContractConfirmed={() => {
+          setIsContractSignedLocally(true)
+          setContractConfirmed(true)
+          showToast('Ký hợp đồng thành công! Chào mừng bạn gia nhập hệ thống thực tập sinh chính thức.')
+        }}
+      />
+    )
   }
 
   // Chấm công (US 21)
@@ -377,11 +393,11 @@ export default function InternDashboardPage() {
             <span>Không gian làm việc cá nhân</span>
           </nav>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <h1>Xin chào, {user?.full_name || 'Thực tập sinh'} {user?.code ? `(${user.code})` : ''} 🎓</h1>
+            <h1>Xin chào, {user?.full_name || 'Thực tập sinh'} {user?.code ? `(${user.code})` : ''}</h1>
             {!contractConfirmed ? (
-              <span className="intern-readonly-tag">🔒 Chế độ Chỉ xem (Chưa ký HĐ)</span>
+              <span className="intern-readonly-tag">Chế độ Chỉ xem (Chưa ký HĐ)</span>
             ) : (
-              <span className="intern-contract-active-badge">✓ Đã xác nhận HĐ</span>
+              <span className="intern-contract-active-badge">Đã xác nhận HĐ</span>
             )}
           </div>
           <p className="intern-dash__lead">
@@ -401,7 +417,7 @@ export default function InternDashboardPage() {
               title={!contractConfirmed ? 'Chỉ mở quyền chấm công sau khi bạn xác nhận đã đọc hợp đồng' : ''}
               style={!contractConfirmed ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
             >
-              ⏱️ Check-in hôm nay
+              Check-in hôm nay
             </button>
           ) : !todayAttendance.checkedOut ? (
             <button
@@ -412,11 +428,11 @@ export default function InternDashboardPage() {
               title={!contractConfirmed ? 'Chỉ mở quyền chấm công sau khi bạn xác nhận đã đọc hợp đồng' : ''}
               style={!contractConfirmed ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
             >
-              🚪 Check-out ({todayAttendance.checkInTime})
+              Check-out ({todayAttendance.checkInTime})
             </button>
           ) : (
             <span className="intern-attend-done-badge">
-              ✓ Đã hoàn thành ngày làm việc ({todayAttendance.checkInTime} - {todayAttendance.checkOutTime})
+              Đã hoàn thành ngày làm việc ({todayAttendance.checkInTime} - {todayAttendance.checkOutTime})
             </span>
           )}
 
@@ -428,7 +444,7 @@ export default function InternDashboardPage() {
             title={!contractConfirmed ? 'Vui lòng xác nhận hợp đồng trước khi nộp báo cáo' : ''}
             style={!contractConfirmed ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
           >
-            📝 Nộp báo cáo tuần
+            Nộp báo cáo tuần
           </button>
           <button
             type="button"
@@ -438,7 +454,7 @@ export default function InternDashboardPage() {
             title={!contractConfirmed ? 'Vui lòng xác nhận hợp đồng trước khi xin nghỉ phép' : ''}
             style={!contractConfirmed ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
           >
-            🏖️ Xin nghỉ phép
+            Xin nghỉ phép
           </button>
         </div>
       </header>
@@ -447,7 +463,7 @@ export default function InternDashboardPage() {
       {!contractConfirmed ? (
         <section className="intern-contract-notice-banner" aria-label="Thông báo hợp đồng thực tập">
           <div className="intern-contract-notice-head">
-            <span className="intern-contract-notice-badge">🔔 THÔNG BÁO QUAN TRỌNG</span>
+            <span className="intern-contract-notice-badge">THÔNG BÁO QUAN TRỌNG</span>
             <h2 className="intern-contract-notice-title">Hồ sơ đã được phê duyệt & Hợp đồng lao động cần xác nhận</h2>
           </div>
 
@@ -460,7 +476,7 @@ export default function InternDashboardPage() {
 
           <div className="intern-contract-notice-card">
             <div className="intern-contract-file-info">
-              <div className="intern-contract-file-icon">📑</div>
+              
               <div>
                 <div className="intern-contract-file-title">
                   {contractData?.file_name || `HopDongThucTap_ICTU_${user?.code || 'TTS'}.pdf`}
@@ -499,7 +515,7 @@ export default function InternDashboardPage() {
               onClick={handleConfirmContract}
               title={!hasReadCheckbox ? 'Vui lòng tích vào checkbox để xác nhận' : 'Kích hoạt toàn bộ quyền thao tác'}
             >
-              {confirmingContract ? 'Đang xử lý…' : '✓ Xác nhận đã đọc & Mở quyền thao tác'}
+              {confirmingContract ? 'Đang xử lý…' : 'Xác nhận đã đọc & Mở quyền thao tác'}
             </button>
           </div>
         </section>
@@ -558,8 +574,7 @@ export default function InternDashboardPage() {
           className={`intern-dash__tab-btn ${activeTab === 'tasks' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('tasks')}
         >
-          <span className="intern-dash__tab-icon">📋</span>
-          Nhiệm vụ & Tiến độ ({tasks.length})
+                    Nhiệm vụ & Tiến độ ({tasks.length})
         </button>
 
         <button
@@ -567,8 +582,7 @@ export default function InternDashboardPage() {
           className={`intern-dash__tab-btn ${activeTab === 'reports' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('reports')}
         >
-          <span className="intern-dash__tab-icon">📝</span>
-          Báo cáo tuần & Feedback ({reports.length})
+                    Báo cáo tuần & Feedback ({reports.length})
         </button>
 
         <button
@@ -576,8 +590,7 @@ export default function InternDashboardPage() {
           className={`intern-dash__tab-btn ${activeTab === 'attendance' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('attendance')}
         >
-          <span className="intern-dash__tab-icon">⏱️</span>
-          Chấm công & Nghỉ phép
+                    Chấm công & Nghỉ phép
         </button>
 
         <button
@@ -585,8 +598,7 @@ export default function InternDashboardPage() {
           className={`intern-dash__tab-btn ${activeTab === 'contract' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('contract')}
         >
-          <span className="intern-dash__tab-icon">📄</span>
-          Hợp đồng & Đánh giá năng lực
+                    Hợp đồng & Đánh giá năng lực
         </button>
 
         <button
@@ -594,8 +606,7 @@ export default function InternDashboardPage() {
           className={`intern-dash__tab-btn ${activeTab === 'support' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('support')}
         >
-          <span className="intern-dash__tab-icon">💬</span>
-          Yêu cầu hỗ trợ ({tickets.length})
+                    Yêu cầu hỗ trợ ({tickets.length})
         </button>
       </nav>
 
@@ -630,11 +641,11 @@ export default function InternDashboardPage() {
                       <strong className="intern-table__strong">{task.title}</strong>
                       <div className="intern-table__sub">{task.description}</div>
                       {task.note && (
-                        <div className="intern-task-note">💡 Ghi chú: {task.note}</div>
+                        <div className="intern-task-note">Ghi chú: {task.note}</div>
                       )}
                     </td>
                     <td>
-                      <span className="intern-table__sub">🗓️ {task.due_at}</span>
+                      <span className="intern-table__sub">{task.due_at}</span>
                     </td>
                     <td>
                       <span
@@ -660,16 +671,16 @@ export default function InternDashboardPage() {
                         }`}
                       >
                         {task.status === 'done'
-                          ? '✓ Hoàn thành'
+                          ? 'Hoàn thành'
                           : task.status === 'doing'
-                          ? '⚡ Đang thực hiện'
-                          : '⏳ Chưa bắt đầu'}
+                          ? 'Đang thực hiện'
+                          : 'Chưa bắt đầu'}
                       </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       {!contractConfirmed ? (
                         <span className="intern-readonly-tag" title="Vui lòng xác nhận hợp đồng để cập nhật nhiệm vụ">
-                          🔒 Chỉ xem
+                          Chỉ xem
                         </span>
                       ) : (
                         <button
@@ -677,7 +688,7 @@ export default function InternDashboardPage() {
                           className="intern-action-btn intern-action-btn--primary"
                           onClick={() => openTaskModal(task)}
                         >
-                          ✏️ Cập nhật tiến độ
+                          Cập nhật tiến độ
                         </button>
                       )}
                     </td>
@@ -724,7 +735,7 @@ export default function InternDashboardPage() {
                       report.status === 'reviewed' ? 'success' : 'warn'
                     }`}
                   >
-                    {report.status === 'reviewed' ? '✓ Mentor đã phản hồi' : '⏳ Chờ Mentor nhận xét'}
+                    {report.status === 'reviewed' ? 'Mentor đã phản hồi' : 'Chờ Mentor nhận xét'}
                   </span>
                 </div>
 
@@ -745,19 +756,19 @@ export default function InternDashboardPage() {
                   </div>
 
                   <div className="intern-report-file">
-                    <span>📎 File đính kèm:</span>
+                    <span>File đính kèm:</span>
                     <button
                       type="button"
                       className="intern-link-btn"
                       onClick={() => showToast(`Đang tải file ${report.file_name}`)}
                     >
-                      📄 {report.file_name}
+                      {report.file_name}
                     </button>
                   </div>
 
                   {report.feedback && (
                     <div className="intern-report-feedback-box">
-                      <strong>💬 Nhận xét & Hướng dẫn của Mentor:</strong>
+                      <strong>Nhận xét & Hướng dẫn của Mentor:</strong>
                       <p>"{report.feedback}"</p>
                     </div>
                   )}
@@ -832,13 +843,13 @@ export default function InternDashboardPage() {
               {leaves.map((leave) => (
                 <div key={leave.id} className="intern-leave-card">
                   <div className="intern-leave-card__header">
-                    <strong>🗓️ {leave.dates}</strong>
+                    <strong>{leave.dates}</strong>
                     <span
                       className={`intern-badge intern-badge--${
                         leave.status === 'approved' ? 'success' : 'warn'
                       }`}
                     >
-                      {leave.status === 'approved' ? '✓ Đã phê duyệt' : '⏳ Chờ HR duyệt'}
+                      {leave.status === 'approved' ? 'Đã phê duyệt' : 'Chờ HR duyệt'}
                     </span>
                   </div>
                   <p className="intern-leave-card__reason"><strong>Lý do:</strong> {leave.reason}</p>
@@ -863,7 +874,7 @@ export default function InternDashboardPage() {
             </div>
 
             <div className="intern-contract-card">
-              <div className="intern-contract-icon">📑</div>
+              
               <div className="intern-contract-info">
                 <h3>{contractData?.file_name || `HopDongThucTap_ICTU_${user?.code || 'TTS'}.pdf`}</h3>
                 <p className="intern-table__sub">Doanh nghiệp: ICTU Software & AI Center</p>
@@ -896,12 +907,12 @@ export default function InternDashboardPage() {
                       onClick={handleConfirmContract}
                       title={!hasReadCheckbox ? 'Vui lòng tích vào checkbox để xác nhận' : 'Kích hoạt toàn bộ quyền thao tác'}
                     >
-                      {confirmingContract ? 'Đang xử lý…' : '✓ Xác nhận đồng ý hợp đồng'}
+                      {confirmingContract ? 'Đang xử lý…' : 'Xác nhận đồng ý hợp đồng'}
                     </button>
                   </div>
                 ) : (
                   <span className="intern-badge intern-badge--success">
-                    ✓ Đã xác nhận trên hệ thống (Đầy đủ quyền)
+                    Đã xác nhận trên hệ thống (Đầy đủ quyền)
                   </span>
                 )}
               </div>
@@ -962,7 +973,7 @@ export default function InternDashboardPage() {
               </div>
 
               <div className="intern-eval-comment-box">
-                <strong>💬 Lời nhận xét của Mentor:</strong>
+                <strong>Lời nhận xét của Mentor:</strong>
                 <p>
                   "An có tư duy lập trình vững vàng, nắm bắt nhanh kiến trúc dự án. Thái độ học hỏi cầu thị, chuyên cần và luôn hoàn thành task đúng hẹn. Rất mong muốn An tiếp tục gắn bó lâu dài cùng công ty."
                 </p>
@@ -1005,7 +1016,7 @@ export default function InternDashboardPage() {
                       ticket.status === 'resolved' ? 'success' : 'warn'
                     }`}
                   >
-                    {ticket.status === 'resolved' ? '✓ Đã phản hồi' : '⏳ Đang xử lý'}
+                    {ticket.status === 'resolved' ? 'Đã phản hồi' : 'Đang xử lý'}
                   </span>
                 </div>
                 <p className="intern-ticket-card__body">{ticket.content}</p>

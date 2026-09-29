@@ -270,8 +270,8 @@
 
 .login-quick-actions {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
   margin-bottom: 8px;
 }
 
@@ -302,40 +302,21 @@
 }
 
 .login-quick-btn:hover:not(:disabled) {
+  border-color: var(--fb-blue, #1877f2);
+  background: var(--fb-blue-soft, #f0f7ff);
+  color: var(--fb-blue, #1877f2);
+  box-shadow: 0 4px 14px rgba(24, 119, 242, 0.18);
   transform: translateY(-1.5px);
 }
 
 .login-quick-btn:active:not(:disabled) {
   transform: translateY(0) scale(0.98);
+  background: #e0edff;
 }
 
-/* Tinh chỉnh màu hover riêng biệt từng vai trò */
-.login-quick-btn--admin:hover:not(:disabled) {
-  border-color: #64748b;
-  background: #f8fafc;
-  color: #0f172a;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-}
-
-.login-quick-btn--hr:hover:not(:disabled) {
-  border-color: #10b981;
-  background: #ecfdf5;
-  color: #047857;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
-}
-
-.login-quick-btn--mentor:hover:not(:disabled) {
-  border-color: #8b5cf6;
-  background: #f5f3ff;
-  color: #6d28d9;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
-}
-
-.login-quick-btn--intern:hover:not(:disabled) {
-  border-color: var(--fb-blue);
-  background: var(--fb-blue-soft);
-  color: var(--fb-blue);
-  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.15);
+.login-quick-btn:focus-visible {
+  border-color: var(--fb-blue, #1877f2);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.2);
 }
 
 .login-quick-btn:disabled {

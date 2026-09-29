@@ -260,7 +260,7 @@ export default function MentorDashboardPage() {
             <span aria-hidden="true">/</span>
             <span>Tổng quan hướng dẫn</span>
           </nav>
-          <h1>Xin chào Mentor, {user?.full_name || 'Cán bộ hướng dẫn'} 🌟</h1>
+          <h1>Xin chào Mentor, {user?.full_name || 'Cán bộ hướng dẫn'}</h1>
           <p className="mentor-dash__lead">
             Quản lý thực tập sinh được phân công: giao nhiệm vụ, hướng dẫn kỹ thuật, theo dõi tiến độ, phản hồi báo cáo và đánh giá năng lực cuối kỳ.
           </p>
@@ -279,14 +279,14 @@ export default function MentorDashboardPage() {
             className="mentor-dash__btn mentor-dash__btn--ghost"
             onClick={() => setActiveTab('reports')}
           >
-            ✍️ Phản hồi báo cáo ({pendingReportsCount})
+            Phản hồi báo cáo ({pendingReportsCount})
           </button>
           <button
             type="button"
             className="mentor-dash__btn mentor-dash__btn--ghost"
             onClick={() => setActiveTab('evaluations')}
           >
-            ⭐ Đánh giá TTS
+            Đánh giá TTS
           </button>
         </div>
       </header>
@@ -327,8 +327,7 @@ export default function MentorDashboardPage() {
           className={`mentor-dash__tab-btn ${activeTab === 'mentees' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('mentees')}
         >
-          <span className="mentor-dash__tab-icon">👥</span>
-          Thực tập sinh phụ trách ({mentees.length})
+                    Thực tập sinh phụ trách ({mentees.length})
         </button>
 
         <button
@@ -336,8 +335,7 @@ export default function MentorDashboardPage() {
           className={`mentor-dash__tab-btn ${activeTab === 'tasks' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('tasks')}
         >
-          <span className="mentor-dash__tab-icon">📋</span>
-          Nhiệm vụ & Tiến độ ({tasks.length})
+                    Nhiệm vụ & Tiến độ ({tasks.length})
         </button>
 
         <button
@@ -345,8 +343,7 @@ export default function MentorDashboardPage() {
           className={`mentor-dash__tab-btn ${activeTab === 'reports' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('reports')}
         >
-          <span className="mentor-dash__tab-icon">📝</span>
-          Báo cáo tuần ({pendingReportsCount > 0 ? `+${pendingReportsCount}` : reports.length})
+                    Báo cáo tuần ({pendingReportsCount > 0 ? `+${pendingReportsCount}` : reports.length})
         </button>
 
         <button
@@ -354,8 +351,7 @@ export default function MentorDashboardPage() {
           className={`mentor-dash__tab-btn ${activeTab === 'evaluations' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('evaluations')}
         >
-          <span className="mentor-dash__tab-icon">⭐</span>
-          Đánh giá năng lực cuối kỳ
+                    Đánh giá năng lực cuối kỳ
         </button>
       </nav>
 
@@ -381,7 +377,7 @@ export default function MentorDashboardPage() {
           <div className="mentor-mentees-grid">
             {mentees.length === 0 ? (
               <div className="mentor-empty" style={{ gridColumn: '1 / -1' }}>
-                <span className="mentor-empty__icon">👥</span>
+                
                 <strong>Chưa có thực tập sinh nào</strong>
                 <span>Hiện tại chưa có thực tập sinh nào trong danh mục hướng dẫn của bạn.</span>
               </div>
@@ -398,9 +394,9 @@ export default function MentorDashboardPage() {
                   </div>
 
                   <div className="mentor-mentee-card__body">
-                    <p>🏫 <strong>Trường:</strong> {m.university}</p>
-                    <p>💻 <strong>Ngành:</strong> {m.major} · GPA: {m.gpa}</p>
-                    <p>⏱️ <strong>Chuyên cần:</strong> {m.attendance_rate} có mặt</p>
+                    <p><strong>Trường:</strong> {m.university}</p>
+                    <p><strong>Ngành:</strong> {m.major} · GPA: {m.gpa}</p>
+                    <p><strong>Chuyên cần:</strong> {m.attendance_rate} có mặt</p>
 
                     <div className="mentor-mentee-card__progress-wrap">
                       <div className="mentor-mentee-card__progress-label">
@@ -429,7 +425,7 @@ export default function MentorDashboardPage() {
                       className="mentor-action-btn mentor-action-btn--ghost"
                       onClick={() => openEvaluationModal(m)}
                     >
-                      ⭐ Đánh giá
+                      Đánh giá
                     </button>
                   </div>
                 </div>
@@ -498,7 +494,7 @@ export default function MentorDashboardPage() {
                   <tr>
                     <td colSpan={7}>
                       <div className="mentor-empty">
-                        <span className="mentor-empty__icon">📋</span>
+                        
                         <strong>Không có nhiệm vụ nào trong mục này</strong>
                         <span>Bấm "Giao việc mới" để thêm đầu việc cho TTS.</span>
                       </div>
@@ -515,7 +511,7 @@ export default function MentorDashboardPage() {
                         <strong>{task.intern_name}</strong>
                       </td>
                       <td>
-                        <span className="mentor-table__sub">🗓️ {task.due_at}</span>
+                        <span className="mentor-table__sub">{task.due_at}</span>
                       </td>
                       <td>
                         <span
@@ -541,10 +537,10 @@ export default function MentorDashboardPage() {
                           }`}
                         >
                           {task.status === 'done'
-                            ? '✓ Đã xong'
+                            ? 'Đã xong'
                             : task.status === 'review'
-                            ? '⏳ Chờ xem xét'
-                            : '⚡ Đang làm'}
+                            ? 'Chờ xem xét'
+                            : 'Đang làm'}
                         </span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
@@ -555,7 +551,7 @@ export default function MentorDashboardPage() {
                             onClick={() => handleMarkTaskDone(task.id)}
                             title="Xác nhận duyệt hoàn thành task"
                           >
-                            ✓ Nghiệm thu
+                            Nghiệm thu
                           </button>
                         ) : (
                           <span className="mentor-table__sub">Đã nghiệm thu</span>
@@ -598,7 +594,7 @@ export default function MentorDashboardPage() {
                       report.status === 'reviewed' ? 'success' : 'warn'
                     }`}
                   >
-                    {report.status === 'reviewed' ? '✓ Đã phản hồi' : '⏳ Chờ nhận xét'}
+                    {report.status === 'reviewed' ? 'Đã phản hồi' : 'Chờ nhận xét'}
                   </span>
                 </div>
 
@@ -619,19 +615,19 @@ export default function MentorDashboardPage() {
                   </div>
 
                   <div className="mentor-report-file">
-                    <span>📎 Tệp đính kèm:</span>
+                    <span>Tệp đính kèm:</span>
                     <button
                       type="button"
                       className="mentor-link-btn"
                       onClick={() => showToast(`Đang tải file ${report.file_name}`)}
                     >
-                      📄 {report.file_name}
+                      {report.file_name}
                     </button>
                   </div>
 
                   {report.feedback && (
                     <div className="mentor-report-feedback-box">
-                      <strong>💬 Nhận xét của Mentor:</strong>
+                      <strong>Nhận xét của Mentor:</strong>
                       <p>{report.feedback}</p>
                     </div>
                   )}
@@ -643,7 +639,7 @@ export default function MentorDashboardPage() {
                     className="mentor-action-btn mentor-action-btn--primary"
                     onClick={() => openFeedbackModal(report)}
                   >
-                    ✍️ {report.feedback ? 'Chỉnh sửa phản hồi' : 'Viết phản hồi cho TTS'}
+                    {report.feedback ? 'Chỉnh sửa phản hồi' : 'Viết phản hồi cho TTS'}
                   </button>
                 </div>
               </div>
@@ -715,7 +711,7 @@ export default function MentorDashboardPage() {
                       className="mentor-action-btn mentor-action-btn--primary"
                       onClick={() => openEvaluationModal(m)}
                     >
-                      {evalData ? '✏️ Cập nhật điểm & nhận xét' : '⭐ Chấm điểm ngay'}
+                      {evalData ? 'Cập nhật điểm & nhận xét' : 'Chấm điểm ngay'}
                     </button>
                   </div>
                 </div>
@@ -817,7 +813,7 @@ export default function MentorDashboardPage() {
                   Hủy
                 </button>
                 <button type="submit" className="mentor-dash__btn mentor-dash__btn--primary">
-                  ✓ Giao việc
+                  Giao việc
                 </button>
               </div>
             </form>

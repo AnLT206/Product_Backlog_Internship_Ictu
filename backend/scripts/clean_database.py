@@ -1,11 +1,12 @@
 """
 Script làm sạch dữ liệu hệ thống (clean database):
 - Đưa toàn bộ hệ thống về trạng thái trắng tinh.
-- Giữ lại duy nhất 4 tài khoản hệ thống:
-  1. Admin:  admin@ictu.edu.vn  / Admin@123   (AD0001)
-  2. HR:     hr@ictu.edu.vn     / Hr@123      (HR0001)
-  3. Mentor: mentor@ictu.edu.vn / Mentor@123  (MT0001)
-  4. TTS:    intern@ictu.edu.vn / Intern@123  (TTS0002)
+- Giữ lại các tài khoản hệ thống chuẩn:
+  1. Admin:    admin@ictu.edu.vn   / Admin@123   (AD0001)
+  2. HR:       hr@ictu.edu.vn      / Hr@123      (HR0001)
+  3. Mentor:   mentor@ictu.edu.vn  / Mentor@123  (MT0001)
+  4. TTS:      intern@ictu.edu.vn  / Intern@123  (TTS0002 - approved)
+  5. Ứng viên: ungvien@ictu.edu.vn / Intern@123  (TTS9999 - pending)
 - Làm sạch các bảng nghiệp vụ:
   - system_logs (xóa toàn bộ)
   - notifications (xóa toàn bộ)
@@ -63,6 +64,25 @@ KEEP_ACCOUNTS = {
         "full_name": "Nguyễn Văn An",
         "password": "Intern@123",
         "status": "active",
+        "profile_status": "approved",
+        "phone_number": "0912345678",
+        "university": "ĐH Công nghệ Thông tin và Truyền thông (ICTU)",
+        "major": "Công nghệ thông tin",
+        "academic_year": "2022 - 2026",
+        "gpa": 3.65,
+    },
+    "ungvien@ictu.edu.vn": {
+        "code": "TTS9999",
+        "role": "intern",
+        "full_name": "Nguyễn Văn An",
+        "password": "Intern@123",
+        "status": "pending",
+        "profile_status": "pending",
+        "phone_number": "0987654321",
+        "university": "Đại học Công nghệ Thông tin và Truyền thông (ICTU)",
+        "major": "Công nghệ thông tin",
+        "academic_year": "2022 - 2026",
+        "gpa": 3.55,
     },
 }
 
@@ -101,9 +121,9 @@ def clean_database(db: Session) -> None:
         text("DELETE FROM users WHERE email NOT IN :emails"),
         {"emails": keep_emails},
     )
-    print("  -> Đã xóa các người dùng không nằm trong danh sách 4 tài khoản hệ thống.")
+    print("  -> Đã xóa các người dùng không nằm trong danh sách tài khoản hệ thống chuẩn.")
 
-    print("[3/5] Đồng bộ và đảm bảo thông tin 4 tài khoản hệ thống chuẩn...")
+    print("[3/5] Đồng bộ và đảm bảo thông tin các tài khoản hệ thống chuẩn...")
     roles = {r.name: r for r in db.query(Role).all()}
 
     for email, info in KEEP_ACCOUNTS.items():
@@ -148,6 +168,13 @@ def clean_database(db: Session) -> None:
                 )
                 print(f"  -> Tạo user_profiles cho: {email}")
         elif info["role"] == "intern":
+            p_status = info.get("profile_status", "approved")
+            p_phone = info.get("phone_number", "0912345678")
+            p_uni = info.get("university", "ĐH Công nghệ Thông tin và Truyền thông (ICTU)")
+            p_major = info.get("major", "Công nghệ thông tin")
+            p_year = info.get("academic_year", "2022 - 2026")
+            p_gpa = info.get("gpa", 3.65)
+
             ip = db.execute(
                 text("SELECT id FROM intern_profiles WHERE user_id = :uid"),
                 {"uid": user.id},
@@ -155,18 +182,36 @@ def clean_database(db: Session) -> None:
             if not ip:
                 db.execute(
                     text(
-                        "INSERT INTO intern_profiles (user_id, status, phone_number, university, major, gpa) "
-                        "VALUES (:uid, 'approved', '0912345678', 'ĐH Công nghệ Thông tin và Truyền thông (ICTU)', 'Công nghệ thông tin', 3.65)"
+                        "INSERT INTO intern_profiles (user_id, status, phone_number, university, major, academic_year, gpa) "
+                        "VALUES (:uid, :status, :phone, :uni, :major, :year, :gpa)"
                     ),
-                    {"uid": user.id},
+                    {
+                        "uid": user.id,
+                        "status": p_status,
+                        "phone": p_phone,
+                        "uni": p_uni,
+                        "major": p_major,
+                        "year": p_year,
+                        "gpa": p_gpa,
+                    },
                 )
                 print(f"  -> Tạo intern_profiles cho: {email}")
             else:
                 db.execute(
                     text(
-                        "UPDATE intern_profiles SET status = 'approved', university = 'ĐH Công nghệ Thông tin và Truyền thông (ICTU)', major = 'Công nghệ thông tin', gpa = 3.65 WHERE user_id = :uid"
+                        "UPDATE intern_profiles SET status = :status, phone_number = :phone, "
+                        "university = :uni, major = :major, academic_year = :year, gpa = :gpa "
+                        "WHERE user_id = :uid"
                     ),
-                    {"uid": user.id},
+                    {
+                        "uid": user.id,
+                        "status": p_status,
+                        "phone": p_phone,
+                        "uni": p_uni,
+                        "major": p_major,
+                        "year": p_year,
+                        "gpa": p_gpa,
+                    },
                 )
 
     print("[4/5] Dọn dẹp file tải lên trong thư mục uploads (nếu có)...")

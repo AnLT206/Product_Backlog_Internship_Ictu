@@ -230,7 +230,7 @@ export default function HrDashboardPage() {
             <span aria-hidden="true">/</span>
             <span>Tổng quan quản lý</span>
           </nav>
-          <h1>Xin chào, {user?.full_name || 'Cán bộ Nhân sự HR'} 👋</h1>
+          <h1>Xin chào, {user?.full_name || 'Cán bộ Nhân sự HR'}</h1>
           <p className="hr-dash__lead">
             Hệ thống quản lý toàn bộ vòng đời thực tập sinh ICTU: tiếp nhận hồ sơ, xét duyệt, phân công mentor, chấm công và đánh giá.
           </p>
@@ -251,7 +251,7 @@ export default function HrDashboardPage() {
             className="hr-dash__btn hr-dash__btn--ghost"
             onClick={() => setExportModal(true)}
           >
-            📥 Xuất báo cáo
+            Xuất báo cáo
           </button>
         </div>
       </header>
@@ -292,8 +292,7 @@ export default function HrDashboardPage() {
           className={`hr-dash__tab-btn ${activeTab === 'pending' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('pending')}
         >
-          <span className="hr-dash__tab-icon">📥</span>
-          Hồ sơ chờ xét duyệt ({pendingInterns.length})
+                    Hồ sơ chờ xét duyệt ({pendingInterns.length})
         </button>
 
         <button
@@ -301,8 +300,7 @@ export default function HrDashboardPage() {
           className={`hr-dash__tab-btn ${activeTab === 'programs' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('programs')}
         >
-          <span className="hr-dash__tab-icon">🎓</span>
-          Kỳ thực tập & Mentor
+                    Kỳ thực tập & Mentor
         </button>
 
         <button
@@ -310,8 +308,7 @@ export default function HrDashboardPage() {
           className={`hr-dash__tab-btn ${activeTab === 'attendance' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('attendance')}
         >
-          <span className="hr-dash__tab-icon">⏱️</span>
-          Chấm công & Nghỉ phép ({leaveRequests.length})
+                    Chấm công & Nghỉ phép ({leaveRequests.length})
         </button>
 
         <button
@@ -319,8 +316,7 @@ export default function HrDashboardPage() {
           className={`hr-dash__tab-btn ${activeTab === 'support' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('support')}
         >
-          <span className="hr-dash__tab-icon">💬</span>
-          Phụ cấp & Hỗ trợ ({supportTickets.length})
+                    Phụ cấp & Hỗ trợ ({supportTickets.length})
         </button>
 
         <button
@@ -328,8 +324,7 @@ export default function HrDashboardPage() {
           className={`hr-dash__tab-btn ${activeTab === 'analytics' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('analytics')}
         >
-          <span className="hr-dash__tab-icon">📊</span>
-          Báo cáo & Thống kê
+                    Báo cáo & Thống kê
         </button>
       </nav>
 
@@ -371,7 +366,7 @@ export default function HrDashboardPage() {
                   <tr>
                     <td colSpan={6}>
                       <div className="hr-empty">
-                        <span className="hr-empty__icon">🎉</span>
+                        
                         <strong>Không có hồ sơ nào đang chờ duyệt</strong>
                         <span>Tất cả hồ sơ đăng ký đã được xử lý xong.</span>
                       </div>
@@ -416,7 +411,7 @@ export default function HrDashboardPage() {
                                 })
                               }
                             >
-                              📄 {cvName}
+                              {cvName}
                             </button>
                             <button
                               type="button"
@@ -430,7 +425,7 @@ export default function HrDashboardPage() {
                                 })
                               }
                             >
-                              📝 {appName}
+                              {appName}
                             </button>
                           </div>
                         </td>
@@ -445,7 +440,7 @@ export default function HrDashboardPage() {
                             onClick={() => handleApproveIntern(intern)}
                             title="Duyệt và kích hoạt tài khoản TTS"
                           >
-                            ✓ Duyệt
+                            Duyệt
                           </button>
                           <button
                             type="button"
@@ -453,14 +448,14 @@ export default function HrDashboardPage() {
                             onClick={() => openRejectModal(intern)}
                             title="Từ chối hồ sơ kèm lý do"
                           >
-                            ✕ Từ chối
+                            Từ chối
                           </button>
                           <Link
                             to={`/hr/interns/${intern.id}/edit`}
                             className="hr-action-btn hr-action-btn--edit"
                             title="Xem chi tiết / Chỉnh sửa hồ sơ"
                           >
-                            👁️ Chi tiết
+                            Chi tiết
                           </Link>
                         </div>
                       </td>
@@ -491,7 +486,7 @@ export default function HrDashboardPage() {
             <div className="hr-programs-list">
               {programs.length === 0 ? (
                 <div className="hr-empty">
-                  <span className="hr-empty__icon">📚</span>
+                  
                   <strong>Chưa có chương trình thực tập nào</strong>
                   <span>Bấm "+ Thêm kỳ mới" để khởi tạo chương trình thực tập.</span>
                 </div>
@@ -513,8 +508,8 @@ export default function HrDashboardPage() {
                       </div>
 
                       <div className="hr-prog-card__meta">
-                        <span>🗓️ {prog.start_date || 'Chưa định'} → {prog.end_date || 'Chưa định'}</span>
-                        <span>👥 {curr}/{max} thực tập sinh</span>
+                        <span>{prog.start_date || 'Chưa định'} → {prog.end_date || 'Chưa định'}</span>
+                        <span>{curr}/{max} thực tập sinh</span>
                       </div>
 
                       <div className="hr-progress">
@@ -542,7 +537,7 @@ export default function HrDashboardPage() {
             <div className="hr-mentor-workload-list">
               {mentors.length === 0 ? (
                 <div className="hr-empty">
-                  <span className="hr-empty__icon">👥</span>
+                  
                   <strong>Chưa có mentor nào</strong>
                   <span>Bấm "Quản lý Mentor" để thêm người hướng dẫn.</span>
                 </div>
@@ -591,7 +586,7 @@ export default function HrDashboardPage() {
 
             {leaveRequests.length === 0 ? (
               <div className="hr-empty">
-                <span className="hr-empty__icon">☕</span>
+                
                 <strong>Không có đơn xin nghỉ phép nào đang chờ</strong>
                 <span>Tất cả đơn nghỉ phép đã được phê duyệt.</span>
               </div>
@@ -607,8 +602,8 @@ export default function HrDashboardPage() {
                       <span className="hr-badge hr-badge--warn">Chờ duyệt</span>
                     </div>
 
-                    <p className="hr-leave-item__dates">⏰ <strong>Thời gian:</strong> {leave.dates}</p>
-                    <p className="hr-leave-item__reason">📝 <strong>Lý do:</strong> {leave.reason}</p>
+                    <p className="hr-leave-item__dates"><strong>Thời gian:</strong> {leave.dates}</p>
+                    <p className="hr-leave-item__reason"><strong>Lý do:</strong> {leave.reason}</p>
                     <p className="hr-table__sub">Gửi lúc: {leave.created_at}</p>
 
                     <div className="hr-leave-item__actions">
@@ -617,14 +612,14 @@ export default function HrDashboardPage() {
                         className="hr-action-btn hr-action-btn--approve"
                         onClick={() => handleApproveLeave(leave.id)}
                       >
-                        ✓ Duyệt đơn
+                        Duyệt đơn
                       </button>
                       <button
                         type="button"
                         className="hr-action-btn hr-action-btn--reject"
                         onClick={() => handleRejectLeave(leave.id)}
                       >
-                        ✕ Từ chối
+                        Từ chối
                       </button>
                     </div>
                   </div>
@@ -658,7 +653,7 @@ export default function HrDashboardPage() {
             </div>
 
             <div className="hr-attendance-notice">
-              <p>💡 <strong>Ghi chú:</strong> Hệ thống tự động khóa check-in sau 09:00 sáng. Thực tập sinh quên chấm công cần gửi yêu cầu giải trình cho HR.</p>
+              <p><strong>Ghi chú:</strong> Hệ thống tự động khóa check-in sau 09:00 sáng. Thực tập sinh quên chấm công cần gửi yêu cầu giải trình cho HR.</p>
             </div>
           </section>
         </div>
@@ -678,7 +673,7 @@ export default function HrDashboardPage() {
 
             {supportTickets.length === 0 ? (
               <div className="hr-empty">
-                <span className="hr-empty__icon">✨</span>
+                
                 <strong>Không có yêu cầu hỗ trợ tồn đọng</strong>
                 <span>Tất cả các phiếu hỗ trợ đã được xử lý kịp thời.</span>
               </div>
@@ -698,7 +693,7 @@ export default function HrDashboardPage() {
                         className="hr-action-btn hr-action-btn--approve"
                         onClick={() => handleResolveTicket(ticket.id)}
                       >
-                        ✓ Hoàn thành & Phản hồi
+                        Hoàn thành & Phản hồi
                       </button>
                     </div>
                   </div>
@@ -769,7 +764,7 @@ export default function HrDashboardPage() {
               className="hr-dash__btn hr-dash__btn--primary hr-dash__btn--sm"
               onClick={() => setExportModal(true)}
             >
-              📥 Xuất báo cáo (Excel / PDF)
+              Xuất báo cáo (Excel / PDF)
             </button>
           </div>
 
@@ -924,7 +919,7 @@ export default function HrDashboardPage() {
 
             <div className="hr-modal__body">
               <div className="hr-doc-preview-card">
-                <div className="hr-doc-preview-card__icon">📄</div>
+                
                 <div>
                   <h4>{previewDoc.fileName}</h4>
                   <p className="hr-table__sub">Ứng viên: {previewDoc.intern?.full_name} · {previewDoc.intern?.university}</p>

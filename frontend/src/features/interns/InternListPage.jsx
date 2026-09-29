@@ -211,7 +211,7 @@ function InternListPage() {
             disabled={!hasActiveFilter}
             aria-label="Xóa tất cả bộ lọc"
           >
-            ✕ Xóa lọc
+            Xóa lọc
           </button>
 
           {/* ── Hint khi đang lọc và đã có kết quả ── */}
@@ -252,7 +252,7 @@ function InternListPage() {
                   <tr>
                     <td colSpan={7}>
                       <div className="intern-list-empty" role="status" aria-live="polite">
-                        <span style={{ fontSize: 26, opacity: 0.5 }}>⏳</span>
+                        
                         Đang tải dữ liệu…
                       </div>
                     </td>
@@ -263,7 +263,7 @@ function InternListPage() {
                   <tr>
                     <td colSpan={7}>
                       <div className="intern-list-empty" role="alert">
-                        <span className="intern-list-empty__icon">⚠️</span>
+                        
                         {loadErr}
                       </div>
                     </td>
@@ -274,7 +274,7 @@ function InternListPage() {
                   <tr>
                     <td colSpan={7}>
                       <div className="intern-list-empty">
-                        <span className="intern-list-empty__icon">🔍</span>
+                        
                         {hasActiveFilter
                           ? 'Không tìm thấy thực tập sinh phù hợp.'
                           : 'Chưa có hồ sơ thực tập sinh nào.'}
@@ -334,7 +334,7 @@ function InternListPage() {
                           className="intern-edit-btn"
                           aria-label={`Chỉnh sửa hồ sơ ${intern.full_name}`}
                         >
-                          ✎ Sửa
+                          Sửa
                         </Link>
                       </td>
                     </tr>
