@@ -1,6 +1,17 @@
 from fastapi import APIRouter
 
-from app.api.routes import admin, auth, departments, documents, intern_contract, interns, mentors, programs, tasks
+from app.api.routes import (
+    admin,
+    attendance,
+    auth,
+    departments,
+    documents,
+    intern_contract,
+    interns,
+    mentors,
+    programs,
+    tasks,
+)
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth.router)
@@ -14,4 +25,5 @@ api_router.include_router(programs.router)
 api_router.include_router(admin.router)
 api_router.include_router(admin.users_router)
 api_router.include_router(tasks.router)
+api_router.include_router(attendance.router)
 
