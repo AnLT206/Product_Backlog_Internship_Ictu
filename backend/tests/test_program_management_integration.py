@@ -39,6 +39,7 @@ def client_and_db() -> Generator[tuple[TestClient, sessionmaker], None, None]:
         db.add(
             User(
                 id=1,
+                code="HR-PROG",
                 email="hr_prog@example.com",
                 password_hash="x",
                 full_name="HR Program Manager",
@@ -50,9 +51,22 @@ def client_and_db() -> Generator[tuple[TestClient, sessionmaker], None, None]:
         db.add(
             User(
                 id=2,
+                code="MENTOR-ALPHA",
                 email="mentor_prog@example.com",
                 password_hash="x",
                 full_name="Mentor Alpha",
+                role_id=mentor_role.id,
+                status="active",
+            )
+        )
+        # Second mentor user (id=3)
+        db.add(
+            User(
+                id=3,
+                code="MENTOR-BETA",
+                email="mentor_beta@example.com",
+                password_hash="x",
+                full_name="Mentor Beta",
                 role_id=mentor_role.id,
                 status="active",
             )
@@ -61,6 +75,7 @@ def client_and_db() -> Generator[tuple[TestClient, sessionmaker], None, None]:
         db.add(
             User(
                 id=10,
+                code="INTERN-10",
                 email="intern10@example.com",
                 password_hash="x",
                 full_name="Intern Ten",
@@ -71,6 +86,7 @@ def client_and_db() -> Generator[tuple[TestClient, sessionmaker], None, None]:
         db.add(
             User(
                 id=11,
+                code="INTERN-11",
                 email="intern11@example.com",
                 password_hash="x",
                 full_name="Intern Eleven",
@@ -81,6 +97,7 @@ def client_and_db() -> Generator[tuple[TestClient, sessionmaker], None, None]:
         db.add(
             User(
                 id=12,
+                code="INTERN-12",
                 email="intern12@example.com",
                 password_hash="x",
                 full_name="Intern Twelve",
@@ -101,7 +118,7 @@ def client_and_db() -> Generator[tuple[TestClient, sessionmaker], None, None]:
             status="open",
             is_deleted=False,
         )
-        # Program 2 with status = closed
+        # Program 2
         p2 = InternshipProgram(
             id=2,
             name="Kỳ thực tập Mùa Hè 2026",
@@ -110,7 +127,7 @@ def client_and_db() -> Generator[tuple[TestClient, sessionmaker], None, None]:
             start_date=date(2026, 6, 1),
             end_date=date(2026, 8, 31),
             max_interns=10,
-            status="closed",
+            status="open",
             is_deleted=False,
         )
         db.add_all([p1, p2])
@@ -221,7 +238,9 @@ def test_assign_interns_to_closed_program_rejected(client_and_db):
     token = create_access_token(user_id=1, role="hr")
     headers = {"Authorization": f"Bearer {token}"}
 
-    # Program 2 đang có status = closed
+    client.patch("/api/hr/programs/2/close", headers=headers)
+
+    # Program 2 đã được đóng
     response = client.post(
         "/api/hr/programs/2/assign",
         json={"intern_ids": [10]},
@@ -229,6 +248,71 @@ def test_assign_interns_to_closed_program_rejected(client_and_db):
     )
     assert response.status_code == 400
     assert "đã đóng" in response.json()["detail"].lower()
+
+
+def test_assign_mentor_success(client_and_db):
+    client, _ = client_and_db
+    token = create_access_token(user_id=1, role="hr")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.post(
+        "/api/hr/programs/1/assign",
+        json={"intern_ids": [10], "mentor_id": 2},
+        headers=headers,
+    )
+
+    assert response.status_code in (200, 201)
+    assert response.json()["intern_ids"] == [10]
+    assert response.json()["mentor_id"] == 2
+
+
+def test_prevent_duplicate_mentor_same_program(client_and_db):
+    client, session_factory = client_and_db
+    token = create_access_token(user_id=1, role="hr")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    first_response = client.post(
+        "/api/hr/programs/1/assign",
+        json={"intern_ids": [10], "mentor_id": 2},
+        headers=headers,
+    )
+    assert first_response.status_code in (200, 201)
+
+    duplicate_response = client.post(
+        "/api/hr/programs/1/assign",
+        json={"intern_ids": [10], "mentor_id": 3},
+        headers=headers,
+    )
+
+    assert duplicate_response.status_code in (400, 409)
+    assert "đã được phân công" in duplicate_response.json()["detail"].lower()
+    with session_factory() as db:
+        members = db.query(ProgramMember).filter_by(program_id=1, intern_user_id=10).all()
+        assert len(members) == 1
+        assert members[0].mentor_user_id == 2
+
+
+def test_allow_assign_mentor_different_program(client_and_db):
+    client, _ = client_and_db
+    token = create_access_token(user_id=1, role="hr")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    first_response = client.post(
+        "/api/hr/programs/1/assign",
+        json={"intern_ids": [10], "mentor_id": 2},
+        headers=headers,
+    )
+    assert first_response.status_code in (200, 201)
+
+    second_response = client.post(
+        "/api/hr/programs/2/assign",
+        json={"intern_ids": [10], "mentor_id": 3},
+        headers=headers,
+    )
+
+    assert second_response.status_code in (200, 201)
+    assert second_response.json()["intern_ids"] == [10]
+    assert second_response.json()["mentor_id"] == 3
 
 
 # ── SCRUM-27: Xóa mềm hoặc Đóng (Close) kỳ thực tập ────────────────────────────

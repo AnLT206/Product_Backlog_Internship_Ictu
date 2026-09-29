@@ -243,7 +243,10 @@ class ProgramService:
                 .first()
             )
             if exists:
-                continue
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Thực tập sinh đã được phân công vào kỳ thực tập này.",
+                )
 
             if current_count + len(assigned) >= program.max_interns:
                 raise HTTPException(
