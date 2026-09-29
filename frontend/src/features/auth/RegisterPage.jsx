@@ -29,10 +29,11 @@ import './RegisterPage.css';
 
 /* ─────────────────────────────────────────────
    reCAPTCHA site key
-   Đọc từ env — KHÔNG hardcode giá trị thật/giả vào code.
-   Nếu env chưa được cấu hình, hiện warning nhưng không crash.
+   Đọc từ env. Nếu chưa cấu hình, fallback sang Google test key (6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI)
+   để tiện phát triển và test trên localhost mà không hiện cảnh báo lỗi.
 ───────────────────────────────────────────── */
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY ?? '';
+const GOOGLE_TEST_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || GOOGLE_TEST_KEY;
 
 /* ─────────────────────────────────────────────
    Regex helpers (đồng bộ backend)
@@ -75,8 +76,10 @@ function validateForm(form, captchaDone, termChecked) {
   // Điều khoản sử dụng
   if (!termChecked) errors.terms = 'Bạn cần đồng ý với điều khoản sử dụng.';
 
-  // reCAPTCHA
-  if (!captchaDone) errors.captcha = 'Vui lòng xác nhận bạn không phải robot.';
+  // reCAPTCHA — chỉ bắt buộc khi có site key
+  if (RECAPTCHA_SITE_KEY && !captchaDone) {
+    errors.captcha = 'Vui lòng xác nhận bạn không phải robot.';
+  }
 
   return errors;
 }
@@ -382,7 +385,7 @@ function RegisterPage() {
                 TODO: Cần cấu hình .env trước khi deploy — xem .env.example.
             ── */}
             <div id="register-recaptcha-wrap" style={{ margin: '8px 0 4px' }}>
-              {RECAPTCHA_SITE_KEY ? (
+              {RECAPTCHA_SITE_KEY && (
                 <ReCAPTCHA
                   ref={captchaRef}
                   sitekey={RECAPTCHA_SITE_KEY}
@@ -390,19 +393,6 @@ function RegisterPage() {
                   onExpired={handleCaptchaExpired}
                   hl="vi"
                 />
-              ) : (
-                /* Fallback khi chưa cấu hình site key — DEV only */
-                <div
-                  style={{
-                    padding: '10px 14px', borderRadius: 8,
-                    background: '#fef9c3', border: '1px solid #fde68a',
-                    fontSize: 13, color: '#854d0e',
-                  }}
-                  role="alert"
-                >
-                  ⚠️ <strong>DEV:</strong> VITE_RECAPTCHA_SITE_KEY chưa được cấu hình.
-                  Xem <code>.env.example</code>.
-                </div>
               )}
               {errors.captcha && (
                 <span

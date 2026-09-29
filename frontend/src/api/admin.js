@@ -78,31 +78,7 @@ export async function fetchSystemLogs(params = {}) {
  * }
  */
 export async function getPermissionMatrix() {
-  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
-  // Import dữ liệu tĩnh từ constants — KHÔNG hardcode lại danh sách ở đây
-  const { ROLES, PERMISSION_MODULES, DEFAULT_MATRIX } = await import('../constants/permissions.js');
-
-  // Giả lập network delay
-  await new Promise((r) => setTimeout(r, 400));
-
-  // Trả về dữ liệu dựng từ constants (mock)
-  return {
-    ok: true,
-    status: 200,
-    data: {
-      roles:   ROLES,
-      modules: PERMISSION_MODULES,
-      matrix:  DEFAULT_MATRIX,
-    },
-  };
-  /* ── END MOCK ─────────────────────────────────────────────────────────
-
-  // TODO: Bỏ comment khối này khi BE có GET /api/admin/permissions (role: admin only)
-  //       Response shape mong đợi:
-  //       { roles: [...], modules: [...], matrix: { admin: {...}, hr: {...}, ... } }
-  //       apiFetch tự gắn Authorization: Bearer <token> từ localStorage
   return apiFetch('/api/admin/permissions', { method: 'GET' });
-  ─────────────────────────────────────────────────────────────────────── */
 }
 
 /* ─────────────────────────────────────────────
@@ -111,41 +87,16 @@ export async function getPermissionMatrix() {
 
 /**
  * Lưu ma trận phân quyền sau khi admin chỉnh sửa.
- *
- * TODO: PUT /api/admin/permissions chưa tồn tại ở backend (chờ API thật).
- *       Khi BE sẵn sàng: xóa khối MOCK, bỏ comment fetch thật bên dưới.
- *       Không cần đổi tên hàm hay shape trả về.
+ * Route: PUT /api/admin/permissions
  *
  * @param {Record<string, Record<string, boolean>>} matrix
- *   Object dạng { admin: { auth_login: true, ... }, hr: { ... }, ... }
- *   (cùng shape với data.matrix từ getPermissionMatrix — giữ nhất quán)
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
- *
- * @example
- * import { updatePermissionMatrix } from '../api/admin';
- *
- * const { ok, status, data } = await updatePermissionMatrix(localMatrix);
  */
 export async function updatePermissionMatrix(matrix) {
-  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
-  // Giả lập network delay
-  await new Promise((r) => setTimeout(r, 700));
-
-  // Mô phỏng thành công 200 — echo lại matrix vừa lưu (giả lập)
-  return {
-    ok: true,
-    status: 200,
-    data: { detail: 'Lưu phân quyền thành công.', matrix },
-  };
-  /* ── END MOCK ─────────────────────────────────────────────────────────
-
-  // TODO: Bỏ comment khối này khi BE có PUT /api/admin/permissions (role: admin only)
-  //       Body: matrix (JSON) — apiFetch tự gắn Authorization header
   return apiFetch('/api/admin/permissions', {
     method: 'PUT',
     body: JSON.stringify({ matrix }),
   });
-  ─────────────────────────────────────────────────────────────────────── */
 }
 
 /* ─────────────────────────────────────────────

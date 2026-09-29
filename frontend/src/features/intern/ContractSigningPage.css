@@ -1,0 +1,211 @@
+.contract-signing-page {
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 0 20px 40px;
+  font-family: inherit;
+}
+
+.contract-signing-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header trang ký kết */
+.contract-signing-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.contract-signing-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+
+.contract-signing-header h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.contract-signing-header p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+/* ── 1. PHẦN TRÊN: Div chiều cao cố định 500px, có thanh cuộn hiển thị nội dung ── */
+.contract-content-box {
+  height: 500px;              /* Chiều cao cố định theo yêu cầu */
+  overflow-y: auto;          /* Thanh cuộn dọc */
+  padding: 32px 36px;
+  background: #ffffff;
+  color: #1e293b;
+  line-height: 1.7;
+  font-size: 14.5px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+/* Tùy biến thanh cuộn Webkit */
+.contract-content-box::-webkit-scrollbar {
+  width: 8px;
+}
+
+.contract-content-box::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.contract-content-box::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.contract-content-box::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Trình bày văn bản điều khoản hợp đồng */
+.contract-body h3 {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+  color: #0f172a;
+}
+
+.contract-body .contract-subtitle {
+  text-align: center;
+  font-style: italic;
+  color: #64748b;
+  margin-bottom: 24px;
+}
+
+.contract-section {
+  margin-bottom: 20px;
+}
+
+.contract-section h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+
+.contract-section p,
+.contract-section ul {
+  margin: 0 0 10px;
+  color: #334155;
+}
+
+.contract-section ul {
+  padding-left: 20px;
+}
+
+.contract-section li {
+  margin-bottom: 6px;
+}
+
+/* ── 2. PHẦN DƯỚI CÙNG: Checkbox xác nhận điều khoản & Nút ký kết ── */
+.contract-footer {
+  padding: 24px 32px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.contract-agreement-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.contract-checkbox {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #2563eb;
+  flex-shrink: 0;
+}
+
+.contract-agreement-label {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+  line-height: 1.45;
+}
+
+.contract-agreement-label.is-checked {
+  color: #1d4ed8;
+}
+
+.contract-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.contract-status-hint {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.contract-status-hint.has-agreed {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.contract-sign-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.contract-sign-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+.contract-sign-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+  transform: none;
+}

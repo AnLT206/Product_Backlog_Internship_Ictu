@@ -16,11 +16,14 @@ from app.schemas.auth import InternRegisterResponse
 from app.schemas.document import DocumentResponse
 from app.schemas.intern import (
     InternCreateRequest,
+    InternDetailResponse,
     InternFilterOptionsResponse,
     InternListItem,
     InternListResponse,
     InternProfileStatusResponse,
     InternProfileStatusUpdateRequest,
+    InternRejectRequest,
+    InternUpdateRequest,
 )
 from app.services.document_service import DocumentService
 from app.services.intern_service import InternService
@@ -33,7 +36,7 @@ router = APIRouter(prefix="/hr/interns", tags=["interns"])
     response_model=InternListResponse,
     status_code=status.HTTP_200_OK,
     summary="Tìm kiếm và lọc danh sách thực tập sinh (SCRUM-22)",
-    dependencies=[Depends(require_roles("hr", "admin"))],
+    dependencies=[Depends(require_roles("hr", "admin", "mentor"))],
 )
 def list_interns(
     q: str | None = Query(default=None, description="Tìm kiếm theo họ tên hoặc email"),
@@ -97,6 +100,49 @@ def approve_intern(
     return InternService(db).approve(intern_id, background_tasks)
 
 
+@router.post(
+    "/{intern_id}/reject",
+    response_model=InternRegisterResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def reject_intern(
+    intern_id: int,
+    background_tasks: BackgroundTasks,
+    payload: InternRejectRequest | None = None,
+    db: Session = Depends(get_db),
+) -> InternRegisterResponse:
+    note = payload.note if payload else None
+    return InternService(db).reject(intern_id, note, background_tasks)
+
+
+@router.get(
+    "/{intern_id}",
+    response_model=InternDetailResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def get_intern(
+    intern_id: int,
+    db: Session = Depends(get_db),
+) -> InternDetailResponse:
+    return InternService(db).get_intern(intern_id)
+
+
+@router.put(
+    "/{intern_id}",
+    response_model=InternDetailResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def update_intern(
+    intern_id: int,
+    payload: InternUpdateRequest,
+    db: Session = Depends(get_db),
+) -> InternDetailResponse:
+    return InternService(db).update_intern(intern_id, payload)
+
+
 @router.patch(
     "/{intern_id}/status",
     response_model=InternProfileStatusResponse,
@@ -126,6 +172,22 @@ async def upload_contract(
     db: Session = Depends(get_db),
 ) -> DocumentResponse:
     return DocumentService(db).upload_contract(intern_id, file)
+
+
+@router.post(
+    "/{intern_id}/cv",
+    response_model=DocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="HR tải lên CV cho ứng viên / thực tập sinh",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+async def upload_intern_cv(
+    intern_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+) -> DocumentResponse:
+    return DocumentService(db).upload_intern_document(intern_id, "cv", file)
+
 
 
 @router.get(

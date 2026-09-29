@@ -5,6 +5,33 @@ import { dashboardPathForRole } from '../../api/auth'
 import { useAuth } from '../../context/AuthContext'
 import './LoginPage.css'
 
+const QUICK_ACCOUNTS = [
+  {
+    role: 'Admin',
+    email: 'admin@ictu.edu.vn',
+    password: 'Admin@123',
+    variant: 'admin',
+  },
+  {
+    role: 'HR',
+    email: 'hr@ictu.edu.vn',
+    password: 'Hr@123',
+    variant: 'hr',
+  },
+  {
+    role: 'Mentor',
+    email: 'mentor@ictu.edu.vn',
+    password: 'Mentor@123',
+    variant: 'mentor',
+  },
+  {
+    role: 'TTS',
+    email: 'intern@ictu.edu.vn',
+    password: 'Intern@123',
+    variant: 'intern',
+  },
+]
+
 function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -15,24 +42,18 @@ function LoginPage() {
   const [remember, setRemember] = useState(true)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [quickLoadingRole, setQuickLoadingRole] = useState('')
 
   if (isAuthenticated && user) {
     const target = location.state?.from || dashboardPathForRole(user.role)
     return <Navigate to={target} replace />
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault()
+  async function performLogin(targetEmail, targetPassword) {
     setError('')
-
-    if (!email.trim() || !password) {
-      setError('Vui lòng nhập email và mật khẩu.')
-      return
-    }
-
     setLoading(true)
     try {
-      const result = await login(email.trim(), password)
+      const result = await login(targetEmail.trim(), targetPassword)
       if (!result.ok) {
         setError(result.message)
         return
@@ -45,7 +66,26 @@ function LoginPage() {
       setError('Không kết nối được máy chủ. Thử lại sau.')
     } finally {
       setLoading(false)
+      setQuickLoadingRole('')
     }
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+
+    if (!email.trim() || !password) {
+      setError('Vui lòng nhập email và mật khẩu.')
+      return
+    }
+
+    await performLogin(email, password)
+  }
+
+  async function handleQuickLogin(account) {
+    setEmail(account.email)
+    setPassword(account.password)
+    setQuickLoadingRole(account.role)
+    await performLogin(account.email, account.password)
   }
 
   return (
@@ -114,8 +154,31 @@ function LoginPage() {
             ) : null}
 
             <button type="submit" className="login-button" disabled={loading}>
-              {loading ? 'Đang đăng nhập…' : 'Đăng nhập'}
+              {loading && !quickLoadingRole ? 'Đang đăng nhập…' : 'Đăng nhập'}
             </button>
+
+            {/* ── Nút đăng nhập nhanh các vai trò ── */}
+            <div className="login-divider">
+              <span>Hoặc đăng nhập nhanh</span>
+            </div>
+
+            <div className="login-quick-actions" aria-label="Đăng nhập nhanh các vai trò">
+              {QUICK_ACCOUNTS.map((acc) => (
+                <button
+                  key={acc.role}
+                  type="button"
+                  className={`login-quick-btn login-quick-btn--${acc.variant}`}
+                  onClick={() => handleQuickLogin(acc)}
+                  disabled={loading}
+                  title={`Đăng nhập nhanh với quyền ${acc.role}`}
+                >
+                  <span className="login-quick-btn__name">{acc.role}</span>
+                  {quickLoadingRole === acc.role && (
+                    <span className="login-quick-btn__spinner" aria-hidden="true" />
+                  )}
+                </button>
+              ))}
+            </div>
 
             <p className="login-switch">
               Chưa có tài khoản? <Link to="/register">Đăng ký thực tập</Link>

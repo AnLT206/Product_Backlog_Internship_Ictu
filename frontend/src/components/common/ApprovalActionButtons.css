@@ -1,0 +1,204 @@
+.approval-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.approval-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 110px;
+  height: 40px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.approval-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.approval-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.approval-btn:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* Nút Duyệt — Màu xanh biển (Primary/Blue) */
+.approval-btn--approve {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.approval-btn--approve:not(:disabled):hover {
+  background-color: #1d4ed8;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+.approval-btn--approve:not(:disabled):active {
+  background-color: #1e40af;
+}
+
+/* Nút Từ chối — Màu đỏ (Danger) */
+.approval-btn--reject {
+  background-color: #dc2626;
+  color: #ffffff;
+  border-color: #b91c1c;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
+.approval-btn--reject:not(:disabled):hover {
+  background-color: #b91c1c;
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+}
+
+.approval-btn--reject:not(:disabled):active {
+  background-color: #991b1b;
+}
+
+/* Icon & Spinner */
+.approval-btn__icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.approval-btn__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: approvalSpin 0.65s linear infinite;
+}
+
+@keyframes approvalSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Modal nhập lý do từ chối (Optional) */
+.approval-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.approval-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 440px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.approval-modal h4 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.approval-modal p {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.approval-modal textarea {
+  width: 100%;
+  min-height: 90px;
+  padding: 10px 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #1e293b;
+  outline: none;
+  resize: vertical;
+  margin-bottom: 18px;
+  box-sizing: border-box;
+}
+
+.approval-modal textarea:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+.approval-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.approval-modal-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.approval-modal-btn--cancel {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.approval-modal-btn--cancel:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.approval-modal-btn--confirm-reject {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.approval-modal-btn--confirm-reject:hover {
+  background: #b91c1c;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

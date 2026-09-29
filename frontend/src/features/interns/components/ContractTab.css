@@ -1,0 +1,233 @@
+.contract-tab {
+  padding: 20px 0;
+  max-width: 680px;
+  font-family: inherit;
+}
+
+.contract-tab__header {
+  margin-bottom: 20px;
+}
+
+.contract-tab__header h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.contract-tab__header p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* Khung Drag & Drop Upload */
+.contract-upload-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 24px;
+  background-color: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.contract-upload-box:hover,
+.contract-upload-box--dragover {
+  background-color: #eff6ff;
+  border-color: #3b82f6;
+}
+
+.contract-upload-box__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #475569;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+}
+
+.contract-upload-box__icon svg {
+  display: block;
+}
+
+.contract-upload-box:hover .contract-upload-box__icon,
+.contract-upload-box--dragover .contract-upload-box__icon {
+  background: #dbeafe;
+  color: #2563eb;
+  transform: translateY(-2px);
+}
+
+.contract-upload-box__text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.contract-upload-box__link {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.contract-upload-box__hint {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Thẻ hiển thị thông tin file đã chọn */
+.contract-file-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  margin-top: 16px;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.contract-file-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.contract-file-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.contract-file-badge--pdf {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.contract-file-badge--docx {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+.contract-file-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.contract-file-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
+.contract-file-size {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Nút xóa (Icon thùng rác) */
+.contract-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+  background-color: #ffffff;
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.contract-delete-btn:hover {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+  transform: scale(1.05);
+}
+
+.contract-delete-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Thông báo lỗi */
+.contract-error-alert {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Nút lưu / Tải lên */
+.contract-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.contract-submit-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  background-color: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.contract-submit-btn:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.contract-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

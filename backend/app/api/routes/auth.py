@@ -44,6 +44,7 @@ def _profile_response(user: User) -> UserProfileResponse:
     profile = user.intern_profile
     return UserProfileResponse(
         id=user.id,
+        code=user.code,
         email=user.email,
         full_name=user.full_name,
         role=user.role.name,

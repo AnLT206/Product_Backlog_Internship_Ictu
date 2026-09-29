@@ -91,3 +91,18 @@ export async function createMentor(body) {
     body:   JSON.stringify(body),
   });
 }
+
+/* ─────────────────────────────────────────────
+   getMentors
+───────────────────────────────────────────── */
+
+/**
+ * Lấy danh sách tất cả mentor.
+ * Route: GET /api/hr/mentors
+ *
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function getMentors() {
+  return apiFetch('/api/hr/mentors', { method: 'GET' });
+}
+

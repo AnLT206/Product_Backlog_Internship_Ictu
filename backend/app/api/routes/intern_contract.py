@@ -9,6 +9,18 @@ from app.services.document_service import DocumentService
 router = APIRouter(prefix="/intern", tags=["intern-contract"])
 
 
+@router.get(
+    "/contract",
+    response_model=DocumentResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_contract(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("intern")),
+) -> DocumentResponse:
+    return DocumentService(db).get_contract(current_user.id)
+
+
 @router.post(
     "/contract/confirm",
     response_model=DocumentResponse,

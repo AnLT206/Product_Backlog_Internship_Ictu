@@ -9,38 +9,10 @@
  * Không có search / filter / phân trang (không thuộc task này).
  */
 
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { getPrograms } from '../../api/programs';
 import './ProgramListPage.css';
-
-/* ─────────────────────────────────────────────
-   Mock data
-   TODO: Thay bằng fetch GET /api/hr/programs khi BE sẵn sàng
-         (software-specification.md §7.2).
-   Format trả về dự kiến:
-   [{ id, name, department, description, start_date, end_date }]
-───────────────────────────────────────────── */
-const MOCK_PROGRAMS = [
-  {
-    id: 1,
-    name: 'Chương trình thực tập Hè 2026',
-    department: 'Công nghệ thông tin',
-    start_date: '2026-06-01',
-    end_date: '2026-08-31',
-  },
-  {
-    id: 2,
-    name: 'Thực tập Kỹ thuật phần mềm Q3',
-    department: 'Kỹ thuật phần mềm',
-    start_date: '2026-07-15',
-    end_date: '2026-10-15',
-  },
-  {
-    id: 3,
-    name: 'Thực tập Quản trị hệ thống',
-    department: 'Hạ tầng & Vận hành',
-    start_date: '2026-09-01',
-    end_date: '2026-11-30',
-  },
-];
 
 /** Định dạng ngày YYYY-MM-DD → DD/MM/YYYY cho hiển thị */
 function formatDate(dateStr) {
@@ -51,12 +23,36 @@ function formatDate(dateStr) {
 
 /**
  * ProgramListPage
- * Hiển thị danh sách chương trình thực tập (dữ liệu mock).
+ * Hiển thị danh sách chương trình thực tập từ backend.
  * Nút "Tạo chương trình mới" dẫn sang /hr/programs/new.
  */
 function ProgramListPage() {
-  /* TODO: Thay MOCK_PROGRAMS bằng state + useEffect gọi GET /api/hr/programs */
-  const programs = MOCK_PROGRAMS;
+  const [programs, setPrograms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchList() {
+      try {
+        const res = await getPrograms();
+        if (!isMounted) return;
+        if (res.ok && Array.isArray(res.data)) {
+          setPrograms(res.data);
+        } else {
+          setPrograms([]);
+        }
+      } catch {
+        if (isMounted) setPrograms([]);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    fetchList();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="program-list-page">
@@ -72,14 +68,14 @@ function ProgramListPage() {
           </div>
 
           {/* Nút tạo mới → /hr/programs/new */}
-          <a
+          <Link
             id="program-new-btn"
-            href="/hr/programs/new"
+            to="/hr/programs/new"
             className="program-new-btn"
           >
             <span className="program-new-btn__icon">＋</span>
             Tạo chương trình mới
-          </a>
+          </Link>
         </div>
 
         {/* ── Bảng danh sách ── */}

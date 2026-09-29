@@ -106,6 +106,7 @@ def test_get_and_update_my_profile_returns_expected_json_structure(
     assert profile["major"] == "CNTT"
     assert {
         "id",
+        "code",
         "email",
         "full_name",
         "role",

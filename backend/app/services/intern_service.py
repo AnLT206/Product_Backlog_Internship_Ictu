@@ -12,12 +12,15 @@ from app.schemas.auth import InternRegisterResponse
 from app.schemas.document import DocumentResponse
 from app.schemas.intern import (
     InternCreateRequest,
+    InternDetailResponse,
     InternFilterOptionsResponse,
     InternListItem,
     InternListResponse,
     InternProfileStatusResponse,
+    InternUpdateRequest,
 )
 from app.services.email_service import EmailService
+from app.services.notification_service import NotificationService
 from app.utils.hash_password import hash_password
 from app.utils.user_code import next_user_code
 
@@ -172,6 +175,7 @@ class InternService:
         items = [
             InternListItem(
                 id=u.id,
+                code=u.code,
                 email=u.email,
                 full_name=u.full_name,
                 role="intern",
@@ -266,6 +270,16 @@ class InternService:
                         "Bạn có thể dùng email và mật khẩu đã đăng ký để đăng nhập hệ thống."
                     ),
                 )
+                NotificationService(self.db).create_notification(
+                    user_id=user.id,
+                    title="🎉 Hồ sơ đã được duyệt & Hợp đồng thực tập",
+                    body=(
+                        "Chúc mừng bạn! Hồ sơ thực tập sinh đã được HR phê duyệt kèm Hợp đồng tiếp nhận thực tập. "
+                        "Vui lòng đọc kỹ hợp đồng và tích 'Xác nhận đã đọc hợp đồng' để kích hoạt đầy đủ quyền thao tác."
+                    ),
+                    commit=False,
+                )
+                self.db.commit()
             else:
                 EmailService.enqueue_email(
                     background_tasks,
@@ -318,3 +332,113 @@ class InternService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Không thể truy vấn hồ sơ thực tập sinh.",
             ) from None
+
+    def get_intern(self, intern_id: int) -> InternDetailResponse:
+        user = (
+            self.db.query(User)
+            .join(Role, User.role_id == Role.id)
+            .filter(User.id == intern_id, Role.name == TTS_ROLE_NAME)
+            .first()
+        )
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Không tìm thấy hồ sơ thực tập sinh.",
+            )
+        profile = user.intern_profile
+        from app.services.document_service import DocumentService
+        docs = DocumentService(self.db).get_intern_documents(intern_id)
+
+        return InternDetailResponse(
+            id=user.id,
+            code=user.code,
+            email=user.email,
+            full_name=user.full_name,
+            role="intern",
+            status=user.status,
+            phone_number=profile.phone_number if profile else None,
+            dob=profile.dob if profile else None,
+            gender=profile.gender if profile else None,
+            university=profile.university if profile else None,
+            major=profile.major if profile else None,
+            academic_year=profile.academic_year if profile else None,
+            gpa=profile.gpa if profile else None,
+            address=profile.address if profile else None,
+            created_at=user.created_at,
+            updated_at=user.updated_at,
+            documents=docs,
+        )
+
+    def update_intern(
+        self, intern_id: int, payload: InternUpdateRequest
+    ) -> InternDetailResponse:
+        user = (
+            self.db.query(User)
+            .join(Role, User.role_id == Role.id)
+            .filter(User.id == intern_id, Role.name == TTS_ROLE_NAME)
+            .first()
+        )
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Không tìm thấy hồ sơ thực tập sinh.",
+            )
+        profile = user.intern_profile
+        if profile is None:
+            profile = InternProfile(user_id=user.id)
+            self.db.add(profile)
+
+        if payload.full_name is not None:
+            user.full_name = payload.full_name
+
+        data = payload.model_dump(exclude_unset=True, exclude={"full_name"})
+        for field, value in data.items():
+            setattr(profile, field, value)
+
+        try:
+            self.db.commit()
+            self.db.refresh(user)
+            self.db.refresh(profile)
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể cập nhật hồ sơ thực tập sinh.",
+            ) from None
+
+        return self.get_intern(intern_id)
+
+    def reject(
+        self, intern_id: int, note: str | None, background_tasks: BackgroundTasks
+    ) -> InternRegisterResponse:
+        user, profile = self._get_pending_intern(intern_id)
+        try:
+            profile.status = "rejected"
+            user.status = "inactive"
+            self.db.commit()
+            self.db.refresh(user)
+            EmailService.enqueue_email(
+                background_tasks,
+                user.email,
+                "Thông báo kết quả xét duyệt hồ sơ thực tập sinh",
+                (
+                    f"Xin chào {user.full_name or 'bạn'},\n\n"
+                    f"Hồ sơ thực tập sinh của bạn hiện chưa được tiếp nhận.\n"
+                    + (f"Ghi chú từ bộ phận nhân sự: {note}\n" if note else "")
+                    + "Cảm ơn bạn đã quan tâm đến chương trình thực tập tại ICTU."
+                ),
+            )
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể từ chối hồ sơ thực tập sinh.",
+            ) from None
+        return InternRegisterResponse(
+            id=user.id,
+            email=user.email,
+            full_name=user.full_name,
+            role="intern",
+            status=user.status,
+            phone_number=profile.phone_number if profile else None,
+        )
