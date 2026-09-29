@@ -8,6 +8,7 @@ from app.models.program_member import ProgramMember
 from app.models.role import Role
 from app.models.system_log import SystemLog
 from app.models.attendance import Attendance
+from app.models.support_request import SupportRequest
 from app.models.task import Task
 from app.models.user import User
 from app.models.user_profile import UserProfile
@@ -20,6 +21,7 @@ __all__ = [
     "Permission",
     "RolePermission",
     "Role",
+    "SupportRequest",
     "SystemLog",
     "Task",
     "User",

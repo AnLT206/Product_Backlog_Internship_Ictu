@@ -10,6 +10,7 @@ from app.api.routes import (
     interns,
     mentors,
     programs,
+    support_requests,
     tasks,
 )
 
@@ -26,4 +27,5 @@ api_router.include_router(admin.router)
 api_router.include_router(admin.users_router)
 api_router.include_router(tasks.router)
 api_router.include_router(attendance.router)
+api_router.include_router(support_requests.router)
 
