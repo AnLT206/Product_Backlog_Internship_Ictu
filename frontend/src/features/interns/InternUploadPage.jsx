@@ -309,7 +309,7 @@ function InternUploadPage() {
                   /* File đã chọn: hiển thị icon + tên */
                   <div className="intern-upload-dropzone__file">
                     <span className="intern-upload-dropzone__file-icon" aria-hidden="true">
-                      {file.name.toLowerCase().endsWith('.pdf') ? '📄' : '📝'}
+                      
                     </span>
                     <div className="intern-upload-dropzone__file-info">
                       <span className="intern-upload-dropzone__file-name">{file.name}</span>
@@ -322,7 +322,23 @@ function InternUploadPage() {
                 ) : (
                   /* Chưa chọn file: placeholder */
                   <div className="intern-upload-dropzone__placeholder">
-                    <span className="intern-upload-dropzone__icon" aria-hidden="true">⬆</span>
+                    <span className="intern-upload-dropzone__icon" aria-hidden="true">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="36"
+                        height="36"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M4 14.5v3.5a2.5 2.5 0 0 0 2.5 2.5h11a2.5 2.5 0 0 0 2.5-2.5v-3.5" />
+                        <polyline points="6.5 9 12 3.5 17.5 9" />
+                        <line x1="12" y1="3.5" x2="12" y2="15" />
+                      </svg>
+                    </span>
                     <p className="intern-upload-dropzone__text">
                       {isDragOver ? 'Thả file vào đây…' : 'Kéo & thả file vào đây hoặc'}
                     </p>
@@ -385,7 +401,7 @@ function InternUploadPage() {
                   {/* Icon + tên file */}
                   <div className="intern-upload-item__info">
                     <span className="intern-upload-item__icon" aria-hidden="true">
-                      {doc.file_name.endsWith('.pdf') ? '📄' : '📝'}
+                      
                     </span>
                     <div>
                       <p className="intern-upload-item__name">{doc.file_name}</p>
@@ -406,7 +422,7 @@ function InternUploadPage() {
                         className="intern-upload-link intern-upload-link--preview"
                         id={`preview-link-${doc.id}`}
                       >
-                        👁 Xem trước
+                        Xem trước
                       </a>
 
                       {/* Tải xuống — dùng thuộc tính download */}

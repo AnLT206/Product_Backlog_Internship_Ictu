@@ -85,3 +85,41 @@ async def upload_intern_document(
         File cần upload (multipart/form-data).
     """
     return DocumentService(db).upload_intern_document(current_user.id, doc_type, file)
+
+
+# ── Tải file tài liệu chung (HR / Admin hoặc chính TTS sở hữu) ───────────────
+
+download_router = APIRouter(prefix="/documents", tags=["documents"])
+
+
+@download_router.get(
+    "/{document_id}/download",
+    summary="Tải về file tài liệu",
+)
+def download_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+    from app.models.document import Document
+
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tài liệu không tồn tại.",
+        )
+    if current_user.role.name not in ("hr", "admin") and doc.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền tải tài liệu này.",
+        )
+    file_path = Path(doc.file_path)
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File không tồn tại trên hệ thống lưu trữ.",
+        )
+    return FileResponse(path=str(file_path), filename=doc.file_name)

@@ -100,6 +100,7 @@ class LoginRequest(BaseModel):
 
 class LoginUserResponse(BaseModel):
     id: int
+    code: str | None = None
     email: str
     full_name: str | None
     role: str

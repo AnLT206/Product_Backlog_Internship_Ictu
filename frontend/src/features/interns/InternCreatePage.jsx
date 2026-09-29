@@ -22,7 +22,7 @@
  */
 
 import { useState } from 'react';
-import { createIntern, buildToast } from '../../api/interns';
+import { createIntern, uploadInternCv, buildToast } from '../../api/interns';
 import './InternCreatePage.css';
 
 /* ─────────────────────────────────────────────
@@ -87,18 +87,6 @@ const INITIAL_FORM = {
    Validate helper
    Trả về object { fieldName: 'message lỗi tiếng Việt' }.
    Trả về {} nếu tất cả hợp lệ.
-
-   Rule theo software-specification.md §2.2 + §4.3 + yêu cầu task:
-     full_name    : bắt buộc, 1–100 ký tự
-     email        : bắt buộc, đúng format email
-     phone_number : tuỳ chọn — nếu có: "0..." hoặc "+84..."
-     dob          : tuỳ chọn — nếu có: YYYY-MM-DD
-     gender       : tuỳ chọn — nếu có: male/female/other
-     university   : bắt buộc (spec §4.3), max 150 ký tự
-     major        : bắt buộc (spec §4.3), max 150 ký tự
-     academic_year: tuỳ chọn — nếu có: max 50 ký tự
-     gpa          : tuỳ chọn — nếu có: số trong khoảng 0–4
-     address      : tuỳ chọn — nếu có: max 255 ký tự
 ───────────────────────────────────────────── */
 function validateForm(form) {
   const errors = {};
@@ -122,7 +110,6 @@ function validateForm(form) {
   /* phone_number — tuỳ chọn, nếu có phải đúng format */
   const phone = form.phone_number.trim();
   if (phone) {
-    // Bỏ khoảng trắng/dấu gạch trước khi test
     const phoneSanitised = phone.replace(/[\s-]/g, '');
     if (!PHONE_REGEX.test(phoneSanitised)) {
       errors.phone_number = 'Số điện thoại phải bắt đầu bằng "0" (10–11 số) hoặc "+84" (10–11 số).';
@@ -181,9 +168,6 @@ function validateForm(form) {
 
 /* ─────────────────────────────────────────────
    Chuẩn hoá dữ liệu trước khi gửi API
-   - email: lowercase + trim
-   - Loại bỏ field rỗng (không gửi null lên BE)
-   - gpa: chuyển thành number nếu có
 ───────────────────────────────────────────── */
 function buildPayload(form) {
   const payload = {
@@ -209,11 +193,6 @@ function buildPayload(form) {
    Component
 ───────────────────────────────────────────── */
 
-/**
- * InternCreatePage
- *
- * Form HR nhập hồ sơ thực tập sinh mới — đã có validate + gọi API (task 2).
- */
 function InternCreatePage() {
   /* ── State ── */
   const [form, setForm]       = useState(INITIAL_FORM);
@@ -221,11 +200,15 @@ function InternCreatePage() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast]     = useState(null); // { type: 'success'|'error', message: string }
 
+  // State upload CV ứng viên
+  const [cvFile, setCvFile]       = useState(null);
+  const [cvError, setCvError]     = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+
   /* ── Handlers ── */
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    // Xóa lỗi của field vừa sửa ngay lập tức (pattern chuẩn CreateAccountPage)
     if (errors[name]) {
       setErrors((prev) => {
         const next = { ...prev };
@@ -233,6 +216,34 @@ function InternCreatePage() {
         return next;
       });
     }
+  }
+
+  function validateAndSetCv(file) {
+    if (!file) return;
+    const allowedExtensions = ['.pdf', '.doc', '.docx'];
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (!allowedExtensions.includes(ext)) {
+      setCvError('Chỉ chấp nhận file định dạng PDF, DOC hoặc DOCX.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setCvError('Dung lượng file không được vượt quá 5MB.');
+      return;
+    }
+    setCvError('');
+    setCvFile(file);
+  }
+
+  function handleCvChange(e) {
+    const file = e.target.files?.[0];
+    if (file) validateAndSetCv(file);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) validateAndSetCv(file);
   }
 
   function showToast(type, message) {
@@ -258,22 +269,38 @@ function InternCreatePage() {
       const { ok, status, data } = await createIntern(payload);
 
       if (ok) {
-        // 201 — thành công (tái sử dụng buildToast — pattern chuẩn project)
-        const t = buildToast(ok, status, data, 'Thêm hồ sơ thực tập sinh thành công!');
-        showToast(t.type, t.message);
-        setForm(INITIAL_FORM); // Reset form (xem TODO: có thể thay bằng redirect)
+        // Nếu có chọn file CV, upload CV cho TTS vừa tạo
+        let cvUploadOk = true;
+        if (cvFile && data?.id) {
+          try {
+            const cvRes = await uploadInternCv(data.id, cvFile);
+            if (!cvRes.ok) cvUploadOk = false;
+          } catch {
+            cvUploadOk = false;
+          }
+        }
+
+        if (cvFile && !cvUploadOk) {
+          showToast('error', 'Đã lưu hồ sơ thành công nhưng tải lên CV thất bại. Vui lòng tải lại CV.');
+        } else {
+          showToast('success', cvFile ? 'Thêm hồ sơ và tải lên CV ứng viên thành công!' : 'Thêm hồ sơ thực tập sinh thành công!');
+        }
+
+        setForm(INITIAL_FORM);
+        setCvFile(null);
+        setCvError('');
       } else if (status === 409) {
         // Email trùng
         const msg = data?.detail ?? 'Email đã được sử dụng trong hệ thống.';
         setErrors({ email: msg });
         showToast('error', msg);
       } else if (status === 422) {
-        // Validate fail từ BE (format FastAPI: { detail: [...] } hoặc { detail: "..." })
+        // Validate fail từ BE
         const detail = data?.detail;
         if (Array.isArray(detail)) {
           const beErrors = {};
           detail.forEach(({ loc, msg: beMsg }) => {
-            const field = loc?.[1]; // ["body", "field_name"]
+            const field = loc?.[1];
             if (field) beErrors[field] = beMsg;
           });
           setErrors(beErrors);
@@ -282,7 +309,6 @@ function InternCreatePage() {
           showToast('error', detail ?? 'Dữ liệu không hợp lệ.');
         }
       } else {
-        // 500 hoặc lỗi khác — tái sử dụng buildToast
         const t = buildToast(ok, status, data);
         showToast(t.type, t.message);
       }
@@ -296,7 +322,7 @@ function InternCreatePage() {
   /* ── Render ── */
   return (
     <div className="intern-create-page">
-      {/* Glow nền — giống CreateAccountPage */}
+      {/* Glow nền */}
       <div className="intern-create-page__glow" aria-hidden="true" />
 
       {/* ── Toast thông báo ── */}
@@ -340,238 +366,339 @@ function InternCreatePage() {
             noValidate
           >
 
-            {/* ── Section: Thông tin cơ bản ── */}
-            <fieldset className="intern-create-section">
-              <legend className="intern-create-section__title">Thông tin cơ bản</legend>
+            {/* ── Layout 2 cột song song: Thông tin cơ bản & Thông tin học vấn ── */}
+            <div className="intern-create-grid-2">
 
-              {/* Họ tên */}
-              <div className={`form-group${errors.full_name ? ' form-group--error' : ''}`}>
-                <label htmlFor="hr-ic-fullname">
-                  Họ và tên <span className="intern-create-required" aria-hidden="true">*</span>
-                </label>
-                <input
-                  id="hr-ic-fullname"
-                  name="full_name"
-                  type="text"
-                  placeholder="Nguyễn Văn A"
-                  autoComplete="name"
-                  value={form.full_name}
-                  onChange={handleChange}
-                  aria-required="true"
-                  aria-describedby={errors.full_name ? 'err-ic-fullname' : undefined}
-                />
-                {errors.full_name && (
-                  <span id="err-ic-fullname" className="form-error" role="alert">
-                    {errors.full_name}
-                  </span>
-                )}
-              </div>
+              {/* ── Cột 1: Thông tin cơ bản ── */}
+              <fieldset className="intern-create-col">
+                <legend className="intern-create-section__title">
+                  Thông tin cơ bản
+                </legend>
 
-              {/* Email */}
-              <div className={`form-group${errors.email ? ' form-group--error' : ''}`}>
-                <label htmlFor="hr-ic-email">
-                  Email <span className="intern-create-required" aria-hidden="true">*</span>
-                  {/* TODO: Bàn với nhóm xem đây là email tài khoản hay chỉ email liên lạc */}
-                </label>
-                <input
-                  id="hr-ic-email"
-                  name="email"
-                  type="email"
-                  placeholder="example@ictu.edu.vn"
-                  autoComplete="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  aria-required="true"
-                  aria-describedby={errors.email ? 'err-ic-email' : undefined}
-                />
-                {errors.email && (
-                  <span id="err-ic-email" className="form-error" role="alert">
-                    {errors.email}
-                  </span>
-                )}
-              </div>
-
-              {/* SĐT + Ngày sinh — 2 cột */}
-              <div className="intern-create-row">
-                <div className={`form-group${errors.phone_number ? ' form-group--error' : ''}`}>
-                  <label htmlFor="hr-ic-phone">Số điện thoại</label>
+                {/* Họ tên */}
+                <div className={`form-group${errors.full_name ? ' form-group--error' : ''}`}>
+                  <label htmlFor="hr-ic-fullname">
+                    Họ và tên <span className="intern-create-required" aria-hidden="true">*</span>
+                  </label>
                   <input
-                    id="hr-ic-phone"
-                    name="phone_number"
-                    type="tel"
-                    placeholder="0912 345 678"
-                    autoComplete="tel"
-                    value={form.phone_number}
+                    id="hr-ic-fullname"
+                    name="full_name"
+                    type="text"
+                    placeholder="Nguyễn Văn A"
+                    autoComplete="name"
+                    value={form.full_name}
                     onChange={handleChange}
-                    aria-describedby={errors.phone_number ? 'err-ic-phone' : undefined}
+                    aria-required="true"
+                    aria-describedby={errors.full_name ? 'err-ic-fullname' : undefined}
                   />
-                  {errors.phone_number && (
-                    <span id="err-ic-phone" className="form-error" role="alert">
-                      {errors.phone_number}
+                  {errors.full_name && (
+                    <span id="err-ic-fullname" className="form-error" role="alert">
+                      {errors.full_name}
                     </span>
                   )}
                 </div>
 
-                <div className={`form-group${errors.dob ? ' form-group--error' : ''}`}>
-                  <label htmlFor="hr-ic-dob">Ngày sinh</label>
+                {/* Email */}
+                <div className={`form-group${errors.email ? ' form-group--error' : ''}`}>
+                  <label htmlFor="hr-ic-email">
+                    Email <span className="intern-create-required" aria-hidden="true">*</span>
+                  </label>
                   <input
-                    id="hr-ic-dob"
-                    name="dob"
-                    type="date"
-                    value={form.dob}
+                    id="hr-ic-email"
+                    name="email"
+                    type="email"
+                    placeholder="example@ictu.edu.vn"
+                    autoComplete="email"
+                    value={form.email}
                     onChange={handleChange}
-                    aria-describedby={errors.dob ? 'err-ic-dob' : undefined}
+                    aria-required="true"
+                    aria-describedby={errors.email ? 'err-ic-email' : undefined}
                   />
-                  {errors.dob && (
-                    <span id="err-ic-dob" className="form-error" role="alert">
-                      {errors.dob}
+                  {errors.email && (
+                    <span id="err-ic-email" className="form-error" role="alert">
+                      {errors.email}
                     </span>
                   )}
                 </div>
-              </div>
 
-              {/* Giới tính */}
-              <div className={`form-group${errors.gender ? ' form-group--error' : ''}`}>
-                <label htmlFor="hr-ic-gender">Giới tính</label>
-                <select
-                  id="hr-ic-gender"
-                  name="gender"
-                  value={form.gender}
-                  onChange={handleChange}
-                  aria-describedby={errors.gender ? 'err-ic-gender' : undefined}
-                >
-                  <option value="">-- Chọn giới tính --</option>
-                  {GENDER_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.gender && (
-                  <span id="err-ic-gender" className="form-error" role="alert">
-                    {errors.gender}
-                  </span>
-                )}
-              </div>
+                {/* SĐT + Ngày sinh */}
+                <div className="intern-create-row">
+                  <div className={`form-group${errors.phone_number ? ' form-group--error' : ''}`}>
+                    <label htmlFor="hr-ic-phone">Số điện thoại</label>
+                    <input
+                      id="hr-ic-phone"
+                      name="phone_number"
+                      type="tel"
+                      placeholder="0912 345 678"
+                      autoComplete="tel"
+                      value={form.phone_number}
+                      onChange={handleChange}
+                      aria-describedby={errors.phone_number ? 'err-ic-phone' : undefined}
+                    />
+                    {errors.phone_number && (
+                      <span id="err-ic-phone" className="form-error" role="alert">
+                        {errors.phone_number}
+                      </span>
+                    )}
+                  </div>
 
-              {/* Địa chỉ */}
-              <div className={`form-group${errors.address ? ' form-group--error' : ''}`}>
-                <label htmlFor="hr-ic-address">Địa chỉ</label>
-                <input
-                  id="hr-ic-address"
-                  name="address"
-                  type="text"
-                  placeholder="Số nhà, đường, phường/xã, tỉnh/thành"
-                  autoComplete="street-address"
-                  value={form.address}
-                  onChange={handleChange}
-                  aria-describedby={errors.address ? 'err-ic-address' : undefined}
-                />
-                {errors.address && (
-                  <span id="err-ic-address" className="form-error" role="alert">
-                    {errors.address}
-                  </span>
-                )}
-              </div>
-            </fieldset>
+                  <div className={`form-group${errors.dob ? ' form-group--error' : ''}`}>
+                    <label htmlFor="hr-ic-dob">Ngày sinh</label>
+                    <input
+                      id="hr-ic-dob"
+                      name="dob"
+                      type="date"
+                      value={form.dob}
+                      onChange={handleChange}
+                      aria-describedby={errors.dob ? 'err-ic-dob' : undefined}
+                    />
+                    {errors.dob && (
+                      <span id="err-ic-dob" className="form-error" role="alert">
+                        {errors.dob}
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-            {/* ── Section: Thông tin học vấn ── */}
-            <fieldset className="intern-create-section">
-              <legend className="intern-create-section__title">Thông tin học vấn</legend>
-
-              {/* Trường */}
-              <div className={`form-group${errors.university ? ' form-group--error' : ''}`}>
-                <label htmlFor="hr-ic-university">
-                  Trường đại học / cao đẳng{' '}
-                  <span className="intern-create-required" aria-hidden="true">*</span>
-                </label>
-                <input
-                  id="hr-ic-university"
-                  name="university"
-                  type="text"
-                  placeholder="Đại học Công nghệ thông tin và Truyền thông"
-                  value={form.university}
-                  onChange={handleChange}
-                  aria-required="true"
-                  aria-describedby={errors.university ? 'err-ic-university' : undefined}
-                />
-                {errors.university && (
-                  <span id="err-ic-university" className="form-error" role="alert">
-                    {errors.university}
-                  </span>
-                )}
-              </div>
-
-              {/* Ngành */}
-              <div className={`form-group${errors.major ? ' form-group--error' : ''}`}>
-                <label htmlFor="hr-ic-major">
-                  Ngành học{' '}
-                  <span className="intern-create-required" aria-hidden="true">*</span>
-                </label>
-                <input
-                  id="hr-ic-major"
-                  name="major"
-                  type="text"
-                  placeholder="Công nghệ thông tin"
-                  value={form.major}
-                  onChange={handleChange}
-                  aria-required="true"
-                  aria-describedby={errors.major ? 'err-ic-major' : undefined}
-                />
-                {errors.major && (
-                  <span id="err-ic-major" className="form-error" role="alert">
-                    {errors.major}
-                  </span>
-                )}
-              </div>
-
-              {/* Năm học + GPA — 2 cột */}
-              <div className="intern-create-row">
-                <div className={`form-group${errors.academic_year ? ' form-group--error' : ''}`}>
-                  <label htmlFor="hr-ic-year">Năm học</label>
+                {/* Giới tính */}
+                <div className={`form-group${errors.gender ? ' form-group--error' : ''}`}>
+                  <label htmlFor="hr-ic-gender">Giới tính</label>
                   <select
-                    id="hr-ic-year"
-                    name="academic_year"
-                    value={form.academic_year}
+                    id="hr-ic-gender"
+                    name="gender"
+                    value={form.gender}
                     onChange={handleChange}
-                    aria-describedby={errors.academic_year ? 'err-ic-year' : undefined}
+                    aria-describedby={errors.gender ? 'err-ic-gender' : undefined}
                   >
-                    <option value="">-- Chọn năm --</option>
-                    {ACADEMIC_YEAR_OPTIONS.map((opt) => (
+                    <option value="">-- Chọn giới tính --</option>
+                    {GENDER_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
                     ))}
                   </select>
-                  {errors.academic_year && (
-                    <span id="err-ic-year" className="form-error" role="alert">
-                      {errors.academic_year}
+                  {errors.gender && (
+                    <span id="err-ic-gender" className="form-error" role="alert">
+                      {errors.gender}
                     </span>
                   )}
                 </div>
 
-                <div className={`form-group${errors.gpa ? ' form-group--error' : ''}`}>
-                  <label htmlFor="hr-ic-gpa">GPA (0 – 4)</label>
+                {/* Địa chỉ */}
+                <div className={`form-group${errors.address ? ' form-group--error' : ''}`}>
+                  <label htmlFor="hr-ic-address">Địa chỉ liên hệ</label>
                   <input
-                    id="hr-ic-gpa"
-                    name="gpa"
-                    type="number"
-                    min="0"
-                    max="4"
-                    step="0.01"
-                    placeholder="3.20"
-                    value={form.gpa}
+                    id="hr-ic-address"
+                    name="address"
+                    type="text"
+                    placeholder="Số nhà, đường, phường/xã, tỉnh/thành"
+                    autoComplete="street-address"
+                    value={form.address}
                     onChange={handleChange}
-                    aria-describedby={errors.gpa ? 'err-ic-gpa' : undefined}
+                    aria-describedby={errors.address ? 'err-ic-address' : undefined}
                   />
-                  {errors.gpa && (
-                    <span id="err-ic-gpa" className="form-error" role="alert">
-                      {errors.gpa}
+                  {errors.address && (
+                    <span id="err-ic-address" className="form-error" role="alert">
+                      {errors.address}
                     </span>
                   )}
                 </div>
+              </fieldset>
+
+              {/* ── Cột 2: Thông tin học vấn ── */}
+              <fieldset className="intern-create-col">
+                <legend className="intern-create-section__title">
+                  Thông tin học vấn
+                </legend>
+
+                {/* Trường */}
+                <div className={`form-group${errors.university ? ' form-group--error' : ''}`}>
+                  <label htmlFor="hr-ic-university">
+                    Trường đại học / cao đẳng{' '}
+                    <span className="intern-create-required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="hr-ic-university"
+                    name="university"
+                    type="text"
+                    placeholder="Đại học Công nghệ thông tin và Truyền thông"
+                    value={form.university}
+                    onChange={handleChange}
+                    aria-required="true"
+                    aria-describedby={errors.university ? 'err-ic-university' : undefined}
+                  />
+                  {errors.university && (
+                    <span id="err-ic-university" className="form-error" role="alert">
+                      {errors.university}
+                    </span>
+                  )}
+                </div>
+
+                {/* Ngành */}
+                <div className={`form-group${errors.major ? ' form-group--error' : ''}`}>
+                  <label htmlFor="hr-ic-major">
+                    Ngành học{' '}
+                    <span className="intern-create-required" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="hr-ic-major"
+                    name="major"
+                    type="text"
+                    placeholder="Công nghệ thông tin"
+                    value={form.major}
+                    onChange={handleChange}
+                    aria-required="true"
+                    aria-describedby={errors.major ? 'err-ic-major' : undefined}
+                  />
+                  {errors.major && (
+                    <span id="err-ic-major" className="form-error" role="alert">
+                      {errors.major}
+                    </span>
+                  )}
+                </div>
+
+                {/* Năm học + GPA */}
+                <div className="intern-create-row">
+                  <div className={`form-group${errors.academic_year ? ' form-group--error' : ''}`}>
+                    <label htmlFor="hr-ic-year">Năm học</label>
+                    <select
+                      id="hr-ic-year"
+                      name="academic_year"
+                      value={form.academic_year}
+                      onChange={handleChange}
+                      aria-describedby={errors.academic_year ? 'err-ic-year' : undefined}
+                    >
+                      <option value="">-- Chọn năm --</option>
+                      {ACADEMIC_YEAR_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.academic_year && (
+                      <span id="err-ic-year" className="form-error" role="alert">
+                        {errors.academic_year}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className={`form-group${errors.gpa ? ' form-group--error' : ''}`}>
+                    <label htmlFor="hr-ic-gpa">GPA (0 – 4)</label>
+                    <input
+                      id="hr-ic-gpa"
+                      name="gpa"
+                      type="number"
+                      min="0"
+                      max="4"
+                      step="0.01"
+                      placeholder="3.20"
+                      value={form.gpa}
+                      onChange={handleChange}
+                      aria-describedby={errors.gpa ? 'err-ic-gpa' : undefined}
+                    />
+                    {errors.gpa && (
+                      <span id="err-ic-gpa" className="form-error" role="alert">
+                        {errors.gpa}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Ghi chú thêm / Dự kiến thực tập để 2 bên đều đẹp */}
+                <div className="form-group" style={{ marginTop: 'auto' }}>
+                  <label htmlFor="hr-ic-note">Ghi chú tuyển dụng (nếu có)</label>
+                  <input
+                    id="hr-ic-note"
+                    name="note"
+                    type="text"
+                    placeholder="VD: Ứng tuyển vị trí Frontend ReactJS, mong muốn thực tập 3 tháng"
+                    readOnly
+                    value="Chương trình Thực tập sinh Q3/2026"
+                    style={{ background: '#f8fafc', color: '#65676b' }}
+                  />
+                </div>
+              </fieldset>
+
+            </div>
+
+            {/* ── Khu vực Upload CV của ứng viên (ở phía dưới 2 cột) ── */}
+            <div className="intern-create-cv-section">
+              <div className="intern-create-section__title">
+                Hồ sơ & CV của ứng viên
               </div>
-            </fieldset>
+              <p style={{ margin: '0 0 16px', fontSize: 13.5, color: '#65676b' }}>
+                Tải lên bản CV của ứng viên để lưu trữ vào hệ thống xét duyệt và quản lý hồ sơ thực tập.
+              </p>
+
+              {!cvFile ? (
+                <div
+                  className={`intern-cv-dropzone${isDragging ? ' intern-cv-dropzone--dragover' : ''}`}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={handleDrop}
+                >
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleCvChange}
+                    aria-label="Tải lên file CV ứng viên"
+                  />
+                  <div className="intern-cv-icon">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="34"
+                      height="34"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M4 14.5v3.5a2.5 2.5 0 0 0 2.5 2.5h11a2.5 2.5 0 0 0 2.5-2.5v-3.5" />
+                      <polyline points="6.5 9 12 3.5 17.5 9" />
+                      <line x1="12" y1="3.5" x2="12" y2="15" />
+                    </svg>
+                  </div>
+                  <div className="intern-cv-prompt">
+                    <strong>Nhấn để chọn file</strong> hoặc kéo thả file CV vào đây
+                  </div>
+                  <div className="intern-cv-hint">
+                    Hỗ trợ định dạng PDF, DOC, DOCX (Dung lượng tối đa 5 MB)
+                  </div>
+                </div>
+              ) : (
+                <div className="intern-cv-card">
+                  <div className="intern-cv-card-left">
+                    <div className="intern-cv-card-badge">
+                      {cvFile.name.split('.').pop().toUpperCase()}
+                    </div>
+                    <div className="intern-cv-card-meta">
+                      <div className="intern-cv-card-name">{cvFile.name}</div>
+                      <div className="intern-cv-card-size">
+                        {(cvFile.size / 1024 / 1024).toFixed(2)} MB · Sẵn sàng đính kèm hồ sơ
+                      </div>
+                    </div>
+                  </div>
+                  <div className="intern-cv-card-actions">
+                    <button
+                      type="button"
+                      className="intern-cv-remove-btn"
+                      onClick={() => { setCvFile(null); setCvError(''); }}
+                    >
+                      Hủy file
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {cvError && (
+                <span className="form-error" role="alert" style={{ marginTop: 8 }}>
+                  {cvError}
+                </span>
+              )}
+            </div>
 
             {/* ── Actions ── */}
             <div className="intern-create-actions">
@@ -590,7 +717,7 @@ function InternCreatePage() {
                     Đang lưu…
                   </>
                 ) : (
-                  '💾 Lưu hồ sơ'
+                  'Lưu hồ sơ'
                 )}
               </button>
             </div>

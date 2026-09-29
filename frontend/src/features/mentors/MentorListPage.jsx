@@ -15,51 +15,10 @@
  *   - Xóa mock setTimeout trong MentorFormModal, nối POST /api/hr/mentors thật.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MentorFormModal from './MentorFormModal';
+import { getMentors, getDepartments } from '../../api/mentors';
 import './MentorListPage.css';
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   MOCK DATA
-   Cấu trúc khớp theo spec §7.2 endpoint GET /api/hr/mentors:
-     id           int
-     full_name    str
-     email        str
-     department   str
-     intern_count int    (từ GET /api/hr/mentors/workload hoặc join sẵn)
-
-   TODO (task 2): Xóa mảng này, thay bằng state + fetch thật.
-   ───────────────────────────────────────────────────────────────────────── */
-const MOCK_MENTORS = [
-  {
-    id: 1,
-    full_name:    'Nguyễn Văn Bình',
-    email:        'binh.nv@ictu.edu.vn',
-    department:   'Công nghệ thông tin',
-    intern_count: 3,
-  },
-  {
-    id: 2,
-    full_name:    'Trần Thị Lan',
-    email:        'lan.tt@ictu.edu.vn',
-    department:   'Kỹ thuật phần mềm',
-    intern_count: 2,
-  },
-  {
-    id: 3,
-    full_name:    'Lê Hoàng Nam',
-    email:        'nam.lh@ictu.edu.vn',
-    department:   'Hạ tầng & Vận hành',
-    intern_count: 0,
-  },
-  {
-    id: 4,
-    full_name:    'Phạm Minh Tú',
-    email:        'tu.pm@ictu.edu.vn',
-    department:   'Thiết kế & Trải nghiệm',
-    intern_count: 1,
-  },
-];
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Helper: lấy chữ cái đầu của tên để làm avatar
@@ -81,10 +40,51 @@ function initials(full_name) {
  * Route: /hr/mentors
  */
 function MentorListPage() {
-  /* TODO (task 2): Thay useState(MOCK_MENTORS) bằng useState([]) + useEffect fetch */
-  const [mentors,    setMentors]    = useState(MOCK_MENTORS);
+  const [mentors,    setMentors]    = useState([]);
+  const [loading,    setLoading]    = useState(true);
   const [showModal,  setShowModal]  = useState(false);
-  const [toast,      setToast]      = useState(null); // { type, message } từ buildToast
+  const [toast,      setToast]      = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadData() {
+      try {
+        const [mentorRes, deptRes] = await Promise.all([
+          getMentors(),
+          getDepartments(),
+        ]);
+
+        if (!isMounted) return;
+
+        const deptMap = {};
+        if (deptRes.ok && Array.isArray(deptRes.data)) {
+          deptRes.data.forEach((d) => {
+            deptMap[d.id] = d.name;
+          });
+        }
+
+        if (mentorRes.ok && Array.isArray(mentorRes.data)) {
+          const mapped = mentorRes.data.map((m) => ({
+            ...m,
+            department: deptMap[m.department_id] || m.department || 'Chưa phân bổ',
+            intern_count: m.intern_count ?? 0,
+          }));
+          setMentors(mapped);
+        } else {
+          setMentors([]);
+        }
+      } catch {
+        if (isMounted) setMentors([]);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   /* ── Mở modal ── */
   function handleOpenModal() {
@@ -106,7 +106,6 @@ function MentorListPage() {
   function handleSaved(newMentor) {
     setMentors((prev) => [newMentor, ...prev]);
     setShowModal(false);
-    // Toast đã được gửi qua handleToast bởi MentorFormModal
   }
 
   return (
@@ -171,7 +170,7 @@ function MentorListPage() {
                   <tr>
                     <td colSpan={5}>
                       <div className="mentor-list-empty">
-                        <span className="mentor-list-empty__icon">👥</span>
+                        
                         Chưa có mentor nào. Bấm "Thêm mentor mới" để bắt đầu.
                       </div>
                     </td>

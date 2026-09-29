@@ -59,6 +59,7 @@ class InternListItem(BaseModel):
     """Thông tin tóm tắt TTS trả về trong danh sách tìm kiếm/lọc."""
 
     id: int
+    code: str | None = None
     email: str
     full_name: str | None = None
     role: str = "intern"
@@ -107,3 +108,38 @@ class InternProfileStatusResponse(BaseModel):
     full_name: str | None
     profile_status: Literal["pending", "approved", "rejected"]
     account_status: Literal["pending", "active", "inactive"]
+
+
+class InternUpdateRequest(BaseModel):
+    """Body cập nhật hồ sơ thực tập sinh (HR / admin)."""
+
+    full_name: str | None = Field(default=None, min_length=1, max_length=100)
+    phone_number: str | None = Field(default=None, max_length=20)
+    dob: date | None = None
+    gender: Literal["male", "female", "other"] | None = None
+    university: str | None = Field(default=None, max_length=150)
+    major: str | None = Field(default=None, max_length=150)
+    academic_year: str | None = Field(default=None, max_length=50)
+    gpa: Decimal | None = Field(default=None, ge=0, le=4)
+    address: str | None = Field(default=None, max_length=255)
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = " ".join(value.split())
+        if not cleaned:
+            raise ValueError("Họ và tên không được để trống.")
+        return cleaned
+
+
+class InternRejectRequest(BaseModel):
+    note: str | None = Field(default=None, max_length=255)
+
+
+class InternDetailResponse(InternListItem):
+    """Chi tiết đầy đủ của một TTS bao gồm cả danh sách tài liệu."""
+
+    documents: list = []
+

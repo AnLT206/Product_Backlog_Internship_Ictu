@@ -315,7 +315,6 @@ function SystemLogsPage() {
                   <tr>
                     <td colSpan={10}>
                       <div className="sys-logs-empty">
-                        <span className="sys-logs-empty__icon">📋</span>
                         {appliedUserId != null
                           ? `Không tìm thấy nhật ký của User ID ${appliedUserId}.`
                           : 'Chưa có nhật ký nào.'}

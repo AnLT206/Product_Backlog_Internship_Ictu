@@ -83,7 +83,7 @@ function InternActionButtons({ internId, status, onSuccess }) {
           onClick={() => setDialog('approve')}
           aria-label={`Duyệt hồ sơ #${internId}`}
         >
-          ✓ Duyệt
+          Duyệt
         </button>
 
         {/* Nút Từ chối → mở dialog reject */}
@@ -94,7 +94,7 @@ function InternActionButtons({ internId, status, onSuccess }) {
           onClick={() => setDialog('reject')}
           aria-label={`Từ chối hồ sơ #${internId}`}
         >
-          ✕ Từ chối
+          Từ chối
         </button>
       </div>
 

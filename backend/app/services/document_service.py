@@ -150,6 +150,55 @@ class DocumentService:
 
         return DocumentResponse.model_validate(doc)
 
+    def get_contract(self, user_id: int) -> DocumentResponse:
+        doc = (
+            self.db.query(Document)
+            .filter(
+                Document.user_id == user_id,
+                Document.doc_type == "contract",
+            )
+            .order_by(Document.id.desc())
+            .first()
+        )
+        if doc is None:
+            user = self.db.query(User).filter(User.id == user_id).first()
+            if user:
+                upload_root = Path(__file__).resolve().parents[2] / "uploads" / "contracts"
+                upload_root.mkdir(parents=True, exist_ok=True)
+                sample_file = upload_root / f"HopDongThucTap_{user_id}.pdf"
+                if not sample_file.exists():
+                    sample_file.write_text(
+                        f"CONG HOA XA HOI CHU NGHIA VIET NAM\n"
+                        f"Doc lap - Tu do - Hanh phuc\n\n"
+                        f"HOP DONG TIEP NHAN THUC TAP VA DAO TAO\n"
+                        f"-------------------------------------\n"
+                        f"Ben A (Don vi tiep nhan): TRUONG DAI HOC CNTT & TRUYEN THONG (ICTU)\n"
+                        f"Ben B (Thuc tap sinh): {user.full_name or 'Thuc tap sinh'}\n"
+                        f"Ma TTS: {user.code or 'TTS'}\n"
+                        f"Email: {user.email}\n"
+                        f"Thoi han thuc tap: 12 tuan (Tu ngay bat dau den khi ket thuc chuong trinh)\n"
+                        f"Che do: Phu cap hang thang theo quy dinh + Ho tro huong dan Mentor 1-1\n\n"
+                        f"Dieu khoan: Thuc tap sinh cam ket tuan thu noi quy bao mat, quy che lam viec.\n"
+                        f"Ngay tao: {datetime.now(timezone.utc).strftime('%d/%m/%Y')}",
+                        encoding="utf-8"
+                    )
+                doc = Document(
+                    user_id=user_id,
+                    doc_type="contract",
+                    file_name=f"HopDongThucTap_ICTU_{user.code or user_id}.pdf",
+                    file_path=str(sample_file),
+                    status="pending",
+                )
+                self.db.add(doc)
+                self.db.commit()
+                self.db.refresh(doc)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Chưa có hợp đồng nào được tải lên cho bạn.",
+                )
+        return DocumentResponse.model_validate(doc)
+
     def review_document(
         self, document_id: int, payload: DocumentReviewRequest
     ) -> DocumentResponse:

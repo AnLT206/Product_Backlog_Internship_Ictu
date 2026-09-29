@@ -19,15 +19,12 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import useDebounce from '../../hooks/useDebounce';
-import { getInterns } from '../../api/interns';
+import { getInterns, getFilterOptions } from '../../api/interns';
 import './InternListPage.css';
 
-/* ─────────────────────────────────────────────
-   MOCK: Danh sách ngành mẫu cho Dropdown
-   TODO: Thay bằng danh sách từ API hoặc constants/majors.js
-───────────────────────────────────────────── */
-const MOCK_MAJORS = [
+const DEFAULT_MAJORS = [
   'Công nghệ thông tin',
   'Kỹ thuật phần mềm',
   'Hệ thống thông tin',
@@ -68,6 +65,7 @@ function InternListPage() {
   /* ── Filter state ── */
   const [filterQ,     setFilterQ]     = useState('');
   const [filterMajor, setFilterMajor] = useState('');
+  const [availableMajors, setAvailableMajors] = useState(DEFAULT_MAJORS);
 
   /* ── Debounce chỉ trên ô tìm kiếm text (300ms) ──
      Dropdown Ngành sẽ gọi API ngay (không qua debounce)    */
@@ -80,6 +78,24 @@ function InternListPage() {
 
   /* Kiểm tra có lọc nào đang áp dụng không */
   const hasActiveFilter = filterQ.trim() !== '' || filterMajor !== '';
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadOptions() {
+      try {
+        const { ok, data } = await getFilterOptions();
+        if (isMounted && ok && Array.isArray(data?.majors) && data.majors.length > 0) {
+          setAvailableMajors(data.majors);
+        }
+      } catch {
+        // Giữ DEFAULT_MAJORS
+      }
+    }
+    loadOptions();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   /* ─────────────────────────────────────────────
      loadInterns — khai báo TRƯỚC useEffect
@@ -135,9 +151,9 @@ function InternListPage() {
             </p>
           </div>
 
-          <a href="/hr/interns/new" id="intern-add-btn" className="intern-list-add-btn">
+          <Link to="/hr/interns/new" id="intern-add-btn" className="intern-list-add-btn">
             + Thêm hồ sơ mới
-          </a>
+          </Link>
         </div>
 
         {/* ══════════════════════════════════════
@@ -179,9 +195,8 @@ function InternListPage() {
               onChange={(e) => setFilterMajor(e.target.value)}
               aria-label="Lọc theo ngành học"
             >
-              {/* TODO: thay options bằng dữ liệu thật từ API */}
               <option value="">— Tất cả ngành —</option>
-              {MOCK_MAJORS.map((major) => (
+              {availableMajors.map((major) => (
                 <option key={major} value={major}>{major}</option>
               ))}
             </select>
@@ -196,7 +211,7 @@ function InternListPage() {
             disabled={!hasActiveFilter}
             aria-label="Xóa tất cả bộ lọc"
           >
-            ✕ Xóa lọc
+            Xóa lọc
           </button>
 
           {/* ── Hint khi đang lọc và đã có kết quả ── */}
@@ -237,7 +252,7 @@ function InternListPage() {
                   <tr>
                     <td colSpan={7}>
                       <div className="intern-list-empty" role="status" aria-live="polite">
-                        <span style={{ fontSize: 26, opacity: 0.5 }}>⏳</span>
+                        
                         Đang tải dữ liệu…
                       </div>
                     </td>
@@ -248,7 +263,7 @@ function InternListPage() {
                   <tr>
                     <td colSpan={7}>
                       <div className="intern-list-empty" role="alert">
-                        <span className="intern-list-empty__icon">⚠️</span>
+                        
                         {loadErr}
                       </div>
                     </td>
@@ -259,7 +274,7 @@ function InternListPage() {
                   <tr>
                     <td colSpan={7}>
                       <div className="intern-list-empty">
-                        <span className="intern-list-empty__icon">🔍</span>
+                        
                         {hasActiveFilter
                           ? 'Không tìm thấy thực tập sinh phù hợp.'
                           : 'Chưa có hồ sơ thực tập sinh nào.'}
@@ -313,14 +328,14 @@ function InternListPage() {
 
                       {/* Thao tác */}
                       <td className="col-action" style={{ textAlign: 'center' }}>
-                        <a
-                          href={`/hr/interns/${intern.id}/edit`}
+                        <Link
+                          to={`/hr/interns/${intern.id}/edit`}
                           id={`intern-edit-btn-${intern.id}`}
                           className="intern-edit-btn"
                           aria-label={`Chỉnh sửa hồ sơ ${intern.full_name}`}
                         >
-                          ✎ Sửa
-                        </a>
+                          Sửa
+                        </Link>
                       </td>
                     </tr>
                   ))
