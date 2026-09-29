@@ -195,10 +195,6 @@ export default function InternDashboardPage() {
 
   // Chấm công (US 21)
   function handleCheckIn() {
-    if (!contractConfirmed) {
-      showToast('Tài khoản đang ở chế độ Chỉ xem. Vui lòng tick "Xác nhận đã đọc hợp đồng" để mở quyền chấm công!', 'error')
-      return
-    }
     const time = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
     setTodayAttendance({
       checkedIn: true,
@@ -210,10 +206,6 @@ export default function InternDashboardPage() {
   }
 
   function handleCheckOut() {
-    if (!contractConfirmed) {
-      showToast('Tài khoản đang ở chế độ Chỉ xem. Vui lòng xác nhận hợp đồng trước!', 'error')
-      return
-    }
     const time = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
     setTodayAttendance((prev) => ({
       ...prev,
@@ -225,10 +217,6 @@ export default function InternDashboardPage() {
 
   // Cập nhật tiến độ task (US 16)
   function openTaskModal(task) {
-    if (!contractConfirmed) {
-      showToast('Tài khoản đang ở chế độ Chỉ xem. Vui lòng xác nhận hợp đồng để cập nhật tiến độ nhiệm vụ!', 'error')
-      return
-    }
     setTaskUpdateModal({
       open: true,
       task,
@@ -258,10 +246,6 @@ export default function InternDashboardPage() {
   // Nộp báo cáo tuần (US 17)
   function handleSubmitReport(e) {
     e.preventDefault()
-    if (!contractConfirmed) {
-      showToast('Tài khoản đang ở chế độ Chỉ xem. Vui lòng xác nhận hợp đồng trước khi nộp báo cáo!', 'error')
-      return
-    }
     if (!newReport.summary.trim()) {
       alert('Vui lòng nhập tóm tắt kết quả công việc trong tuần.')
       return
@@ -294,10 +278,6 @@ export default function InternDashboardPage() {
   // Đăng ký nghỉ phép (US 24)
   function handleSubmitLeave(e) {
     e.preventDefault()
-    if (!contractConfirmed) {
-      showToast('Tài khoản đang ở chế độ Chỉ xem. Vui lòng xác nhận hợp đồng trước khi xin nghỉ phép!', 'error')
-      return
-    }
     if (!newLeave.dates.trim() || !newLeave.reason.trim()) {
       alert('Vui lòng nhập đầy đủ thời gian và lý do xin nghỉ phép.')
       return
@@ -320,10 +300,6 @@ export default function InternDashboardPage() {
   // Gửi hỗ trợ (US 27)
   function handleSubmitTicket(e) {
     e.preventDefault()
-    if (!contractConfirmed) {
-      showToast('Tài khoản đang ở chế độ Chỉ xem. Vui lòng xác nhận hợp đồng trước khi gửi hỗ trợ!', 'error')
-      return
-    }
     if (!newTicket.content.trim()) {
       alert('Vui lòng nhập nội dung yêu cầu hỗ trợ.')
       return
@@ -413,9 +389,6 @@ export default function InternDashboardPage() {
               type="button"
               className="intern-dash__btn intern-dash__btn--primary"
               onClick={handleCheckIn}
-              disabled={!contractConfirmed}
-              title={!contractConfirmed ? 'Chỉ mở quyền chấm công sau khi bạn xác nhận đã đọc hợp đồng' : ''}
-              style={!contractConfirmed ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
             >
               Check-in hôm nay
             </button>
@@ -424,9 +397,6 @@ export default function InternDashboardPage() {
               type="button"
               className="intern-dash__btn intern-dash__btn--warn"
               onClick={handleCheckOut}
-              disabled={!contractConfirmed}
-              title={!contractConfirmed ? 'Chỉ mở quyền chấm công sau khi bạn xác nhận đã đọc hợp đồng' : ''}
-              style={!contractConfirmed ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
             >
               Check-out ({todayAttendance.checkInTime})
             </button>
@@ -440,9 +410,6 @@ export default function InternDashboardPage() {
             type="button"
             className="intern-dash__btn intern-dash__btn--ghost"
             onClick={() => setReportModal(true)}
-            disabled={!contractConfirmed}
-            title={!contractConfirmed ? 'Vui lòng xác nhận hợp đồng trước khi nộp báo cáo' : ''}
-            style={!contractConfirmed ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
           >
             Nộp báo cáo tuần
           </button>
@@ -450,90 +417,11 @@ export default function InternDashboardPage() {
             type="button"
             className="intern-dash__btn intern-dash__btn--ghost"
             onClick={() => setLeaveModal(true)}
-            disabled={!contractConfirmed}
-            title={!contractConfirmed ? 'Vui lòng xác nhận hợp đồng trước khi xin nghỉ phép' : ''}
-            style={!contractConfirmed ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
           >
             Xin nghỉ phép
           </button>
         </div>
       </header>
-
-      {/* ── Thông báo Hợp đồng lao động & Kích hoạt quyền thao tác ── */}
-      {!contractConfirmed ? (
-        <section className="intern-contract-notice-banner" aria-label="Thông báo hợp đồng thực tập">
-          <div className="intern-contract-notice-head">
-            <span className="intern-contract-notice-badge">THÔNG BÁO QUAN TRỌNG</span>
-            <h2 className="intern-contract-notice-title">Hồ sơ đã được phê duyệt & Hợp đồng lao động cần xác nhận</h2>
-          </div>
-
-          <div className="intern-contract-notice-body">
-            Chúc mừng bạn! Hồ sơ thực tập sinh của bạn đã được phòng Nhân sự phê duyệt tiếp nhận.
-            Hiện tại tài khoản đang ở <strong>CHẾ ĐỘ CHỈ XEM (Read-only)</strong>.
-            Để kích hoạt đầy đủ quyền thao tác (Chấm công hàng ngày, Nộp báo cáo tuần, Cập nhật nhiệm vụ, Xin nghỉ phép, Gửi yêu cầu hỗ trợ),
-            vui lòng kiểm tra kỹ hợp đồng bên dưới, tích vào checkbox <strong>"Xác nhận đã đọc hợp đồng"</strong> và bấm nút xác nhận.
-          </div>
-
-          <div className="intern-contract-notice-card">
-            <div className="intern-contract-file-info">
-              
-              <div>
-                <div className="intern-contract-file-title">
-                  {contractData?.file_name || `HopDongThucTap_ICTU_${user?.code || 'TTS'}.pdf`}
-                </div>
-                <div className="intern-contract-file-sub">
-                  Đơn vị tiếp nhận: Trường Đại học CNTT & Truyền thông (ICTU) · Thời hạn 12 tuần
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="intern-dash__btn intern-dash__btn--ghost intern-dash__btn--sm"
-              onClick={handleDownloadContract}
-            >
-              ⬇️ Xem / Tải file hợp đồng (PDF)
-            </button>
-          </div>
-
-          <div className="intern-contract-action-row">
-            <label className="intern-contract-checkbox-label">
-              <input
-                type="checkbox"
-                checked={hasReadCheckbox}
-                onChange={(e) => setHasReadCheckbox(e.target.checked)}
-              />
-              <span>
-                <strong>Xác nhận đã đọc hợp đồng:</strong> Tôi đã đọc kỹ, hiểu rõ các quyền lợi, nghĩa vụ và cam kết tuân thủ toàn bộ các điều khoản trong Hợp đồng tiếp nhận thực tập cũng như quy chế nội bộ của đơn vị.
-              </span>
-            </label>
-
-            <button
-              type="button"
-              className="intern-dash__btn intern-dash__btn--primary"
-              disabled={!hasReadCheckbox || confirmingContract}
-              onClick={handleConfirmContract}
-              title={!hasReadCheckbox ? 'Vui lòng tích vào checkbox để xác nhận' : 'Kích hoạt toàn bộ quyền thao tác'}
-            >
-              {confirmingContract ? 'Đang xử lý…' : 'Xác nhận đã đọc & Mở quyền thao tác'}
-            </button>
-          </div>
-        </section>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 10, fontSize: 13.5, color: '#065f46', flexWrap: 'wrap', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>✓</span>
-            <strong>Hợp đồng thực tập đã được xác nhận:</strong> Bạn đang có đầy đủ quyền thao tác trên hệ thống.
-          </div>
-          <button
-            type="button"
-            className="intern-dash__btn intern-dash__btn--ghost intern-dash__btn--sm"
-            onClick={handleDownloadContract}
-          >
-            ⬇️ Xem lại file hợp đồng
-          </button>
-        </div>
-      )}
 
 
       {/* 4 Thẻ KPI Stats */}
@@ -678,19 +566,13 @@ export default function InternDashboardPage() {
                       </span>
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      {!contractConfirmed ? (
-                        <span className="intern-readonly-tag" title="Vui lòng xác nhận hợp đồng để cập nhật nhiệm vụ">
-                          Chỉ xem
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          className="intern-action-btn intern-action-btn--primary"
-                          onClick={() => openTaskModal(task)}
-                        >
-                          Cập nhật tiến độ
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className="intern-action-btn intern-action-btn--primary"
+                        onClick={() => openTaskModal(task)}
+                      >
+                        Cập nhật tiến độ
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -714,9 +596,6 @@ export default function InternDashboardPage() {
               type="button"
               className="intern-dash__btn intern-dash__btn--primary intern-dash__btn--sm"
               onClick={() => setReportModal(true)}
-              disabled={!contractConfirmed}
-              title={!contractConfirmed ? 'Vui lòng xác nhận hợp đồng trước khi nộp báo cáo' : ''}
-              style={!contractConfirmed ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
             >
               + Nộp báo cáo tuần mới
             </button>
@@ -998,9 +877,6 @@ export default function InternDashboardPage() {
               type="button"
               className="intern-dash__btn intern-dash__btn--primary intern-dash__btn--sm"
               onClick={() => setTicketModal(true)}
-              disabled={!contractConfirmed}
-              title={!contractConfirmed ? 'Vui lòng xác nhận hợp đồng trước khi gửi yêu cầu' : ''}
-              style={!contractConfirmed ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
             >
               + Gửi yêu cầu hỗ trợ mới
             </button>

@@ -82,12 +82,22 @@ class PermissionService:
         self.db = db
 
     def seed_defaults_if_needed(self) -> None:
-        """Tự động seed permissions và role_permissions nếu chưa có (dùng cho tests hoặc DB mới)."""
-        existing_perms_count = self.db.query(Permission).count()
-        if existing_perms_count == 0:
-            for key, label, group in DEFAULT_PERMISSION_DEFS:
+        """Tự động seed và chuẩn hóa permissions và role_permissions (đảm bảo UTF-8 tiếng Việt chuẩn)."""
+        existing_perms = {p.name: p for p in self.db.query(Permission).all()}
+        needs_commit = False
+
+        for key, label, group in DEFAULT_PERMISSION_DEFS:
+            if key not in existing_perms:
                 self.db.add(Permission(name=key, label=label, group_name=group))
-            self.db.flush()
+                needs_commit = True
+            else:
+                perm = existing_perms[key]
+                if perm.label != label or perm.group_name != group:
+                    perm.label = label
+                    perm.group_name = group
+                    needs_commit = True
+
+        self.db.flush()
 
         existing_rp_count = self.db.query(RolePermission).count()
         if existing_rp_count == 0:
@@ -102,8 +112,9 @@ class PermissionService:
                         self.db.add(
                             RolePermission(role_id=role.id, permission_id=perm.id)
                         )
-            self.db.commit()
-        elif existing_perms_count == 0:
+            needs_commit = True
+
+        if needs_commit:
             self.db.commit()
 
     def get_permission_matrix(self) -> PermissionMatrixResponse:

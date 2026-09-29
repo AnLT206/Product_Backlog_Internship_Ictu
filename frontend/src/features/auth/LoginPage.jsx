@@ -51,11 +51,15 @@ function LoginPage() {
   const [quickLoadingRole, setQuickLoadingRole] = useState('')
 
   if (isAuthenticated && user) {
-    const target = location.state?.from || dashboardPathForRole(user.role)
+    const roleDest = dashboardPathForRole(user.role)
+    const target =
+      location.state?.from && location.state.from.startsWith(`/${user.role}`)
+        ? location.state.from
+        : roleDest
     return <Navigate to={target} replace />
   }
 
-  async function performLogin(targetEmail, targetPassword) {
+  async function performLogin(targetEmail, targetPassword, forcedDest) {
     setError('')
     setLoading(true)
     try {
@@ -65,8 +69,14 @@ function LoginPage() {
         return
       }
 
-      const dest =
-        location.state?.from || dashboardPathForRole(result.user.role)
+      const roleDest = dashboardPathForRole(result.user.role)
+      let dest = forcedDest || roleDest
+      if (!forcedDest && location.state?.from) {
+        const fromPath = location.state.from
+        if (fromPath.startsWith(`/${result.user.role}`)) {
+          dest = fromPath
+        }
+      }
       navigate(dest, { replace: true })
     } catch {
       setError('Không kết nối được máy chủ. Thử lại sau.')
@@ -91,7 +101,8 @@ function LoginPage() {
     setEmail(account.email)
     setPassword(account.password)
     setQuickLoadingRole(account.role)
-    await performLogin(account.email, account.password)
+    const targetRole = account.variant === 'intern' ? 'intern' : account.role.toLowerCase()
+    await performLogin(account.email, account.password, dashboardPathForRole(targetRole))
   }
 
   return (

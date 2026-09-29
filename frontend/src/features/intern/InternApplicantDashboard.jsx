@@ -170,7 +170,7 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
       action: 'Xem kết quả',
     },
     {
-      title: 'Phụ cấp & Hợp đồng lao động',
+      title: 'Phụ cấp & Thỏa thuận thực tập',
       desc: 'Tra cứu thông tin chính sách hỗ trợ kinh phí, hợp đồng thực tập và các phúc lợi thực tập sinh.',
       badge: 'Chính sách',
       action: 'Chi tiết hợp đồng',

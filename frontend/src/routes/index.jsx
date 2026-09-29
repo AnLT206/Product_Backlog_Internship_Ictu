@@ -85,7 +85,7 @@ export default function AppRoutes() {
         <Route
           path="/intern"
           element={
-            <RequireAuth roles={['intern', 'admin']}>
+            <RequireAuth roles={['intern']}>
               <InternLayout />
             </RequireAuth>
           }
