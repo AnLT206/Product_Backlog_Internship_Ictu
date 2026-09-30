@@ -47,7 +47,8 @@ export default function InternLayout() {
             : `Không gian làm việc cá nhân - TTS ${user?.full_name || 'Nguyễn Văn Bình'}`,
         },
       ]}
-      periodInfo={isApplicant ? 'Kỳ Tuyển Dụng Q3/2026' : 'Học kỳ Q3/2026 • Tuần 08 / 12'}
+      showNotifications={true}
+      showTopbarUser={true}
       avatarText={isApplicant ? 'NA' : 'NB'}
       userCardMeta={
         isApplicant
