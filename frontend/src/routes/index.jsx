@@ -9,6 +9,8 @@ import CreateAccountPage from '../features/admin/CreateAccountPage.jsx'
 import UsersPage from '../features/admin/UsersPage.jsx'
 import PermissionMatrixPage from '../features/admin/PermissionMatrixPage.jsx'
 import SystemLogsPage from '../features/admin/SystemLogsPage.jsx'
+import AdminSettingsPage from '../features/admin/AdminSettingsPage.jsx'
+import AdminBackupPage from '../features/admin/AdminBackupPage.jsx'
 import RequireAuth from './RequireAuth.jsx'
 import InternListPage from '../features/intern/InternListPage.jsx'
 import InternCreatePage from '../features/intern/InternCreatePage.jsx'
@@ -49,7 +51,9 @@ export default function AppRoutes() {
           <Route path="users" element={<UsersPage />} />
           <Route path="users/new" element={<CreateAccountPage />} />
           <Route path="roles" element={<PermissionMatrixPage />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
           <Route path="system-logs" element={<SystemLogsPage />} />
+          <Route path="backup" element={<AdminBackupPage />} />
         </Route>
 
         {/* ── Phân hệ Nhân sự (HR Portal) ── */}

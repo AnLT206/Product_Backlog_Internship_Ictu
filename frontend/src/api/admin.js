@@ -261,3 +261,107 @@ export async function getSystemLogs(params = {}) {
   const query = qs.toString() ? `?${qs.toString()}` : '';
   return apiFetch(`/api/admin/system-logs${query}`, { method: 'GET' });
 }
+
+/* ─────────────────────────────────────────────
+   System Settings & SSO/LDAP API
+───────────────────────────────────────────── */
+
+/**
+ * Lấy toàn bộ tham số cấu hình hệ thống & SSO/LDAP.
+ * GET /api/admin/settings
+ */
+export async function getSystemSettings() {
+  return apiFetch('/api/admin/settings', { method: 'GET' });
+}
+
+/**
+ * Cập nhật cấu hình tham số hệ thống & SSO/LDAP.
+ * PUT /api/admin/settings
+ * @param {Record<string, string>} settings
+ */
+export async function updateSystemSettings(settings) {
+  return apiFetch('/api/admin/settings', {
+    method: 'PUT',
+    body: JSON.stringify({ settings }),
+  });
+}
+
+/**
+ * Kiểm tra kết nối thử nghiệm tới máy chủ LDAP / Active Directory.
+ * POST /api/admin/settings/test-ldap
+ */
+export async function testLdapConnection(payload = {}) {
+  return apiFetch('/api/admin/settings/test-ldap', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Kiểm tra kết nối cổng đồng bộ HRM doanh nghiệp.
+ * POST /api/admin/settings/test-hrm
+ */
+export async function testHrmConnection() {
+  return apiFetch('/api/admin/settings/test-hrm', {
+    method: 'POST',
+  });
+}
+
+/* ─────────────────────────────────────────────
+   Backup & Restore API
+───────────────────────────────────────────── */
+
+/**
+ * Lấy tổng quan danh sách bản sao lưu và thông tin lập lịch.
+ * GET /api/admin/backups
+ */
+export async function getBackups() {
+  return apiFetch('/api/admin/backups', { method: 'GET' });
+}
+
+/**
+ * Tạo mới bản sao lưu tức thì.
+ * POST /api/admin/backups
+ * @param {{ backup_type: 'full'|'data_only'|'schema_only', note?: string }} payload
+ */
+export async function createBackup(payload) {
+  return apiFetch('/api/admin/backups', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Khôi phục cơ sở dữ liệu từ bản sao lưu.
+ * POST /api/admin/backups/:backupId/restore
+ * @param {number} backupId
+ */
+export async function restoreBackup(backupId) {
+  return apiFetch(`/api/admin/backups/${backupId}/restore`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Xóa bản sao lưu dữ liệu.
+ * DELETE /api/admin/backups/:backupId
+ * @param {number} backupId
+ */
+export async function deleteBackup(backupId) {
+  return apiFetch(`/api/admin/backups/${backupId}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Cập nhật lịch tự động sao lưu.
+ * PUT /api/admin/backups/schedule
+ * @param {{ auto_backup_enabled: boolean, frequency: string, retention_days: number }} schedule
+ */
+export async function updateBackupSchedule(schedule) {
+  return apiFetch('/api/admin/backups/schedule', {
+    method: 'PUT',
+    body: JSON.stringify(schedule),
+  });
+}
+

@@ -341,7 +341,14 @@ def run_reset():
         ))
 
         db.commit()
-        print("✅ Hoàn tất thiết lập lại CSDL chuẩn: 1 Admin, 1 HR, 2 Mentor, 2 TTS, 1 Ứng viên!")
+
+        # Đảm bảo thiết lập tham số hệ thống và bản sao lưu mẫu
+        from app.services.settings_service import SettingsService
+        from app.services.backup_service import BackupService
+        SettingsService(db).ensure_default_settings()
+        BackupService(db).ensure_initial_backups(admin)
+
+        print("✅ Hoàn tất thiết lập lại CSDL chuẩn: 1 Admin, 1 HR, 2 Mentor, 2 TTS, 1 Ứng viên (kèm Cấu hình Tham số & Sao lưu dữ liệu)!")
 
     except Exception as e:
         db.rollback()

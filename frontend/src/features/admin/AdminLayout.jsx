@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import {
   Activity,
   Users,
@@ -20,6 +20,12 @@ const ADMIN_NAV_ITEMS = [
 ]
 
 export default function AdminLayout() {
+  const location = useLocation()
+  const activeNav = ADMIN_NAV_ITEMS.find((item) =>
+    item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
+  )
+  const currentLabel = activeNav ? activeNav.label : 'Bảng điều khiển'
+
   return (
     <EnterpriseAppShell
       portalName="Quản trị Hệ thống"
@@ -29,6 +35,10 @@ export default function AdminLayout() {
       showPortalTagBox={true}
       sidebarSectionLabel="BẢNG ĐIỀU KHIỂN KỸ THUẬT"
       navItems={ADMIN_NAV_ITEMS}
+      breadcrumbs={[
+        { label: 'Admin Console' },
+        { label: currentLabel },
+      ]}
       avatarText="SA"
       adminUserCard={true}
       showNotifications={true}
@@ -40,3 +50,4 @@ export default function AdminLayout() {
     </EnterpriseAppShell>
   )
 }
+
