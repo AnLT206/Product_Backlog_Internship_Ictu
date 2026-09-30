@@ -1,0 +1,415 @@
+/* ============================================================
+   MentorAssignModal.css – HR Phân bổ Mentor cho Thực tập sinh
+   ============================================================ */
+
+.mentor-assign-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: modal-fade-in 0.2s ease-out;
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.mentor-assign-modal {
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modal-pop-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-pop-up {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ── Header ── */
+.mentor-assign-header {
+  padding: 24px 28px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  background: #f8fafc;
+}
+
+.mentor-assign-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.mentor-assign-header h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.mentor-assign-header h2 span {
+  color: #2563eb;
+}
+
+.mentor-assign-desc {
+  margin: 0;
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.mentor-assign-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: all 0.15s;
+}
+
+.mentor-assign-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* ── Toolbar ── */
+.mentor-assign-toolbar {
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+}
+
+.mentor-assign-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.mentor-assign-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.mentor-assign-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.mentor-assign-search-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.mentor-assign-filter-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.filter-tab-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-tab-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.filter-tab-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* ── Batch actions row ── */
+.mentor-assign-batch-actions {
+  padding: 10px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fafbfc;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.highlight-count {
+  color: #2563eb;
+  font-size: 14px;
+}
+
+.batch-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-batch {
+  background: none;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-batch:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+/* ── Body (Interns List) ── */
+.mentor-assign-body {
+  padding: 16px 28px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 240px;
+  max-height: 380px;
+}
+
+.mentor-assign-loading,
+.mentor-assign-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 50px 20px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.interns-grid-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intern-check-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.intern-check-card:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.intern-check-card.is-selected {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.intern-check-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.intern-checkbox {
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
+  accent-color: #2563eb;
+}
+
+.intern-avatar-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.intern-check-card.is-selected .intern-avatar-small {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.intern-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.intern-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.intern-code-pill {
+  font-size: 11px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.intern-name {
+  font-size: 13.5px;
+  color: #0f172a;
+}
+
+.intern-meta-row {
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mentor-assigned-badge {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.badge--active {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.badge--other {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.badge--none {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+/* ── Footer ── */
+.mentor-assign-footer {
+  padding: 16px 28px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-cancel {
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-cancel:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.btn-save {
+  padding: 9px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.btn-save:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

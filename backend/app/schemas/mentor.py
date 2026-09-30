@@ -102,3 +102,21 @@ class MentorResponse(BaseModel):
     dob: date | None = None
     position: str | None = None
     department_id: int | None = None
+    intern_count: int = 0
+
+
+class MentorAssignInternsRequest(BaseModel):
+    intern_ids: list[int] = Field(..., description="Danh sách ID thực tập sinh được phân bổ cho mentor")
+
+
+class MentorInternItemResponse(BaseModel):
+    id: int
+    code: str | None = None
+    full_name: str | None = None
+    email: str
+    university: str | None = None
+    major: str | None = None
+    status: str
+    current_mentor_id: int | None = None
+    current_mentor_name: str | None = None
+    is_assigned: bool = False

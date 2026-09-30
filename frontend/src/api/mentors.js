@@ -106,3 +106,34 @@ export async function getMentors() {
   return apiFetch('/api/hr/mentors', { method: 'GET' });
 }
 
+/* ─────────────────────────────────────────────
+   getMentorInterns & assignMentorInterns
+───────────────────────────────────────────── */
+
+/**
+ * Lấy danh sách thực tập sinh và trạng thái phân công cho mentor.
+ * Route: GET /api/hr/mentors/:mentorId/interns
+ *
+ * @param {number|string} mentorId
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function getMentorInterns(mentorId) {
+  return apiFetch(`/api/hr/mentors/${mentorId}/interns`, { method: 'GET' });
+}
+
+/**
+ * Phân bổ thực tập sinh cho mentor.
+ * Route: POST /api/hr/mentors/:mentorId/assign-interns
+ *
+ * @param {number|string} mentorId
+ * @param {number[]} internIds
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function assignMentorInterns(mentorId, internIds) {
+  return apiFetch(`/api/hr/mentors/${mentorId}/assign-interns`, {
+    method: 'POST',
+    body: JSON.stringify({ intern_ids: internIds }),
+  });
+}
+
+

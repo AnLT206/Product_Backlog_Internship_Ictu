@@ -17,6 +17,7 @@
 
 import { useState, useEffect } from 'react';
 import MentorFormModal from './MentorFormModal';
+import MentorAssignModal from './MentorAssignModal';
 import { getMentors, getDepartments } from '../../api/mentors';
 import './MentorListPage.css';
 
@@ -40,9 +41,10 @@ function initials(full_name) {
  * Route: /hr/mentors
  */
 function MentorListPage() {
-  const [mentors,    setMentors]    = useState([]);
-  const [showModal,  setShowModal]  = useState(false);
-  const [toast,      setToast]      = useState(null);
+  const [mentors,            setMentors]            = useState([]);
+  const [showModal,          setShowModal]          = useState(false);
+  const [assignModalMentor,  setAssignModalMentor]  = useState(null);
+  const [toast,              setToast]              = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -105,6 +107,17 @@ function MentorListPage() {
     setShowModal(false);
   }
 
+  /* ── Cập nhật sau khi phân bổ thực tập sinh ── */
+  function handleAssignSuccess(updatedMentor) {
+    setMentors((prev) =>
+      prev.map((m) =>
+        m.id === updatedMentor.id
+          ? { ...m, intern_count: updatedMentor.intern_count }
+          : m
+      )
+    );
+  }
+
   return (
     <div className="mentor-list-page">
       {/* Glow nền */}
@@ -159,15 +172,15 @@ function MentorListPage() {
                   <th className="col-email" scope="col">Email</th>
                   <th className="col-dept"  scope="col">Phòng ban</th>
                   <th className="col-count" scope="col">Số TTS</th>
+                  <th className="col-action" scope="col" style={{ textAlign: 'center' }}>Thao tác</th>
                 </tr>
               </thead>
 
               <tbody>
                 {mentors.length === 0 ? (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={6}>
                       <div className="mentor-list-empty">
-                        
                         Chưa có mentor nào. Bấm "Thêm mentor mới" để bắt đầu.
                       </div>
                     </td>
@@ -206,6 +219,18 @@ function MentorListPage() {
                       <td className="col-count" style={{ textAlign: 'center' }}>
                         <span className="mentor-count-badge">{mentor.intern_count}</span>
                       </td>
+
+                      {/* Thao tác phân bổ TTS */}
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          className="mentor-action-assign-btn"
+                          onClick={() => setAssignModalMentor(mentor)}
+                          title={`Phân bổ thực tập sinh cho mentor ${mentor.full_name}`}
+                        >
+                          Phân công TTS
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -226,6 +251,16 @@ function MentorListPage() {
         <MentorFormModal
           onClose={handleCloseModal}
           onSaved={handleSaved}
+          onToast={handleToast}
+        />
+      )}
+
+      {/* ── Modal Phân công TTS cho Mentor ── */}
+      {assignModalMentor && (
+        <MentorAssignModal
+          mentor={assignModalMentor}
+          onClose={() => setAssignModalMentor(null)}
+          onSuccess={handleAssignSuccess}
           onToast={handleToast}
         />
       )}

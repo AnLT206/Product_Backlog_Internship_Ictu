@@ -2,7 +2,13 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_roles
-from app.schemas.mentor import MentorCreateRequest, MentorResponse, MentorUpdateRequest
+from app.schemas.mentor import (
+    MentorAssignInternsRequest,
+    MentorCreateRequest,
+    MentorInternItemResponse,
+    MentorResponse,
+    MentorUpdateRequest,
+)
 from app.services.mentor_service import MentorService
 
 router = APIRouter(prefix="/hr/mentors", tags=["mentors"])
@@ -43,3 +49,30 @@ def update_mentor(
     db: Session = Depends(get_db),
 ) -> MentorResponse:
     return MentorService(db).update_mentor(mentor_id, payload)
+
+
+@router.get(
+    "/{mentor_id}/interns",
+    response_model=list[MentorInternItemResponse],
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def get_mentor_interns(
+    mentor_id: int,
+    db: Session = Depends(get_db),
+) -> list[MentorInternItemResponse]:
+    return MentorService(db).get_mentor_interns(mentor_id)
+
+
+@router.post(
+    "/{mentor_id}/assign-interns",
+    response_model=MentorResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def assign_interns(
+    mentor_id: int,
+    payload: MentorAssignInternsRequest,
+    db: Session = Depends(get_db),
+) -> MentorResponse:
+    return MentorService(db).assign_interns(mentor_id, payload.intern_ids)
