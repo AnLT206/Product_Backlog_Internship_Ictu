@@ -56,3 +56,8 @@ class AdminUserCreateRequest(BaseModel):
         if value.strip() != value:
             raise ValueError("Mật khẩu không được bắt đầu/kết thúc bằng khoảng trắng.")
         return value
+
+
+class AdminUserUpdateRequest(BaseModel):
+    status: UserStatus
+

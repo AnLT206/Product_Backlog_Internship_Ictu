@@ -102,3 +102,96 @@ class AdminUserService:
             status=user.status,  # type: ignore[arg-type]
             created_at=user.created_at,
         )
+
+    def update_user_status(self, user_id: int, new_status: str) -> AdminUserResponse:
+        user = (
+            self.db.query(User)
+            .options(joinedload(User.role))
+            .filter(User.id == user_id)
+            .first()
+        )
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Không tìm thấy người dùng với ID {user_id}.",
+            )
+
+        user.status = new_status
+
+        try:
+            self.db.commit()
+            self.db.refresh(user)
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể cập nhật trạng thái người dùng.",
+            ) from None
+
+        return AdminUserResponse(
+            id=user.id,
+            code=user.code,
+            email=user.email,
+            full_name=user.full_name,
+            role=user.role.name if user.role else "intern",
+            status=user.status,  # type: ignore[arg-type]
+            created_at=user.created_at,
+        )
+
+    def delete_user(self, user_id: int) -> dict[str, str]:
+        user = self.db.query(User).options(joinedload(User.role)).filter(User.id == user_id).first()
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Không tìm thấy người dùng với ID {user_id}.",
+            )
+
+        if user.role and user.role.name == "admin":
+            admin_count = (
+                self.db.query(User)
+                .join(Role, User.role_id == Role.id)
+                .filter(Role.name == "admin")
+                .count()
+            )
+            if admin_count <= 1:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Không thể xóa tài khoản Quản trị viên duy nhất của hệ thống.",
+                )
+
+        try:
+            self.db.query(User).filter(User.id == user_id).delete(synchronize_session=False)
+            self.db.commit()
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể xóa tài khoản người dùng khỏi cơ sở dữ liệu.",
+            ) from None
+
+        return {"detail": "Đã xóa tài khoản người dùng thành công."}
+
+    def reset_password(self, user_id: int) -> dict[str, str]:
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Không tìm thấy người dùng với ID {user_id}.",
+            )
+
+        temp_pass = "Ictu@2026"
+        user.password_hash = hash_password(temp_pass)
+        try:
+            self.db.commit()
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể đặt lại mật khẩu.",
+            ) from None
+
+        return {
+            "detail": f"Đã đặt lại mật khẩu tạm thành công: {temp_pass}",
+            "temporary_password": temp_pass,
+        }
+

@@ -1,0 +1,434 @@
+/* ==========================================================================
+   HR SUB-PAGES STYLES (Attendance, Contracts, University Reports)
+   Enterprise SaaS Standard - ICTU Intern Portal
+   ========================================================================== */
+
+.hr-subpage-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── 1. HEADER KHU VỰC TRANG ── */
+.hr-subpage-header {
+  background-color: #ffffff;
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-lg);
+  padding: 1.4rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  flex-wrap: wrap;
+}
+
+.subpage-title-group h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 0.3rem;
+  letter-spacing: -0.02em;
+}
+
+.subpage-title-group p {
+  font-size: 0.825rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.subpage-actions-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.subpage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.52rem 1rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.subpage-btn--primary {
+  background-color: #2563EB;
+  color: #ffffff;
+  border-color: #2563EB;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.subpage-btn--primary:hover {
+  background-color: #1D4ED8;
+  border-color: #1D4ED8;
+  transform: translateY(-1px);
+}
+
+.subpage-btn--outline {
+  background-color: #ffffff;
+  border-color: #CBD5E1;
+  color: #334155;
+}
+
+.subpage-btn--outline:hover {
+  background-color: #F8FAFC;
+  border-color: #94A3B8;
+  color: #0F172A;
+}
+
+.subpage-btn--success {
+  background-color: #10B981;
+  color: #ffffff;
+  border-color: #10B981;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.subpage-btn--success:hover {
+  background-color: #059669;
+  border-color: #059669;
+  transform: translateY(-1px);
+}
+
+/* ── 2. HÀNG 4 THẺ KPI CHỈ SỐ ── */
+.subpage-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+.subpage-kpi-card {
+  background-color: #ffffff;
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.35rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.subpage-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.07);
+}
+
+.subpage-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+}
+
+.subpage-kpi-title {
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.subpage-kpi-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.subpage-kpi-icon-wrap--blue {
+  background-color: #EFF6FF;
+  color: #2563EB;
+}
+
+.subpage-kpi-icon-wrap--green {
+  background-color: #ECFDF5;
+  color: #10B981;
+}
+
+.subpage-kpi-icon-wrap--purple {
+  background-color: #F5F3FF;
+  color: #8B5CF6;
+}
+
+.subpage-kpi-icon-wrap--amber {
+  background-color: #FFFBEB;
+  color: #D97706;
+}
+
+.subpage-kpi-val {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #0F172A;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.02em;
+}
+
+.subpage-kpi-hint {
+  font-size: 0.75rem;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* ── 3. KHỐI BẢNG VÀ BỘ LỌC CHÍNH ── */
+.subpage-panel {
+  background-color: #ffffff;
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.subpage-panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.subpage-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #F8FAFC;
+  border: 1px solid var(--border-main);
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  min-width: 280px;
+}
+
+.subpage-search-input {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.825rem;
+  color: #0F172A;
+  outline: none;
+  width: 100%;
+}
+
+.subpage-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.subpage-select {
+  border: 1px solid var(--border-main);
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 0.48rem 0.85rem;
+  font-family: inherit;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  outline: none;
+}
+
+.subpage-select:focus {
+  border-color: #2563EB;
+}
+
+/* ── 4. BẢNG DỮ LIỆU CHUẨN ENTERPRISE ── */
+.subpage-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+}
+
+.subpage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: inherit;
+  font-size: 0.835rem;
+  text-align: left;
+}
+
+.subpage-table th {
+  background-color: #F8FAFC;
+  color: #475569;
+  font-weight: 700;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid #E2E8F0;
+  white-space: nowrap;
+}
+
+.subpage-table td {
+  padding: 1.05rem 1.15rem;
+  border-bottom: 1px solid #F1F5F9;
+  color: #0F172A;
+  vertical-align: middle;
+}
+
+.subpage-table tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.subpage-table tbody tr:hover {
+  background-color: #F8FAFC;
+}
+
+.subpage-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Status Badges */
+.sub-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.sub-status-pill--success {
+  background-color: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+
+.sub-status-pill--warning {
+  background-color: #FFFBEB;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+
+.sub-status-pill--info {
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
+.sub-status-pill--danger {
+  background-color: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+/* Table Button Actions */
+.sub-table-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.38rem 0.75rem;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.sub-table-btn--primary {
+  background-color: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #1D4ED8;
+}
+
+.sub-table-btn--primary:hover {
+  background-color: #2563EB;
+  border-color: #2563EB;
+  color: #ffffff;
+}
+
+.sub-table-btn--success {
+  background-color: #ECFDF5;
+  border-color: #A7F3D0;
+  color: #065F46;
+}
+
+.sub-table-btn--success:hover {
+  background-color: #10B981;
+  border-color: #10B981;
+  color: #ffffff;
+}
+
+.sub-table-btn--outline {
+  background-color: #ffffff;
+  border-color: #CBD5E1;
+  color: #334155;
+}
+
+.sub-table-btn--outline:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+/* Toast feedback */
+.subpage-toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 100;
+  background-color: #0F172A;
+  color: #ffffff;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.825rem;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: toastFadeIn 0.25s ease-out;
+}
+
+@keyframes toastFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .subpage-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .subpage-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .subpage-panel-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -9,6 +9,12 @@ from app.models.role import Role
 from app.models.system_log import SystemLog
 from app.models.user import User
 from app.models.user_profile import UserProfile
+from app.models.intern_task import InternTask
+from app.models.intern_report import InternReport
+from app.models.intern_evaluation import InternEvaluation
+from app.models.intern_attendance import InternAttendance
+from app.models.intern_contract_record import InternContractRecord
+from app.models.university_report import UniversityReport
 
 __all__ = [
     "Department",
@@ -23,6 +29,12 @@ __all__ = [
     "InternshipProgram",
     "ProgramMember",
     "UserProfile",
+    "InternTask",
+    "InternReport",
+    "InternEvaluation",
+    "InternAttendance",
+    "InternContractRecord",
+    "UniversityReport",
 ]
 
 

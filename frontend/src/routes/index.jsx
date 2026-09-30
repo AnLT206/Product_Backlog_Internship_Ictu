@@ -18,6 +18,9 @@ import ProgramFormPage from '../features/programs/ProgramFormPage.jsx'
 import MentorListPage from '../features/mentors/MentorListPage.jsx'
 import HrLayout from '../features/hr/HrLayout.jsx'
 import HrDashboardPage from '../features/hr/HrDashboardPage.jsx'
+import HrAttendancePage from '../features/hr/HrAttendancePage.jsx'
+import HrContractsPage from '../features/hr/HrContractsPage.jsx'
+import HrReportsPage from '../features/hr/HrReportsPage.jsx'
 import MentorLayout from '../features/mentor/MentorLayout.jsx'
 import MentorDashboardPage from '../features/mentor/MentorDashboardPage.jsx'
 import InternLayout from '../features/intern/InternLayout.jsx'
@@ -66,19 +69,25 @@ export default function AppRoutes() {
           <Route path="programs" element={<ProgramListPage />} />
           <Route path="programs/new" element={<ProgramFormPage />} />
           <Route path="mentors" element={<MentorListPage />} />
+          <Route path="attendance" element={<HrAttendancePage />} />
+          <Route path="contracts" element={<HrContractsPage />} />
+          <Route path="reports" element={<HrReportsPage />} />
         </Route>
 
         {/* ── Phân hệ Mentor (Mentor Portal) ── */}
         <Route
           path="/mentor"
           element={
-            <RequireAuth roles={['mentor', 'admin']}>
+            <RequireAuth roles={['mentor', 'admin', 'hr']}>
               <MentorLayout />
             </RequireAuth>
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<MentorDashboardPage />} />
+          <Route path="attendance" element={<HrAttendancePage />} />
+          <Route path="contracts" element={<HrContractsPage />} />
+          <Route path="reports" element={<HrReportsPage />} />
         </Route>
 
         {/* ── Phân hệ Thực tập sinh (Intern Portal) ── */}

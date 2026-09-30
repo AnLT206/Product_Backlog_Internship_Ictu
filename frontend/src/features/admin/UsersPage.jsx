@@ -5,7 +5,12 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { fetchUsers } from '../../api/admin'
+import {
+  fetchUsers,
+  updateUserStatus,
+  deleteUser,
+  resetUserPassword,
+} from '../../api/admin'
 import './AdminPage.css'
 
 const TABS = [
@@ -23,7 +28,7 @@ const ROLE_LABEL = {
 const STATUS_LABEL = {
   active: 'Hoạt động',
   pending: 'Chờ duyệt',
-  inactive: 'Ngưng',
+  inactive: 'Đã đóng băng',
 }
 
 function formatDate(iso) {
@@ -129,35 +134,60 @@ export default function UsersPage() {
   async function runAction(action) {
     if (!selected || busy) return
     setBusy(true)
-    await new Promise((r) => setTimeout(r, 400))
 
-    switch (action) {
-      case 'activate':
-        patchUser(selected.id, { status: 'active' })
-        showToast('Đã kích hoạt tài khoản.')
-        break
-      case 'deactivate':
-        patchUser(selected.id, { status: 'inactive' })
-        showToast('Đã ngưng hoạt động tài khoản.')
-        break
-      case 'approve':
-        patchUser(selected.id, { status: 'active' })
-        showToast('Đã duyệt tài khoản TTS.')
-        break
-      case 'reset_password':
-        showToast('Đã tạo mật khẩu tạm mới (gửi tới email).')
-        break
-      case 'delete':
-        setItems((prev) => prev.filter((u) => u.id !== selected.id))
-        setTotal((n) => Math.max(0, n - 1))
-        setSelected(null)
-        showToast('Đã xóa tài khoản.', 'error')
-        break
-      default:
-        break
+    try {
+      switch (action) {
+        case 'freeze': {
+          const res = await updateUserStatus(selected.id, 'inactive')
+          if (!res.ok) {
+            showToast(res.data?.detail || 'Không thể đóng băng tài khoản.', 'error')
+            return
+          }
+          patchUser(selected.id, { status: 'inactive' })
+          showToast('Đã đóng băng tài khoản trong cơ sở dữ liệu thành công.')
+          break
+        }
+        case 'unfreeze': {
+          const res = await updateUserStatus(selected.id, 'active')
+          if (!res.ok) {
+            showToast(res.data?.detail || 'Không thể mở đóng băng tài khoản.', 'error')
+            return
+          }
+          patchUser(selected.id, { status: 'active' })
+          showToast('Đã mở đóng băng tài khoản trong cơ sở dữ liệu thành công.')
+          break
+        }
+        case 'reset_password': {
+          const res = await resetUserPassword(selected.id)
+          if (!res.ok) {
+            showToast(res.data?.detail || 'Không thể đặt lại mật khẩu.', 'error')
+            return
+          }
+          const tempPass = res.data?.temporary_password || 'Ictu@2026'
+          showToast(`Đã đổi mật khẩu trong DB thành: ${tempPass}`)
+          break
+        }
+        case 'delete': {
+          const res = await deleteUser(selected.id)
+          if (!res.ok) {
+            showToast(res.data?.detail || 'Không thể xóa tài khoản người dùng.', 'error')
+            return
+          }
+          const deletedId = selected.id
+          setSelected(null)
+          setItems((prev) => prev.filter((u) => u.id !== deletedId))
+          setTotal((n) => Math.max(0, n - 1))
+          showToast('Đã xóa vĩnh viễn tài khoản khỏi cơ sở dữ liệu.', 'error')
+          break
+        }
+        default:
+          break
+      }
+    } catch {
+      showToast('Đã xảy ra lỗi khi kết nối tới máy chủ.', 'error')
+    } finally {
+      setBusy(false)
     }
-
-    setBusy(false)
   }
 
   return (
@@ -370,37 +400,23 @@ export default function UsersPage() {
 
               <h3>Hành động</h3>
               <div className="admin-drawer__actions">
-                {selected.status === 'pending' && selected.role === 'intern' && (
+                {selected.status !== 'inactive' ? (
                   <button
                     type="button"
                     className="admin-drawer__action"
                     disabled={busy}
-                    onClick={() => runAction('approve')}
+                    onClick={() => runAction('freeze')}
                   >
-                    Duyệt tài khoản
+                    Đóng băng tài khoản
                   </button>
-                )}
-
-                {selected.status !== 'active' &&
-                  !(selected.status === 'pending' && selected.role === 'intern') && (
+                ) : (
                   <button
                     type="button"
                     className="admin-drawer__action"
                     disabled={busy}
-                    onClick={() => runAction('activate')}
+                    onClick={() => runAction('unfreeze')}
                   >
-                    Kích hoạt
-                  </button>
-                )}
-
-                {selected.status === 'active' && (
-                  <button
-                    type="button"
-                    className="admin-drawer__action"
-                    disabled={busy}
-                    onClick={() => runAction('deactivate')}
-                  >
-                    Ngưng hoạt động
+                    Mở đóng băng
                   </button>
                 )}
 
@@ -410,7 +426,7 @@ export default function UsersPage() {
                   disabled={busy}
                   onClick={() => runAction('reset_password')}
                 >
-                  Đặt lại mật khẩu tạm
+                  Đặt lại mật khẩu
                 </button>
 
                 <button
@@ -420,7 +436,7 @@ export default function UsersPage() {
                   onClick={() => {
                     if (
                       window.confirm(
-                        `Xóa tài khoản ${selected.email}? Thao tác không thể hoàn tác.`,
+                        `Xác nhận xóa vĩnh viễn tài khoản ${selected.email} khỏi cơ sở dữ liệu? Thao tác không thể hoàn tác.`,
                       )
                     ) {
                       runAction('delete')

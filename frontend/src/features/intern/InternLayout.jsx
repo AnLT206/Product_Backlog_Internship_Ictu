@@ -1,132 +1,63 @@
-import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import logoApp from '../../assets/logo_app.png'
+import { Outlet } from 'react-router-dom'
+import {
+  CheckSquare,
+  Clock,
+  FileText,
+  BookOpen,
+  DollarSign,
+  LayoutDashboard,
+} from 'lucide-react'
+import EnterpriseAppShell from '../../components/common/EnterpriseAppShell'
 import { useAuth } from '../../context/AuthContext'
-import './InternLayout.css'
 
-/**
- * Menu điều hướng cho Thực tập sinh Portal.
- * Bám sát nghiệp vụ trong SRS và Product Backlog:
- * - Tổng quan dashboard
- * - Nhiệm vụ công việc
- * - Báo cáo tuần & phản hồi
- * - Chấm công & xin nghỉ
- * - Hợp đồng & quyền lợi
- */
-const INTERN_NAV = [
-  { to: '/intern/dashboard', label: 'Tổng quan', end: true },
+const INTERN_NAV_ITEMS = [
+  { to: '/intern/dashboard', label: 'Nhiệm vụ cá nhân (Tasks)', icon: CheckSquare, end: true },
+  { to: '/intern/dashboard#attendance', label: 'Chấm công & Điểm danh', icon: Clock },
+  { to: '/intern/dashboard#reports', label: 'Báo cáo tuần & Feedback', icon: FileText, badge: 'T8' },
+  { to: '/intern/dashboard#training', label: 'Tài liệu đào tạo & Onboarding', icon: BookOpen },
+  { to: '/intern/dashboard#allowance', label: 'Chế độ & Trợ cấp cá nhân', icon: DollarSign },
+]
+
+const APPLICANT_NAV_ITEMS = [
+  { to: '/intern/dashboard', label: 'Hồ sơ & Tiến trình ứng tuyển', icon: LayoutDashboard, end: true },
 ]
 
 export default function InternLayout() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [menuOpen, setMenuOpen] = useState(false)
+  const { user } = useAuth()
+  const isApplicant =
+    user?.status === 'pending' ||
+    (user?.email === 'ungvien@ictu.edu.vn' && user?.status !== 'active') ||
+    (user?.code === 'TTS9999' && user?.status !== 'active')
 
-  useEffect(() => {
-    setMenuOpen(false)
-  }, [location.pathname])
-
-  useEffect(() => {
-    if (!menuOpen) return undefined
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prev
-    }
-  }, [menuOpen])
-
-  function handleLogout() {
-    logout()
-    navigate('/login', { replace: true })
-  }
+  const navItems = isApplicant ? APPLICANT_NAV_ITEMS : INTERN_NAV_ITEMS
 
   return (
-    <div className={`intern-shell${menuOpen ? ' is-menu-open' : ''}`}>
-      <div className="intern-shell__glow" aria-hidden="true" />
-
-      {/* Mobile Topbar */}
-      <header className="intern-topbar">
-        <button
-          type="button"
-          className="intern-topbar__menu"
-          aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((v) => !v)}
-        >
-          <span />
-          <span />
-          <span />
-        </button>
-        <div className="intern-topbar__brand">
-          <img src={logoApp} alt="" width={28} height={28} />
-          <strong>ICTU Intern Portal</strong>
-        </div>
-        <button
-          type="button"
-          className="intern-topbar__logout"
-          onClick={handleLogout}
-        >
-          Thoát
-        </button>
-      </header>
-
-      {/* Mobile Backdrop */}
-      <button
-        type="button"
-        className="intern-sidebar-backdrop"
-        aria-label="Đóng menu"
-        tabIndex={menuOpen ? 0 : -1}
-        onClick={() => setMenuOpen(false)}
-      />
-
-      {/* Sidebar */}
-      <aside className="intern-sidebar" id="intern-sidebar">
-        <div className="intern-sidebar__brand">
-          <img src={logoApp} alt="ICTU Logo" width={36} height={36} />
-          <div>
-            <strong>ICTU Intern</strong>
-            <span>Cổng Thực tập sinh</span>
-          </div>
-        </div>
-
-        <nav className="intern-sidebar__nav" aria-label="Menu Thực tập sinh">
-          <div className="intern-sidebar__section-title">THỰC TẬP DOANH NGHIỆP</div>
-          {INTERN_NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={Boolean(item.end)}
-              className={({ isActive }) =>
-                `intern-nav-link${isActive ? ' is-active' : ''}`
-              }
-            >
-              <span className="intern-nav-link__label">{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="intern-sidebar__footer">
-          <div className="intern-user">
-            <div className="intern-user__avatar">
-              {(user?.full_name || user?.email || 'I').charAt(0).toUpperCase()}
-            </div>
-            <div className="intern-user__meta">
-              <p className="intern-user__name">{user?.full_name || 'Thực tập sinh'}</p>
-              <p className="intern-user__email">{user?.email}</p>
-              <span className="intern-user__badge">Thực tập sinh</span>
-            </div>
-          </div>
-          <button type="button" className="intern-logout" onClick={handleLogout}>
-            Đăng xuất
-          </button>
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <div className="intern-main">
-        <Outlet />
-      </div>
-    </div>
+    <EnterpriseAppShell
+      portalName="Thực tập Doanh nghiệp"
+      portalTag={isApplicant ? 'Ứng viên Thực tập' : 'Thực tập sinh'}
+      showPortalTagBox={true}
+      logoTitle="ICTU Intern Hub"
+      logoSubtitle={isApplicant ? 'Cổng Tuyển Dụng & Đào Tạo' : 'Hệ thống Thực tập Doanh nghiệp'}
+      sidebarSectionLabel={isApplicant ? 'HỒ SƠ ỨNG TUYỂN' : 'KHÔNG GIAN LÀM VIỆC TTS'}
+      navItems={navItems}
+      breadcrumbs={[
+        {
+          label: isApplicant
+            ? `Tiến trình xét tuyển hồ sơ - Ứng viên ${user?.full_name || 'Nguyễn Văn An'}`
+            : `Không gian làm việc cá nhân - TTS ${user?.full_name || 'Nguyễn Văn Bình'}`,
+        },
+      ]}
+      periodInfo={isApplicant ? 'Kỳ Tuyển Dụng Q3/2026' : 'Học kỳ Q3/2026 • Tuần 08 / 12'}
+      avatarText={isApplicant ? 'NA' : 'NB'}
+      userCardMeta={
+        isApplicant
+          ? 'Mã UV: TTS9999 · K20-CNTT'
+          : 'Mã TTS: TTS0002 - ĐTV • K20-CNTT'
+      }
+    >
+      <Outlet />
+    </EnterpriseAppShell>
   )
 }
+
+

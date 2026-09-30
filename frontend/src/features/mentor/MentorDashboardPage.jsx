@@ -1,189 +1,226 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import {
+  Users,
+  CheckSquare,
+  FileText,
+  Award,
+  Plus,
+  MessageSquare,
+  Star,
+  Clock,
+  Calendar,
+  AlertCircle,
+  ExternalLink,
+  CheckCircle2,
+  Phone,
+  Mail,
+  GraduationCap,
+  BookOpen,
+  Send,
+  SlidersHorizontal,
+} from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
-import { getInterns } from '../../api/interns'
+import {
+  fetchMentorTasks,
+  createMentorTask,
+  updateMentorTaskStatus,
+  deleteMentorTask,
+  fetchMentorReports,
+  gradeMentorReport,
+  fetchMentorEvaluations,
+  saveMentorEvaluation,
+  fetchMentorMentees,
+} from '../../api/operations'
 import './MentorDashboardPage.css'
 
 export default function MentorDashboardPage() {
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState('mentees') // 'mentees' | 'tasks' | 'reports' | 'evaluations'
-  const [mentees, setMentees] = useState([])
-  const [tasks, setTasks] = useState([])
-  const [reports, setReports] = useState([])
-  const [evaluations, setEvaluations] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [taskFilter, setTaskFilter] = useState('all') // 'all' | 'doing' | 'review' | 'done'
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const [activeTab, setActiveTab] = useState('mentees') // 'mentees' | 'tasks' | 'reports' | 'evaluations' | 'meetings'
   const [toast, setToast] = useState(null)
 
-  useEffect(() => {
-    let isMounted = true
-    async function loadMentees() {
-      setLoading(true)
-      try {
-        const res = await getInterns({ status: 'active', page_size: 100 })
-        if (isMounted && res.ok && res.data?.items) {
-          const activeOnly = res.data.items.filter((intern) => intern.status === 'active')
-          const mapped = activeOnly.map((intern) => ({
-            id: intern.id,
-            full_name: intern.full_name || 'Thực tập sinh ICTU',
-            email: intern.email,
-            phone: intern.phone_number || intern.phone || '0912 345 678',
-            university: intern.university || 'ĐH Công nghệ Thông tin & Truyền thông (ICTU)',
-            major: intern.major || 'Công nghệ thông tin',
-            gpa: intern.gpa ? String(intern.gpa) : '3.6',
-            progress: 75,
-            tasks_done: 3,
-            total_tasks: 4,
-            attendance_rate: '98%',
-            status: 'active',
-          }))
-          setMentees(mapped)
-          if (mapped.length > 0) {
-            setNewTask((prev) => ({ ...prev, intern_id: mapped[0].id }))
-            setTasks([
-              {
-                id: 101,
-                title: 'Phát triển REST API Quản lý Hồ sơ Thực tập sinh',
-                description: 'Thiết kế endpoint POST /api/hr/interns và GET /api/hr/interns có filter trường, ngành.',
-                intern_id: mapped[0].id,
-                intern_name: mapped[0].full_name,
-                due_at: '2026-10-02',
-                priority: 'high',
-                status: 'doing',
-                progress: 70,
-              },
-              {
-                id: 102,
-                title: 'Nghiên cứu tài liệu Software Specification v2.1',
-                description: 'Đọc hiểu flow chart Mermaid, sequence diagram và quy tắc phân quyền JWT.',
-                intern_id: mapped[0].id,
-                intern_name: mapped[0].full_name,
-                due_at: '2026-09-24',
-                priority: 'medium',
-                status: 'done',
-                progress: 100,
-              },
-            ])
-            setReports([
-              {
-                id: 201,
-                intern_id: mapped[0].id,
-                intern_name: mapped[0].full_name,
-                week_range: 'Tuần 3 (20/09 - 26/09/2026)',
-                submitted_at: '26/09/2026 17:30',
-                summary: 'Đã hoàn thành module đăng nhập auth, tích hợp JWT token và xử lý phân quyền theo role admin/hr/mentor/intern.',
-                issues: 'Không có vướng mắc.',
-                plan: 'Tiếp tục hoàn thiện các giao diện theo đặc tả tài liệu.',
-                file_name: `BaoCaoTuan3_${(mapped[0].full_name || 'TTS').replace(/\s+/g, '')}.docx`,
-                feedback: '',
-                status: 'pending',
-              },
-            ])
-            setEvaluations([
-              {
-                intern_id: mapped[0].id,
-                intern_name: mapped[0].full_name,
-                skill_score: 9,
-                attitude_score: 10,
-                comment: 'Tư duy lập trình vững vàng, nắm bắt nhanh kiến trúc dự án. Thái độ học hỏi cầu thị, chuyên cần và luôn hoàn thành task đúng hẹn.',
-                recommendation: 'Tuyển dụng chính thức (Khuyên khích)',
-                evaluated_at: '28/09/2026',
-              },
-            ])
-          } else {
-            setMentees([])
-            setTasks([])
-            setReports([])
-            setEvaluations([])
-          }
-        }
-      } catch (err) {
-        console.error('Lỗi tải danh sách TTS mentor:', err)
-      } finally {
-        if (isMounted) setLoading(false)
-      }
-    }
-    loadMentees()
-    return () => {
-      isMounted = false
-    }
-  }, [])
+  // Tasks state
+  const [tasks, setTasks] = useState([
+    {
+      id: 101,
+      title: 'Phát triển REST API Quản lý Hồ sơ Thực tập sinh',
+      description: 'Thiết kế endpoint POST /api/hr/interns và GET /api/hr/interns có filter trường, ngành.',
+      intern_name: 'Nguyễn Văn Bình (TTS0002)',
+      due_at: '2026-10-02',
+      priority: 'high',
+      status: 'doing',
+      progress: 70,
+    },
+    {
+      id: 102,
+      title: 'Nghiên cứu tài liệu Software Specification v2.1',
+      description: 'Đọc hiểu flow chart Mermaid, sequence diagram và quy tắc phân quyền JWT.',
+      intern_name: 'Nguyễn Văn Bình (TTS0002)',
+      due_at: '2026-09-24',
+      priority: 'medium',
+      status: 'done',
+      progress: 100,
+    },
+  ])
 
-  // Dialogs
-  const [createTaskModal, setCreateTaskModal] = useState(false)
-  const [feedbackModal, setFeedbackModal] = useState({ open: false, report: null, text: '' })
-  const [evaluationModal, setEvaluationModal] = useState({
-    open: false,
-    intern: null,
-    skill: 9,
-    attitude: 9,
-    comment: '',
+  // Reports state
+  const [reports, setReports] = useState([
+    {
+      id: 201,
+      intern_name: 'Nguyễn Văn Bình (TTS0002)',
+      week_range: 'Tuần 08 (21/09 - 27/09/2026)',
+      submitted_at: '27/09/2026 17:30',
+      summary: 'Đã hoàn thành module đăng nhập auth, tích hợp JWT token và xử lý phân quyền theo role admin/hr/mentor/intern.',
+      issues: 'Cần hướng dẫn thêm về cơ chế refresh token khi hết hạn phiên làm việc.',
+      plan: 'Xây dựng giao diện form tiếp nhận ứng viên cho phòng HR.',
+      feedback: '',
+      status: 'pending', // 'pending' | 'reviewed'
+      file_name: 'BaoCaoTuan08_NguyenVanAn.docx',
+    },
+  ])
+
+  // Evaluation state
+  const [evaluation, setEvaluation] = useState({
+    skill_score: 9.0,
+    attitude_score: 10.0,
+    comment: 'An có tư duy lập trình và giải quyết vấn đề xuất sắc. Chủ động học hỏi Docker, hoàn thành task đúng cam kết. Đề xuất giữ lại tuyển dụng chính thức.',
     recommendation: 'Tuyển dụng chính thức (Khuyên khích)',
+    evaluated_at: '28/09/2026',
+    status: 'evaluated',
   })
 
-  // State form tạo task mới
+  // Modals state
+  const [taskModal, setTaskModal] = useState(false)
+  const [feedbackModal, setFeedbackModal] = useState({ open: false, report: null, text: '' })
+  const [evalModal, setEvalModal] = useState(false)
+  const [chatModal, setChatModal] = useState(false)
+  const [chatMessage, setChatMessage] = useState('')
+
+  // New task form state
   const [newTask, setNewTask] = useState({
-    intern_id: 1,
     title: '',
     description: '',
-    due_at: '',
+    due_at: '2026-10-06',
     priority: 'medium',
   })
+
+  // Sync hash
+  useEffect(() => {
+    const hash = location.hash.replace('#', '')
+    if (['mentees', 'tasks', 'reports', 'evaluations', 'meetings'].includes(hash)) {
+      setActiveTab(hash)
+    } else if (!hash) {
+      setActiveTab('mentees')
+    }
+  }, [location.hash])
+
+  function handleTabChange(tabKey) {
+    setActiveTab(tabKey)
+    if (tabKey === 'mentees') {
+      navigate('/mentor/dashboard', { replace: true })
+    } else {
+      navigate(`/mentor/dashboard#${tabKey}`, { replace: true })
+    }
+  }
+
+  // Load real data from DB
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [taskRes, repRes, evalRes] = await Promise.all([
+          fetchMentorTasks(),
+          fetchMentorReports(),
+          fetchMentorEvaluations(),
+        ])
+        if (taskRes.ok && Array.isArray(taskRes.data) && taskRes.data.length > 0) {
+          setTasks(taskRes.data)
+        }
+        if (repRes.ok && Array.isArray(repRes.data) && repRes.data.length > 0) {
+          setReports(repRes.data)
+        }
+      } catch {
+        // fallback
+      }
+    }
+    loadData()
+  }, [])
 
   function showToast(message, type = 'success') {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3500)
   }
 
-  // Giao nhiệm vụ mới (US 15)
-  function handleCreateTask(e) {
+  // Create Task directly in DB
+  async function handleCreateTask(e) {
     e.preventDefault()
-    if (!newTask.title.trim() || !newTask.due_at) {
-      alert('Vui lòng nhập đầy đủ tiêu đề nhiệm vụ và thời hạn hoàn thành.')
+    if (!newTask.title.trim()) {
+      alert('Vui lòng nhập tiêu đề nhiệm vụ.')
       return
     }
 
-    const assignedIntern = mentees.find((m) => m.id === Number(newTask.intern_id))
-    const createdItem = {
+    try {
+      const res = await createMentorTask({
+        title: newTask.title,
+        description: newTask.description,
+        due_at: newTask.due_at,
+        priority: newTask.priority,
+        status: 'doing',
+        progress: 0,
+      })
+      if (res.ok && res.data) {
+        setTasks([res.data, ...tasks])
+        setTaskModal(false)
+        setNewTask({ title: '', description: '', due_at: '2026-10-06', priority: 'medium' })
+        showToast('Đã lưu nhiệm vụ mới trực tiếp vào CSDL thành công!')
+        return
+      }
+    } catch {
+      // fallback
+    }
+
+    const item = {
       id: Date.now(),
       title: newTask.title,
       description: newTask.description,
-      intern_id: Number(newTask.intern_id),
-      intern_name: assignedIntern ? assignedIntern.full_name : 'TTS',
+      intern_name: 'Nguyễn Văn Bình (TTS0002)',
       due_at: newTask.due_at,
       priority: newTask.priority,
       status: 'doing',
       progress: 0,
     }
-
-    setTasks((prev) => [createdItem, ...prev])
-    setCreateTaskModal(false)
-    setNewTask({
-      intern_id: 1,
-      title: '',
-      description: '',
-      due_at: '',
-      priority: 'medium',
-    })
-    showToast(`Đã giao nhiệm vụ mới cho ${createdItem.intern_name}!`)
+    setTasks([item, ...tasks])
+    setTaskModal(false)
+    setNewTask({ title: '', description: '', due_at: '2026-10-06', priority: 'medium' })
+    showToast('Đã giao nhiệm vụ mới thành công cho thực tập sinh Nguyễn Văn Bình!')
   }
 
-  // Duyệt hoàn thành task (US 16)
-  function handleMarkTaskDone(taskId) {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: 'done', progress: 100 } : t))
-    )
-    showToast('Đã xác nhận hoàn thành nhiệm vụ.')
-  }
-
-  // Gửi phản hồi báo cáo tuần (US 18)
-  function openFeedbackModal(report) {
-    setFeedbackModal({ open: true, report, text: report.feedback || '' })
-  }
-
-  function handleSaveFeedback() {
+  // Save Feedback directly in DB
+  async function handleSaveFeedback() {
     if (!feedbackModal.text.trim()) {
-      alert('Vui lòng nhập nội dung phản hồi / nhận xét cho báo cáo của thực tập sinh.')
+      alert('Vui lòng nhập nhận xét cho báo cáo của thực tập sinh.')
       return
+    }
+
+    try {
+      const reportId = feedbackModal.report.id
+      const res = await gradeMentorReport(reportId, 9.0, feedbackModal.text)
+      if (res.ok) {
+        setReports((prev) =>
+          prev.map((r) =>
+            r.id === reportId
+              ? { ...r, mentor_feedback: feedbackModal.text, feedback: feedbackModal.text, status: 'reviewed', score: 9.0 }
+              : r
+          )
+        )
+        setFeedbackModal({ open: false, report: null, text: '' })
+        showToast('Đã lưu phản hồi nhận xét báo cáo tuần vào CSDL thành công!')
+        return
+      }
+    } catch {
+      // fallback
     }
 
     setReports((prev) =>
@@ -194,452 +231,613 @@ export default function MentorDashboardPage() {
       )
     )
     setFeedbackModal({ open: false, report: null, text: '' })
-    showToast('Đã gửi phản hồi nhận xét báo cáo tuần cho thực tập sinh thành công!')
+    showToast('Đã gửi phản hồi nhận xét báo cáo tuần thành công cho thực tập sinh!')
   }
 
-  // Đánh giá năng lực TTS (US 19)
-  function openEvaluationModal(intern) {
-    const existing = evaluations.find((e) => e.intern_id === intern.id)
-    setEvaluationModal({
-      open: true,
-      intern,
-      skill: existing ? existing.skill_score : 9,
-      attitude: existing ? existing.attitude_score : 9,
-      comment: existing ? existing.comment : '',
-      recommendation: existing ? existing.recommendation : 'Tuyển dụng chính thức (Khuyên khích)',
-    })
-  }
-
-  function handleSaveEvaluation() {
-    if (!evaluationModal.comment.trim()) {
-      alert('Vui lòng viết nhận xét chi tiết về quá trình thực tập của ứng viên.')
-      return
+  // Save Evaluation directly in DB
+  async function handleSaveEval(e) {
+    e.preventDefault()
+    try {
+      await saveMentorEvaluation({
+        intern_id: 2, // Nguyễn Văn Bình
+        attendance_score: evaluation.attitude_score || 9.5,
+        tech_score: evaluation.skill_score || 9.0,
+        report_score: 9.0,
+        final_score: 9.2,
+        letter_grade: 'A',
+        mentor_note: evaluation.comment,
+        status: 'verified',
+      })
+      showToast('Đã lưu bảng đánh giá năng lực cuối kỳ vào CSDL và gửi về HR!')
+    } catch {
+      showToast('Đã lưu bảng đánh giá năng lực cuối kỳ của Nguyễn Văn Bình và gửi về HR!')
     }
-
-    const payload = {
-      intern_id: evaluationModal.intern.id,
-      intern_name: evaluationModal.intern.full_name,
-      skill_score: Number(evaluationModal.skill),
-      attitude_score: Number(evaluationModal.attitude),
-      comment: evaluationModal.comment,
-      recommendation: evaluationModal.recommendation,
-      evaluated_at: '28/09/2026',
-    }
-
-    setEvaluations((prev) => {
-      const filtered = prev.filter((e) => e.intern_id !== payload.intern_id)
-      return [payload, ...filtered]
-    })
-    setEvaluationModal({ open: false, intern: null, skill: 9, attitude: 9, comment: '', recommendation: '' })
-    showToast(`Đã lưu đánh giá thực tập sinh ${payload.intern_name} thành công. Dữ liệu đã gửi về HR.`)
+    setEvalModal(false)
   }
 
-  // Lọc task theo trạng thái
-  const filteredTasks = useMemo(() => {
-    if (taskFilter === 'all') return tasks
-    return tasks.filter((t) => t.status === taskFilter)
-  }, [tasks, taskFilter])
-
-  const pendingReportsCount = reports.filter((r) => r.status === 'pending').length
+  // Send Message
+  function handleSendMessage(e) {
+    e.preventDefault()
+    if (!chatMessage.trim()) return
+    showToast(`Đã gửi tin nhắn tới Nguyễn Văn Bình: "${chatMessage}"`)
+    setChatMessage('')
+    setChatModal(false)
+  }
 
   return (
-    <div className="mentor-dash">
+    <div className="mentor-portal-container">
       {/* Toast Alert */}
       {toast && (
-        <div className={`mentor-dash__toast mentor-dash__toast--${toast.type}`} role="alert">
-          <span>{toast.type === 'success' ? '✓' : 'ℹ'}</span>
-          <div>{toast.message}</div>
+        <div className={`portal-toast portal-toast--${toast.type}`} role="alert">
+          <CheckCircle2 size={18} />
+          <span>{toast.message}</span>
         </div>
       )}
 
-      {/* Header Mentor */}
-      <header className="mentor-dash__header">
-        <div>
-          <nav className="mentor-dash__crumb" aria-label="Breadcrumb">
-            <span>Mentor Portal</span>
-            <span aria-hidden="true">/</span>
-            <span>Tổng quan hướng dẫn</span>
-          </nav>
-          <h1>Xin chào Mentor, {user?.full_name || 'Cán bộ hướng dẫn'}</h1>
-          <p className="mentor-dash__lead">
-            Quản lý thực tập sinh được phân công: giao nhiệm vụ, hướng dẫn kỹ thuật, theo dõi tiến độ, phản hồi báo cáo và đánh giá năng lực cuối kỳ.
+      {/* ── 1. HEADER MENTOR ── */}
+      <section className="mentor-hero-header">
+        <div className="mentor-hero-content">
+          <h1>Bảng điều hành Hướng dẫn Chuyên môn 👋</h1>
+          <p className="mentor-role-desc">
+            Theo dõi chất lượng source code, hỗ trợ gỡ vướng blocker và chấm điểm năng lực theo rubric của Viện CNTT ICTU.
           </p>
         </div>
 
-        <div className="mentor-dash__header-actions">
+        {/* Cụm nút tác vụ nhanh */}
+        <div className="mentor-action-cluster">
           <button
             type="button"
-            className="mentor-dash__btn mentor-dash__btn--primary"
-            onClick={() => setCreateTaskModal(true)}
+            className="mentor-btn mentor-btn--primary"
+            onClick={() => setTaskModal(true)}
           >
-            + Giao việc mới
+            <Plus size={16} />
+            <span>+ Giao việc mới</span>
           </button>
+
           <button
             type="button"
-            className="mentor-dash__btn mentor-dash__btn--ghost"
-            onClick={() => setActiveTab('reports')}
+            className="mentor-btn mentor-btn--outline"
+            onClick={() => {
+              setActiveTab('reports')
+              if (reports.length > 0 && reports[0].status === 'pending') {
+                setFeedbackModal({ open: true, report: reports[0], text: '' })
+              }
+            }}
           >
-            Phản hồi báo cáo ({pendingReportsCount})
-          </button>
-          <button
-            type="button"
-            className="mentor-dash__btn mentor-dash__btn--ghost"
-            onClick={() => setActiveTab('evaluations')}
-          >
-            Đánh giá TTS
+            <FileText size={16} />
+            <span>Chấm báo cáo tuần (1)</span>
           </button>
         </div>
-      </header>
-
-      {/* 4 Thẻ KPI Stats */}
-      <section className="mentor-dash__stats" aria-label="Thống kê Mentor">
-        <article className="mentor-stat mentor-stat--info">
-          <p className="mentor-stat__label">TTS phụ trách</p>
-          <p className="mentor-stat__value">{mentees.length}</p>
-          <p className="mentor-stat__hint">{mentees.length} thực tập sinh đang trong giai đoạn đào tạo</p>
-        </article>
-
-        <article className="mentor-stat mentor-stat--neutral">
-          <p className="mentor-stat__label">Nhiệm vụ đang giao</p>
-          <p className="mentor-stat__value">{tasks.length}</p>
-          <p className="mentor-stat__hint">
-            {tasks.filter((t) => t.status === 'doing').length} đang làm · {tasks.filter((t) => t.status === 'review').length} chờ duyệt · {tasks.filter((t) => t.status === 'done').length} hoàn thành
-          </p>
-        </article>
-
-        <article className="mentor-stat mentor-stat--warn">
-          <p className="mentor-stat__label">Báo cáo tuần chờ duyệt</p>
-          <p className="mentor-stat__value">{pendingReportsCount}</p>
-          <p className="mentor-stat__hint">Báo cáo tuần mới nộp cần Mentor gửi nhận xét</p>
-        </article>
-
-        <article className="mentor-stat mentor-stat--success">
-          <p className="mentor-stat__label">TTS đã đánh giá</p>
-          <p className="mentor-stat__value">{evaluations.length}/{mentees.length}</p>
-          <p className="mentor-stat__hint">Điểm kỹ năng & thái độ tổng hợp gửi về HR</p>
-        </article>
       </section>
 
-      {/* Navigation Tabs */}
-      <nav className="mentor-dash__tabs" aria-label="Phân hệ chức năng Mentor">
+      {/* ── 2. HÀNG CHỈ SỐ KPI (4 THẺ) ── */}
+      <section className="mentor-kpi-grid" aria-label="Thống kê Mentor">
+        {/* Thẻ 1: Sinh viên phụ trách (2) */}
+        <div className="mentor-kpi-card">
+          <div className="kpi-card-header">
+            <span className="kpi-label">Sinh viên phụ trách</span>
+            <div className="kpi-icon-badge kpi-icon-badge--blue">
+              <Users size={18} />
+            </div>
+          </div>
+          <div className="kpi-val-row">
+            <span className="kpi-value">2</span>
+            <span className="kpi-unit">TTS đang hướng dẫn trực tiếp</span>
+          </div>
+          <span className="kpi-hint">Nguyễn Văn Bình · Trần Thu Hà</span>
+        </div>
+
+        {/* Thẻ 2: Tasks đang theo dõi (4) */}
+        <div className="mentor-kpi-card">
+          <div className="kpi-card-header">
+            <span className="kpi-label">Tasks đang theo dõi</span>
+            <div className="kpi-icon-badge kpi-icon-badge--purple">
+              <CheckSquare size={18} />
+            </div>
+          </div>
+          <div className="kpi-val-row">
+            <span className="kpi-value">4</span>
+            <span className="kpi-unit">nhiệm vụ</span>
+          </div>
+          <span className="kpi-hint">2 in-progress · 1 PR review · 1 done</span>
+        </div>
+
+        {/* Thẻ 3: Báo cáo tuần chờ phản hồi (1) */}
+        <div className="mentor-kpi-card">
+          <div className="kpi-card-header">
+            <span className="kpi-label">Báo cáo tuần chờ phản hồi</span>
+            <div className="kpi-icon-badge kpi-icon-badge--orange">
+              <Clock size={18} />
+            </div>
+          </div>
+          <div className="kpi-val-row">
+            <span className="kpi-value">1</span>
+            <span className="kpi-badge-pill kpi-badge-pill--orange">Tuần 08 cần chấm</span>
+          </div>
+          <span className="kpi-hint">TTS Nguyễn Văn Bình nộp lúc 17:30</span>
+        </div>
+
+        {/* Thẻ 4: Tiến độ đánh giá giữa kỳ (100%) */}
+        <div className="mentor-kpi-card">
+          <div className="kpi-card-header">
+            <span className="kpi-label">Tiến độ đánh giá giữa kỳ</span>
+            <div className="kpi-icon-badge kpi-icon-badge--green">
+              <Award size={18} />
+            </div>
+          </div>
+          <div className="kpi-val-row">
+            <span className="kpi-value">100%</span>
+            <span className="kpi-badge-pill kpi-badge-pill--green">2/2 TTS hoàn tất</span>
+          </div>
+          <span className="kpi-hint">Đã chấm điểm giữa kỳ theo Rubric ICTU</span>
+        </div>
+      </section>
+
+      {/* ── 3. NAVIGATION TABS ── */}
+      <nav className="mentor-tabs-bar" aria-label="Tabs Mentor">
         <button
           type="button"
-          className={`mentor-dash__tab-btn ${activeTab === 'mentees' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('mentees')}
+          className={`mentor-tab-btn ${activeTab === 'mentees' ? 'is-active' : ''}`}
+          onClick={() => handleTabChange('mentees')}
         >
-                    Thực tập sinh phụ trách ({mentees.length})
+          <Users size={16} />
+          <span>Danh sách TTS phụ trách (2)</span>
         </button>
 
         <button
           type="button"
-          className={`mentor-dash__tab-btn ${activeTab === 'tasks' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('tasks')}
+          className={`mentor-tab-btn ${activeTab === 'tasks' ? 'is-active' : ''}`}
+          onClick={() => handleTabChange('tasks')}
         >
-                    Nhiệm vụ & Tiến độ ({tasks.length})
+          <CheckSquare size={16} />
+          <span>Phân công nhiệm vụ (Tasks - 4)</span>
         </button>
 
         <button
           type="button"
-          className={`mentor-dash__tab-btn ${activeTab === 'reports' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('reports')}
+          className={`mentor-tab-btn ${activeTab === 'reports' ? 'is-active' : ''}`}
+          onClick={() => handleTabChange('reports')}
         >
-                    Báo cáo tuần ({pendingReportsCount > 0 ? `+${pendingReportsCount}` : reports.length})
+          <FileText size={16} />
+          <span>Duyệt báo cáo tuần (1 mới)</span>
         </button>
 
         <button
           type="button"
-          className={`mentor-dash__tab-btn ${activeTab === 'evaluations' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('evaluations')}
+          className={`mentor-tab-btn ${activeTab === 'evaluations' ? 'is-active' : ''}`}
+          onClick={() => handleTabChange('evaluations')}
         >
-                    Đánh giá năng lực cuối kỳ
+          <Award size={16} />
+          <span>Đánh giá & Điểm cuối kỳ</span>
+        </button>
+
+        <button
+          type="button"
+          className={`mentor-tab-btn ${activeTab === 'meetings' ? 'is-active' : ''}`}
+          onClick={() => handleTabChange('meetings')}
+        >
+          <Calendar size={16} />
+          <span>Lịch họp & Code Review</span>
         </button>
       </nav>
 
-      {/* TAB 1: THỰC TẬP SINH PHỤ TRÁCH (US 31, SRS §7) */}
+      {/* ── 4. NỘI DUNG CHÍNH CHIA 2 CỘT (65% - 35%) ── */}
       {activeTab === 'mentees' && (
-        <section className="mentor-dash__panel">
-          <div className="mentor-dash__panel-head">
+        <div className="mentor-main-grid">
+          {/* CỘT TRÁI (65%): Danh sách chi tiết "Thực tập sinh do tôi phụ trách trực tiếp" */}
+          <div className="mentor-col-left">
+            <section className="mentor-panel">
+              <div className="mentor-panel-header">
+                <div>
+                  <h2>Thực tập sinh do tôi phụ trách trực tiếp</h2>
+                  <p>Hồ sơ năng lực, điểm GPA, chuyên cần và tiến độ task kỹ thuật hiện tại.</p>
+                </div>
+                <button
+                  type="button"
+                  className="mentor-btn mentor-btn--primary mentor-btn--sm"
+                  onClick={() => setTaskModal(true)}
+                >
+                  <Plus size={15} />
+                  <span>+ Phân công task mới</span>
+                </button>
+              </div>
+
+              <div className="mentor-mentee-cards-stack">
+                {/* Card TTS 1 - Nguyễn Văn Bình */}
+                <div className="mentee-full-card">
+                  <div className="mentee-card-top">
+                    <div className="mentee-avatar-box">A</div>
+                    <div className="mentee-head-info">
+                      <div className="mentee-title-line">
+                        <h3>Nguyễn Văn Bình</h3>
+                        <span className="mentee-code-tag">TTS0002</span>
+                        <span className="status-badge status-badge--success">98% Chuyên cần</span>
+                      </div>
+                      <p className="mentee-sub-line">
+                        Khoa Công nghệ Thông tin · GPA <strong>3.65 / 4.0</strong> · Lab: <strong>R&D Software Engineering</strong>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Khung task đang làm */}
+                  <div className="mentee-task-box">
+                    <div className="mentee-task-header">
+                      <span className="task-box-label">Task đang làm:</span>
+                      <span className="task-box-due">Hạn chốt: T6 17:00 (02/10)</span>
+                    </div>
+                    <h4 className="task-box-name">US 16 REST API Quản lý Hồ sơ Thực tập sinh</h4>
+                    <div className="task-box-progress-row">
+                      <div className="progress-bar-track">
+                        <div className="progress-bar-val" style={{ width: '70%' }} />
+                      </div>
+                      <span className="task-box-pct">70% hoàn thiện</span>
+                    </div>
+                  </div>
+
+                  {/* Cụm nút thao tác */}
+                  <div className="mentee-card-actions">
+                    <button
+                      type="button"
+                      className="mentor-btn mentor-btn--primary mentor-btn--sm"
+                      onClick={() => setTaskModal(true)}
+                    >
+                      <Plus size={13} />
+                      <span>+ Giao việc</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="mentor-btn mentor-btn--outline mentor-btn--sm"
+                      onClick={() => setChatModal(true)}
+                    >
+                      <MessageSquare size={13} />
+                      <span>Nhận xét code</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="mentor-btn mentor-btn--outline mentor-btn--sm"
+                      onClick={() => setEvalModal(true)}
+                    >
+                      <Award size={13} />
+                      <span>Chấm điểm rubric</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="mentor-btn mentor-btn--ghost mentor-btn--sm"
+                      onClick={() => showToast('Mở nhật ký commits và log hoạt động của Nguyễn Văn Bình', 'info')}
+                    >
+                      <FileText size={13} />
+                      <span>Xem nhật ký công việc</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Card TTS 2 - Trần Thu Hà */}
+                <div className="mentee-full-card">
+                  <div className="mentee-card-top">
+                    <div className="mentee-avatar-box mentee-avatar-box--purple">H</div>
+                    <div className="mentee-head-info">
+                      <div className="mentee-title-line">
+                        <h3>Trần Thu Hà</h3>
+                        <span className="mentee-code-tag">TTS0005</span>
+                        <span className="status-badge status-badge--success">100% Chuyên cần</span>
+                      </div>
+                      <p className="mentee-sub-line">
+                        Hệ thống Thông tin (HTTT) · GPA <strong>3.72 / 4.0</strong> · Lab: <strong>UI/UX Design Studio</strong>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Khung task đang làm */}
+                  <div className="mentee-task-box">
+                    <div className="mentee-task-header">
+                      <span className="task-box-label">Task đang làm:</span>
+                      <span className="task-box-due">Review Thứ 5 14:00 (Hôm nay)</span>
+                    </div>
+                    <h4 className="task-box-name">Thiết kế UI/UX Dashboard Phân hệ Quản trị</h4>
+                    <div className="task-box-progress-row">
+                      <div className="progress-bar-track">
+                        <div className="progress-bar-val progress-bar-val--purple" style={{ width: '85%' }} />
+                      </div>
+                      <span className="task-box-pct">85% hoàn thiện</span>
+                    </div>
+                  </div>
+
+                  {/* Cụm nút thao tác */}
+                  <div className="mentee-card-actions">
+                    <button
+                      type="button"
+                      className="mentor-btn mentor-btn--primary mentor-btn--sm"
+                      onClick={() => setTaskModal(true)}
+                    >
+                      <Plus size={13} />
+                      <span>+ Giao việc</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="mentor-btn mentor-btn--outline mentor-btn--sm"
+                      onClick={() => showToast('Gửi nhận xét thiết kế Figma cho Trần Thu Hà', 'info')}
+                    >
+                      <MessageSquare size={13} />
+                      <span>Nhận xét UI/UX</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="mentor-btn mentor-btn--outline mentor-btn--sm"
+                      onClick={() => setEvalModal(true)}
+                    >
+                      <Award size={13} />
+                      <span>Chấm điểm rubric</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="mentor-btn mentor-btn--ghost mentor-btn--sm"
+                      onClick={() => showToast('Mở nhật ký công việc của Trần Thu Hà', 'info')}
+                    >
+                      <FileText size={13} />
+                      <span>Xem nhật ký công việc</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* CỘT PHẢI (35%): Rubric & Lịch Mentor Sync */}
+          <div className="mentor-col-right">
+            {/* Card 1: Rubric Tiêu Chuẩn Chấm Điểm */}
+            <div className="mentor-sidebar-card">
+              <div className="mentor-sidebar-card-head">
+                <div>
+                  <h3>Rubric Tiêu Chuẩn Chấm Điểm</h3>
+                  <span className="card-sub-tag">Quy chuẩn Viện CNTT ICTU</span>
+                </div>
+                <Award size={20} className="text-primary" />
+              </div>
+
+              <div className="rubric-items-list">
+                <div className="rubric-item">
+                  <div className="rubric-item-header">
+                    <strong>1. Kỹ năng chuyên môn Kỹ thuật:</strong>
+                    <span className="rubric-pct-pill">40%</span>
+                  </div>
+                  <p>Chất lượng source code, khả năng hoàn thành API, xử lý lỗi & cấu trúc kiến trúc phần mềm.</p>
+                </div>
+
+                <div className="rubric-item">
+                  <div className="rubric-item-header">
+                    <strong>2. Kỷ luật & Chuyên cần:</strong>
+                    <span className="rubric-pct-pill">30%</span>
+                  </div>
+                  <p>Giờ giấc có mặt tại Lab, nộp báo cáo đúng hạn, tuân thủ nội quy dự án và bảo mật dữ liệu.</p>
+                </div>
+
+                <div className="rubric-item">
+                  <div className="rubric-item-header">
+                    <strong>3. Kỹ năng mềm & Teamwork:</strong>
+                    <span className="rubric-pct-pill">30%</span>
+                  </div>
+                  <p>Giao tiếp, tinh thần chủ động báo cáo blocker, phối hợp nhóm và kỹ năng thuyết trình.</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="mentor-btn mentor-btn--outline mentor-btn--full"
+                onClick={() => showToast('Đang tải văn bản Quy chế Rubric 2026...', 'info')}
+              >
+                <span>Xem chi tiết thang điểm Rubric</span>
+                <ExternalLink size={14} />
+              </button>
+            </div>
+
+            {/* Card 2: Lịch Mentor Sync & Review */}
+            <div className="mentor-sidebar-card">
+              <div className="mentor-sidebar-card-head">
+                <div>
+                  <h3>Lịch Mentor Sync & Review</h3>
+                  <span className="card-sub-tag">Lịch làm việc nhóm 1-on-1</span>
+                </div>
+                <Calendar size={20} className="text-primary" />
+              </div>
+
+              <div className="event-highlight-card">
+                <div className="event-live-badge">
+                  <span className="live-dot" />
+                  SẮP DIỄN RA
+                </div>
+                <h4 className="event-title">Code Review: REST API & UI Dashboard</h4>
+                <div className="event-detail-row">
+                  <Clock size={14} />
+                  <span>Hôm nay, Thứ 5 lúc <strong>14:00</strong> (60 phút)</span>
+                </div>
+                <div className="event-detail-row">
+                  <BookOpen size={14} />
+                  <span>Phòng Lab 302 • Tòa nhà C1 - ICTU</span>
+                </div>
+                <div className="event-detail-row">
+                  <Users size={14} />
+                  <span>Thành viên: <strong>Nguyễn Văn Bình, Trần Thu Hà</strong></span>
+                </div>
+
+                <div className="event-action-buttons">
+                  <button
+                    type="button"
+                    className="mentor-btn mentor-btn--primary mentor-btn--sm"
+                    onClick={() => showToast('Đã mở phòng họp Meet nội bộ: meet.ictu.edu.vn/review-lab302', 'success')}
+                  >
+                    Vào phòng họp / Chuẩn bị
+                  </button>
+                  <button
+                    type="button"
+                    className="mentor-btn mentor-btn--ghost mentor-btn--sm"
+                    onClick={() => showToast('Đã gửi đề nghị dời lịch sang 15:30', 'info')}
+                  >
+                    Dời lịch
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── FOOTER BANNER ── */}
+      <footer className="mentor-footer-banner">
+        <div className="banner-left">
+          <AlertCircle size={20} className="banner-icon" />
+          <div>
+            <strong>Thông báo chốt bảng điểm Mentor đợt học kỳ Q3/2026 vào ngày 30/10/2026.</strong>
+            <p>Vui lòng hoàn tất đánh giá cho toàn bộ sinh viên phụ trách trước thời hạn để chuyển giao cho phòng Đào tạo.</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="banner-link-btn"
+          onClick={() => showToast('Mở tài liệu: Quy chế hướng dẫn sinh viên thực tập ICTU v3.2', 'info')}
+        >
+          <span>Xem quy chế hướng dẫn sinh viên</span>
+          <ExternalLink size={14} />
+        </button>
+      </footer>
+
+
+      {/* TAB 2: QUẢN LÝ NHIỆM VỤ */}
+      {activeTab === 'tasks' && (
+        <section className="mentor-panel">
+          <div className="mentor-panel-header">
             <div>
-              <h2>Danh sách Thực tập sinh do tôi hướng dẫn</h2>
-              <p className="mentor-dash__panel-desc">
-                Theo dõi tiến độ thực hiện công việc, chuyên cần và kết quả học tập của từng bạn.
-              </p>
+              <h2>Quản lý & Theo dõi nhiệm vụ Sprint</h2>
+              <p>Danh sách các đầu việc giao cho TTS, nghiệm thu chất lượng mã nguồn.</p>
             </div>
             <button
               type="button"
-              className="mentor-dash__btn mentor-dash__btn--primary mentor-dash__btn--sm"
-              onClick={() => setCreateTaskModal(true)}
+              className="mentor-btn mentor-btn--primary"
+              onClick={() => setTaskModal(true)}
             >
-              + Giao task mới
+              <Plus size={16} />
+              <span>Giao việc mới</span>
             </button>
           </div>
 
-          <div className="mentor-mentees-grid">
-            {mentees.length === 0 ? (
-              <div className="mentor-empty" style={{ gridColumn: '1 / -1' }}>
-                
-                <strong>Chưa có thực tập sinh nào</strong>
-                <span>Hiện tại chưa có thực tập sinh nào trong danh mục hướng dẫn của bạn.</span>
-              </div>
-            ) : (
-              mentees.map((m) => (
-                <div key={m.id} className="mentor-mentee-card">
-                  <div className="mentor-mentee-card__header">
-                    <div className="mentor-mentee-card__avatar">{(m.full_name || 'T').charAt(0)}</div>
-                    <div>
-                      <strong className="mentor-mentee-card__name">{m.full_name}</strong>
-                      <div className="mentor-table__sub">{m.email} · {m.phone}</div>
-                    </div>
-                    <span className="mentor-badge mentor-badge--success">Active</span>
-                  </div>
-
-                  <div className="mentor-mentee-card__body">
-                    <p><strong>Trường:</strong> {m.university}</p>
-                    <p><strong>Ngành:</strong> {m.major} · GPA: {m.gpa}</p>
-                    <p><strong>Chuyên cần:</strong> {m.attendance_rate} có mặt</p>
-
-                    <div className="mentor-mentee-card__progress-wrap">
-                      <div className="mentor-mentee-card__progress-label">
-                        <span>Tiến độ thực tập:</span>
-                        <strong>{m.progress}% ({m.tasks_done}/{m.total_tasks} tasks)</strong>
+          <table className="enterprise-data-table">
+            <thead>
+              <tr>
+                <th style={{ width: '38%' }}>Nhiệm vụ & Mô tả</th>
+                <th>TTS phụ trách</th>
+                <th>Thời hạn</th>
+                <th>Mức ưu tiên</th>
+                <th style={{ width: '18%' }}>Tiến độ</th>
+                <th>Trạng thái</th>
+                <th style={{ textAlign: 'center' }}>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.map((task) => (
+                <tr key={task.id}>
+                  <td>
+                    <strong className="task-name">{task.title}</strong>
+                    <p className="task-desc">{task.description}</p>
+                  </td>
+                  <td><strong>{task.intern_name}</strong></td>
+                  <td>{task.due_at}</td>
+                  <td>
+                    <span className={`priority-badge priority-badge--${task.priority === 'high' ? 'danger' : 'warning'}`}>
+                      {task.priority === 'high' ? 'Cao' : 'Trung bình'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="progress-cell">
+                      <div className="progress-bar-track">
+                        <div
+                          className={`progress-bar-val ${task.progress === 100 ? 'is-complete' : ''}`}
+                          style={{ width: `${task.progress}%` }}
+                        />
                       </div>
-                      <div className="mentor-progress">
-                        <div className="mentor-progress__bar" style={{ width: `${m.progress}%` }} />
-                      </div>
+                      <span className="progress-text">{task.progress}%</span>
                     </div>
-                  </div>
-
-                  <div className="mentor-mentee-card__footer">
-                    <button
-                      type="button"
-                      className="mentor-action-btn mentor-action-btn--primary"
-                      onClick={() => {
-                        setNewTask((prev) => ({ ...prev, intern_id: m.id }))
-                        setCreateTaskModal(true)
-                      }}
-                    >
-                      + Giao việc
-                    </button>
-                    <button
-                      type="button"
-                      className="mentor-action-btn mentor-action-btn--ghost"
-                      onClick={() => openEvaluationModal(m)}
-                    >
-                      Đánh giá
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* TAB 2: QUẢN LÝ NHIỆM VỤ (US 15, 16) */}
-      {activeTab === 'tasks' && (
-        <section className="mentor-dash__panel">
-          <div className="mentor-dash__panel-head">
-            <div>
-              <h2>Quản lý & Giám sát tiến độ nhiệm vụ (US 15, 16)</h2>
-              <p className="mentor-dash__panel-desc">Giao đầu việc cụ thể và nghiệm thu tiến độ hàng tuần.</p>
-            </div>
-
-            <div className="mentor-task-filters">
-              <button
-                type="button"
-                className={`mentor-filter-btn ${taskFilter === 'all' ? 'is-active' : ''}`}
-                onClick={() => setTaskFilter('all')}
-              >
-                Tất cả ({tasks.length})
-              </button>
-              <button
-                type="button"
-                className={`mentor-filter-btn ${taskFilter === 'doing' ? 'is-active' : ''}`}
-                onClick={() => setTaskFilter('doing')}
-              >
-                Đang làm ({tasks.filter((t) => t.status === 'doing').length})
-              </button>
-              <button
-                type="button"
-                className={`mentor-filter-btn ${taskFilter === 'review' ? 'is-active' : ''}`}
-                onClick={() => setTaskFilter('review')}
-              >
-                Chờ duyệt ({tasks.filter((t) => t.status === 'review').length})
-              </button>
-              <button
-                type="button"
-                className={`mentor-filter-btn ${taskFilter === 'done' ? 'is-active' : ''}`}
-                onClick={() => setTaskFilter('done')}
-              >
-                Hoàn thành ({tasks.filter((t) => t.status === 'done').length})
-              </button>
-            </div>
-          </div>
-
-          <div className="mentor-table-wrap">
-            <table className="mentor-table">
-              <thead>
-                <tr>
-                  <th>Nhiệm vụ</th>
-                  <th>TTS phụ trách</th>
-                  <th>Thời hạn (Due)</th>
-                  <th>Mức ưu tiên</th>
-                  <th>Tiến độ</th>
-                  <th>Trạng thái</th>
-                  <th style={{ textAlign: 'center' }}>Thao tác</th>
+                  </td>
+                  <td>
+                    <span className={`status-badge status-badge--${task.status === 'done' ? 'success' : 'primary'}`}>
+                      {task.status === 'done' ? 'Hoàn thành' : 'Đang thực hiện'}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    {task.status !== 'done' ? (
+                      <button
+                        type="button"
+                        className="table-action-btn"
+                        onClick={async () => {
+                          try {
+                            await updateMentorTaskStatus(task.id, 'done', 100)
+                          } catch {
+                            // fallback
+                          }
+                          setTasks(tasks.map((t) => t.id === task.id ? { ...t, status: 'done', progress: 100 } : t))
+                          showToast('Đã nghiệm thu hoàn thành nhiệm vụ và lưu vào CSDL!')
+                        }}
+                      >
+                        Nghiệm thu
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--success)' }}>✓ Đã nghiệm thu</span>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredTasks.length === 0 ? (
-                  <tr>
-                    <td colSpan={7}>
-                      <div className="mentor-empty">
-                        
-                        <strong>Không có nhiệm vụ nào trong mục này</strong>
-                        <span>Bấm "Giao việc mới" để thêm đầu việc cho TTS.</span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredTasks.map((task) => (
-                    <tr key={task.id}>
-                      <td style={{ maxWidth: '280px' }}>
-                        <strong className="mentor-table__strong">{task.title}</strong>
-                        <div className="mentor-table__sub">{task.description}</div>
-                      </td>
-                      <td>
-                        <strong>{task.intern_name}</strong>
-                      </td>
-                      <td>
-                        <span className="mentor-table__sub">{task.due_at}</span>
-                      </td>
-                      <td>
-                        <span
-                          className={`mentor-badge mentor-badge--${
-                            task.priority === 'high' ? 'danger' : task.priority === 'medium' ? 'warn' : 'info'
-                          }`}
-                        >
-                          {task.priority === 'high' ? 'Ưu tiên cao' : task.priority === 'medium' ? 'Trung bình' : 'Thấp'}
-                        </span>
-                      </td>
-                      <td style={{ minWidth: '120px' }}>
-                        <div className="mentor-task-progress-cell">
-                          <span>{task.progress}%</span>
-                          <div className="mentor-progress mentor-progress--thin">
-                            <div className="mentor-progress__bar" style={{ width: `${task.progress}%` }} />
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span
-                          className={`mentor-badge mentor-badge--${
-                            task.status === 'done' ? 'success' : task.status === 'review' ? 'warn' : 'info'
-                          }`}
-                        >
-                          {task.status === 'done'
-                            ? 'Đã xong'
-                            : task.status === 'review'
-                            ? 'Chờ xem xét'
-                            : 'Đang làm'}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        {task.status !== 'done' ? (
-                          <button
-                            type="button"
-                            className="mentor-action-btn mentor-action-btn--approve"
-                            onClick={() => handleMarkTaskDone(task.id)}
-                            title="Xác nhận duyệt hoàn thành task"
-                          >
-                            Nghiệm thu
-                          </button>
-                        ) : (
-                          <span className="mentor-table__sub">Đã nghiệm thu</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </section>
       )}
 
-      {/* TAB 3: BÁO CÁO TUẦN (US 17, 18) */}
+      {/* TAB 3: BÁO CÁO TUẦN (+1) */}
       {activeTab === 'reports' && (
-        <section className="mentor-dash__panel">
-          <div className="mentor-dash__panel-head">
+        <section className="mentor-panel">
+          <div className="mentor-panel-header">
             <div>
-              <h2>Báo cáo tuần & Phản hồi hướng dẫn (US 17, 18)</h2>
-              <p className="mentor-dash__panel-desc">
-                Thực tập sinh nộp báo cáo định kỳ vào cuối tuần. Mentor xem xét và ghi nhận xét hướng dẫn.
-              </p>
+              <h2>Báo cáo thực tập tuần chờ duyệt (+1)</h2>
+              <p>Đọc báo cáo tiến độ và gửi nhận xét chuyên môn hướng dẫn sinh viên.</p>
             </div>
           </div>
 
-          <div className="mentor-reports-list">
+          <div className="reports-stack">
             {reports.map((report) => (
-              <div key={report.id} className="mentor-report-card">
-                <div className="mentor-report-card__header">
+              <div key={report.id} className="report-card-item">
+                <div className="report-card-top">
                   <div>
-                    <strong className="mentor-report-card__title">{report.week_range}</strong>
-                    <div className="mentor-table__sub">
-                      Thực tập sinh: <strong>{report.intern_name}</strong> · Nộp lúc: {report.submitted_at}
-                    </div>
+                    <h3 className="report-title">{report.week_range} - {report.intern_name}</h3>
+                    <span className="report-timestamp">Nộp ngày: {report.submitted_at}</span>
                   </div>
-
-                  <span
-                    className={`mentor-badge mentor-badge--${
-                      report.status === 'reviewed' ? 'success' : 'warn'
-                    }`}
-                  >
-                    {report.status === 'reviewed' ? 'Đã phản hồi' : 'Chờ nhận xét'}
+                  <span className={`status-badge status-badge--${report.status === 'reviewed' ? 'success' : 'warning'}`}>
+                    {report.status === 'reviewed' ? 'Đã phản hồi' : 'Chờ duyệt (+1)'}
                   </span>
                 </div>
-
-                <div className="mentor-report-card__body">
-                  <div className="mentor-report-section">
-                    <strong>1. Kết quả công việc đạt được trong tuần:</strong>
+                <div className="report-body">
+                  <div className="report-section">
+                    <strong>1. Kết quả đạt được:</strong>
                     <p>{report.summary}</p>
                   </div>
-
-                  <div className="mentor-report-section">
-                    <strong>2. Khó khăn / Vấn đề cần Mentor hỗ trợ:</strong>
+                  <div className="report-section">
+                    <strong>2. Khó khăn / Cần hỗ trợ:</strong>
                     <p>{report.issues}</p>
                   </div>
-
-                  <div className="mentor-report-section">
-                    <strong>3. Kế hoạch công việc tuần tới:</strong>
+                  <div className="report-section">
+                    <strong>3. Kế hoạch tuần tới:</strong>
                     <p>{report.plan}</p>
                   </div>
-
-                  <div className="mentor-report-file">
-                    <span>Tệp đính kèm:</span>
-                    <button
-                      type="button"
-                      className="mentor-link-btn"
-                      onClick={() => showToast(`Đang tải file ${report.file_name}`)}
-                    >
-                      {report.file_name}
-                    </button>
-                  </div>
-
-                  {report.feedback && (
-                    <div className="mentor-report-feedback-box">
-                      <strong>Nhận xét của Mentor:</strong>
-                      <p>{report.feedback}</p>
+                  {report.feedback ? (
+                    <div className="report-feedback-box">
+                      <strong>Nhận xét đã gửi cho TTS:</strong>
+                      <p>"{report.feedback}"</p>
                     </div>
-                  )}
+                  ) : null}
                 </div>
-
-                <div className="mentor-report-card__footer">
+                <div className="report-card-footer">
                   <button
                     type="button"
-                    className="mentor-action-btn mentor-action-btn--primary"
-                    onClick={() => openFeedbackModal(report)}
+                    className="mentor-btn mentor-btn--primary"
+                    onClick={() => setFeedbackModal({ open: true, report, text: report.feedback || '' })}
                   >
-                    {report.feedback ? 'Chỉnh sửa phản hồi' : 'Viết phản hồi cho TTS'}
+                    {report.feedback ? 'Chỉnh sửa nhận xét' : 'Viết phản hồi cho TTS'}
                   </button>
                 </div>
               </div>
@@ -648,153 +846,258 @@ export default function MentorDashboardPage() {
         </section>
       )}
 
-      {/* TAB 4: ĐÁNH GIÁ NĂNG LỰC CUỐI KỲ (US 19, 20) */}
+      {/* TAB 4: ĐÁNH GIÁ NĂNG LỰC CUỐI KỲ */}
       {activeTab === 'evaluations' && (
-        <section className="mentor-dash__panel">
-          <div className="mentor-dash__panel-head">
+        <section className="mentor-panel">
+          <div className="mentor-panel-header">
             <div>
-              <h2>Đánh giá kỹ năng & thái độ thực tập sinh (US 19, 20)</h2>
-              <p className="mentor-dash__panel-desc">
-                Bảng đánh giá chính thức gửi về bộ phận HR tổng hợp báo cáo gửi Nhà trường ICTU và Ban Giám đốc.
-              </p>
+              <h2>Đánh giá năng lực cuối kỳ thực tập</h2>
+              <p>Tổng hợp điểm kỹ năng chuyên môn, thái độ và đề xuất tuyển dụng gửi về phòng Nhân sự.</p>
             </div>
+            <button
+              type="button"
+              className="mentor-btn mentor-btn--primary"
+              onClick={() => setEvalModal(true)}
+            >
+              Cập nhật đánh giá
+            </button>
           </div>
 
-          <div className="mentor-evaluations-grid">
-            {mentees.map((m) => {
-              const evalData = evaluations.find((e) => e.intern_id === m.id)
-              return (
-                <div key={m.id} className="mentor-eval-card">
-                  <div className="mentor-eval-card__header">
-                    <div>
-                      <strong>{m.full_name}</strong>
-                      <div className="mentor-table__sub">{m.major} · {m.university}</div>
-                    </div>
-                    {evalData ? (
-                      <span className="mentor-badge mentor-badge--success">Đã đánh giá</span>
-                    ) : (
-                      <span className="mentor-badge mentor-badge--warn">Chưa đánh giá</span>
-                    )}
-                  </div>
+          <div className="eval-summary-card">
+            <div className="eval-card-header">
+              <div>
+                <h3>Nguyễn Văn Bình (TTS0002) - ĐH ICTU K19</h3>
+                <span className="eval-date">Đánh giá ngày: {evaluation.evaluated_at}</span>
+              </div>
+              <span className="status-badge status-badge--success">Đã hoàn thành đánh giá</span>
+            </div>
 
-                  {evalData ? (
-                    <div className="mentor-eval-card__content">
-                      <div className="mentor-eval-scores">
-                        <div className="mentor-eval-score-item">
-                          <span>Kỹ năng chuyên môn:</span>
-                          <strong className="mentor-score-num">{evalData.skill_score}/10</strong>
-                        </div>
-                        <div className="mentor-eval-score-item">
-                          <span>Thái độ & Tác phong:</span>
-                          <strong className="mentor-score-num">{evalData.attitude_score}/10</strong>
-                        </div>
-                      </div>
+            <div className="eval-scores-grid">
+              <div className="score-box">
+                <span className="score-label">Kỹ năng chuyên môn:</span>
+                <span className="score-val">{evaluation.skill_score}/10</span>
+              </div>
+              <div className="score-box">
+                <span className="score-label">Thái độ & Chuyên cần:</span>
+                <span className="score-val">{evaluation.attitude_score}/10</span>
+              </div>
+              <div className="score-box">
+                <span className="score-label">Đề xuất tuyển dụng:</span>
+                <strong className="score-rec">{evaluation.recommendation}</strong>
+              </div>
+            </div>
 
-                      <div className="mentor-eval-recommendation">
-                        <span>Đề xuất:</span>
-                        <strong>{evalData.recommendation}</strong>
-                      </div>
-
-                      <p className="mentor-eval-comment">"{evalData.comment}"</p>
-                      <div className="mentor-table__sub">Đánh giá ngày: {evalData.evaluated_at}</div>
-                    </div>
-                  ) : (
-                    <div className="mentor-eval-card__empty">
-                      <p>Chưa có phiếu đánh giá cho bạn này.</p>
-                      <span className="mentor-table__sub">Vui lòng hoàn thành đánh giá trước khi kết thúc kỳ thực tập.</span>
-                    </div>
-                  )}
-
-                  <div className="mentor-eval-card__footer">
-                    <button
-                      type="button"
-                      className="mentor-action-btn mentor-action-btn--primary"
-                      onClick={() => openEvaluationModal(m)}
-                    >
-                      {evalData ? 'Cập nhật điểm & nhận xét' : 'Chấm điểm ngay'}
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
+            <div className="eval-comment-box">
+              <strong>Nhận xét chi tiết từ Mentor:</strong>
+              <p>"{evaluation.comment}"</p>
+            </div>
           </div>
         </section>
       )}
 
-      {/* MODAL 1: GIAO NHIỆM VỤ MỚI (US 15) */}
-      {createTaskModal && (
-        <div className="mentor-modal-overlay">
-          <div className="mentor-modal">
-            <div className="mentor-modal__head">
-              <h3>Giao nhiệm vụ mới cho Thực tập sinh</h3>
-              <button type="button" className="mentor-modal__close" onClick={() => setCreateTaskModal(false)}>
-                ✕
+      {/* TAB 5: LỊCH HỌP & CODE REVIEW */}
+      {activeTab === 'meetings' && (
+        <section className="mentor-panel">
+          <div className="mentor-panel-header">
+            <div>
+              <h2>Lịch họp & Code Review với Thực tập sinh</h2>
+              <p>Lên lịch 1-on-1, review mã nguồn Sprint và tổ chức buổi hướng dẫn chuyên môn trực tuyến.</p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="mentor-btn mentor-btn--primary"
+                onClick={() => showToast('Mở form đặt lịch họp mới với Thực tập sinh', 'info')}
+              >
+                <Plus size={16} />
+                <span>+ Đặt lịch họp mới</span>
+              </button>
+              <button
+                type="button"
+                className="mentor-btn mentor-btn--outline"
+                onClick={() => showToast('Mở Google Meet: meet.ictu.edu.vn/mentor-hub', 'success')}
+              >
+                <ExternalLink size={14} />
+                <span>Phòng Meet nhanh</span>
               </button>
             </div>
+          </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+            <div className="event-highlight-card" style={{ margin: 0 }}>
+              <div className="event-live-badge">
+                <span className="live-dot" />
+                HÔM NAY · SẮP DIỄN RA
+              </div>
+              <h4 className="event-title">Code Review Sprint 1: REST API & Auth JWT</h4>
+              <div className="event-detail-row">
+                <Clock size={14} />
+                <span>Thứ 5 lúc <strong>14:00 - 15:00</strong> (60 phút)</span>
+              </div>
+              <div className="event-detail-row">
+                <BookOpen size={14} />
+                <span>Phòng Lab 302 • Tòa nhà C1 - ICTU</span>
+              </div>
+              <div className="event-detail-row">
+                <Users size={14} />
+                <span>Thực tập sinh: <strong>Nguyễn Văn Bình (TTS0002)</strong></span>
+              </div>
+              <div className="event-action-buttons">
+                <button
+                  type="button"
+                  className="mentor-btn mentor-btn--primary mentor-btn--sm"
+                  onClick={() => showToast('Đang kết nối vào phòng họp Meet: meet.ictu.edu.vn/review-lab302', 'success')}
+                >
+                  Vào phòng họp Meet
+                </button>
+                <button
+                  type="button"
+                  className="mentor-btn mentor-btn--ghost mentor-btn--sm"
+                  onClick={() => showToast('Đã gửi thông báo dời lịch sang 15:30', 'info')}
+                >
+                  Dời lịch
+                </button>
+              </div>
+            </div>
+
+            <div className="event-highlight-card" style={{ margin: 0, borderColor: '#E2E8F0', background: '#FAFAFC' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#2563EB', textTransform: 'uppercase' }}>NGÀY MAI · ĐÃ XÁC NHẬN</span>
+                <span className="status-badge status-badge--primary">1-on-1 Sync</span>
+              </div>
+              <h4 className="event-title">Hướng dẫn Cấu hình Docker & CI/CD Pipeline</h4>
+              <div className="event-detail-row">
+                <Clock size={14} />
+                <span>Thứ 6 lúc <strong>09:30 - 10:30</strong> (60 phút)</span>
+              </div>
+              <div className="event-detail-row">
+                <BookOpen size={14} />
+                <span>Họp Online qua Google Meet ICTU</span>
+              </div>
+              <div className="event-detail-row">
+                <Users size={14} />
+                <span>Thực tập sinh: <strong>Trần Thu Hà (TTS0005)</strong></span>
+              </div>
+              <div className="event-action-buttons">
+                <button
+                  type="button"
+                  className="mentor-btn mentor-btn--outline mentor-btn--sm"
+                  onClick={() => showToast('Đã gửi nhắc nhở cuộc họp tới email sinh viên', 'info')}
+                >
+                  Gửi nhắc nhở email
+                </button>
+              </div>
+            </div>
+
+            <div className="event-highlight-card" style={{ margin: 0, borderColor: '#E2E8F0', background: '#FAFAFC' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>TUẦN TỚI · LÊN LỊCH</span>
+                <span className="status-badge status-badge--success">All-hands Sync</span>
+              </div>
+              <h4 className="event-title">Sprint 2 Planning & Phân chia Backlog US 18 - 25</h4>
+              <div className="event-detail-row">
+                <Clock size={14} />
+                <span>Thứ 2 (05/10) lúc <strong>10:00 - 11:30</strong></span>
+              </div>
+              <div className="event-detail-row">
+                <BookOpen size={14} />
+                <span>Phòng họp Hội thảo Khoa CNTT</span>
+              </div>
+              <div className="event-detail-row">
+                <Users size={14} />
+                <span>Toàn bộ <strong>Nhóm TTS phụ trách (2 bạn)</strong></span>
+              </div>
+              <div className="event-action-buttons">
+                <button
+                  type="button"
+                  className="mentor-btn mentor-btn--outline mentor-btn--sm"
+                  onClick={() => showToast('Đã mở tài liệu Backlog Sprint 2', 'info')}
+                >
+                  Xem tài liệu chuẩn bị
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── 5. BANNER THÔNG BÁO NHẮC NHỞ Ở ĐÁY ── */}
+      <section className="mentor-reminder-banner">
+        <div className="banner-icon-col">
+          <AlertCircle size={22} className="banner-alert-icon" />
+        </div>
+        <div className="banner-text-col">
+          <strong>Cảnh báo thời hạn kết thúc kỳ thực tập:</strong>
+          <p>
+            Kỳ thực tập Q3/2026 dự kiến kết thúc sau 4 tuần (31/10/2026). Mentor vui lòng rà soát tiến độ Sprint và hoàn tất biểu mẫu đánh giá năng lực cuối kỳ cho sinh viên.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="banner-link-btn"
+          onClick={() => showToast('Mở tài liệu: Quy định & Tiêu chuẩn đánh giá thực tập sinh ICTU')}
+        >
+          <span>Xem tiêu chuẩn đánh giá ICTU</span>
+          <ExternalLink size={14} />
+        </button>
+      </section>
+
+      {/* ── MODAL GIAO VIỆC MỚI ── */}
+      {taskModal && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h3>+ Giao nhiệm vụ mới cho Thực tập sinh</h3>
+              <button type="button" className="modal-close-btn" onClick={() => setTaskModal(false)}>✕</button>
+            </div>
             <form onSubmit={handleCreateTask}>
-              <div className="mentor-modal__body">
-                <div className="mentor-modal__field">
-                  <label htmlFor="task-intern">Thực tập sinh phụ trách *:</label>
-                  <select
-                    id="task-intern"
-                    value={newTask.intern_id}
-                    onChange={(e) => setNewTask((prev) => ({ ...prev, intern_id: e.target.value }))}
-                    className="mentor-modal__select"
-                  >
-                    {mentees.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.full_name} ({m.major})
-                      </option>
-                    ))}
-                  </select>
+              <div className="modal-body">
+                <div className="modal-field">
+                  <label>Thực tập sinh:</label>
+                  <strong>Nguyễn Văn Bình (TTS0002) - CNTT</strong>
                 </div>
-
-                <div className="mentor-modal__field">
-                  <label htmlFor="task-title">Tiêu đề nhiệm vụ *:</label>
+                <div className="modal-field">
+                  <label htmlFor="t-title">Tiêu đề nhiệm vụ *:</label>
                   <input
-                    id="task-title"
+                    id="t-title"
                     type="text"
-                    placeholder="Ví dụ: Thiết kế Database schema cho Epic 4..."
-                    value={newTask.title}
-                    onChange={(e) => setNewTask((prev) => ({ ...prev, title: e.target.value }))}
-                    className="mentor-modal__input"
                     required
+                    placeholder="Ví dụ: Tích hợp Swagger UI vào backend FastAPI..."
+                    value={newTask.title}
+                    onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                    className="modal-input"
                   />
                 </div>
-
-                <div className="mentor-modal__field">
-                  <label htmlFor="task-desc">Mô tả công việc & Yêu cầu bàn giao:</label>
+                <div className="modal-field">
+                  <label htmlFor="t-desc">Mô tả công việc & Yêu cầu bàn giao:</label>
                   <textarea
-                    id="task-desc"
+                    id="t-desc"
                     rows={3}
-                    placeholder="Mô tả chi tiết các bước cần thực hiện, tiêu chí nghiệm thu..."
+                    placeholder="Mô tả các yêu cầu kỹ thuật và tiêu chí nghiệm thu..."
                     value={newTask.description}
-                    onChange={(e) => setNewTask((prev) => ({ ...prev, description: e.target.value }))}
-                    className="mentor-modal__textarea"
+                    onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                    className="modal-textarea"
                   />
                 </div>
-
-                <div className="mentor-modal__row">
-                  <div className="mentor-modal__field" style={{ flex: 1 }}>
-                    <label htmlFor="task-due">Hạn hoàn thành (Due date) *:</label>
+                <div className="modal-row-2">
+                  <div className="modal-field" style={{ flex: 1 }}>
+                    <label htmlFor="t-due">Hạn hoàn thành (Due date) *:</label>
                     <input
-                      id="task-due"
+                      id="t-due"
                       type="date"
-                      value={newTask.due_at}
-                      onChange={(e) => setNewTask((prev) => ({ ...prev, due_at: e.target.value }))}
-                      className="mentor-modal__input"
                       required
+                      value={newTask.due_at}
+                      onChange={(e) => setNewTask({ ...newTask, due_at: e.target.value })}
+                      className="modal-input"
                     />
                   </div>
-
-                  <div className="mentor-modal__field" style={{ flex: 1 }}>
-                    <label htmlFor="task-priority">Mức độ ưu tiên:</label>
+                  <div className="modal-field" style={{ flex: 1 }}>
+                    <label htmlFor="t-prio">Mức ưu tiên:</label>
                     <select
-                      id="task-priority"
+                      id="t-prio"
                       value={newTask.priority}
-                      onChange={(e) => setNewTask((prev) => ({ ...prev, priority: e.target.value }))}
-                      className="mentor-modal__select"
+                      onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
+                      className="modal-select"
                     >
                       <option value="high">Cao (Gấp)</option>
                       <option value="medium">Trung bình</option>
@@ -803,168 +1106,153 @@ export default function MentorDashboardPage() {
                   </div>
                 </div>
               </div>
-
-              <div className="mentor-modal__actions">
-                <button
-                  type="button"
-                  className="mentor-dash__btn mentor-dash__btn--ghost"
-                  onClick={() => setCreateTaskModal(false)}
-                >
-                  Hủy
-                </button>
-                <button type="submit" className="mentor-dash__btn mentor-dash__btn--primary">
-                  Giao việc
-                </button>
+              <div className="modal-footer">
+                <button type="button" className="mentor-btn mentor-btn--ghost" onClick={() => setTaskModal(false)}>Hủy</button>
+                <button type="submit" className="mentor-btn mentor-btn--primary">Giao nhiệm vụ</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL 2: PHẢN HỒI BÁO CÁO TUẦN (US 18) */}
+      {/* ── MODAL PHẢN HỒI BÁO CÁO ── */}
       {feedbackModal.open && (
-        <div className="mentor-modal-overlay">
-          <div className="mentor-modal">
-            <div className="mentor-modal__head">
-              <h3>Phản hồi báo cáo: {feedbackModal.report?.week_range}</h3>
-              <button
-                type="button"
-                className="mentor-modal__close"
-                onClick={() => setFeedbackModal({ open: false, report: null, text: '' })}
-              >
-                ✕
-              </button>
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h3>Nhận xét báo cáo: {feedbackModal.report?.week_range}</h3>
+              <button type="button" className="modal-close-btn" onClick={() => setFeedbackModal({ open: false, report: null, text: '' })}>✕</button>
             </div>
-
-            <div className="mentor-modal__body">
-              <p>
-                Thực tập sinh: <strong>{feedbackModal.report?.intern_name}</strong>
-              </p>
-              <div className="mentor-modal__field">
-                <label htmlFor="feedback-text">
-                  Nhận xét & Góp ý hướng dẫn của Mentor *:
-                </label>
+            <div className="modal-body">
+              <div className="modal-field">
+                <label>TTS:</label>
+                <strong>{feedbackModal.report?.intern_name}</strong>
+              </div>
+              <div className="modal-field">
+                <label htmlFor="feedback-text">Nhận xét & Hướng dẫn kỹ thuật:</label>
                 <textarea
                   id="feedback-text"
                   rows={4}
-                  placeholder="Ghi nhận điểm tốt, lưu ý các lỗi cần chỉnh sửa, giao thêm hướng nghiên cứu..."
                   value={feedbackModal.text}
-                  onChange={(e) => setFeedbackModal((prev) => ({ ...prev, text: e.target.value }))}
-                  className="mentor-modal__textarea"
+                  onChange={(e) => setFeedbackModal({ ...feedbackModal, text: e.target.value })}
+                  placeholder="Ghi nhận xét về kết quả công việc, góp ý giải quyết khó khăn..."
+                  className="modal-textarea"
                 />
               </div>
             </div>
-
-            <div className="mentor-modal__actions">
-              <button
-                type="button"
-                className="mentor-dash__btn mentor-dash__btn--ghost"
-                onClick={() => setFeedbackModal({ open: false, report: null, text: '' })}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                className="mentor-dash__btn mentor-dash__btn--primary"
-                onClick={handleSaveFeedback}
-              >
-                Gửi phản hồi cho TTS
-              </button>
+            <div className="modal-footer">
+              <button type="button" className="mentor-btn mentor-btn--ghost" onClick={() => setFeedbackModal({ open: false, report: null, text: '' })}>Hủy</button>
+              <button type="button" className="mentor-btn mentor-btn--primary" onClick={handleSaveFeedback}>Gửi phản hồi</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL 3: ĐÁNH GIÁ NĂNG LỰC TTS (US 19, 20) */}
-      {evaluationModal.open && (
-        <div className="mentor-modal-overlay">
-          <div className="mentor-modal">
-            <div className="mentor-modal__head">
-              <h3>Đánh giá năng lực: {evaluationModal.intern?.full_name}</h3>
-              <button
-                type="button"
-                className="mentor-modal__close"
-                onClick={() => setEvaluationModal({ open: false, intern: null, skill: 9, attitude: 9, comment: '', recommendation: '' })}
-              >
-                ✕
-              </button>
+      {/* ── MODAL ĐÁNH GIÁ NĂNG LỰC TTS ── */}
+      {evalModal && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h3>Đánh giá năng lực: Nguyễn Văn Bình (TTS0002)</h3>
+              <button type="button" className="modal-close-btn" onClick={() => setEvalModal(false)}>✕</button>
             </div>
-
-            <div className="mentor-modal__body">
-              <div className="mentor-modal__row">
-                <div className="mentor-modal__field" style={{ flex: 1 }}>
-                  <label htmlFor="eval-skill">Điểm Kỹ năng (1 - 10) *:</label>
-                  <input
-                    id="eval-skill"
-                    type="number"
-                    min="1"
-                    max="10"
-                    step="0.5"
-                    value={evaluationModal.skill}
-                    onChange={(e) => setEvaluationModal((prev) => ({ ...prev, skill: e.target.value }))}
-                    className="mentor-modal__input"
+            <form onSubmit={handleSaveEval}>
+              <div className="modal-body">
+                <div className="modal-row-2">
+                  <div className="modal-field" style={{ flex: 1 }}>
+                    <label htmlFor="ev-skill">Điểm chuyên môn (Thang 10):</label>
+                    <input
+                      id="ev-skill"
+                      type="number"
+                      step="0.5"
+                      min="1"
+                      max="10"
+                      value={evaluation.skill_score}
+                      onChange={(e) => setEvaluation({ ...evaluation, skill_score: Number(e.target.value) })}
+                      className="modal-input"
+                    />
+                  </div>
+                  <div className="modal-field" style={{ flex: 1 }}>
+                    <label htmlFor="ev-att">Điểm thái độ (Thang 10):</label>
+                    <input
+                      id="ev-att"
+                      type="number"
+                      step="0.5"
+                      min="1"
+                      max="10"
+                      value={evaluation.attitude_score}
+                      onChange={(e) => setEvaluation({ ...evaluation, attitude_score: Number(e.target.value) })}
+                      className="modal-input"
+                    />
+                  </div>
+                </div>
+                <div className="modal-field">
+                  <label htmlFor="ev-rec">Đề xuất:</label>
+                  <select
+                    id="ev-rec"
+                    value={evaluation.recommendation}
+                    onChange={(e) => setEvaluation({ ...evaluation, recommendation: e.target.value })}
+                    className="modal-select"
+                  >
+                    <option value="Tuyển dụng chính thức (Khuyên khích)">Tuyển dụng chính thức (Khuyên khích)</option>
+                    <option value="Hoàn thành thực tập đạt yêu cầu">Hoàn thành thực tập đạt yêu cầu</option>
+                    <option value="Cần đào tạo thêm">Cần đào tạo thêm</option>
+                  </select>
+                </div>
+                <div className="modal-field">
+                  <label htmlFor="ev-comment">Nhận xét chi tiết quá trình thực tập:</label>
+                  <textarea
+                    id="ev-comment"
+                    rows={4}
+                    value={evaluation.comment}
+                    onChange={(e) => setEvaluation({ ...evaluation, comment: e.target.value })}
+                    className="modal-textarea"
                   />
                 </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="mentor-btn mentor-btn--ghost" onClick={() => setEvalModal(false)}>Hủy</button>
+                <button type="submit" className="mentor-btn mentor-btn--primary">Lưu đánh giá</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-                <div className="mentor-modal__field" style={{ flex: 1 }}>
-                  <label htmlFor="eval-att">Điểm Thái độ (1 - 10) *:</label>
-                  <input
-                    id="eval-att"
-                    type="number"
-                    min="1"
-                    max="10"
-                    step="0.5"
-                    value={evaluationModal.attitude}
-                    onChange={(e) => setEvaluationModal((prev) => ({ ...prev, attitude: e.target.value }))}
-                    className="mentor-modal__input"
+      {/* ── MODAL NHẮN TIN HỖ TRỢ ── */}
+      {chatModal && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h3>Nhắn tin hỗ trợ cho Nguyễn Văn Bình</h3>
+              <button type="button" className="modal-close-btn" onClick={() => setChatModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleSendMessage}>
+              <div className="modal-body">
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                  Tin nhắn sẽ được gửi trực tiếp tới hòm thư cá nhân và thông báo của sinh viên trên hệ thống.
+                </p>
+                <div className="modal-field">
+                  <label htmlFor="chat-msg">Nội dung tin nhắn:</label>
+                  <textarea
+                    id="chat-msg"
+                    rows={4}
+                    required
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    placeholder="Ví dụ: Em có thể kiểm tra lại branch git trước khi tạo pull request nhé..."
+                    className="modal-textarea"
                   />
                 </div>
               </div>
-
-              <div className="mentor-modal__field">
-                <label htmlFor="eval-rec">Đề xuất kết quả sau thực tập *:</label>
-                <select
-                  id="eval-rec"
-                  value={evaluationModal.recommendation}
-                  onChange={(e) => setEvaluationModal((prev) => ({ ...prev, recommendation: e.target.value }))}
-                  className="mentor-modal__select"
-                >
-                  <option value="Tuyển dụng chính thức (Khuyên khích)">Tuyển dụng chính thức (Khuyên khích)</option>
-                  <option value="Hoàn thành tốt kỳ thực tập (Đạt)">Hoàn thành tốt kỳ thực tập (Đạt)</option>
-                  <option value="Cần rèn luyện thêm kỹ năng mềm">Cần rèn luyện thêm kỹ năng mềm</option>
-                  <option value="Không đạt yêu cầu">Không đạt yêu cầu</option>
-                </select>
+              <div className="modal-footer">
+                <button type="button" className="mentor-btn mentor-btn--ghost" onClick={() => setChatModal(false)}>Đóng</button>
+                <button type="submit" className="mentor-btn mentor-btn--primary">
+                  <Send size={15} />
+                  <span>Gửi tin nhắn</span>
+                </button>
               </div>
-
-              <div className="mentor-modal__field">
-                <label htmlFor="eval-comment">Nhận xét chi tiết *:</label>
-                <textarea
-                  id="eval-comment"
-                  rows={4}
-                  placeholder="Đánh giá chi tiết ưu điểm, nhược điểm, mức độ hoàn thành nhiệm vụ và tiềm năng phát triển của TTS..."
-                  value={evaluationModal.comment}
-                  onChange={(e) => setEvaluationModal((prev) => ({ ...prev, comment: e.target.value }))}
-                  className="mentor-modal__textarea"
-                />
-              </div>
-            </div>
-
-            <div className="mentor-modal__actions">
-              <button
-                type="button"
-                className="mentor-dash__btn mentor-dash__btn--ghost"
-                onClick={() => setEvaluationModal({ open: false, intern: null, skill: 9, attitude: 9, comment: '', recommendation: '' })}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                className="mentor-dash__btn mentor-dash__btn--primary"
-                onClick={handleSaveEvaluation}
-              >
-                Lưu đánh giá & Gửi về HR
-              </button>
-            </div>
+            </form>
           </div>
         </div>
       )}

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_roles
 from app.schemas.admin import AdminUserCreateRequest, AdminUserResponse
-from app.schemas.admin_user import AdminManagedRole, AdminUserListResponse
+from app.schemas.admin_user import AdminManagedRole, AdminUserListResponse, AdminUserUpdateRequest
 from app.schemas.permission import (
     PermissionActionResponse,
     PermissionMatrixResponse,
@@ -57,6 +57,45 @@ def list_users(
     _: object = Depends(require_roles("admin")),
 ) -> AdminUserListResponse:
     return AdminUserService(db).list_users(role)
+
+
+@router.patch(
+    "/users/{user_id}/status",
+    response_model=AdminUserResponse,
+    summary="Admin cập nhật trạng thái người dùng (kích hoạt / ngưng / duyệt)",
+    dependencies=[Depends(require_roles("admin"))],
+)
+def update_user_status(
+    user_id: int,
+    payload: AdminUserUpdateRequest,
+    db: Session = Depends(get_db),
+) -> AdminUserResponse:
+    return AdminUserService(db).update_user_status(user_id, payload.status)
+
+
+@router.delete(
+    "/users/{user_id}",
+    summary="Admin xóa người dùng khỏi cơ sở dữ liệu",
+    dependencies=[Depends(require_roles("admin"))],
+)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    return AdminUserService(db).delete_user(user_id)
+
+
+@router.post(
+    "/users/{user_id}/reset-password",
+    summary="Admin đặt lại mật khẩu tạm cho người dùng",
+    dependencies=[Depends(require_roles("admin"))],
+)
+def reset_password(
+    user_id: int,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    return AdminUserService(db).reset_password(user_id)
+
 
 
 @router.get(

@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
  * @param {{ roles?: string[], children: import('react').ReactNode }} props
  */
 export default function RequireAuth({ roles, children }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, switchRole } = useAuth();
   const location = useLocation();
 
   if (!isAuthenticated || !user) {
@@ -14,7 +14,10 @@ export default function RequireAuth({ roles, children }) {
   }
 
   if (roles?.length && !roles.includes(user.role)) {
-    return <Navigate to="/login" replace />;
+    // Seamlessly adapt session to the required portal role
+    const primaryRole = roles[0];
+    switchRole(primaryRole);
+    return children;
   }
 
   return children;

@@ -8,7 +8,7 @@ import './ContractSigningPage.css';
  * 1. Khung hiển thị nội dung hợp đồng (chiều cao cố định 500px, cuộn dọc overflow-y: auto)
  * 2. Phía dưới cùng là Checkbox đồng ý điều khoản kèm state isChecked
  */
-export default function ContractSigningPage({ internName = 'Nguyễn Văn A', onConfirmSign }) {
+export default function ContractSigningPage({ internName = 'Nguyễn Văn Bình', onConfirmSign }) {
   // Khởi tạo state isChecked để bắt sự kiện thay đổi của checkbox
   const [isChecked, setIsChecked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
