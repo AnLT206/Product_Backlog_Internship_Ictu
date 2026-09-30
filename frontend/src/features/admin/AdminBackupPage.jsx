@@ -360,14 +360,14 @@ export default function AdminBackupPage() {
           <table className="backup-data-table">
             <thead>
               <tr>
-                <th style={{ width: '36px', textAlign: 'center' }}>#</th>
-                <th>Tên tệp sao lưu (.sql)</th>
-                <th style={{ width: '105px' }}>Loại</th>
-                <th style={{ width: '85px', textAlign: 'right' }}>Dung lượng</th>
-                <th style={{ width: '95px' }}>Thời điểm tạo</th>
-                <th style={{ width: '95px' }}>Người tạo</th>
-                <th style={{ width: '105px', textAlign: 'center' }}>Lần khôi phục</th>
-                <th style={{ textAlign: 'center', width: '96px' }}>Thao tác</th>
+                <th style={{ width: '5%', textAlign: 'center' }}>#</th>
+                <th style={{ width: '28%' }}>Tên tệp sao lưu (.sql)</th>
+                <th style={{ width: '12%', textAlign: 'center' }}>Loại</th>
+                <th style={{ width: '10%', textAlign: 'center' }}>Dung lượng</th>
+                <th style={{ width: '12%', textAlign: 'center' }}>Thời điểm tạo</th>
+                <th style={{ width: '12%', textAlign: 'center' }}>Người tạo</th>
+                <th style={{ width: '11%', textAlign: 'center' }}>Lần khôi phục</th>
+                <th style={{ width: '10%', textAlign: 'center' }}>Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -401,13 +401,13 @@ export default function AdminBackupPage() {
                         </div>
                       </div>
                     </td>
-                    <td>{renderTypeBadge(item.backup_type)}</td>
-                    <td style={{ textAlign: 'right' }}>
+                    <td style={{ textAlign: 'center' }}>{renderTypeBadge(item.backup_type)}</td>
+                    <td style={{ textAlign: 'center' }}>
                       <span className="size-badge">{item.file_size_formatted}</span>
                     </td>
-                    <td>
+                    <td style={{ textAlign: 'center' }}>
                       {item.created_at ? (
-                        <div className="dt-cell">
+                        <div className="dt-cell dt-cell--center">
                           <span className="dt-time">{formatDateTimeParts(item.created_at).time}</span>
                           <span className="dt-date">{formatDateTimeParts(item.created_at).date}</span>
                         </div>
@@ -415,7 +415,7 @@ export default function AdminBackupPage() {
                         '—'
                       )}
                     </td>
-                    <td>
+                    <td style={{ textAlign: 'center' }}>
                       <span className="creator-text">{item.created_by_name || 'System Admin'}</span>
                     </td>
                     <td style={{ textAlign: 'center' }}>
@@ -427,7 +427,7 @@ export default function AdminBackupPage() {
                         <span className="not-restored-badge">—</span>
                       )}
                     </td>
-                    <td>
+                    <td style={{ textAlign: 'center' }}>
                       <div className="action-buttons-cell">
                         <button
                           type="button"

@@ -248,6 +248,7 @@
 
 .backup-data-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 12.5px;
   text-align: left;
@@ -287,11 +288,12 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  max-width: 280px;
+  width: 100%;
 }
 
 .file-name-info {
   min-width: 0;
+  flex: 1;
   overflow: hidden;
 }
 
@@ -366,6 +368,11 @@
   line-height: 1.25;
 }
 
+.dt-cell--center {
+  align-items: center;
+  justify-content: center;
+}
+
 .dt-time {
   font-weight: 600;
   color: #0f172a;
@@ -382,6 +389,7 @@
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
+  display: inline-block;
 }
 
 .restored-badge {
