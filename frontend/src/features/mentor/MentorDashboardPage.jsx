@@ -7,35 +7,25 @@ import {
   Award,
   Plus,
   MessageSquare,
-  Star,
   Clock,
   Calendar,
   AlertCircle,
   ExternalLink,
   CheckCircle2,
-  Phone,
-  Mail,
-  GraduationCap,
   BookOpen,
   Send,
-  SlidersHorizontal,
 } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
 import {
   fetchMentorTasks,
   createMentorTask,
   updateMentorTaskStatus,
-  deleteMentorTask,
   fetchMentorReports,
   gradeMentorReport,
-  fetchMentorEvaluations,
   saveMentorEvaluation,
-  fetchMentorMentees,
 } from '../../api/operations'
 import './MentorDashboardPage.css'
 
 export default function MentorDashboardPage() {
-  const { user } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -130,10 +120,9 @@ export default function MentorDashboardPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [taskRes, repRes, evalRes] = await Promise.all([
+        const [taskRes, repRes] = await Promise.all([
           fetchMentorTasks(),
           fetchMentorReports(),
-          fetchMentorEvaluations(),
         ])
         if (taskRes.ok && Array.isArray(taskRes.data) && taskRes.data.length > 0) {
           setTasks(taskRes.data)

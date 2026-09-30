@@ -28,7 +28,6 @@ function formatDate(dateStr) {
  */
 function ProgramListPage() {
   const [programs, setPrograms] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -43,8 +42,6 @@ function ProgramListPage() {
         }
       } catch {
         if (isMounted) setPrograms([]);
-      } finally {
-        if (isMounted) setLoading(false);
       }
     }
 

@@ -121,7 +121,6 @@ function InternListPage() {
      - Chạy lại ngay khi filterMajor đổi (dropdown — không debounce)
      ESLint: "void" + setState SAU await (trong loadInterns)             */
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     void loadInterns();
     // eslint-disable-next-line react-hooks/exhaustive-deps

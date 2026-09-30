@@ -1,38 +1,27 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
 import {
   Users,
-  Briefcase,
   Search,
   CheckCircle2,
-  XCircle,
   FileText,
   Download,
   Calendar,
   Clock,
-  ArrowRight,
-  TrendingUp,
   AlertCircle,
   Award,
-  Layers,
-  CheckSquare,
   UserCheck,
   Send,
   Building2,
   FileCheck,
-  Filter,
   Plus,
-  ExternalLink,
   Loader2,
   Check,
   RotateCcw,
   Save,
   Eye,
-  CheckCircle,
   Sparkles,
-  Info,
 } from 'lucide-react'
-import { getInterns, approveIntern, rejectIntern, buildToast } from '../../api/interns'
+import { getInterns, approveIntern, rejectIntern } from '../../api/interns'
 import './HrDashboardPage.css'
 
 // ── Dữ liệu mẫu chuẩn 3 ứng viên theo Prompt ──
@@ -132,6 +121,7 @@ export default function HrDashboardPage() {
   const [selectedBatch, setSelectedBatch] = useState('fall_2026')
   const [applicants, setApplicants] = useState(INITIAL_APPLICANTS)
   const [totalApplicants, setTotalApplicants] = useState(18)
+  const pendingCount = applicants.filter((a) => a.status === 'pending').length
   const [loading, setLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -229,7 +219,7 @@ export default function HrDashboardPage() {
     setActionLoading(applicant.id)
     try {
       if (typeof applicant.id === 'number') {
-        const { ok, status, data } = await approveIntern(applicant.id)
+        const { ok } = await approveIntern(applicant.id)
         if (ok) {
           setApplicants((prev) =>
             prev.map((a) => (a.id === applicant.id ? { ...a, status: 'approved' } : a))
@@ -263,7 +253,7 @@ export default function HrDashboardPage() {
     setActionLoading(applicant?.id)
     try {
       if (typeof applicant?.id === 'number') {
-        const { ok, status, data } = await rejectIntern(applicant.id, reason)
+        const { ok } = await rejectIntern(applicant.id, reason)
         if (ok) {
           setApplicants((prev) =>
             prev.map((a) => (a.id === applicant.id ? { ...a, status: 'rejected' } : a))
@@ -329,9 +319,6 @@ export default function HrDashboardPage() {
       return matchesSearch && matchesFaculty && matchesStatus
     })
   }, [applicants, searchQuery, facultyFilter, statusFilter])
-
-  const pendingCount = applicants.filter((a) => a.status === 'pending').length
-  const approvedCount = applicants.filter((a) => a.status === 'approved').length
 
   return (
     <div className="hr-portal-container">

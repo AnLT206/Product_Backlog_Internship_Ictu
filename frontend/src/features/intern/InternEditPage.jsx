@@ -170,7 +170,6 @@ function InternEditPage() {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadInternData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [internId]);

@@ -4,12 +4,7 @@ import './NotFoundPage.css'
 
 function NotFoundPage() {
   const location = useLocation()
-  let auth = null
-  try {
-    auth = useAuth()
-  } catch {
-    // ignore if outside provider
-  }
+  const auth = useAuth()
 
   const isAdmin =
     location.pathname.startsWith('/admin') || auth?.user?.role === 'admin'

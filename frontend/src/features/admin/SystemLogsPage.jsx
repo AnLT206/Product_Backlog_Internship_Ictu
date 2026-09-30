@@ -144,7 +144,6 @@ function SystemLogsPage() {
   /* ── Effect: gọi lại khi currentPage hoặc appliedUserId thay đổi ──
      setState KHÔNG đặt trong thân useEffect — chỉ gọi loadLogs()      */
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadLogs(currentPage, appliedUserId);
   }, [currentPage, appliedUserId]);
 

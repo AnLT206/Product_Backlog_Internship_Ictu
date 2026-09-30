@@ -6,8 +6,6 @@ import {
   Sliders,
   FileText,
   DatabaseBackup,
-  Terminal,
-  Layout,
 } from 'lucide-react'
 import EnterpriseAppShell from '../../components/common/EnterpriseAppShell'
 import './AdminDashboardPage.css'

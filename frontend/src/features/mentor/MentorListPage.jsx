@@ -41,7 +41,6 @@ function initials(full_name) {
  */
 function MentorListPage() {
   const [mentors,    setMentors]    = useState([]);
-  const [loading,    setLoading]    = useState(true);
   const [showModal,  setShowModal]  = useState(false);
   const [toast,      setToast]      = useState(null);
 
@@ -75,8 +74,6 @@ function MentorListPage() {
         }
       } catch {
         if (isMounted) setMentors([]);
-      } finally {
-        if (isMounted) setLoading(false);
       }
     }
 

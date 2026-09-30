@@ -9,6 +9,7 @@ import {
 
 const AuthContext = createContext(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const DEMO_PROFILES = {
   intern: {
     id: 1,

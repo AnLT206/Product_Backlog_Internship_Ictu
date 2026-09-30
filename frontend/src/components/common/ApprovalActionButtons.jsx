@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { approveIntern, rejectIntern } from '../../api/interns';
 import './ApprovalActionButtons.css';
 

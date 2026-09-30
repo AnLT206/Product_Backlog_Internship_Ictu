@@ -1,25 +1,20 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Calendar,
   Clock,
   FileText,
   CheckCircle2,
-  AlertCircle,
   Star,
   Search,
-  SlidersHorizontal,
   Download,
   Plus,
-  ArrowRight,
   TrendingUp,
   Award,
   DollarSign,
-  User,
   ShieldCheck,
   CheckSquare,
   MessageSquare,
-  Sparkles,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import InternApplicantDashboard from './InternApplicantDashboard'
@@ -101,10 +96,9 @@ export default function InternDashboardPage() {
 
   const [activeTab, setActiveTab] = useState('tasks')
   const [tasks, setTasks] = useState(INITIAL_SPRINT1_TASKS)
-  const [reports, setReports] = useState(INITIAL_REPORTS)
+  const [reports] = useState(INITIAL_REPORTS)
   const [searchQuery, setSearchQuery] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
   const [toast, setToast] = useState(null)
 
   // Attendance Check-out state
@@ -213,17 +207,6 @@ export default function InternDashboardPage() {
     showToast('Đã cập nhật tiến độ nhiệm vụ và đồng bộ báo cáo cho Mentor!')
   }
 
-  // Filter tasks
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((t) => {
-      const matchesSearch =
-        t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.description.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesPriority = priorityFilter === 'all' || t.priority === priorityFilter
-      const matchesStatus = statusFilter === 'all' || t.status === statusFilter
-      return matchesSearch && matchesPriority && matchesStatus
-    })
-  }, [tasks, searchQuery, priorityFilter, statusFilter])
 
   return (
     <div className="intern-portal-container">

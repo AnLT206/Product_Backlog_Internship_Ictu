@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import './ContractTab.css';
 
 /**
@@ -26,7 +26,7 @@ const ALLOWED_EXTENSIONS = ['.pdf', '.docx'];
  * @param {string|number} [props.internId] - ID của thực tập sinh/ứng viên
  * @param {Function} [props.onSaveContract] - Callback khi bấm lưu/tải lên: async (file) => { ... }
  */
-export default function ContractTab({ internId, onSaveContract }) {
+export default function ContractTab({ onSaveContract }) {
   // 1. Quản lý trạng thái file đã chọn
   const [selectedFile, setSelectedFile] = useState(null);
   

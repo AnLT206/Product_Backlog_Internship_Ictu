@@ -6,7 +6,6 @@ import {
   Search,
   PenTool,
   ShieldCheck,
-  Send,
   Eye,
   PlusCircle,
   FileCheck,

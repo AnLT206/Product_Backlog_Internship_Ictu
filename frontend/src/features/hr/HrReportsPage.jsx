@@ -13,7 +13,6 @@ import {
   Building,
   GraduationCap,
   Calendar,
-  AlertCircle,
   ExternalLink,
 } from 'lucide-react'
 import {

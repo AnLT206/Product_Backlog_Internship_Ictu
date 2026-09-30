@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * Functional Component hiển thị tài liệu PDF trực tiếp trên trình duyệt bằng thẻ iframe.

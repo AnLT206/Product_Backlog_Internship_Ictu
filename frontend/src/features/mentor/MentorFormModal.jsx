@@ -83,9 +83,7 @@ function MentorFormModal({ onClose, onSaved, onToast }) {
     setDeptLoading(false);
   }
 
-  /* void trước lời gọi hàm — eslint-disable vì mọi setState đều SAU await */
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadDepartments();
   }, []);
 
