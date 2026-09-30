@@ -84,7 +84,13 @@ export default function AdminSettingsPage() {
       if (res.ok && res.data?.flat) {
         setSettings(res.data.flat);
         setInitialSettings(res.data.flat);
-        showToast('Đã lưu toàn bộ cấu hình tham số hệ thống thành công!', 'success');
+        window.dispatchEvent(new CustomEvent('system_settings_updated', { detail: res.data.flat }));
+        try {
+          localStorage.setItem('ictu_system_settings_cache', JSON.stringify(res.data.flat));
+        } catch {
+          // ignore
+        }
+        showToast('Đã lưu toàn bộ cấu hình tham số hệ thống thành công và áp dụng tức thì!', 'success');
       } else {
         showToast(res.data?.detail || 'Không thể lưu tham số hệ thống.', 'error');
       }

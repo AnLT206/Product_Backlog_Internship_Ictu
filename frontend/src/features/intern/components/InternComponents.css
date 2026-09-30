@@ -97,28 +97,30 @@
   white-space: nowrap;
 }
 
-/* Nút "Duyệt" — xanh lá */
+/* Nút "Duyệt" — xanh biển chủ đạo */
 .intern-action-btn--approve {
-  background: #ecfdf5;
-  border-color: #6ee7b7;
-  color: #065f46;
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
 }
 
 .intern-action-btn--approve:hover {
-  background: #d1fae5;
-  border-color: #34d399;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 }
 
-/* Nút "Từ chối" — đỏ nhạt */
+/* Nút "Từ chối" — đỏ chủ đạo */
 .intern-action-btn--reject {
   background: #fef2f2;
   border-color: #fca5a5;
-  color: #991b1b;
+  color: #dc2626;
 }
 
 .intern-action-btn--reject:hover {
-  background: #fee2e2;
-  border-color: #f87171;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
 }

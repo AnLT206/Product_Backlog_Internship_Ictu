@@ -249,6 +249,23 @@ class SettingsService:
 
         return SystemSettingsResponse(items=items, by_category=by_category, flat=flat)
 
+    def get_public_settings(self) -> dict[str, str | bool]:
+        settings_resp = self.get_settings()
+        flat = settings_resp.flat
+        return {
+            "system_name": flat.get("system_name", "Hệ thống Quản lý Tuyển dụng & Đào tạo Thực tập sinh ICTU"),
+            "organization_name": flat.get("organization_name", "Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)"),
+            "contact_email": flat.get("contact_email", "admin@ictu.edu.vn"),
+            "current_semester": flat.get("current_semester", "Q3/2026"),
+            "default_intern_allowance": flat.get("default_intern_allowance", "2500000"),
+            "standard_work_days": flat.get("standard_work_days", "22"),
+            "weekly_report_deadline": flat.get("weekly_report_deadline", "Thứ 6 hàng tuần (23:59)"),
+            "allow_public_registration": flat.get("allow_public_registration", "true") == "true",
+            "maintenance_mode": flat.get("maintenance_mode", "false") == "true",
+            "sso_enabled": flat.get("sso_enabled", "true") == "true",
+            "max_upload_size_mb": flat.get("max_upload_size_mb", "10"),
+        }
+
     def update_settings(self, updates: dict[str, str], current_user: User | None = None) -> SystemSettingsResponse:
         self.ensure_default_settings()
         changed_keys: list[str] = []

@@ -8,6 +8,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { useSystemSettings } from '../../context/SystemSettingsContext'
 import logoApp from '../../assets/logo_app.png'
 import './EnterpriseAppShell.css'
 
@@ -34,8 +35,11 @@ export default function EnterpriseAppShell({
   showTopbarUser = false,
 }) {
   const { user, logout } = useAuth()
+  const { settings } = useSystemSettings()
   const navigate = useNavigate()
   const location = useLocation()
+
+  const effectivePeriod = periodInfo ?? settings?.current_semester ?? 'Q3/2026'
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
@@ -220,10 +224,10 @@ export default function EnterpriseAppShell({
           <div className="topbar-right">
             {statusBadge && statusBadge}
 
-            {periodInfo && (
+            {effectivePeriod && (
               <div className="semester-badge">
                 <Calendar size={13} className="semester-icon" />
-                <span>{periodInfo}</span>
+                <span>{effectivePeriod}</span>
               </div>
             )}
 

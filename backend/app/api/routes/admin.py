@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -40,6 +40,7 @@ from fastapi.responses import FileResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 users_router = APIRouter(prefix="/users", tags=["users"])
+settings_router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 @router.post(
@@ -70,7 +71,7 @@ def create_user(
     summary="Danh sách người dùng theo vai trò (admin)",
 )
 def list_users(
-    role: AdminManagedRole = Query(..., description="hr | mentor | intern"),
+    role: str | None = Query(None, description="hr | mentor | intern | admin | all"),
     db: Session = Depends(get_db),
     _: object = Depends(require_roles("admin")),
 ) -> AdminUserListResponse:
@@ -196,6 +197,20 @@ def update_role_permissions(
 
 
 # ── Cấu hình Tham số & SSO/LDAP ──────────────────────────────────────────────
+
+@settings_router.get(
+    "/public",
+    summary="Lấy cấu hình tham số hệ thống công khai",
+)
+@router.get(
+    "/settings/public",
+    summary="Lấy cấu hình tham số hệ thống công khai",
+)
+def get_public_settings(
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    return SettingsService(db).get_public_settings()
+
 
 @router.get(
     "/settings",

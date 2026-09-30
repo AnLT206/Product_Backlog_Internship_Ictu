@@ -62,14 +62,14 @@
 }
 
 .dialog-icon--approve {
-  background: #ecfdf5;
-  color: #065f46;
-  border: 2px solid #6ee7b7;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 2px solid #93c5fd;
 }
 
 .dialog-icon--reject {
   background: #fef2f2;
-  color: #991b1b;
+  color: #dc2626;
   border: 2px solid #fca5a5;
 }
 
@@ -190,20 +190,21 @@
   background: #e4e6eb;
 }
 
-/* Xác nhận — Duyệt */
+/* Xác nhận — Duyệt (Xanh biển chủ đạo) */
 .dialog-btn--confirm.dialog-btn--approve {
-  background: #10b981;
-  border-color: #10b981;
+  background: #2563eb;
+  border-color: #2563eb;
   color: #fff;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .dialog-btn--confirm.dialog-btn--approve:hover:not(:disabled) {
-  background: #059669;
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
 }
 
-/* Xác nhận — Từ chối */
+/* Xác nhận — Từ chối (Đỏ chủ đạo) */
 .dialog-btn--confirm.dialog-btn--reject {
   background: #ef4444;
   border-color: #ef4444;
@@ -213,6 +214,7 @@
 
 .dialog-btn--confirm.dialog-btn--reject:hover:not(:disabled) {
   background: #dc2626;
+  border-color: #dc2626;
   box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
 }
 

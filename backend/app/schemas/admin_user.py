@@ -6,8 +6,8 @@ from typing import Literal
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
-AdminManagedRole = Literal["hr", "mentor", "intern"]
-AdminCreateRole = Literal["hr", "mentor"]
+AdminManagedRole = Literal["hr", "mentor", "intern", "admin"]
+AdminCreateRole = Literal["hr", "mentor", "intern", "admin"]
 UserStatus = Literal["active", "inactive", "pending"]
 
 
@@ -26,7 +26,7 @@ class AdminUserResponse(BaseModel):
 class AdminUserListResponse(BaseModel):
     items: list[AdminUserResponse]
     total: int
-    role: AdminManagedRole
+    role: str | None = None
 
 
 class AdminUserCreateRequest(BaseModel):

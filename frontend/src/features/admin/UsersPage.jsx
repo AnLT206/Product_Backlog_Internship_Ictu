@@ -17,12 +17,14 @@ const TABS = [
   { key: 'hr', label: 'HR', hint: 'Nhân sự' },
   { key: 'mentor', label: 'Mentor', hint: 'Hướng dẫn viên' },
   { key: 'intern', label: 'TTS', hint: 'Thực tập sinh' },
+  { key: 'admin', label: 'Admin', hint: 'Quản trị viên' },
 ]
 
 const ROLE_LABEL = {
   hr: 'HR',
   mentor: 'Mentor',
   intern: 'Thực tập sinh',
+  admin: 'Quản trị viên',
 }
 
 const STATUS_LABEL = {
@@ -66,6 +68,15 @@ export default function UsersPage() {
   const [selected, setSelected] = useState(null)
   const [toast, setToast] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [refreshTick, setRefreshTick] = useState(0)
+
+  useEffect(() => {
+    function handleUsersUpdated() {
+      setRefreshTick((t) => t + 1)
+    }
+    window.addEventListener('admin_users_updated', handleUsersUpdated)
+    return () => window.removeEventListener('admin_users_updated', handleUsersUpdated)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -104,7 +115,7 @@ export default function UsersPage() {
     return () => {
       cancelled = true
     }
-  }, [activeRole])
+  }, [activeRole, refreshTick])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()

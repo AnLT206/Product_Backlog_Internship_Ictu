@@ -287,6 +287,14 @@ export async function updateSystemSettings(settings) {
 }
 
 /**
+ * Lấy các tham số cấu hình công khai (áp dụng tức thì cho toàn hệ thống).
+ * GET /api/settings/public
+ */
+export async function getPublicSettings() {
+  return apiFetch('/api/settings/public', { method: 'GET' });
+}
+
+/**
  * Kiểm tra kết nối thử nghiệm tới máy chủ LDAP / Active Directory.
  * POST /api/admin/settings/test-ldap
  */

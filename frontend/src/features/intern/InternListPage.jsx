@@ -22,6 +22,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useDebounce from '../../hooks/useDebounce';
 import { getInterns, getFilterOptions } from '../../api/interns';
+import InternActionButtons from './components/InternActionButtons';
 import './InternListPage.css';
 
 const DEFAULT_MAJORS = [
@@ -75,6 +76,7 @@ function InternListPage() {
   const [interns,  setInterns]  = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [loadErr,  setLoadErr]  = useState(null);
+  const [toast,    setToast]    = useState(null);
 
   /* Kiểm tra có lọc nào đang áp dụng không */
   const hasActiveFilter = filterQ.trim() !== '' || filterMajor !== '';
@@ -139,6 +141,30 @@ function InternListPage() {
       <div className="intern-list-page__glow" aria-hidden="true" />
 
       <div className="intern-list-shell">
+        {toast && (
+          <div
+            id="intern-list-toast"
+            className={`intern-list-toast intern-list-toast--${toast.type}`}
+            role={toast.type === 'error' ? 'alert' : 'status'}
+            style={{
+              padding: '12px 18px',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              fontWeight: 600,
+              fontSize: '14px',
+              background: toast.type === 'error' ? '#fef2f2' : '#eff6ff',
+              border: `1px solid ${toast.type === 'error' ? '#fca5a5' : '#93c5fd'}`,
+              color: toast.type === 'error' ? '#dc2626' : '#1d4ed8',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            {toast.type === 'error' ? '✕ ' : '✓ '}
+            {toast.message}
+          </div>
+        )}
 
         {/* ── Page header ── */}
         <div className="intern-list-header">
@@ -317,12 +343,17 @@ function InternListPage() {
                           : '—'}
                       </td>
 
-                      {/* Trạng thái */}
+                      {/* Trạng thái & Thao tác duyệt */}
                       <td className="col-status" style={{ textAlign: 'center' }}>
-                        {/* TODO: Thay bằng <InternActionButtons> khi tích hợp action (task khác) */}
-                        <span className={`intern-status-badge intern-status-badge--${intern.status}`}>
-                          {STATUS_LABEL[intern.status] ?? intern.status}
-                        </span>
+                        <InternActionButtons
+                          internId={intern.id}
+                          status={intern.status}
+                          onSuccess={(toastPayload) => {
+                            setToast(toastPayload);
+                            loadInterns();
+                            setTimeout(() => setToast(null), 4000);
+                          }}
+                        />
                       </td>
 
                       {/* Thao tác */}

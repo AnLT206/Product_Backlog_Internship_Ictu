@@ -435,27 +435,29 @@
 }
 
 .action-btn--approve {
-  background-color: #ECFDF5;
-  border-color: #A7F3D0;
-  color: #065F46;
+  background-color: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #1D4ED8;
 }
 
 .action-btn--approve:hover {
-  background-color: #10B981;
-  border-color: #10B981;
+  background-color: #2563EB;
+  border-color: #2563EB;
   color: #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
 }
 
 .action-btn--reject {
   background-color: #FEF2F2;
   border-color: #FECACA;
-  color: #991B1B;
+  color: #DC2626;
 }
 
 .action-btn--reject:hover {
   background-color: #EF4444;
   border-color: #EF4444;
   color: #ffffff;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
 }
 
 .action-btn--detail {

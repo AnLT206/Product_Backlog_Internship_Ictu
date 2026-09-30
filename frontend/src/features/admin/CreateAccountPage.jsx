@@ -9,16 +9,18 @@ import { createAccount } from '../../api/admin';
 import './CreateAccountPage.css';
 
 const ROLE_OPTIONS = [
-  { value: 'hr', label: 'HR', desc: 'Quản lý hồ sơ & chương trình' },
-  { value: 'mentor', label: 'Mentor', desc: 'Hướng dẫn & đánh giá TTS' },
+  { value: 'admin', label: 'Quản trị viên (Admin)', desc: 'Toàn quyền cấu hình hệ thống & an toàn thông tin' },
+  { value: 'hr', label: 'Nhân sự (HR)', desc: 'Quản lý hồ sơ & chương trình tuyển dụng' },
+  { value: 'mentor', label: 'Mentor', desc: 'Hướng dẫn, giao việc & đánh giá TTS' },
+  { value: 'intern', label: 'Thực tập sinh (Intern)', desc: 'Tài khoản ứng viên / sinh viên thực tập' },
 ];
 
 const ALLOWED_ROLES = new Set(ROLE_OPTIONS.map((o) => o.value));
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const NOTES = [
-  'Chỉ tạo tài khoản HR hoặc Mentor.',
-  'Thực tập sinh đăng ký qua trang công khai /register.',
+  'Admin có thể tạo tài khoản cho tất cả các vai trò.',
+  'Tài khoản mới được kích hoạt và có thể đăng nhập ngay lập tức.',
   'Mật khẩu tạm tối thiểu 6 ký tự.',
   'Nên dùng email domain tổ chức (@ictu.edu.vn).',
   'Yêu cầu người dùng đổi mật khẩu ở lần đăng nhập đầu.',
@@ -26,7 +28,7 @@ const NOTES = [
 
 const GUIDE_STEPS = [
   'Nhập họ tên và email công việc.',
-  'Chọn đúng vai trò (HR hoặc Mentor).',
+  'Chọn đúng vai trò tương ứng.',
   'Đặt mật khẩu tạm và gửi cho người dùng.',
   'Xác nhận tài khoản đăng nhập được.',
 ];
@@ -37,7 +39,7 @@ function validateForm({ full_name, email, role, password }) {
   if (!email.trim()) errors.email = 'Vui lòng nhập email.';
   else if (!EMAIL_REGEX.test(email.trim())) errors.email = 'Email không đúng định dạng.';
   if (!role) errors.role = 'Vui lòng chọn vai trò.';
-  else if (!ALLOWED_ROLES.has(role)) errors.role = 'Chỉ được tạo tài khoản HR hoặc Mentor.';
+  else if (!ALLOWED_ROLES.has(role)) errors.role = 'Vui lòng chọn một vai trò hợp lệ.';
   if (!password) errors.password = 'Vui lòng nhập mật khẩu tạm.';
   else if (password.length < 6) errors.password = 'Mật khẩu phải có tối thiểu 6 ký tự.';
   else if (password.length > 128) errors.password = 'Mật khẩu không được vượt quá 128 ký tự.';
@@ -91,7 +93,8 @@ function CreateAccountPage() {
       });
 
       if (ok) {
-        showToast('success', 'Tạo tài khoản thành công!');
+        showToast('success', `Tạo tài khoản ${form.full_name} (${form.role.toUpperCase()}) thành công!`);
+        window.dispatchEvent(new CustomEvent('admin_users_updated', { detail: { role: form.role, data } }));
         setForm({ full_name: '', email: '', role: '', password: '' });
       } else if (status === 409) {
         const msg = data?.detail ?? 'Email đã được sử dụng.';

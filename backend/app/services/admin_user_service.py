@@ -15,29 +15,29 @@ from app.schemas.admin_user import (
 from app.utils.hash_password import hash_password
 from app.utils.user_code import next_user_code
 
-MANAGED_ROLES = frozenset({"hr", "mentor", "intern"})
-CREATE_ROLES = frozenset({"hr", "mentor"})
+MANAGED_ROLES = frozenset({"hr", "mentor", "intern", "admin"})
+CREATE_ROLES = frozenset({"hr", "mentor", "intern", "admin"})
 
 
 class AdminUserService:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list_users(self, role: AdminManagedRole) -> AdminUserListResponse:
-        if role not in MANAGED_ROLES:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="role phải là hr, mentor hoặc intern.",
-            )
-
-        rows = (
+    def list_users(self, role: str | None = None) -> AdminUserListResponse:
+        query = (
             self.db.query(User)
             .options(joinedload(User.role))
             .join(Role, User.role_id == Role.id)
-            .filter(Role.name == role)
-            .order_by(User.code.asc(), User.id.asc())
-            .all()
         )
+        if role and role != "all":
+            if role not in MANAGED_ROLES:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="role phải là hr, mentor, intern hoặc admin.",
+                )
+            query = query.filter(Role.name == role)
+
+        rows = query.order_by(User.code.asc(), User.id.asc()).all()
 
         items = [
             AdminUserResponse(
@@ -45,7 +45,7 @@ class AdminUserService:
                 code=user.code,
                 email=user.email,
                 full_name=user.full_name,
-                role=user.role.name if user.role else role,
+                role=user.role.name if user.role else (role or "unknown"),
                 status=user.status,  # type: ignore[arg-type]
                 created_at=user.created_at,
             )
@@ -57,7 +57,7 @@ class AdminUserService:
         if payload.role not in CREATE_ROLES:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Không tạo TTS tại đây. Dùng trang đăng ký công khai.",
+                detail=f"Vai trò '{payload.role}' không hợp lệ.",
             )
 
         existing = self.db.query(User).filter(User.email == payload.email).first()
