@@ -373,3 +373,27 @@ export async function updateBackupSchedule(schedule) {
   });
 }
 
+/**
+ * Tải về file sao lưu .sql kèm Bearer Token xác thực.
+ * GET /api/admin/backups/:backupId/download
+ * @param {number} backupId
+ * @param {string} [filename]
+ */
+export async function downloadBackupFile(backupId, filename = 'backup.sql') {
+  const BASE_URL = import.meta.env.VITE_API_URL || '';
+  const token = localStorage.getItem('access_token') || '';
+  const res = await fetch(`${BASE_URL}/api/admin/backups/${backupId}/download`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error('Không thể tải tệp sao lưu.');
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+

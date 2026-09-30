@@ -22,6 +22,7 @@ import {
   restoreBackup,
   deleteBackup,
   updateBackupSchedule,
+  downloadBackupFile,
 } from '../../api/admin';
 import './AdminBackupPage.css';
 
@@ -158,34 +159,13 @@ export default function AdminBackupPage() {
   }
 
   // Handle Download file
-  function handleDownload(item) {
-    const token = localStorage.getItem('token');
-    const downloadUrl = `/api/admin/backups/${item.id}/download`;
-    
-    // Tạo link tải an toàn kèm Bearer token qua fetch blob
-    fetch(downloadUrl, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Download failed');
-        return res.blob();
-      })
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = item.filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-        showToast(`Đang tải xuống tệp ${item.filename}...`, 'info');
-      })
-      .catch(() => {
-        showToast('Không thể tải tệp sao lưu.', 'error');
-      });
+  async function handleDownload(item) {
+    try {
+      showToast(`Đang tải xuống tệp ${item.filename}...`, 'info');
+      await downloadBackupFile(item.id, item.filename);
+    } catch {
+      showToast('Không thể tải tệp sao lưu.', 'error');
+    }
   }
 
   // Handle Save Schedule

@@ -20,6 +20,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getPermissionMatrix, updatePermissionMatrix } from '../../api/admin';
 import { buildToast } from '../../api/interns';
 import './PermissionMatrixPage.css';
@@ -150,9 +151,9 @@ function PermissionMatrixPage() {
       <div className="perm-matrix-shell">
 
         {/* Back link */}
-        <a href="/admin/dashboard" className="perm-matrix-back">
+        <Link to="/admin/dashboard" className="perm-matrix-back">
           ← Quay lại Dashboard
-        </a>
+        </Link>
 
         {/* Page header */}
         <div className="perm-matrix-header">

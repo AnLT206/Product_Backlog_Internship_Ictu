@@ -21,6 +21,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getSystemLogs } from '../../api/admin';
 import './SystemLogsPage.css';
 
@@ -205,9 +206,9 @@ function SystemLogsPage() {
       <div className="sys-logs-shell">
 
         {/* Back link */}
-        <a href="/admin/dashboard" className="sys-logs-back">
+        <Link to="/admin/dashboard" className="sys-logs-back">
           ← Quay lại tổng quan
-        </a>
+        </Link>
 
         {/* ── Page header ── */}
         <div className="sys-logs-header">

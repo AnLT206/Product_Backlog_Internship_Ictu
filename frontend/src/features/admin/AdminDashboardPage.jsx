@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Users,
   ShieldCheck,
@@ -204,14 +205,14 @@ export default function AdminDashboardPage() {
               <span>{isSyncingHRM ? 'Đang đồng bộ FastHRM...' : 'Đồng bộ HRM ngay'}</span>
             </button>
 
-            <button
-              type="button"
+            <Link
+              to="/admin/users/new"
               className="admin-btn admin-btn--secondary"
-              onClick={() => setNewUserModal(true)}
+              style={{ textDecoration: 'none' }}
             >
               <UserPlus size={15} />
               <span>+ Tạo tài khoản mới</span>
-            </button>
+            </Link>
           </div>
 
           <div className="admin-action-row-bottom">

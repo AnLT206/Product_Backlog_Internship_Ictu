@@ -201,6 +201,42 @@ export default function UsersPage() {
     }
   }
 
+  async function quickApprove(user, e) {
+    if (e) e.stopPropagation()
+    setBusy(true)
+    try {
+      const res = await updateUserStatus(user.id, 'active')
+      if (res.ok) {
+        patchUser(user.id, { status: 'active' })
+        showToast(`Đã duyệt kích hoạt tài khoản ${user.full_name || user.email} thành công!`, 'success')
+      } else {
+        showToast(res.data?.detail || 'Không thể duyệt tài khoản.', 'error')
+      }
+    } catch {
+      showToast('Lỗi khi duyệt tài khoản.', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function quickReject(user, e) {
+    if (e) e.stopPropagation()
+    setBusy(true)
+    try {
+      const res = await updateUserStatus(user.id, 'inactive')
+      if (res.ok) {
+        patchUser(user.id, { status: 'inactive' })
+        showToast(`Đã từ chối / khóa tài khoản ${user.full_name || user.email}.`, 'info')
+      } else {
+        showToast(res.data?.detail || 'Không thể từ chối tài khoản.', 'error')
+      }
+    } catch {
+      showToast('Lỗi khi từ chối tài khoản.', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="admin-page">
       {toast && (
@@ -221,22 +257,23 @@ export default function UsersPage() {
             <span>Người dùng</span>
           </nav>
           <h1>Quản lý người dùng</h1>
-          <p>Danh sách tài khoản theo vai trò HR, Mentor và Thực tập sinh.</p>
+          <p>Danh sách tài khoản theo vai trò HR, Mentor, Thực tập sinh và Quản trị viên.</p>
         </div>
-        {activeRole !== 'intern' ? (
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <Link className="admin-page__cta" to="/admin/users/new">
             + Tạo tài khoản
           </Link>
-        ) : (
-          <Link
-            className="admin-page__cta admin-page__cta--ghost"
-            to="/register"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Đăng ký TTS (công khai)
-          </Link>
-        )}
+          {activeRole === 'intern' && (
+            <Link
+              className="admin-page__cta admin-page__cta--ghost"
+              to="/register"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Đăng ký TTS (công khai)
+            </Link>
+          )}
+        </div>
       </header>
 
       <section className="admin-page__card">
@@ -323,13 +360,39 @@ export default function UsersPage() {
                   </td>
                   <td>{formatDate(user.created_at)}</td>
                   <td className="admin-table__actions-col">
-                    <button
-                      type="button"
-                      className="admin-action-btn"
-                      onClick={() => setSelected(user)}
-                    >
-                      Hành động
-                    </button>
+                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                      {user.status === 'pending' && (
+                        <>
+                          <button
+                            type="button"
+                            className="btn-approve"
+                            style={{ padding: '4px 10px', fontSize: '12px' }}
+                            disabled={busy}
+                            onClick={(e) => quickApprove(user, e)}
+                            title="Duyệt kích hoạt tài khoản"
+                          >
+                            Duyệt
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-reject"
+                            style={{ padding: '4px 10px', fontSize: '12px' }}
+                            disabled={busy}
+                            onClick={(e) => quickReject(user, e)}
+                            title="Từ chối tài khoản"
+                          >
+                            Từ chối
+                          </button>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        className="admin-action-btn"
+                        onClick={() => setSelected(user)}
+                      >
+                        Hành động
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -411,7 +474,28 @@ export default function UsersPage() {
 
               <h3>Hành động</h3>
               <div className="admin-drawer__actions">
-                {selected.status !== 'inactive' ? (
+                {selected.status === 'pending' ? (
+                  <>
+                    <button
+                      type="button"
+                      className="admin-drawer__action btn-approve"
+                      style={{ backgroundColor: '#2563eb', color: '#fff', border: '1px solid #1d4ed8' }}
+                      disabled={busy}
+                      onClick={() => runAction('unfreeze')}
+                    >
+                      Duyệt tài khoản
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-drawer__action btn-reject"
+                      style={{ backgroundColor: '#ef4444', color: '#fff', border: '1px solid #dc2626' }}
+                      disabled={busy}
+                      onClick={() => runAction('freeze')}
+                    >
+                      Từ chối / Khóa
+                    </button>
+                  </>
+                ) : selected.status !== 'inactive' ? (
                   <button
                     type="button"
                     className="admin-drawer__action"
@@ -423,11 +507,12 @@ export default function UsersPage() {
                 ) : (
                   <button
                     type="button"
-                    className="admin-drawer__action"
+                    className="admin-drawer__action btn-approve"
+                    style={{ backgroundColor: '#2563eb', color: '#fff', border: '1px solid #1d4ed8' }}
                     disabled={busy}
                     onClick={() => runAction('unfreeze')}
                   >
-                    Mở đóng băng
+                    Mở đóng băng (Kích hoạt)
                   </button>
                 )}
 
