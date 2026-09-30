@@ -30,8 +30,8 @@ export default function EnterpriseAppShell({
   sidebarSectionLabel = 'CHỨC NĂNG CHÍNH',
   showPortalTagBox = false,
   adminUserCard = false,
-  showNotifications = true,
-  showTopbarUser = true,
+  showNotifications = false,
+  showTopbarUser = false,
 }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()

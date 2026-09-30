@@ -32,8 +32,8 @@ export default function MentorLayout() {
       sidebarSectionLabel="HƯỚNG DẪN & ĐÁNH GIÁ TTS"
       navItems={MENTOR_NAV_ITEMS}
       breadcrumbs={[{ label: 'Quản lý & Hướng dẫn Thực tập' }]}
-      showNotifications={true}
-      showTopbarUser={true}
+      showNotifications={false}
+      showTopbarUser={false}
       avatarText="MB"
       userCardMeta="Senior Tech Lead • Khoa CNTT"
       defaultUserName="Trần Hoàng Quân"

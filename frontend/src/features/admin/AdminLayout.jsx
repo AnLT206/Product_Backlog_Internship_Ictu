@@ -31,6 +31,8 @@ export default function AdminLayout() {
       navItems={ADMIN_NAV_ITEMS}
       avatarText="SA"
       adminUserCard={true}
+      showNotifications={true}
+      showTopbarUser={true}
       defaultUserName="admin@ictu.edu.vn"
       userCardMeta="Root Administrator"
     >

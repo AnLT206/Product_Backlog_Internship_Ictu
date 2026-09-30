@@ -64,8 +64,8 @@ export default function HrLayout() {
         { label: 'Cổng Cán bộ Nhân sự (HR Portal)' },
         { label: 'Xét duyệt hồ sơ & Phễu tuyển dụng TTS' },
       ]}
-      showNotifications={true}
-      showTopbarUser={true}
+      showNotifications={false}
+      showTopbarUser={false}
       avatarText="TM"
       userCardMeta="HR Manager • Ban HTDN"
       defaultUserName="Trần Thị Mai"

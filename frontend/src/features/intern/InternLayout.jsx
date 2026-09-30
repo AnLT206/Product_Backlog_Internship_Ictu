@@ -47,8 +47,8 @@ export default function InternLayout() {
             : `Không gian làm việc cá nhân - TTS ${user?.full_name || 'Nguyễn Văn Bình'}`,
         },
       ]}
-      showNotifications={true}
-      showTopbarUser={true}
+      showNotifications={false}
+      showTopbarUser={false}
       avatarText={isApplicant ? 'NA' : 'NB'}
       userCardMeta={
         isApplicant
