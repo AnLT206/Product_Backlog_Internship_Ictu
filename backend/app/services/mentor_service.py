@@ -37,10 +37,12 @@ class MentorService:
 
     def list_mentors(self) -> list[MentorResponse]:
         mentor_rows = (
-            self.db.query(User, UserProfile)
+            self.db.query(User, UserProfile, Department.name)
             .join(Role, User.role_id == Role.id)
             .outerjoin(UserProfile, UserProfile.user_id == User.id)
+            .outerjoin(Department, Department.id == UserProfile.department_id)
             .filter(Role.name == MENTOR_ROLE_NAME)
+            .order_by(User.id.asc())
             .all()
         )
 
@@ -61,9 +63,10 @@ class MentorService:
                 dob=profile.dob if profile else None,
                 position=profile.position if profile else None,
                 department_id=profile.department_id if profile else None,
+                department=dept_name or "Chưa phân bổ",
                 intern_count=counts.get(user.id, 0),
             )
-            for user, profile in mentor_rows
+            for user, profile, dept_name in mentor_rows
         ]
 
     def get_mentor_interns(self, mentor_id: int) -> list[MentorInternItemResponse]:
@@ -83,7 +86,8 @@ class MentorService:
             self.db.query(User)
             .join(Role, User.role_id == Role.id)
             .outerjoin(InternProfile, InternProfile.user_id == User.id)
-            .filter(Role.name == "intern")
+            .filter(Role.name == "intern", User.status == "active")
+            .order_by(User.id.asc())
             .all()
         )
 
@@ -163,6 +167,11 @@ class MentorService:
 
         profile = self.db.query(UserProfile).filter(UserProfile.user_id == mentor_id).first()
         new_count = self.db.query(ProgramMember).filter(ProgramMember.mentor_user_id == mentor_id).count()
+        dept = (
+            self.db.query(Department).filter(Department.id == profile.department_id).first()
+            if profile and profile.department_id
+            else None
+        )
         return MentorResponse(
             id=mentor.id,
             email=mentor.email,
@@ -172,6 +181,7 @@ class MentorService:
             dob=profile.dob if profile else None,
             position=profile.position if profile else None,
             department_id=profile.department_id if profile else None,
+            department=dept.name if dept else "Chưa phân bổ",
             intern_count=new_count,
         )
 

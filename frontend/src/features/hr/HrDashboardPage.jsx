@@ -24,13 +24,13 @@ import {
 import { getInterns, approveIntern, rejectIntern } from '../../api/interns'
 import './HrDashboardPage.css'
 
-// ── Dữ liệu mẫu chuẩn 3 ứng viên theo Prompt ──
+// ── Dữ liệu mẫu chuẩn 1 ứng viên theo CSDL ──
 const INITIAL_APPLICANTS = [
   {
-    id: 1,
+    id: 7,
     full_name: 'Nguyễn Văn An',
-    student_code: 'TTS0006',
-    email: 'an.nv@ictu.edu.vn',
+    student_code: 'TTS0003',
+    email: 'ungvien@ictu.edu.vn',
     phone: '0987.654.321',
     faculty: 'Khoa Công nghệ Thông tin',
     major: 'Công nghệ thông tin',
@@ -41,72 +41,31 @@ const INITIAL_APPLICANTS = [
     status: 'pending',
     avatar: 'NA',
   },
-  {
-    id: 2,
-    full_name: 'Dũng Vũ',
-    student_code: 'K20-KTPM',
-    email: 'dung.vu@ictu.edu.vn',
-    phone: '0123.456.789',
-    faculty: 'Khoa Kỹ thuật Phần mềm',
-    major: 'Kỹ thuật phần mềm',
-    gpa: '3.50',
-    cv_file: 'CV_DungVu.pdf',
-    app_file: 'Đơn_xin_thực_tập.pdf',
-    applied_at: '27/09/2026',
-    status: 'pending',
-    avatar: 'DV',
-  },
-  {
-    id: 3,
-    full_name: 'Lê Hoàng Nam',
-    student_code: 'K20-ATTT',
-    email: 'nam.lh@ictu.edu.vn',
-    phone: '0945.123.888',
-    faculty: 'Khoa An toàn Thông tin',
-    major: 'An toàn thông tin',
-    gpa: '3.68',
-    cv_file: 'CV_LeHoangNam.pdf',
-    app_file: 'Đơn_xin_thực_tập.pdf',
-    applied_at: '26/09/2026',
-    status: 'pending',
-    avatar: 'LN',
-  },
 ]
 
-// ── Ma trận ghép cặp mẫu theo Prompt ──
+// ── Ma trận ghép cặp mẫu chuẩn cho 2 TTS chính thức ──
 const MATCHING_MATRIX = [
   {
     id: 1,
     student: 'Nguyễn Văn Bình',
-    student_code: 'TTS0002 • K20-CNTT',
-    company: 'FPT Software / BU2',
-    project: 'Dự án Core API Microservice',
+    student_code: 'TTS0001 • K20-CNTT',
+    company: 'ICTU Software Engineering Lab',
+    project: 'Dự án Core API Microservice & Quản lý TTS',
     mentor: 'Trần Hoàng Quân',
-    mentor_role: 'Tech Lead',
+    mentor_role: 'Senior Tech Lead',
     status: 'assigned',
     status_label: 'Đã phân công',
   },
   {
     id: 2,
-    student: 'Dũng Vũ',
-    student_code: 'TTS0003 • K20-KTPM',
-    company: 'Viettel Solutions',
-    project: 'Hệ thống Quản lý Giám sát IoT',
-    mentor: 'Lê Hồng Sơn',
-    mentor_role: 'Senior Arch',
+    student: 'Lê Hoàng Nam',
+    student_code: 'TTS0002 • K20-KTPM',
+    company: 'ICTU Quality Assurance Lab',
+    project: 'Hệ thống Kiểm thử tự động E2E & Automation',
+    mentor: 'Phạm Quốc Hướng',
+    mentor_role: 'QA Lead Engineer',
     status: 'assigned',
     status_label: 'Đã phân công',
-  },
-  {
-    id: 3,
-    student: 'Lê Hoàng Nam',
-    student_code: 'TTS0004 • K20-ATTT',
-    company: 'VNPT Cyber Immunity',
-    project: 'Audit ATTT & Pentest Portal',
-    mentor: 'Đang đề xuất Mentor',
-    mentor_role: 'Phòng An ninh mạng',
-    status: 'pending_match',
-    status_label: 'Chờ duyệt ghép',
   },
 ]
 
@@ -120,7 +79,7 @@ function getInitials(name) {
 export default function HrDashboardPage() {
   const [selectedBatch, setSelectedBatch] = useState('fall_2026')
   const [applicants, setApplicants] = useState(INITIAL_APPLICANTS)
-  const [totalApplicants, setTotalApplicants] = useState(18)
+  const [totalApplicants, setTotalApplicants] = useState(1)
   const pendingCount = applicants.filter((a) => a.status === 'pending').length
   const [loading, setLoading] = useState(false)
   const [actionLoading, setActionLoading] = useState(null)
@@ -193,14 +152,14 @@ export default function HrDashboardPage() {
             avatar: getInitials(u.full_name),
           }))
           setApplicants(mapped)
-          setTotalApplicants(data.total ?? 18)
+          setTotalApplicants(data.total ?? mapped.length)
         } else {
           setApplicants(INITIAL_APPLICANTS)
-          setTotalApplicants(18)
+          setTotalApplicants(INITIAL_APPLICANTS.length)
         }
       } else {
         setApplicants(INITIAL_APPLICANTS)
-        setTotalApplicants(18)
+        setTotalApplicants(INITIAL_APPLICANTS.length)
       }
     } catch (err) {
       console.error('Lỗi tải danh sách ứng viên:', err)

@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import {
   Users,
   Briefcase,
@@ -15,12 +15,12 @@ const HR_NAV_ITEMS = [
     to: '/hr/dashboard',
     label: 'Xét duyệt hồ sơ & Tuyển dụng',
     icon: Users,
-    badge: '3',
+    badge: '1',
     end: true,
   },
   {
     to: '/hr/programs',
-    label: 'Quản lý Kỳ thực tập (Batches)',
+    label: 'Quản lý Kỳ thực tập',
     icon: Briefcase,
     badge: 'Q3/2026',
     badgeClass: 'badge--cyan',
@@ -29,7 +29,7 @@ const HR_NAV_ITEMS = [
     to: '/hr/mentors',
     label: 'Phân công & Ghép cặp Mentor',
     icon: UserCheck,
-    badge: '12/15',
+    badge: '2/2',
   },
   {
     to: '/hr/attendance',
@@ -50,9 +50,15 @@ const HR_NAV_ITEMS = [
 ]
 
 export default function HrLayout() {
+  const location = useLocation()
+  const activeNav = HR_NAV_ITEMS.find((item) =>
+    item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
+  )
+  const currentLabel = activeNav ? activeNav.label : 'Phân hệ Nhân sự'
+
   return (
     <EnterpriseAppShell
-      portalName="Hệ thống Quản lý Tuyển dụng & Điều phối TTS"
+      portalName="Tuyển dụng & Điều phối TTS"
       logoTitle="ICTU HR Hub"
       logoSubtitle="Hệ sinh thái Tuyển dụng & Điều phối TTS"
       portalTagPrefix="PHÂN HỆ NGHIỆP VỤ"
@@ -61,8 +67,8 @@ export default function HrLayout() {
       sidebarSectionLabel="QUẢN LÝ NHÂN SỰ & TUYỂN DỤNG"
       navItems={HR_NAV_ITEMS}
       breadcrumbs={[
-        { label: 'Cổng Cán bộ Nhân sự (HR Portal)' },
-        { label: 'Xét duyệt hồ sơ & Phễu tuyển dụng TTS' },
+        { label: 'Cổng HR' },
+        { label: currentLabel },
       ]}
       showNotifications={false}
       showTopbarUser={false}
@@ -74,5 +80,6 @@ export default function HrLayout() {
     </EnterpriseAppShell>
   )
 }
+
 
 

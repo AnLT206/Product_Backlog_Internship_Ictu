@@ -102,6 +102,7 @@ class MentorResponse(BaseModel):
     dob: date | None = None
     position: str | None = None
     department_id: int | None = None
+    department: str | None = None
     intern_count: int = 0
 
 
