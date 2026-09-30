@@ -3,11 +3,12 @@
    ============================================================ */
 
 .admin-settings-page {
-  padding: 1.75rem 2rem 3rem;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 0 0 2rem;
+  max-width: 100%;
+  margin: 0;
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   color: #0f172a;
+  box-sizing: border-box;
 }
 
 /* Toast */

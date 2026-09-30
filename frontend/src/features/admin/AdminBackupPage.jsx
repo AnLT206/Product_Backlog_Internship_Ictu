@@ -207,16 +207,25 @@ export default function AdminBackupPage() {
     }
   }
 
-  function formatDateTime(dtStr) {
-    if (!dtStr) return '—';
+  function formatDateTimeParts(dtStr) {
+    if (!dtStr) return { date: '—', time: '', full: '—' };
     const d = new Date(dtStr);
-    return d.toLocaleString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
+    if (isNaN(d.getTime())) return { date: '—', time: '', full: '—' };
+    const date = d.toLocaleDateString('vi-VN', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     });
+    const time = d.toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    return { date, time, full: `${time} ${date}` };
+  }
+
+  function formatDateTime(dtStr) {
+    return formatDateTimeParts(dtStr).full;
   }
 
   function renderTypeBadge(type) {
@@ -351,14 +360,14 @@ export default function AdminBackupPage() {
           <table className="backup-data-table">
             <thead>
               <tr>
-                <th style={{ width: '40px' }}>#</th>
+                <th style={{ width: '36px', textAlign: 'center' }}>#</th>
                 <th>Tên tệp sao lưu (.sql)</th>
-                <th>Loại sao lưu</th>
-                <th>Dung lượng</th>
-                <th>Thời điểm tạo</th>
-                <th>Người tạo</th>
-                <th>Lần khôi phục</th>
-                <th style={{ textAlign: 'center', width: '180px' }}>Thao tác</th>
+                <th style={{ width: '105px' }}>Loại</th>
+                <th style={{ width: '85px', textAlign: 'right' }}>Dung lượng</th>
+                <th style={{ width: '95px' }}>Thời điểm tạo</th>
+                <th style={{ width: '95px' }}>Người tạo</th>
+                <th style={{ width: '105px', textAlign: 'center' }}>Lần khôi phục</th>
+                <th style={{ textAlign: 'center', width: '96px' }}>Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -382,25 +391,34 @@ export default function AdminBackupPage() {
               ) : (
                 data.items.map((item, idx) => (
                   <tr key={item.id}>
-                    <td className="col-idx">{idx + 1}</td>
+                    <td className="col-idx" style={{ textAlign: 'center' }}>{idx + 1}</td>
                     <td>
                       <div className="file-name-cell">
-                        <FileCode size={18} className="file-icon" />
-                        <div>
-                          <strong className="file-title">{item.filename}</strong>
-                          {item.note && <span className="file-note">{item.note}</span>}
+                        <FileCode size={16} className="file-icon" />
+                        <div className="file-name-info">
+                          <strong className="file-title" title={item.filename}>{item.filename}</strong>
+                          {item.note && <span className="file-note" title={item.note}>{item.note}</span>}
                         </div>
                       </div>
                     </td>
                     <td>{renderTypeBadge(item.backup_type)}</td>
-                    <td>
+                    <td style={{ textAlign: 'right' }}>
                       <span className="size-badge">{item.file_size_formatted}</span>
                     </td>
-                    <td>{formatDateTime(item.created_at)}</td>
+                    <td>
+                      {item.created_at ? (
+                        <div className="dt-cell">
+                          <span className="dt-time">{formatDateTimeParts(item.created_at).time}</span>
+                          <span className="dt-date">{formatDateTimeParts(item.created_at).date}</span>
+                        </div>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
                     <td>
                       <span className="creator-text">{item.created_by_name || 'System Admin'}</span>
                     </td>
-                    <td>
+                    <td style={{ textAlign: 'center' }}>
                       {item.restored_at ? (
                         <span className="restored-badge" title={formatDateTime(item.restored_at)}>
                           ✓ Đã khôi phục
@@ -417,7 +435,7 @@ export default function AdminBackupPage() {
                           onClick={() => handleDownload(item)}
                           title="Tải về máy tính (.sql)"
                         >
-                          <Download size={15} />
+                          <Download size={14} />
                         </button>
                         <button
                           type="button"
@@ -428,7 +446,7 @@ export default function AdminBackupPage() {
                           }}
                           title="Khôi phục CSDL từ bản này"
                         >
-                          <RotateCcw size={15} />
+                          <RotateCcw size={14} />
                         </button>
                         <button
                           type="button"
@@ -436,7 +454,7 @@ export default function AdminBackupPage() {
                           onClick={() => handleDelete(item)}
                           title="Xóa bản sao lưu"
                         >
-                          <Trash2 size={15} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
