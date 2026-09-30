@@ -1,11 +1,10 @@
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import {
   Users,
   CheckSquare,
   FileText,
   Award,
   Calendar,
-  Plus,
   FileSpreadsheet,
 } from 'lucide-react'
 import EnterpriseAppShell from '../../components/common/EnterpriseAppShell'
@@ -22,11 +21,10 @@ const MENTOR_NAV_ITEMS = [
 ]
 
 export default function MentorLayout() {
-  const navigate = useNavigate()
-
   return (
     <EnterpriseAppShell
       portalName="Hướng dẫn Chuyên môn"
+      portalTagPrefix="PHÂN HỆ NGHIỆP VỤ"
       portalTag="Hướng dẫn Chuyên môn"
       showPortalTagBox={true}
       logoTitle="ICTU Mentor Hub"
@@ -34,39 +32,11 @@ export default function MentorLayout() {
       sidebarSectionLabel="HƯỚNG DẪN & ĐÁNH GIÁ TTS"
       navItems={MENTOR_NAV_ITEMS}
       breadcrumbs={[{ label: 'Quản lý & Hướng dẫn Thực tập' }]}
-      periodInfo="Học kỳ Q3/2026 • Tuần 08"
+      showNotifications={true}
+      showTopbarUser={true}
       avatarText="MB"
       userCardMeta="Senior Tech Lead • Khoa CNTT"
-      topbarActions={
-        <>
-          <button
-            type="button"
-            className="topbar-btn topbar-btn--primary"
-            onClick={() => {
-              navigate('/mentor/dashboard#tasks')
-              window.dispatchEvent(new CustomEvent('open-mentor-task-modal'))
-            }}
-          >
-            <Plus size={14} />
-            <span>+ Giao nhiệm vụ mới</span>
-          </button>
-          <button
-            type="button"
-            className="topbar-btn"
-            onClick={() => navigate('/mentor/dashboard#reports')}
-          >
-            <span>Chấm báo cáo tuần (1)</span>
-          </button>
-          <button
-            type="button"
-            className="topbar-btn"
-            onClick={() => navigate('/mentor/dashboard#meetings')}
-          >
-            <Calendar size={14} />
-            <span>+ Đặt lịch Review 1-on-1</span>
-          </button>
-        </>
-      }
+      defaultUserName="Trần Hoàng Quân"
     >
       <Outlet />
     </EnterpriseAppShell>
