@@ -76,6 +76,18 @@ def report_client() -> Generator[tuple[TestClient, sessionmaker], None, None]:
                 status="active",
             )
         )
+        # Mentor 2 (id=5)
+        db.add(
+            User(
+                id=5,
+                code="MT0002",
+                email="mentor2@example.com",
+                password_hash="hash",
+                full_name="Mentor Two",
+                role_id=mentor_role.id,
+                status="active",
+            )
+        )
         # Admin (id=4)
         db.add(
             User(
@@ -104,8 +116,8 @@ def report_client() -> Generator[tuple[TestClient, sessionmaker], None, None]:
 
         # Intern 1 được gán cho Mentor 1
         db.add(ProgramMember(program_id=1, intern_user_id=1, mentor_user_id=3))
-        # Intern 2 trong kỳ nhưng KHÔNG thuộc Mentor 1
-        db.add(ProgramMember(program_id=1, intern_user_id=2, mentor_user_id=None))
+        # Intern 2 được gán cho Mentor 2
+        db.add(ProgramMember(program_id=1, intern_user_id=2, mentor_user_id=5))
 
         db.commit()
 
@@ -290,7 +302,57 @@ def test_mentor_list_reports_of_assigned_interns(report_client):
     assert data["items"][0]["user_id"] == 1
 
 
-def test_mentor_add_feedback_success(report_client):
+def test_mentor_view_own_intern_reports_success(report_client):
+    client, _ = report_client
+    client.post(
+        "/api/intern/weekly-reports",
+        json={
+            "week_number": 1,
+            "start_date": str(date.today() - timedelta(days=7)),
+            "end_date": str(date.today()),
+            "title": "Báo cáo Intern A",
+            "content": "Nội dung báo cáo của Intern A tuần này.",
+            "program_id": 1,
+        },
+        headers=_auth(1, "intern"),
+    )
+
+    response = client.get(
+        "/api/mentor/reports",
+        params={"intern_id": 1},
+        headers=_auth(3, "mentor"),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert response.json()["items"][0]["user_id"] == 1
+
+
+def test_mentor_view_other_intern_reports_forbidden(report_client):
+    client, _ = report_client
+    client.post(
+        "/api/intern/weekly-reports",
+        json={
+            "week_number": 1,
+            "start_date": str(date.today() - timedelta(days=7)),
+            "end_date": str(date.today()),
+            "title": "Báo cáo Intern B",
+            "content": "Nội dung báo cáo của Intern B tuần này.",
+            "program_id": 1,
+        },
+        headers=_auth(2, "intern"),
+    )
+
+    response = client.get(
+        "/api/mentor/reports",
+        params={"intern_id": 2},
+        headers=_auth(3, "mentor"),
+    )
+
+    assert response.status_code == 403
+
+
+def test_mentor_add_feedback_to_own_intern_report_success(report_client):
     client, _ = report_client
 
     create_res = client.post(
@@ -323,10 +385,10 @@ def test_mentor_add_feedback_success(report_client):
     assert fb["mentor_name"] == "Mentor One"
 
 
-def test_mentor_cannot_feedback_unassigned_intern_report(report_client):
+def test_mentor_add_feedback_to_other_intern_report_forbidden(report_client):
     client, _ = report_client
 
-    # Intern 2 nộp báo cáo
+    # Intern 2 nộp báo cáo và do Mentor 2 quản lý
     create_res = client.post(
         "/api/intern/weekly-reports",
         json={

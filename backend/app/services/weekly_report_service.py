@@ -172,6 +172,11 @@ class WeeklyReportService:
                 .filter(ProgramMember.mentor_user_id == mentor_user.id)
                 .all()
             ]
+            if intern_id is not None and intern_id not in managed_intern_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Bạn chỉ có thể xem báo cáo của thực tập sinh do mình phụ trách.",
+                )
             if not managed_intern_ids:
                 return WeeklyReportListResponse(items=[], total=0)
             query = query.filter(WeeklyReport.user_id.in_(managed_intern_ids))
