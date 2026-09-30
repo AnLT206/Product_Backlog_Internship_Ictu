@@ -16,6 +16,7 @@ const HR_NAV_ITEMS = [
     label: 'Xét duyệt hồ sơ & Tuyển dụng',
     icon: Users,
     badge: '1',
+    permission: 'interns_view',
     end: true,
   },
   {
@@ -24,28 +25,33 @@ const HR_NAV_ITEMS = [
     icon: Briefcase,
     badge: 'Q3/2026',
     badgeClass: 'badge--cyan',
+    permission: 'programs_manage',
   },
   {
     to: '/hr/mentors',
     label: 'Phân công & Ghép cặp Mentor',
     icon: UserCheck,
     badge: '2/2',
+    permission: 'programs_assign',
   },
   {
     to: '/hr/attendance',
     label: 'Tổng hợp công & Phụ cấp',
     icon: Calendar,
     hasDot: true,
+    permission: 'attendance_hr',
   },
   {
     to: '/hr/contracts',
     label: 'Hợp đồng thực tập & Tiếp nhận',
     icon: Lock,
+    permission: 'allowances',
   },
   {
     to: '/hr/reports',
     label: 'Báo cáo gửi Nhà trường',
     icon: FileSpreadsheet,
+    permission: 'stats_view',
   },
 ]
 

@@ -20,8 +20,15 @@ import {
   Save,
   Eye,
   Sparkles,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Mail,
+  X,
 } from 'lucide-react'
 import { getInterns, approveIntern, rejectIntern } from '../../api/interns'
+import ContractTab from '../intern/components/ContractTab'
+import EmailTemplatePreviewModal from './components/EmailTemplatePreviewModal'
 import './HrDashboardPage.css'
 
 // ── Dữ liệu mẫu chuẩn 1 ứng viên theo CSDL ──
@@ -115,15 +122,46 @@ export default function HrDashboardPage() {
     }
   }, [startDate, endDate])
 
-  // Dialogs
+  // Dialogs & Modals
   const [rejectDialog, setRejectDialog] = useState({ open: false, applicant: null, reason: '' })
   const [detailModal, setDetailModal] = useState({ open: false, applicant: null })
+  const [activeDetailTab, setActiveDetailTab] = useState('info') // 'info' | 'contract' (Story 14)
   const [matchModal, setMatchModal] = useState(false)
   const [docPreviewModal, setDocPreviewModal] = useState({ open: false, applicant: null, docType: '' })
+  const [docZoom, setDocZoom] = useState(100)
+  const [emailPreviewModal, setEmailPreviewModal] = useState({ open: false, applicant: null, tab: 'approved' }) // (Story 13)
+  const [docStatuses, setDocStatuses] = useState({}) // { `${appId}_cv`: 'approved'|'rejected', `${appId}_app`: 'approved'|'rejected' }
 
   function showToast(message, type = 'success') {
     setToast({ message, type })
     setTimeout(() => setToast(null), 4000)
+  }
+
+  function handleApproveDoc(applicant, docType) {
+    const key = `${applicant.id}_${docType}`
+    setDocStatuses((prev) => ({ ...prev, [key]: 'approved' }))
+    const docName = docType === 'cv' ? 'CV' : 'Đơn xin thực tập'
+    showToast(`✅ Đã phê duyệt tài liệu ${docName} của ứng viên ${applicant.full_name}!`)
+  }
+
+  function handleRejectDoc(applicant, docType) {
+    const key = `${applicant.id}_${docType}`
+    setDocStatuses((prev) => ({ ...prev, [key]: 'rejected' }))
+    const docName = docType === 'cv' ? 'CV' : 'Đơn xin thực tập'
+    showToast(`ℹ️ Đã từ chối tài liệu ${docName} của ứng viên ${applicant.full_name}. Yêu cầu bổ sung lại.`, 'info')
+  }
+
+  function handleSaveApplicantContract(applicantId, file) {
+    setApplicants((prev) =>
+      prev.map((a) => (a.id === applicantId ? { ...a, contract_file: file.name } : a))
+    )
+    if (detailModal.applicant) {
+      setDetailModal((prev) => ({
+        ...prev,
+        applicant: { ...prev.applicant, contract_file: file.name },
+      }))
+    }
+    showToast(`✅ Đã tải lên và lưu file hợp đồng "${file.name}" cho ứng viên thành công!`)
   }
 
   // ── Load applicants từ DB ──
@@ -734,6 +772,17 @@ export default function HrDashboardPage() {
               <option value="approved">Đã duyệt</option>
               <option value="rejected">Từ chối</option>
             </select>
+
+            {/* Nút Xem mẫu Email Thông báo Đậu/Rớt (Story 13) */}
+            <button
+              type="button"
+              className="hr-btn hr-btn--outline"
+              onClick={() => setEmailPreviewModal({ open: true, applicant: filteredApplicants[0] || INITIAL_APPLICANTS[0], tab: 'approved' })}
+              title="Xem trước mã HTML Email Template thông báo Đậu/Rớt (Responsive)"
+            >
+              <Mail size={15} />
+              <span>Mẫu Email Kết Quả</span>
+            </button>
           </div>
         </div>
 
@@ -741,11 +790,11 @@ export default function HrDashboardPage() {
           <table className="enterprise-data-table">
             <thead>
               <tr>
-                <th style={{ width: '30%' }}>Thông tin ứng viên</th>
-                <th style={{ width: '24%' }}>Khoa &amp; Chuyên ngành</th>
+                <th style={{ width: '25%' }}>Thông tin ứng viên</th>
+                <th style={{ width: '21%' }}>Khoa &amp; Chuyên ngành</th>
                 <th style={{ width: '12%' }}>Điểm GPA tích lũy</th>
-                <th style={{ width: '18%' }}>Tài liệu &amp; Minh chứng đính kèm</th>
-                <th style={{ textAlign: 'center', width: '16%' }}>Thao tác xét duyệt</th>
+                <th style={{ width: '28%' }}>Tài liệu &amp; Minh chứng đính kèm</th>
+                <th style={{ textAlign: 'center', width: '14%' }}>Thao tác xét duyệt</th>
               </tr>
             </thead>
             <tbody>
@@ -797,24 +846,101 @@ export default function HrDashboardPage() {
                     </td>
                     <td>
                       <div className="doc-links-cell">
-                        <button
-                          type="button"
-                          className="doc-action-btn doc-action-btn--download"
-                          onClick={() => showToast(`Đang tải file ${app.cv_file} (PDF)`)}
-                          title="Tải file CV ứng viên"
-                        >
-                          <Download size={13} />
-                          <span>{app.cv_file}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="doc-action-btn doc-action-btn--view"
-                          onClick={() => setDocPreviewModal({ open: true, applicant: app, docType: 'app' })}
-                          title="Xem trước đơn xin thực tập"
-                        >
-                          <Eye size={13} />
-                          <span>{app.app_file}</span>
-                        </button>
+                        {/* 1. File CV Ứng viên */}
+                        <div className="doc-item-row">
+                          <div className="doc-item-meta" title={app.cv_file}>
+                            <FileText size={13} className="text-primary" />
+                            <span className="doc-item-name">{app.cv_file}</span>
+                          </div>
+                          <div className="doc-item-actions">
+                            <button
+                              type="button"
+                              className="doc-quick-btn doc-quick-btn--view"
+                              onClick={() => {
+                                setDocZoom(100)
+                                setDocPreviewModal({ open: true, applicant: app, docType: 'cv' })
+                              }}
+                              title="Đọc trực tiếp file CV bằng PDF Viewer"
+                            >
+                              <Eye size={12} />
+                              <span>Xem</span>
+                            </button>
+                            {docStatuses[`${app.id}_cv`] ? (
+                              <span className={`doc-status-tag doc-status-tag--${docStatuses[`${app.id}_cv`]}`}>
+                                {docStatuses[`${app.id}_cv`] === 'approved' ? '✓ Đã duyệt' : '✕ Từ chối'}
+                              </span>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  className="doc-quick-btn doc-quick-btn--approve"
+                                  onClick={() => handleApproveDoc(app, 'cv')}
+                                  title="Duyệt tài liệu CV"
+                                >
+                                  <Check size={11} />
+                                  <span>Duyệt</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="doc-quick-btn doc-quick-btn--reject"
+                                  onClick={() => handleRejectDoc(app, 'cv')}
+                                  title="Từ chối tài liệu CV"
+                                >
+                                  <X size={11} />
+                                  <span>Từ chối</span>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 2. Đơn xin tiếp nhận thực tập */}
+                        <div className="doc-item-row">
+                          <div className="doc-item-meta" title={app.app_file}>
+                            <FileText size={13} className="text-primary" />
+                            <span className="doc-item-name">{app.app_file}</span>
+                          </div>
+                          <div className="doc-item-actions">
+                            <button
+                              type="button"
+                              className="doc-quick-btn doc-quick-btn--view"
+                              onClick={() => {
+                                setDocZoom(100)
+                                setDocPreviewModal({ open: true, applicant: app, docType: 'app' })
+                              }}
+                              title="Đọc trực tiếp Đơn xin thực tập bằng PDF Viewer"
+                            >
+                              <Eye size={12} />
+                              <span>Xem</span>
+                            </button>
+                            {docStatuses[`${app.id}_app`] ? (
+                              <span className={`doc-status-tag doc-status-tag--${docStatuses[`${app.id}_app`]}`}>
+                                {docStatuses[`${app.id}_app`] === 'approved' ? '✓ Đã duyệt' : '✕ Từ chối'}
+                              </span>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  className="doc-quick-btn doc-quick-btn--approve"
+                                  onClick={() => handleApproveDoc(app, 'app')}
+                                  title="Duyệt tài liệu Đơn xin tiếp nhận"
+                                >
+                                  <Check size={11} />
+                                  <span>Duyệt</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="doc-quick-btn doc-quick-btn--reject"
+                                  onClick={() => handleRejectDoc(app, 'app')}
+                                  title="Từ chối tài liệu Đơn xin tiếp nhận"
+                                >
+                                  <X size={11} />
+                                  <span>Từ chối</span>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td style={{ textAlign: 'center' }}>
@@ -1097,15 +1223,18 @@ export default function HrDashboardPage() {
         </div>
       )}
 
-      {/* ── MODAL CHI TIẾT ỨNG VIÊN ── */}
+      {/* ── MODAL CHI TIẾT ỨNG VIÊN (Có 2 Tab: Thông tin hồ sơ & Hợp đồng thực tập - Story 14) ── */}
       {detailModal.open && (
         <div
           className="modal-overlay"
           onClick={() => setDetailModal({ open: false, applicant: null })}
         >
-          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-container modal-container--tabs" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Chi tiết hồ sơ ứng viên</h3>
+              <div>
+                <h3>Hồ sơ ứng viên: {detailModal.applicant?.full_name}</h3>
+                <span className="modal-sub-id">{detailModal.applicant?.student_code} • {detailModal.applicant?.faculty}</span>
+              </div>
               <button
                 type="button"
                 className="modal-close-btn"
@@ -1114,44 +1243,87 @@ export default function HrDashboardPage() {
                 ✕
               </button>
             </div>
-            <div className="modal-body">
-              <div className="detail-row">
-                <span className="detail-lbl">Họ và tên:</span>
-                <strong>{detailModal.applicant?.full_name}</strong>
-              </div>
-              <div className="detail-row">
-                <span className="detail-lbl">Mã sinh viên / Khóa:</span>
-                <span className="app-code-pill">{detailModal.applicant?.student_code}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-lbl">Email liên hệ:</span>
-                <span>{detailModal.applicant?.email}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-lbl">Số điện thoại:</span>
-                <span>{detailModal.applicant?.phone}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-lbl">Khoa / Viện:</span>
-                <span>{detailModal.applicant?.faculty}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-lbl">Chuyên ngành:</span>
-                <span>{detailModal.applicant?.major}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-lbl">Điểm GPA tích lũy:</span>
-                <span className="status-badge status-badge--success">{detailModal.applicant?.gpa} / 4.0</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-lbl">File CV đính kèm:</span>
-                <span className="text-primary font-semibold">{detailModal.applicant?.cv_file}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-lbl">Đơn xin tiếp nhận:</span>
-                <span className="text-primary font-semibold">{detailModal.applicant?.app_file}</span>
-              </div>
+
+            {/* Tab Navigation (Story 14) */}
+            <div className="modal-nav-tabs">
+              <button
+                type="button"
+                className={`modal-nav-tab ${activeDetailTab === 'info' ? 'is-active' : ''}`}
+                onClick={() => setActiveDetailTab('info')}
+              >
+                <FileText size={15} />
+                <span>Thông tin hồ sơ</span>
+              </button>
+              <button
+                type="button"
+                className={`modal-nav-tab ${activeDetailTab === 'contract' ? 'is-active' : ''}`}
+                onClick={() => setActiveDetailTab('contract')}
+              >
+                <FileCheck size={15} />
+                <span>Hợp đồng thực tập</span>
+                {detailModal.applicant?.contract_file && (
+                  <span className="tab-pill-badge">Đã có file</span>
+                )}
+              </button>
             </div>
+
+            <div className="modal-body">
+              {activeDetailTab === 'info' ? (
+                <>
+                  <div className="detail-row">
+                    <span className="detail-lbl">Họ và tên:</span>
+                    <strong>{detailModal.applicant?.full_name}</strong>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-lbl">Mã sinh viên / Khóa:</span>
+                    <span className="app-code-pill">{detailModal.applicant?.student_code}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-lbl">Email liên hệ:</span>
+                    <span>{detailModal.applicant?.email}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-lbl">Số điện thoại:</span>
+                    <span>{detailModal.applicant?.phone}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-lbl">Khoa / Viện:</span>
+                    <span>{detailModal.applicant?.faculty}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-lbl">Chuyên ngành:</span>
+                    <span>{detailModal.applicant?.major}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-lbl">Điểm GPA tích lũy:</span>
+                    <span className="status-badge status-badge--success">{detailModal.applicant?.gpa} / 4.0</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-lbl">File CV đính kèm:</span>
+                    <span className="text-primary font-semibold">{detailModal.applicant?.cv_file}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-lbl">Đơn xin tiếp nhận:</span>
+                    <span className="text-primary font-semibold">{detailModal.applicant?.app_file}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-lbl">Hợp đồng thực tập:</span>
+                    <span className="text-primary font-semibold">
+                      {detailModal.applicant?.contract_file || 'Chưa tải lên (chuyển sang tab Hợp đồng để tải file)'}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                /* Tab Hợp đồng (Story 14) */
+                <ContractTab
+                  internId={detailModal.applicant?.id}
+                  onSaveContract={(file) => {
+                    handleSaveApplicantContract(detailModal.applicant?.id, file)
+                  }}
+                />
+              )}
+            </div>
+
             <div className="modal-footer">
               <button
                 type="button"
@@ -1216,7 +1388,7 @@ export default function HrDashboardPage() {
         </div>
       )}
 
-      {/* ── MODAL XEM TRƯỚC ĐƠN XIN THỰC TẬP (PDF PREVIEW) ── */}
+      {/* ── MODAL XEM TRƯỚC VÀ DUYỆT TÀI LIỆU (PDF VIEWER - Story 10) ── */}
       {docPreviewModal.open && (
         <div
           className="modal-overlay"
@@ -1229,93 +1401,247 @@ export default function HrDashboardPage() {
             <div className="modal-header">
               <div className="doc-modal-title-row">
                 <FileText size={18} className="text-primary" />
-                <h3>Xem trước: {docPreviewModal.applicant?.app_file}</h3>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '0.98rem' }}>
+                    {docPreviewModal.docType === 'cv'
+                      ? `CV Ứng viên: ${docPreviewModal.applicant?.cv_file}`
+                      : `Đơn xin thực tập: ${docPreviewModal.applicant?.app_file}`}
+                  </h3>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    Trình đọc tài liệu PDF Viewer • {docPreviewModal.applicant?.full_name} ({docPreviewModal.applicant?.student_code})
+                  </span>
+                </div>
               </div>
-              <button
-                type="button"
-                className="modal-close-btn"
-                onClick={() => setDocPreviewModal({ open: false, applicant: null, docType: '' })}
-              >
-                ✕
-              </button>
+
+              {/* Toolbar Zoom & Tools */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="doc-zoom-toolbar">
+                  <button
+                    type="button"
+                    className="zoom-btn"
+                    onClick={() => setDocZoom((prev) => Math.max(60, prev - 15))}
+                    title="Thu nhỏ (-)"
+                  >
+                    <ZoomOut size={14} />
+                  </button>
+                  <span className="zoom-text">{docZoom}%</span>
+                  <button
+                    type="button"
+                    className="zoom-btn"
+                    onClick={() => setDocZoom((prev) => Math.min(160, prev + 15))}
+                    title="Phóng to (+)"
+                  >
+                    <ZoomIn size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="zoom-btn"
+                    onClick={() => setDocZoom(100)}
+                    title="Đặt lại 100%"
+                  >
+                    100%
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="modal-close-btn"
+                  onClick={() => setDocPreviewModal({ open: false, applicant: null, docType: '' })}
+                  title="Đóng popup"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
+
             <div className="modal-body doc-preview-body">
-              <div className="doc-paper-preview">
-                <div className="doc-paper-header">
-                  <div className="doc-paper-school">
-                    <strong>ĐẠI HỌC THÁI NGUYÊN</strong>
-                    <p>TRƯỜNG ĐH CNTT &amp; TRUYỀN THÔNG (ICTU)</p>
-                    <span className="doc-paper-line" />
-                  </div>
-                  <div className="doc-paper-country">
-                    <strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong>
-                    <p>Độc lập - Tự do - Hạnh phúc</p>
-                    <span className="doc-paper-line" />
-                  </div>
-                </div>
-
-                <div className="doc-paper-title">
-                  <h2>ĐƠN XIN TIẾP NHẬN THỰC TẬP DOANH NGHIỆP</h2>
-                  <p className="doc-paper-sub">Kỳ Mùa Thu Q3/2026 • Chuẩn tín chỉ thực tập 16 tuần</p>
-                </div>
-
-                <div className="doc-paper-content">
-                  <p><strong>Kính gửi:</strong> Ban Giám đốc &amp; Phòng Nhân sự Doanh nghiệp tiếp nhận</p>
-                  <p><strong>Đồng kính gửi:</strong> Ban Hợp tác Doanh nghiệp - Trường ĐH CNTT &amp; TT (ICTU)</p>
-
-                  <div className="doc-paper-grid">
-                    <p>Họ và tên sinh viên: <strong>{docPreviewModal.applicant?.full_name}</strong></p>
-                    <p>Mã sinh viên: <strong>{docPreviewModal.applicant?.student_code}</strong></p>
-                    <p>Khoa / Ngành: <strong>{docPreviewModal.applicant?.faculty}</strong> - <strong>{docPreviewModal.applicant?.major}</strong></p>
-                    <p>Điểm GPA tích lũy: <strong>{docPreviewModal.applicant?.gpa} / 4.0</strong></p>
-                    <p>Số điện thoại: <strong>{docPreviewModal.applicant?.phone}</strong></p>
-                    <p>Email sinh viên: <strong>{docPreviewModal.applicant?.email}</strong></p>
-                  </div>
-
-                  <p className="doc-commitment-text">
-                    Tôi xin cam đoan chấp hành nghiêm chỉnh mọi nội quy, quy định về bảo mật thông tin, thời gian biểu và kỷ luật lao động của Doanh nghiệp trong suốt thời gian thực tập từ ngày <strong>01/08/2026</strong> đến ngày <strong>30/11/2026</strong>.
-                  </p>
-
-                  <div className="doc-sign-row">
-                    <div className="doc-sign-col">
-                      <span>XÁC NHẬN CỦA KHOA CHUYÊN MÔN</span>
-                      <div className="doc-stamp-box">
-                        <span className="stamp-text">ĐÃ XÁC NHẬN ĐIỀU KIỆN</span>
-                        <span className="stamp-sub">Khoa CNTT ICTU</span>
-                      </div>
-                    </div>
-                    <div className="doc-sign-col">
-                      <span>Thái Nguyên, ngày {docPreviewModal.applicant?.applied_at}</span>
-                      <strong>NGƯỜI LÀM ĐƠN</strong>
-                      <span className="doc-sign-name">{docPreviewModal.applicant?.full_name}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="hr-btn hr-btn--ghost"
-                onClick={() => setDocPreviewModal({ open: false, applicant: null, docType: '' })}
-              >
-                Đóng
-              </button>
-              <button
-                type="button"
-                className="hr-btn hr-btn--primary"
-                onClick={() => {
-                  showToast(`Đang tải file ${docPreviewModal.applicant?.app_file}...`)
-                  setDocPreviewModal({ open: false, applicant: null, docType: '' })
+              <div
+                style={{
+                  transform: `scale(${docZoom / 100})`,
+                  transformOrigin: 'top center',
+                  transition: 'transform 0.2s ease',
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
                 }}
               >
-                <Download size={15} />
-                <span>Tải bản PDF</span>
-              </button>
+                {docPreviewModal.docType === 'cv' ? (
+                  /* ── BẢN XEM TRƯỚC CV (CURRICULUM VITAE) ── */
+                  <div className="doc-paper-cv">
+                    <div className="cv-header-row">
+                      <div className="cv-candidate-title">
+                        <h1>{docPreviewModal.applicant?.full_name}</h1>
+                        <p className="cv-role-sub">Ứng viên Thực tập sinh Kỹ thuật Phần mềm (Software Engineer Intern)</p>
+                      </div>
+                      <div className="cv-contact-col">
+                        <div>Email: {docPreviewModal.applicant?.email}</div>
+                        <div>SĐT: {docPreviewModal.applicant?.phone}</div>
+                        <div>Khoa: {docPreviewModal.applicant?.faculty}</div>
+                        <div>Mã SV: {docPreviewModal.applicant?.student_code}</div>
+                      </div>
+                    </div>
+
+                    <div className="cv-section">
+                      <h3>🎯 Mục tiêu nghề nghiệp</h3>
+                      <p>
+                        Sinh viên năm cuối ngành {docPreviewModal.applicant?.major} với nền tảng vững chắc về lập trình phần mềm, kiến trúc hệ thống và quy trình phát triển Agile/Scrum. Mong muốn tham gia vào dự án thực tế của doanh nghiệp để rèn luyện kỹ năng thực chiến và đóng góp giá trị cho sản phẩm.
+                      </p>
+                    </div>
+
+                    <div className="cv-section">
+                      <h3>🎓 Học vấn &amp; Điểm tích lũy</h3>
+                      <p>
+                        <strong>Trường Đại học Công nghệ Thông tin &amp; Truyền thông (ICTU)</strong><br />
+                        Chuyên ngành: {docPreviewModal.applicant?.major} • Khóa 2022 - 2026<br />
+                        Điểm GPA tích lũy: <strong style={{ color: '#2563eb' }}>{docPreviewModal.applicant?.gpa} / 4.0</strong> (Xếp loại: Xuất sắc)
+                      </p>
+                    </div>
+
+                    <div className="cv-section">
+                      <h3>⚡ Kỹ năng chuyên môn</h3>
+                      <div className="cv-skills-tags">
+                        <span className="cv-skill-pill">JavaScript / TypeScript</span>
+                        <span className="cv-skill-pill">React.js / Next.js</span>
+                        <span className="cv-skill-pill">Python FastAPI</span>
+                        <span className="cv-skill-pill">RESTful API &amp; Swagger</span>
+                        <span className="cv-skill-pill">PostgreSQL / MySQL</span>
+                        <span className="cv-skill-pill">Docker &amp; CI/CD Basics</span>
+                        <span className="cv-skill-pill">Git / GitHub Teamwork</span>
+                      </div>
+                    </div>
+
+                    <div className="cv-section">
+                      <h3>💼 Dự án tiêu biểu</h3>
+                      <p>
+                        <strong>Hệ thống Quản lý Thực tập Doanh nghiệp (ICTU Internship Hub)</strong><br />
+                        - Tham gia xây dựng các module xác thực RBAC, xét duyệt hồ sơ ứng viên và quản lý tiến độ thực tập.<br />
+                        - Tối ưu hóa UI/UX đạt chuẩn Enterprise SaaS, tích hợp đầy đủ tính năng responsive và phân quyền.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  /* ── BẢN XEM TRƯỚC ĐƠN XIN THỰC TẬP ── */
+                  <div className="doc-paper-preview">
+                    <div className="doc-paper-header">
+                      <div className="doc-paper-school">
+                        <strong>ĐẠI HỌC THÁI NGUYÊN</strong>
+                        <p>TRƯỜNG ĐH CNTT &amp; TRUYỀN THÔNG (ICTU)</p>
+                        <span className="doc-paper-line" />
+                      </div>
+                      <div className="doc-paper-country">
+                        <strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong>
+                        <p>Độc lập - Tự do - Hạnh phúc</p>
+                        <span className="doc-paper-line" />
+                      </div>
+                    </div>
+
+                    <div className="doc-paper-title">
+                      <h2>ĐƠN XIN TIẾP NHẬN THỰC TẬP DOANH NGHIỆP</h2>
+                      <p className="doc-paper-sub">Kỳ Mùa Thu Q3/2026 • Chuẩn tín chỉ thực tập 16 tuần</p>
+                    </div>
+
+                    <div className="doc-paper-content">
+                      <p><strong>Kính gửi:</strong> Ban Giám đốc &amp; Phòng Nhân sự Doanh nghiệp tiếp nhận</p>
+                      <p><strong>Đồng kính gửi:</strong> Ban Hợp tác Doanh nghiệp - Trường ĐH CNTT &amp; TT (ICTU)</p>
+
+                      <div className="doc-paper-grid">
+                        <p>Họ và tên sinh viên: <strong>{docPreviewModal.applicant?.full_name}</strong></p>
+                        <p>Mã sinh viên: <strong>{docPreviewModal.applicant?.student_code}</strong></p>
+                        <p>Khoa / Ngành: <strong>{docPreviewModal.applicant?.faculty}</strong> - <strong>{docPreviewModal.applicant?.major}</strong></p>
+                        <p>Điểm GPA tích lũy: <strong>{docPreviewModal.applicant?.gpa} / 4.0</strong></p>
+                        <p>Số điện thoại: <strong>{docPreviewModal.applicant?.phone}</strong></p>
+                        <p>Email sinh viên: <strong>{docPreviewModal.applicant?.email}</strong></p>
+                      </div>
+
+                      <p className="doc-commitment-text">
+                        Tôi xin cam đoan chấp hành nghiêm chỉnh mọi nội quy, quy định về bảo mật thông tin, thời gian biểu và kỷ luật lao động của Doanh nghiệp trong suốt thời gian thực tập từ ngày <strong>01/08/2026</strong> đến ngày <strong>30/11/2026</strong>.
+                      </p>
+
+                      <div className="doc-sign-row">
+                        <div className="doc-sign-col">
+                          <span>XÁC NHẬN CỦA KHOA CHUYÊN MÔN</span>
+                          <div className="doc-stamp-box">
+                            <span className="stamp-text">ĐÃ XÁC NHẬN ĐIỀU KIỆN</span>
+                            <span className="stamp-sub">Khoa CNTT ICTU</span>
+                          </div>
+                        </div>
+                        <div className="doc-sign-col">
+                          <span>Thái Nguyên, ngày {docPreviewModal.applicant?.applied_at}</span>
+                          <strong>NGƯỜI LÀM ĐƠN</strong>
+                          <span className="doc-sign-name">{docPreviewModal.applicant?.full_name}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer with Direct "Duyệt" and "Từ chối" buttons (Story 10) */}
+            <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="action-btn action-btn--approve"
+                  style={{ padding: '0.45rem 1rem', fontSize: '0.825rem' }}
+                  onClick={() => {
+                    handleApproveDoc(docPreviewModal.applicant, docPreviewModal.docType)
+                    setDocPreviewModal({ open: false, applicant: null, docType: '' })
+                  }}
+                  title="Xác nhận phê duyệt tài liệu này"
+                >
+                  <Check size={14} />
+                  <span>Duyệt tài liệu</span>
+                </button>
+                <button
+                  type="button"
+                  className="action-btn action-btn--reject"
+                  style={{ padding: '0.45rem 1rem', fontSize: '0.825rem' }}
+                  onClick={() => {
+                    handleRejectDoc(docPreviewModal.applicant, docPreviewModal.docType)
+                    setDocPreviewModal({ open: false, applicant: null, docType: '' })
+                  }}
+                  title="Từ chối tài liệu này"
+                >
+                  <X size={14} />
+                  <span>Từ chối tài liệu</span>
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="hr-btn hr-btn--ghost"
+                  onClick={() => setDocPreviewModal({ open: false, applicant: null, docType: '' })}
+                >
+                  Đóng
+                </button>
+                <button
+                  type="button"
+                  className="hr-btn hr-btn--primary"
+                  onClick={() => {
+                    const filename = docPreviewModal.docType === 'cv'
+                      ? docPreviewModal.applicant?.cv_file
+                      : docPreviewModal.applicant?.app_file
+                    showToast(`Đang tải file ${filename}...`)
+                  }}
+                >
+                  <Download size={14} />
+                  <span>Tải bản PDF</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* ── MODAL XEM TRƯỚC MÃ HTML EMAIL TEMPLATE (Story 13) ── */}
+      <EmailTemplatePreviewModal
+        open={emailPreviewModal.open}
+        applicant={emailPreviewModal.applicant}
+        initialTab={emailPreviewModal.tab}
+        onClose={() => setEmailPreviewModal({ open: false, applicant: null, tab: 'approved' })}
+      />
     </div>
   )
 }

@@ -6,20 +6,23 @@ import {
   BookOpen,
   DollarSign,
   LayoutDashboard,
+  UploadCloud,
 } from 'lucide-react'
 import EnterpriseAppShell from '../../components/common/EnterpriseAppShell'
 import { useAuth } from '../../context/AuthContext'
 
 const INTERN_NAV_ITEMS = [
-  { to: '/intern/dashboard', label: 'Nhiệm vụ cá nhân (Tasks)', icon: CheckSquare, end: true },
-  { to: '/intern/dashboard#attendance', label: 'Chấm công & Điểm danh', icon: Clock },
-  { to: '/intern/dashboard#reports', label: 'Báo cáo tuần & Feedback', icon: FileText, badge: 'T8' },
-  { to: '/intern/dashboard#training', label: 'Tài liệu đào tạo & Onboarding', icon: BookOpen },
-  { to: '/intern/dashboard#allowance', label: 'Chế độ & Trợ cấp cá nhân', icon: DollarSign },
+  { to: '/intern/dashboard', label: 'Nhiệm vụ cá nhân (Tasks)', icon: CheckSquare, permission: 'tasks_update', end: true },
+  { to: '/intern/upload', label: 'Tải lên CV & Đơn thực tập', icon: UploadCloud, permission: 'auth_login' },
+  { to: '/intern/dashboard#attendance', label: 'Chấm công & Điểm danh', icon: Clock, permission: 'attendance_self' },
+  { to: '/intern/dashboard#reports', label: 'Báo cáo tuần & Feedback', icon: FileText, badge: 'T8', permission: 'reports_submit' },
+  { to: '/intern/dashboard#training', label: 'Tài liệu đào tạo & Onboarding', icon: BookOpen, permission: 'schedule_view' },
+  { to: '/intern/dashboard#allowance', label: 'Chế độ & Trợ cấp cá nhân', icon: DollarSign, permission: 'allowances' },
 ]
 
 const APPLICANT_NAV_ITEMS = [
   { to: '/intern/dashboard', label: 'Hồ sơ & Tiến trình ứng tuyển', icon: LayoutDashboard, end: true },
+  { to: '/intern/upload', label: 'Tải lên CV & Đơn thực tập', icon: UploadCloud },
 ]
 
 export default function InternLayout() {

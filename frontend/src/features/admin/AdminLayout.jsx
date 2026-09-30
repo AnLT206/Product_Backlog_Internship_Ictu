@@ -12,11 +12,11 @@ import './AdminDashboardPage.css'
 
 const ADMIN_NAV_ITEMS = [
   { to: '/admin/dashboard', label: 'Tổng quan & Giám sát Hệ thống', icon: Activity, end: true },
-  { to: '/admin/users', label: 'Quản lý Tài khoản & Định danh', icon: Users },
-  { to: '/admin/roles', label: 'Ma trận Phân quyền (RBAC)', icon: ShieldCheck },
-  { to: '/admin/settings', label: 'Cấu hình Tham số & SSO/LDAP', icon: Sliders },
-  { to: '/admin/system-logs', label: 'Nhật ký Truy vết (Audit Log)', icon: FileText, badge: '24' },
-  { to: '/admin/backup', label: 'Sao lưu & Khôi phục Dữ liệu', icon: DatabaseBackup },
+  { to: '/admin/users', label: 'Quản lý Tài khoản & Định danh', icon: Users, permission: 'admin_users' },
+  { to: '/admin/roles', label: 'Ma trận Phân quyền (RBAC)', icon: ShieldCheck, permission: 'admin_roles' },
+  { to: '/admin/settings', label: 'Cấu hình Tham số & SSO/LDAP', icon: Sliders, permission: 'admin_users' },
+  { to: '/admin/system-logs', label: 'Nhật ký Truy vết (Audit Log)', icon: FileText, badge: '24', permission: 'admin_audit_logs' },
+  { to: '/admin/backup', label: 'Sao lưu & Khôi phục Dữ liệu', icon: DatabaseBackup, permission: 'admin_backup' },
 ]
 
 export default function AdminLayout() {

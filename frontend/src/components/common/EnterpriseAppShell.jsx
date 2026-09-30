@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useSystemSettings } from '../../context/SystemSettingsContext'
+import { hasPermission } from '../../hooks/usePermission'
 import logoApp from '../../assets/logo_app.png'
 import './EnterpriseAppShell.css'
 
@@ -128,25 +129,27 @@ export default function EnterpriseAppShell({
         <div className="sidebar-content">
           <div className="sidebar-section-label">{sidebarSectionLabel}</div>
           <nav className="sidebar-nav">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const active = isItemActive(item)
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`sidebar-nav-item ${active ? 'is-active' : ''}`}
-                  title={item.label}
-                >
-                  {Icon && <Icon className="sidebar-nav-icon" size={18} />}
-                  <span className="sidebar-nav-label">{item.label}</span>
-                  {item.badge !== undefined && (
-                    <span className={`sidebar-nav-pill ${item.badgeClass || ''}`}>{item.badge}</span>
-                  )}
-                  {item.hasDot && <span className="sidebar-nav-dot-badge" title="Có thông báo mới" />}
-                </Link>
-              )
-            })}
+            {navItems
+              .filter((item) => !item.permission || hasPermission(user, item.permission))
+              .map((item) => {
+                const Icon = item.icon
+                const active = isItemActive(item)
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`sidebar-nav-item ${active ? 'is-active' : ''}`}
+                    title={item.label}
+                  >
+                    {Icon && <Icon className="sidebar-nav-icon" size={18} />}
+                    <span className="sidebar-nav-label">{item.label}</span>
+                    {item.badge !== undefined && (
+                      <span className={`sidebar-nav-pill ${item.badgeClass || ''}`}>{item.badge}</span>
+                    )}
+                    {item.hasDot && <span className="sidebar-nav-dot-badge" title="Có thông báo mới" />}
+                  </Link>
+                )
+              })}
           </nav>
         </div>
 

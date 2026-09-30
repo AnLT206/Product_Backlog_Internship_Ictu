@@ -1,0 +1,241 @@
+/* ── Email Template Preview Modal Styling ── */
+
+.email-preview-modal-container {
+  max-width: 920px;
+  width: min(96vw, 920px);
+  height: min(92vh, 900px);
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.email-preview-header {
+  padding: 1rem 1.4rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background-color: #ffffff;
+  flex-wrap: wrap;
+}
+
+.email-preview-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.email-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.email-preview-title-wrap h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.email-preview-title-wrap p {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0.15rem 0 0;
+}
+
+.email-preview-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+/* Tabs */
+.email-template-tabs {
+  display: flex;
+  background-color: #f1f5f9;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.email-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.email-tab-btn.is-active {
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+  color: #0f172a;
+}
+
+.email-tab-btn--success.is-active {
+  color: #059669;
+}
+
+.email-tab-btn--danger.is-active {
+  color: #dc2626;
+}
+
+.tab-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.tab-dot--green {
+  background-color: #10b981;
+}
+
+.tab-dot--red {
+  background-color: #ef4444;
+}
+
+/* Device Switcher */
+.email-device-switcher {
+  display: flex;
+  background-color: #f1f5f9;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.device-btn {
+  border: none;
+  background: transparent;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.device-btn.is-active {
+  background-color: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+}
+
+/* Meta Strip */
+.email-meta-strip {
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.6rem 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: #334155;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.email-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.email-meta-badge {
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* Viewport Body */
+.email-preview-body {
+  background-color: #64748b;
+  padding: 1.5rem 1rem;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.email-iframe-frame {
+  background-color: #ffffff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+  height: 100%;
+  min-height: 480px;
+}
+
+.frame--desktop {
+  width: 620px;
+  max-width: 100%;
+}
+
+.frame--mobile {
+  width: 375px;
+  max-width: 100%;
+  border: 10px solid #1e293b;
+  border-radius: 28px;
+}
+
+.email-preview-iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 480px;
+  border: none;
+  background-color: #f1f5f9;
+  display: block;
+}
+
+/* Footer */
+.email-preview-footer {
+  padding: 0.85rem 1.4rem;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.email-footer-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.email-footer-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}

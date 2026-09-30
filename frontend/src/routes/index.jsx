@@ -27,6 +27,7 @@ import MentorLayout from '../features/mentor/MentorLayout.jsx'
 import MentorDashboardPage from '../features/mentor/MentorDashboardPage.jsx'
 import InternLayout from '../features/intern/InternLayout.jsx'
 import InternDashboardPage from '../features/intern/InternDashboardPage.jsx'
+import InternUploadPage from '../features/intern/InternUploadPage.jsx'
 
 export default function AppRoutes() {
   return (
@@ -105,6 +106,7 @@ export default function AppRoutes() {
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<InternDashboardPage />} />
+          <Route path="upload" element={<InternUploadPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

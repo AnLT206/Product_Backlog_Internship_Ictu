@@ -2274,3 +2274,287 @@
   }
 }
 
+/* ── Enhanced Document Cells with Individual Approve/Reject Buttons (Story 10) ── */
+.doc-links-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.doc-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background-color: #f8fafc;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.doc-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+.doc-item-name {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.doc-quick-btn {
+  border: none;
+  background: transparent;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.doc-quick-btn--view {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.doc-quick-btn--view:hover {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.doc-quick-btn--approve {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #93c5fd;
+}
+
+.doc-quick-btn--approve:hover {
+  background-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
+}
+
+.doc-quick-btn--reject {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.doc-quick-btn--reject:hover {
+  background-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.25);
+}
+
+.doc-status-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.doc-status-tag--approved {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #93c5fd;
+}
+
+.doc-status-tag--rejected {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+/* ── Modal Tabs System for Candidate Detail (Story 14) ── */
+.modal-container--tabs {
+  max-width: 660px;
+  width: min(94vw, 660px);
+}
+
+.modal-sub-id {
+  font-size: 0.76rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.modal-nav-tabs {
+  display: flex;
+  background-color: #f1f5f9;
+  padding: 4px 6px;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 6px;
+}
+
+.modal-nav-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.825rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #475569;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.modal-nav-tab.is-active {
+  background-color: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+  font-weight: 700;
+}
+
+.tab-pill-badge {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: 9999px;
+}
+
+/* ── PDF Viewer Toolbar & Document Layout ── */
+.doc-zoom-toolbar {
+  display: flex;
+  align-items: center;
+  background-color: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 6px;
+  gap: 4px;
+}
+
+.zoom-btn {
+  background: none;
+  border: none;
+  color: #475569;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.zoom-btn:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.zoom-text {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #334155;
+  min-width: 36px;
+  text-align: center;
+}
+
+.doc-paper-cv {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 2.25rem 2.5rem;
+  border-radius: 4px;
+  width: 100%;
+  max-width: 660px;
+  box-sizing: border-box;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #1e293b;
+}
+
+.cv-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #2563eb;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.cv-candidate-title h1 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 0.25rem;
+}
+
+.cv-role-sub {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2563eb;
+  margin: 0;
+}
+
+.cv-contact-col {
+  text-align: right;
+  font-size: 0.78rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.cv-section {
+  margin-bottom: 1.25rem;
+}
+
+.cv-section h3 {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.35rem;
+  margin: 0 0 0.65rem;
+}
+
+.cv-section p, .cv-section li {
+  font-size: 0.82rem;
+  color: #334155;
+  line-height: 1.55;
+}
+
+.cv-skills-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.cv-skill-pill {
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+
