@@ -13,6 +13,7 @@ import SystemLogsPage from '../features/admin/SystemLogsPage.jsx'
 import RequireAuth from './RequireAuth.jsx'
 import InternListPage from '../features/interns/InternListPage.jsx'
 import InternEditPage from '../features/interns/InternEditPage.jsx'
+import HRDashboardPage from '../features/hr/HRDashboardPage.jsx'
 
 export default function AppRoutes() {
   return (
@@ -43,7 +44,7 @@ export default function AppRoutes() {
           path="/hr/dashboard"
           element={
             <RequireAuth roles={['hr', 'admin']}>
-              <RoleHomePage roleLabel="HR" />
+              <HRDashboardPage />
             </RequireAuth>
           }
         />
