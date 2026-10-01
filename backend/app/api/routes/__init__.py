@@ -11,6 +11,7 @@ from app.api.routes import (
     mentors,
     mentor_assignments,
     programs,
+    reports,
     support_requests,
     tasks,
     weekly_reports,
@@ -26,6 +27,7 @@ api_router.include_router(interns.router)
 api_router.include_router(mentors.router)
 api_router.include_router(mentor_assignments.router)
 api_router.include_router(programs.router)
+api_router.include_router(reports.router)
 api_router.include_router(admin.router)
 api_router.include_router(admin.users_router)
 api_router.include_router(tasks.router)
