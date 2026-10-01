@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS `weekly_reports` (
     `end_date` DATE NOT NULL COMMENT 'Ngày cuối tuần',
     `title` VARCHAR(200) NOT NULL COMMENT 'Tiêu đề báo cáo tuần',
     `content` TEXT NOT NULL COMMENT 'Công việc đã thực hiện trong tuần',
+    `attachment_path` VARCHAR(500) NULL COMMENT 'Đường dẫn file đính kèm nếu có',
     `difficulties` TEXT NULL COMMENT 'Khó khăn gặp phải',
     `next_week_plan` TEXT NULL COMMENT 'Kế hoạch công việc tuần tới',
     `status` VARCHAR(20) NOT NULL DEFAULT 'submitted' COMMENT 'draft, submitted, reviewed',
