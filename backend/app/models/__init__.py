@@ -2,6 +2,7 @@ from app.models.department import Department
 from app.models.document import Document
 from app.models.intern_profile import InternProfile
 from app.models.internship_program import InternshipProgram
+from app.models.leave_request import LeaveRequest
 from app.models.notification import Notification
 from app.models.permission import Permission, RolePermission
 from app.models.program_member import ProgramMember
@@ -32,6 +33,7 @@ __all__ = [
     "Task",
     "User",
     "InternProfile",
+    "LeaveRequest",
     "InternshipProgram",
     "ProgramMember",
     "UserProfile",
