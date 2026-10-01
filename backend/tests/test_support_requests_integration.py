@@ -311,3 +311,44 @@ def test_update_non_existent_support_request_404(support_client):
     )
     assert res.status_code == 404
     assert "Không tìm thấy yêu cầu hỗ trợ" in res.json()["detail"]
+
+
+def test_support_request_document_type_round_trips(support_client):
+    _, session_factory = support_client
+
+    with session_factory() as db:
+        request = SupportRequest(
+            user_id=1,
+            title="Xin giấy xác nhận thực tập",
+            content="Em cần giấy xác nhận để nộp cho trường.",
+            category="procedure",
+            document_type="internship_confirmation",
+        )
+        db.add(request)
+        db.commit()
+        request_id = request.id
+
+    with session_factory() as db:
+        loaded_request = db.get(SupportRequest, request_id)
+        assert loaded_request is not None
+        assert loaded_request.document_type == "internship_confirmation"
+
+
+def test_support_request_document_type_defaults_to_none(support_client):
+    _, session_factory = support_client
+
+    with session_factory() as db:
+        request = SupportRequest(
+            user_id=1,
+            title="Yêu cầu hỗ trợ thủ tục",
+            content="Em cần hướng dẫn hoàn thiện hồ sơ.",
+            category="procedure",
+        )
+        db.add(request)
+        db.commit()
+        request_id = request.id
+
+    with session_factory() as db:
+        loaded_request = db.get(SupportRequest, request_id)
+        assert loaded_request is not None
+        assert loaded_request.document_type is None
