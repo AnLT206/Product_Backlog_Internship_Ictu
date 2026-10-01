@@ -6,6 +6,7 @@ from app.models.notification import Notification
 from app.models.permission import Permission, RolePermission
 from app.models.program_member import ProgramMember
 from app.models.role import Role
+from app.models.schedule import Schedule
 from app.models.system_log import SystemLog
 from app.models.attendance import Attendance
 from app.models.allowance_history import AllowanceHistory
@@ -25,6 +26,7 @@ __all__ = [
     "RolePermission",
     "Role",
     "ReportFeedback",
+    "Schedule",
     "SupportRequest",
     "SystemLog",
     "Task",
