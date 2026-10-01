@@ -39,6 +39,19 @@ class ProgramUpdateRequest(BaseModel):
         return self
 
 
+class ProgramPeriodRequest(BaseModel):
+    """Khoảng thời gian thực tập: ngày bắt đầu và ngày kết thúc."""
+
+    start_date: date
+    end_date: date
+
+    @model_validator(mode="after")
+    def end_after_start(self) -> "ProgramPeriodRequest":
+        if self.end_date <= self.start_date:
+            raise ValueError("end_date phải lớn hơn start_date.")
+        return self
+
+
 class ProgramResponse(BaseModel):
     id: int
     name: str
