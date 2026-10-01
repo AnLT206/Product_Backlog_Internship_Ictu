@@ -1,5 +1,6 @@
 from app.models.department import Department
 from app.models.document import Document
+from app.models.evaluation import Evaluation
 from app.models.intern_profile import InternProfile
 from app.models.internship_program import InternshipProgram
 from app.models.notification import Notification
@@ -20,6 +21,7 @@ __all__ = [
     "Attendance",
     "Department",
     "Document",
+    "Evaluation",
     "Notification",
     "Permission",
     "RolePermission",
