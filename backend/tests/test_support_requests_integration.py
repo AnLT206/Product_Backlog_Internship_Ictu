@@ -107,6 +107,7 @@ def test_intern_create_support_request_success(support_client):
         "title": "Hỗ trợ cấp máy tính thực tập",
         "content": "Em hiện chưa có máy tính cá nhân để thực hiện công việc dự án, xin công ty hỗ trợ thiết bị.",
         "category": "workspace",
+        "document_type": "internship_confirmation",
         "priority": "high",
     }
     response = client.post(
@@ -120,12 +121,28 @@ def test_intern_create_support_request_success(support_client):
     assert data["title"] == payload["title"]
     assert data["content"] == payload["content"]
     assert data["category"] == "workspace"
+    assert data["document_type"] == payload["document_type"]
     assert data["priority"] == "high"
     assert data["status"] == "pending"
     assert data["user_id"] == 1
     assert data["user_code"] == "TTS0001"
     assert data["user_full_name"] == "Intern One"
     assert data["response_note"] is None
+
+
+def test_support_request_invalid_document_type(support_client):
+    client, _ = support_client
+    response = client.post(
+        "/api/support-requests",
+        json={
+            "title": "Xin giấy xác nhận",
+            "content": "Em cần giấy xác nhận để nộp cho trường.",
+            "category": "procedure",
+            "document_type": "invalid_type",
+        },
+        headers=_auth(1, "intern"),
+    )
+    assert response.status_code == 400
 
 
 def test_create_support_request_validation(support_client):
@@ -232,6 +249,25 @@ def test_hr_list_all_support_requests_with_filters(support_client):
     tech_items = res_tech.json()
     assert len(tech_items) == 1
     assert tech_items[0]["category"] == "technical"
+
+
+def test_hr_view_all_support_requests_success(support_client):
+    client, _ = support_client
+    create_response = client.post(
+        "/api/support-requests",
+        json={
+            "title": "Xin giấy xác nhận thực tập",
+            "content": "Em cần giấy xác nhận để nộp cho trường.",
+            "category": "procedure",
+            "document_type": "internship_confirmation",
+        },
+        headers=_auth(1, "intern"),
+    )
+    assert create_response.status_code == 201
+
+    response = client.get("/api/support-requests", headers=_auth(3, "hr"))
+    assert response.status_code == 200
+    assert len(response.json()) == 1
 
 
 def test_hr_update_support_request_in_progress(support_client):
