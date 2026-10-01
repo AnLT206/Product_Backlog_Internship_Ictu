@@ -14,6 +14,7 @@ import RequireAuth from './RequireAuth.jsx'
 import InternListPage from '../features/interns/InternListPage.jsx'
 import InternEditPage from '../features/interns/InternEditPage.jsx'
 import InternCreatePage from '../features/interns/InternCreatePage.jsx'
+import InternDashboardPage from '../features/interns/InternDashboardPage.jsx'
 import HRDashboardPage from '../features/hr/HRDashboardPage.jsx'
 import HRLayout from '../features/hr/HRLayout.jsx'
 import ProgramListPage from '../features/programs/ProgramListPage.jsx'
@@ -75,7 +76,7 @@ export default function AppRoutes() {
           path="/intern/dashboard"
           element={
             <RequireAuth roles={['intern']}>
-              <RoleHomePage roleLabel="Thực tập sinh" />
+              <InternDashboardPage />
             </RequireAuth>
           }
         />
