@@ -13,7 +13,12 @@ import SystemLogsPage from '../features/admin/SystemLogsPage.jsx'
 import RequireAuth from './RequireAuth.jsx'
 import InternListPage from '../features/interns/InternListPage.jsx'
 import InternEditPage from '../features/interns/InternEditPage.jsx'
+import InternCreatePage from '../features/interns/InternCreatePage.jsx'
 import HRDashboardPage from '../features/hr/HRDashboardPage.jsx'
+import HRLayout from '../features/hr/HRLayout.jsx'
+import ProgramListPage from '../features/programs/ProgramListPage.jsx'
+import ProgramFormPage from '../features/programs/ProgramFormPage.jsx'
+import MentorListPage from '../features/mentors/MentorListPage.jsx'
 
 export default function AppRoutes() {
   return (
@@ -41,13 +46,23 @@ export default function AppRoutes() {
         </Route>
 
         <Route
-          path="/hr/dashboard"
+          path="/hr"
           element={
-            <RequireAuth roles={['hr', 'admin']}>
-              <HRDashboardPage />
+            <RequireAuth roles={['hr']}>
+              <HRLayout />
             </RequireAuth>
           }
-        />
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<HRDashboardPage />} />
+          <Route path="interns" element={<InternListPage />} />
+          <Route path="interns/new" element={<InternCreatePage />} />
+          <Route path="interns/:id/edit" element={<InternEditPage />} />
+          <Route path="programs" element={<ProgramListPage />} />
+          <Route path="programs/new" element={<ProgramFormPage />} />
+          <Route path="mentors" element={<MentorListPage />} />
+        </Route>
+
         <Route
           path="/mentor/dashboard"
           element={
@@ -61,24 +76,6 @@ export default function AppRoutes() {
           element={
             <RequireAuth roles={['intern']}>
               <RoleHomePage roleLabel="Thực tập sinh" />
-            </RequireAuth>
-          }
-        />
-
-        <Route
-          path="/hr/interns"
-          element={
-            <RequireAuth roles={['hr', 'admin']}>
-              <InternListPage />
-            </RequireAuth>
-          }
-        />
-
-        <Route
-          path="/hr/interns/:id/edit"
-          element={
-            <RequireAuth roles={['hr', 'admin']}>
-              <InternEditPage />
             </RequireAuth>
           }
         />

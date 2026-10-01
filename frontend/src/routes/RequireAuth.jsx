@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { dashboardPathForRole } from '../api/auth';
 
 /**
  * Bảo vệ route theo đăng nhập + role.
@@ -14,7 +15,7 @@ export default function RequireAuth({ roles, children }) {
   }
 
   if (roles?.length && !roles.includes(user.role)) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={dashboardPathForRole(user.role)} replace />;
   }
 
   return children;
