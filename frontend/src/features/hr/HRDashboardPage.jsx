@@ -33,12 +33,12 @@ export default function HRDashboardPage() {
             <Link className="hr-dash__btn hr-dash__btn--ghost" to="/hr/interns">
               Danh sách TTS
             </Link>
-            <Link className="hr-dash__btn hr-dash__btn--ghost" to="/hr/programs">
-              Chương trình
-            </Link>
-            <Link className="hr-dash__btn hr-dash__btn--ghost" to="/hr/mentors">
-              Mentor
-            </Link>
+            <button className="hr-dash__btn hr-dash__btn--ghost" disabled style={{ cursor: 'not-allowed', opacity: 0.6 }}>
+              Chương trình (Đang phát triển)
+            </button>
+            <button className="hr-dash__btn hr-dash__btn--ghost" disabled style={{ cursor: 'not-allowed', opacity: 0.6 }}>
+              Mentor (Đang phát triển)
+            </button>
           </div>
         </header>
 
