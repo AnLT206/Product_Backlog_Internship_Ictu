@@ -26,6 +26,9 @@ class SupportRequest(Base):
     category: Mapped[str] = mapped_column(
         String(50), default="other", nullable=False, index=True
     )
+    document_type: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, index=True
+    )
     priority: Mapped[str] = mapped_column(
         String(20), default="medium", nullable=False
     )
