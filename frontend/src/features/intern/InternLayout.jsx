@@ -6,10 +6,10 @@ const INTERN_NAV_ITEMS = [
   { to: '/intern/dashboard', label: 'Dashboard', permission: 'tasks_update', end: true },
   { to: '/intern/schedule', label: 'Lịch thực tập cá nhân', permission: 'schedule_view' },
   { to: '/intern/attendance', label: 'Lịch sử chấm công - nghỉ phép', permission: 'attendance_self' },
-  { to: '/intern/reports', label: 'Báo cáo tuần & Feedback', permission: 'reports_submit' },
-  { to: '/intern/allowance', label: 'Phụ cấp & Thu nhập', permission: 'allowances' },
-  { to: '/intern/support', label: 'Yêu cầu hỗ trợ (Tickets)', permission: 'support_tickets' },
-  { to: '/intern/training', label: 'Tài liệu đào tạo & Onboarding', permission: 'schedule_view' },
+  { to: '/intern/reports', label: 'Báo cáo tuần', permission: 'reports_submit' },
+  { to: '/intern/allowance', label: 'Thu nhập', permission: 'allowances' },
+  { to: '/intern/support', label: 'Trợ giúp', permission: 'support_tickets' },
+  { to: '/intern/training', label: 'Tài liệu đào tạo', permission: 'schedule_view' },
 ]
 
 const APPLICANT_NAV_ITEMS = [
