@@ -16,7 +16,7 @@ function getTodayString() {
 
 const INITIAL_LEAVE_REQUESTS = [
   {
-    id: 'NP-2026-001',
+    id: 'NP-001',
     type: 'Nghỉ thi học phần',
     startDate: '2026-09-25',
     endDate: '2026-09-25',
@@ -29,7 +29,7 @@ const INITIAL_LEAVE_REQUESTS = [
     feedback: 'Đã duyệt nghỉ phép. Chúc sinh viên thi tốt.',
   },
   {
-    id: 'NP-2026-002',
+    id: 'NP-002',
     type: 'Nghỉ việc cá nhân',
     startDate: '2026-09-12',
     endDate: '2026-09-12',
@@ -42,7 +42,7 @@ const INITIAL_LEAVE_REQUESTS = [
     feedback: 'Đã duyệt. Sau khi lên trung tâm nhớ cập nhật báo cáo tiến độ tuần.',
   },
   {
-    id: 'NP-2026-003',
+    id: 'NP-003',
     type: 'Nghỉ ốm / Khám bệnh',
     startDate: '2026-10-06',
     endDate: '2026-10-06',
@@ -294,12 +294,21 @@ export default function InternAttendancePage() {
   const [leaveRequests, setLeaveRequests] = useState(() => {
     try {
       const saved = localStorage.getItem('intern_leave_requests_v1')
-      if (saved) return JSON.parse(saved)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item) => ({
+            ...item,
+            id: item.id ? item.id.replace('2026-', '') : item.id,
+          }))
+        }
+      }
     } catch {
       // fallback
     }
     return INITIAL_LEAVE_REQUESTS
   })
+  const [selectedLeaveDetail, setSelectedLeaveDetail] = useState(null)
   const [leaveForm, setLeaveForm] = useState({
     type: 'Nghỉ thi học phần',
     startDate: '',
@@ -333,7 +342,7 @@ export default function InternAttendancePage() {
     const durationLabel = leaveForm.session.includes('Buổi') ? '0.5 ngày' : `${diffDays}.0 ngày`
 
     const newReq = {
-      id: `NP-2026-${String(leaveRequests.length + 1).padStart(3, '0')}`,
+      id: `NP-${String(leaveRequests.length + 1).padStart(3, '0')}`,
       type: leaveForm.type,
       startDate: leaveForm.startDate,
       endDate: leaveForm.endDate,
@@ -736,16 +745,15 @@ export default function InternAttendancePage() {
                   <th className="th-leave-dates">Thời gian nghỉ</th>
                   <th className="th-leave-session">Ca nghỉ</th>
                   <th className="th-leave-duration" style={{ textAlign: 'center' }}>Số ngày</th>
-                  <th className="th-leave-reason">Lý do xin nghỉ</th>
                   <th className="th-leave-created">Ngày gửi</th>
                   <th className="th-leave-status" style={{ textAlign: 'center' }}>Trạng thái</th>
-                  <th className="th-leave-approver">Người duyệt & Phản hồi</th>
+                  <th className="th-leave-approver">Người duyệt</th>
                 </tr>
               </thead>
               <tbody>
                 {leaveRequests.length === 0 ? (
                   <tr>
-                    <td colSpan="9" style={{ textAlign: 'center', padding: '36px', color: '#64748B' }}>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '36px', color: '#64748B' }}>
                       Chưa có đơn xin nghỉ phép nào được tạo.
                     </td>
                   </tr>
@@ -756,7 +764,12 @@ export default function InternAttendancePage() {
                     const sessionTime = sessionParts ? sessionParts[2] : ''
 
                     return (
-                      <tr key={req.id}>
+                      <tr
+                        key={req.id}
+                        className="leave-table-row"
+                        onClick={() => setSelectedLeaveDetail(req)}
+                        title="Nhấp để xem chi tiết đơn xin nghỉ phép"
+                      >
                         {/* Cột 1: Mã đơn */}
                         <td className="td-leave-code">
                           <span className="leave-code-badge">{req.id}</span>
@@ -789,17 +802,12 @@ export default function InternAttendancePage() {
                           <span className="leave-duration-badge">{req.duration}</span>
                         </td>
 
-                        {/* Cột 6: Lý do xin nghỉ */}
-                        <td className="td-leave-reason" title={req.reason}>
-                          <p className="leave-reason-text">{req.reason}</p>
-                        </td>
-
-                        {/* Cột 7: Ngày gửi */}
+                        {/* Cột 6: Ngày gửi */}
                         <td className="td-leave-created">
                           <span className="leave-created-date">{req.createdDate}</span>
                         </td>
 
-                        {/* Cột 8: Trạng thái */}
+                        {/* Cột 7: Trạng thái */}
                         <td className="td-leave-status" style={{ textAlign: 'center' }}>
                           {req.status === 'approved' ? (
                             <span className="att-status-badge att-status-badge--ontime">
@@ -819,13 +827,10 @@ export default function InternAttendancePage() {
                           )}
                         </td>
 
-                        {/* Cột 9: Người duyệt & Phản hồi */}
+                        {/* Cột 8: Người duyệt */}
                         <td className="td-leave-approver">
                           <div className="leave-approver-box">
                             <strong className="leave-approver-name">{req.approver}</strong>
-                            {req.feedback && (
-                              <span className="leave-approver-feedback">{req.feedback}</span>
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -1071,6 +1076,191 @@ export default function InternAttendancePage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL CHI TIẾT ĐƠN XIN NGHỈ PHÉP (Click vào đơn từ bảng lịch sử) ── */}
+      {selectedLeaveDetail && (
+        <div className="modal-overlay" onClick={() => setSelectedLeaveDetail(null)}>
+          <div
+            className="modal-container"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '580px',
+              width: '100%',
+              fontFamily: "var(--fb-font, 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif)",
+            }}
+          >
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span className="leave-code-badge" style={{ fontSize: '13.5px', padding: '3px 10px' }}>
+                  {selectedLeaveDetail.id}
+                </span>
+                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#0F172A' }}>
+                  Chi tiết đơn xin nghỉ phép
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setSelectedLeaveDetail(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Trạng thái đơn */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  backgroundColor: '#F8FAFC',
+                  borderRadius: '10px',
+                  border: '1px solid #E2E8F0',
+                }}
+              >
+                <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 600 }}>Trạng thái xử lý:</span>
+                <div>
+                  {selectedLeaveDetail.status === 'approved' ? (
+                    <span className="att-status-badge att-status-badge--ontime" style={{ fontSize: '13px' }}>
+                      <span className="att-status-badge__dot" />
+                      Đã phê duyệt
+                    </span>
+                  ) : selectedLeaveDetail.status === 'rejected' ? (
+                    <span className="att-status-badge att-status-badge--absent" style={{ fontSize: '13px' }}>
+                      <span className="att-status-badge__dot" />
+                      Từ chối
+                    </span>
+                  ) : (
+                    <span className="att-status-badge att-status-badge--late" style={{ fontSize: '13px' }}>
+                      <span className="att-status-badge__dot" />
+                      Chờ HR duyệt
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Thông tin thời gian và ca nghỉ */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '12px 16px',
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: '10px',
+                  border: '1px solid #E2E8F0',
+                  padding: '16px',
+                }}
+              >
+                <div>
+                  <span style={{ display: 'block', fontSize: '12px', color: '#64748B', marginBottom: '4px' }}>Loại nghỉ phép</span>
+                  <strong style={{ fontSize: '13.5px', color: '#0F172A' }}>{selectedLeaveDetail.type}</strong>
+                </div>
+
+                <div>
+                  <span style={{ display: 'block', fontSize: '12px', color: '#64748B', marginBottom: '4px' }}>Số ngày nghỉ</span>
+                  <span className="leave-duration-badge">{selectedLeaveDetail.duration}</span>
+                </div>
+
+                <div>
+                  <span style={{ display: 'block', fontSize: '12px', color: '#64748B', marginBottom: '4px' }}>Thời gian nghỉ</span>
+                  <strong style={{ fontSize: '13px', color: '#334155' }}>
+                    {selectedLeaveDetail.startDate === selectedLeaveDetail.endDate
+                      ? selectedLeaveDetail.startDate.split('-').reverse().join('/')
+                      : `${selectedLeaveDetail.startDate.split('-').reverse().join('/')} ➔ ${selectedLeaveDetail.endDate.split('-').reverse().join('/')}`}
+                  </strong>
+                </div>
+
+                <div>
+                  <span style={{ display: 'block', fontSize: '12px', color: '#64748B', marginBottom: '4px' }}>Ca nghỉ</span>
+                  <span style={{ fontSize: '13px', color: '#334155', fontWeight: 600 }}>{selectedLeaveDetail.session}</span>
+                </div>
+
+                <div>
+                  <span style={{ display: 'block', fontSize: '12px', color: '#64748B', marginBottom: '4px' }}>Ngày gửi đơn</span>
+                  <span style={{ fontSize: '13px', color: '#475569' }}>{selectedLeaveDetail.createdDate}</span>
+                </div>
+              </div>
+
+              {/* Chi tiết lý do xin nghỉ */}
+              <div
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: '10px',
+                  border: '1px solid #E2E8F0',
+                  padding: '16px',
+                }}
+              >
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
+                  Lý do xin nghỉ phép
+                </div>
+                <div
+                  style={{
+                    backgroundColor: '#F8FAFC',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    border: '1px solid #E2E8F0',
+                    fontSize: '13.5px',
+                    lineHeight: '1.6',
+                    color: '#334155',
+                  }}
+                >
+                  {selectedLeaveDetail.reason}
+                </div>
+              </div>
+
+              {/* Thông tin người duyệt và phản hồi */}
+              <div
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: '10px',
+                  border: '1px solid #E2E8F0',
+                  padding: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Người duyệt</span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#2563EB' }}>{selectedLeaveDetail.approver}</span>
+                </div>
+                <div
+                  style={{
+                    backgroundColor: selectedLeaveDetail.status === 'approved' ? '#F0FDF4' : selectedLeaveDetail.status === 'rejected' ? '#FEF2F2' : '#FEFCE8',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    border: `1px solid ${selectedLeaveDetail.status === 'approved' ? '#BBF7D0' : selectedLeaveDetail.status === 'rejected' ? '#FECACA' : '#FEF08A'}`,
+                    fontSize: '13px',
+                    lineHeight: '1.5',
+                    color: selectedLeaveDetail.status === 'approved' ? '#166534' : selectedLeaveDetail.status === 'rejected' ? '#991B1B' : '#854D0E',
+                  }}
+                >
+                  {selectedLeaveDetail.feedback ? (
+                    <div>
+                      <strong style={{ display: 'block', marginBottom: '3px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                        Phản hồi từ người duyệt:
+                      </strong>
+                      <span style={{ fontStyle: 'italic' }}>{selectedLeaveDetail.feedback}</span>
+                    </div>
+                  ) : (
+                    <span style={{ fontStyle: 'italic', color: '#64748B' }}>Chưa có phản hồi từ người duyệt.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ borderTop: '1px solid #F1F5F9', padding: '14px 20px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="intern-btn intern-btn--primary"
+                onClick={() => setSelectedLeaveDetail(null)}
+                style={{ minWidth: '95px', justifyContent: 'center' }}
+              >
+                Đóng
+              </button>
+            </div>
           </div>
         </div>
       )}
