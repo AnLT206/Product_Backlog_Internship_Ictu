@@ -61,9 +61,9 @@ export default function HrLayout() {
       ]}
       showNotifications={false}
       showTopbarUser={false}
-      avatarText="TM"
+      avatarText="HR"
       userCardMeta="HR Manager • Ban HTDN"
-      defaultUserName="Trần Thị Mai"
+      defaultUserName="HR"
     >
       <Outlet />
     </EnterpriseAppShell>

@@ -231,7 +231,7 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
               <Clock size={14} />
               <span>{isContractConfirmed ? 'Đã hoàn tất thủ tục tiếp nhận' : 'Đang trong quá trình xét duyệt'}</span>
             </div>
-            <h2>Xin chào, {user?.full_name || 'Nguyễn Văn An'}</h2>
+            <h2>Xin chào, {user?.full_name || 'Ứng viên'}</h2>
             <p>
               Hồ sơ ứng tuyển vị trí <strong>Frontend Developer Intern</strong> của bạn đang được Bộ phận Tuyển dụng & Đào tạo xem xét. Vui lòng theo dõi tiến trình và cập nhật thông tin bên dưới.
             </p>

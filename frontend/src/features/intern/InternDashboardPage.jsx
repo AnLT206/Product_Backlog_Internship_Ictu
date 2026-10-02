@@ -466,7 +466,7 @@ export default function InternDashboardPage() {
             updateUser({
               status: 'active',
               code: 'TTS0002',
-              full_name: user?.full_name || 'Nguyễn Văn Bình',
+              full_name: user?.full_name || 'TTS',
             })
           }
           showToast('Ký hợp đồng thành công! Chào mừng bạn gia nhập hệ thống thực tập sinh chính thức.')

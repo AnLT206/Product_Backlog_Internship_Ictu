@@ -36,13 +36,14 @@ export default function InternLayout() {
       breadcrumbs={[
         {
           label: isApplicant
-            ? `Tiến trình xét tuyển hồ sơ - Ứng viên ${user?.full_name || 'Nguyễn Văn An'}`
-            : `Không gian làm việc cá nhân - TTS ${user?.full_name || 'Nguyễn Văn Bình'}`,
+            ? `Tiến trình xét tuyển hồ sơ - ${user?.full_name || 'Ứng viên'}`
+            : `Không gian làm việc cá nhân - ${user?.full_name || 'TTS'}`,
         },
       ]}
       showNotifications={false}
       showTopbarUser={false}
-      avatarText={isApplicant ? 'NA' : 'NB'}
+      avatarText={isApplicant ? 'UV' : 'TTS'}
+      defaultUserName={isApplicant ? 'Ứng viên' : 'TTS'}
       userCardMeta={
         isApplicant
           ? 'Mã UV: TTS9999 · K20-CNTT'

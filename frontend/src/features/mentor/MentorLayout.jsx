@@ -23,9 +23,9 @@ export default function MentorLayout() {
       breadcrumbs={[{ label: 'Quản lý & Hướng dẫn Thực tập' }]}
       showNotifications={false}
       showTopbarUser={false}
-      avatarText="MB"
+      avatarText="ME"
       userCardMeta="Senior Tech Lead • Khoa CNTT"
-      defaultUserName="Trần Hoàng Quân"
+      defaultUserName="Mentor"
     >
       <Outlet />
     </EnterpriseAppShell>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useAuth } from '../../context/AuthContext'
 import './InternDashboardPage.css'
 import './InternSupportPage.css'
 
@@ -79,6 +80,7 @@ const INITIAL_TICKETS = [
 ]
 
 export default function InternSupportPage() {
+  const { user } = useAuth()
   const [tickets, setTickets] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
@@ -725,7 +727,7 @@ export default function InternSupportPage() {
               <div className="spt-detail-block">
                 <h4>Thông tin xử lý</h4>
                 <div className="spt-detail-grid">
-                  <div><strong>Người gửi:</strong> Nguyễn Văn Bình (TTS0002)</div>
+                  <div><strong>Người gửi:</strong> {user?.full_name || 'TTS'} ({user?.code || 'TTS0002'})</div>
                   <div><strong>Thời gian gửi:</strong> {selectedTicket.createdAt}</div>
                   <div><strong>Mức ưu tiên:</strong> {selectedTicket.priorityLabel}</div>
                   <div><strong>Số bản yêu cầu:</strong> {selectedTicket.copies} bản</div>

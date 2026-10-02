@@ -13,7 +13,7 @@ const AuthContext = createContext(null);
 export const DEMO_PROFILES = {
   intern: {
     id: 1,
-    full_name: 'Nguyễn Văn Bình',
+    full_name: 'TTS',
     code: 'TTS0002',
     email: 'intern@ictu.edu.vn',
     role: 'intern',
@@ -23,7 +23,7 @@ export const DEMO_PROFILES = {
   },
   applicant: {
     id: 5,
-    full_name: 'Nguyễn Văn An',
+    full_name: 'Ứng viên',
     code: 'TTS9999',
     email: 'ungvien@ictu.edu.vn',
     role: 'intern',
@@ -33,7 +33,7 @@ export const DEMO_PROFILES = {
   },
   mentor: {
     id: 2,
-    full_name: 'Trần Hoàng Quân',
+    full_name: 'Mentor',
     email: 'mentor@ictu.edu.vn',
     role: 'mentor',
     status: 'active',
@@ -41,24 +41,57 @@ export const DEMO_PROFILES = {
   },
   hr: {
     id: 3,
-    full_name: 'Cán bộ Nhân sự HR',
+    full_name: 'HR',
     email: 'hr@ictu.edu.vn',
     role: 'hr',
     status: 'active',
   },
   admin: {
     id: 4,
-    full_name: 'System Admin',
+    full_name: 'Admin',
     email: 'admin@ictu.edu.vn',
     role: 'admin',
     status: 'active',
   },
 };
 
+export function normalizeUserName(u) {
+  if (!u) return u;
+  const clone = { ...u };
+  const role = clone.role;
+  const email = (clone.email || '').toLowerCase();
+  const code = clone.code || '';
+  const isApplicant =
+    clone.status === 'pending' ||
+    email.includes('ungvien') ||
+    code === 'TTS9999' ||
+    code === 'TTS0003';
+
+  if (role === 'admin' || email.includes('admin')) {
+    clone.full_name = 'Admin';
+  } else if (role === 'hr' || email.includes('hr')) {
+    clone.full_name = 'HR';
+  } else if (role === 'mentor' || email.includes('mentor')) {
+    clone.full_name = 'Mentor';
+  } else if (isApplicant) {
+    clone.full_name = 'Ứng viên';
+  } else if (role === 'intern' || email.includes('intern')) {
+    clone.full_name = 'TTS';
+  }
+  return clone;
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const stored = readStoredUser();
-    if (stored) return stored;
+    if (stored) {
+      const normalized = normalizeUserName(stored);
+      saveSession({
+        access_token: stored.access_token || localStorage.getItem('access_token') || 'demo-enterprise-token',
+        user: normalized,
+      });
+      return normalized;
+    }
     // Default demo session for immediate preview
     const demo = DEMO_PROFILES.intern;
     saveSession({ access_token: 'demo-enterprise-token', user: demo });
@@ -70,9 +103,10 @@ export function AuthProvider({ children }) {
     try {
       const { ok, status, data } = await loginRequest({ email, password });
       if (ok && data?.user) {
-        saveSession({ access_token: data.access_token, user: data.user });
-        setUser(data.user);
-        return { ok: true, status, user: data.user };
+        const normalized = normalizeUserName(data.user);
+        saveSession({ access_token: data.access_token, user: normalized });
+        setUser(normalized);
+        return { ok: true, status, user: normalized };
       }
     } catch {
       // offline fallback
@@ -109,7 +143,7 @@ export function AuthProvider({ children }) {
   const updateUser = useCallback((patch) => {
     setUser((prev) => {
       if (!prev) return prev;
-      const updated = { ...prev, ...patch };
+      const updated = normalizeUserName({ ...prev, ...patch });
       saveSession({
         access_token: localStorage.getItem('access_token') || 'demo-enterprise-token',
         user: updated,
@@ -139,14 +173,14 @@ export function AuthProvider({ children }) {
         setUser(null);
         return null;
       }
-      const nextUser = {
+      const nextUser = normalizeUserName({
         id: data.id,
         email: data.email,
         full_name: data.full_name,
         role: data.role,
         status: data.status,
         code: data.code,
-      };
+      });
       saveSession({ access_token: token, user: nextUser });
       setUser(nextUser);
       return nextUser;

@@ -71,7 +71,7 @@ def run_reset():
             code="AD0001",
             email="admin@ictu.edu.vn",
             password_hash=hash_password("Admin@123"),
-            full_name="System Admin",
+            full_name="Admin",
             role_id=admin_role.id,
             status="active"
         )
@@ -83,7 +83,7 @@ def run_reset():
             code="HR0001",
             email="hr@ictu.edu.vn",
             password_hash=hash_password("Hr@123"),
-            full_name="Trần Thị Mai",
+            full_name="HR",
             role_id=hr_role.id,
             status="active"
         )
@@ -95,7 +95,7 @@ def run_reset():
             code="MT0001",
             email="mentor@ictu.edu.vn",
             password_hash=hash_password("Mentor@123"),
-            full_name="Trần Hoàng Quân",
+            full_name="Mentor",
             role_id=mentor_role.id,
             status="active"
         )
@@ -118,7 +118,7 @@ def run_reset():
             code="TTS0001",
             email="intern@ictu.edu.vn",
             password_hash=hash_password("Intern@123"),
-            full_name="Nguyễn Văn Bình",
+            full_name="TTS",
             role_id=intern_role.id,
             status="active"
         )
@@ -141,7 +141,7 @@ def run_reset():
             code="TTS0003",
             email="ungvien@ictu.edu.vn",
             password_hash=hash_password("Intern@123"),
-            full_name="Nguyễn Văn An",
+            full_name="Ứng viên",
             role_id=intern_role.id,
             status="pending"
         )

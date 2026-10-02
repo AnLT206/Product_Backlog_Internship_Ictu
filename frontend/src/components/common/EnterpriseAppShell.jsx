@@ -136,13 +136,13 @@ export default function EnterpriseAppShell({
           <div className={`user-profile-card ${adminUserCard ? 'user-profile-card--admin' : ''}`}>
             <div className="user-avatar-wrap">
               <div className={`user-avatar ${adminUserCard ? 'user-avatar--admin' : ''}`}>
-                {adminUserCard ? 'G' : (avatarText || (defaultUserName || user?.full_name || user?.email || 'U').charAt(0).toUpperCase())}
+                {avatarText || (adminUserCard ? 'AD' : (user?.full_name || defaultUserName || user?.email || 'U').charAt(0).toUpperCase())}
               </div>
               {!adminUserCard && <span className="user-status-dot" title="Đang trực tuyến" />}
             </div>
             <div className="user-info">
-              <span className="user-name" title={defaultUserName || user?.full_name}>
-                {defaultUserName || user?.full_name || 'Người dùng ICTU'}
+              <span className="user-name" title={user?.full_name || defaultUserName}>
+                {user?.full_name || defaultUserName || 'Người dùng ICTU'}
               </span>
               <span className={`user-role-tag ${adminUserCard ? 'user-role-tag--blue' : ''}`} title={userCardMeta}>
                 {userCardMeta || (

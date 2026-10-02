@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useAuth } from '../../context/AuthContext'
 import './InternDashboardPage.css'
 import './InternAllowancePage.css'
 
@@ -117,6 +118,7 @@ function formatVND(amount) {
 }
 
 export default function InternAllowancePage() {
+  const { user } = useAuth()
   const [data] = useState(INITIAL_ALLOWANCE_DATA)
   const [filterYear, setFilterYear] = useState('2026')
   const [filterMonth, setFilterMonth] = useState('all')
@@ -535,12 +537,12 @@ export default function InternAllowancePage() {
               {/* Intern Information Box */}
               <div className="alw-slip-intern-box">
                 <div className="alw-slip-info-col">
-                  <div><strong>Họ và tên:</strong> Nguyễn Văn Bình</div>
+                  <div><strong>Họ và tên:</strong> {user?.full_name || 'TTS'}</div>
                   <div><strong>Mã TTS:</strong> TTS0002</div>
                   <div><strong>Vị trí:</strong> Thực tập sinh Fullstack / React-FastAPI</div>
                 </div>
                 <div className="alw-slip-info-col">
-                  <div><strong>Mentor phụ trách:</strong> Trần Hoàng Quân</div>
+                  <div><strong>Mentor phụ trách:</strong> Mentor</div>
                   <div><strong>Phòng ban:</strong> Ban Đào tạo & Dự án Doanh nghiệp</div>
                   <div><strong>Trạng thái:</strong> {selectedSlip.statusLabel}</div>
                 </div>

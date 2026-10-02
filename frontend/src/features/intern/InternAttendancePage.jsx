@@ -25,7 +25,7 @@ const INITIAL_LEAVE_REQUESTS = [
     reason: 'Thi kết thúc học phần Cơ sở dữ liệu nâng cao tại trường Đại học CNTT & TT (ICTU).',
     createdDate: '24/09/2026',
     status: 'approved',
-    approver: 'Cán bộ HR Nguyễn Thị Mai',
+    approver: 'HR Trần Thị Mai',
     feedback: 'Đã duyệt nghỉ phép. Chúc sinh viên thi tốt.',
   },
   {
@@ -300,6 +300,10 @@ export default function InternAttendancePage() {
           return parsed.map((item) => ({
             ...item,
             id: item.id ? item.id.replace('2026-', '') : item.id,
+            approver:
+              item.approver && (item.approver.includes('Cán bộ HR') || item.approver.includes('Nguyễn Thị Mai'))
+                ? 'HR Trần Thị Mai'
+                : item.approver,
           }))
         }
       }

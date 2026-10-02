@@ -29,11 +29,11 @@ export default function AdminLayout() {
         { label: 'Admin Console' },
         { label: currentLabel },
       ]}
-      avatarText="SA"
+      avatarText="AD"
       adminUserCard={true}
       showNotifications={true}
       showTopbarUser={true}
-      defaultUserName="admin@ictu.edu.vn"
+      defaultUserName="Admin"
       userCardMeta="Root Administrator"
     >
       <Outlet />
