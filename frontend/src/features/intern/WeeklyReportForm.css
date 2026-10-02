@@ -1,0 +1,99 @@
+/* WeeklyReportForm.css - Styles cho Modal & Form nộp báo cáo */
+
+.wrf-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #E2E8F0;
+  box-sizing: border-box;
+}
+
+.wrf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: var(--fb-font, "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  box-sizing: border-box;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* Nút Đóng */
+.wrf-btn-cancel {
+  background-color: #FFFFFF;
+  color: #475569;
+  border: 1.5px solid #CBD5E1;
+  min-width: 105px;
+  padding: 0 20px;
+}
+
+.wrf-btn-cancel:hover:not(:disabled) {
+  background-color: #F1F5F9;
+  border-color: #94A3B8;
+  color: #0F172A;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.wrf-btn-cancel:active:not(:disabled) {
+  background-color: #E2E8F0;
+  transform: translateY(1px);
+}
+
+/* Nút Nộp Báo Cáo */
+.wrf-btn-submit {
+  background-color: #2563EB;
+  color: #FFFFFF;
+  border: 1px solid #1D4ED8;
+  min-width: 145px;
+  padding: 0 24px;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.wrf-btn-submit:hover:not(:disabled) {
+  background-color: #1D4ED8;
+  border-color: #1E40AF;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  transform: translateY(-1px);
+}
+
+.wrf-btn-submit:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.wrf-btn:focus-visible {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
+
+.wrf-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.wrf-btn-submit:disabled {
+  background-color: #93C5FD;
+  border-color: #93C5FD;
+}
+
+@media (max-width: 640px) {
+  .wrf-action-row {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+  .wrf-btn {
+    width: 100%;
+  }
+}

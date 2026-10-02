@@ -747,7 +747,7 @@ export default function MentorDashboardPage() {
                   </td>
                   <td>
                     <span className={`status-badge status-badge--${task.status === 'done' ? 'success' : 'primary'}`}>
-                      {task.status === 'done' ? 'Hoàn thành' : 'Đang thực hiện'}
+                      {task.status === 'done' ? 'Hoàn thành' : 'Đang làm việc'}
                     </span>
                   </td>
                   <td style={{ textAlign: 'center' }}>

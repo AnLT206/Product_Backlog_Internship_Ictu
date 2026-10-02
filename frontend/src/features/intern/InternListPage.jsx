@@ -44,15 +44,6 @@ function initials(full_name) {
 }
 
 /* ─────────────────────────────────────────────
-   Helper: status label tiếng Việt
-───────────────────────────────────────────── */
-const STATUS_LABEL = {
-  pending:  'Chờ duyệt',
-  active:   'Đã duyệt',
-  inactive: 'Từ chối',
-};
-
-/* ─────────────────────────────────────────────
    Component
 ───────────────────────────────────────────── */
 

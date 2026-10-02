@@ -22,7 +22,6 @@ import {
   Sparkles,
   ZoomIn,
   ZoomOut,
-  Maximize2,
   Mail,
   X,
 } from 'lucide-react'

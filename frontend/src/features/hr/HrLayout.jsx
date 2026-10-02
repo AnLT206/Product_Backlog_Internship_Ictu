@@ -1,12 +1,4 @@
 import { Outlet, useLocation } from 'react-router-dom'
-import {
-  Users,
-  Briefcase,
-  UserCheck,
-  Calendar,
-  Lock,
-  FileSpreadsheet,
-} from 'lucide-react'
 import EnterpriseAppShell from '../../components/common/EnterpriseAppShell'
 import './HrLayout.css'
 
@@ -14,7 +6,6 @@ const HR_NAV_ITEMS = [
   {
     to: '/hr/dashboard',
     label: 'Xét duyệt hồ sơ & Tuyển dụng',
-    icon: Users,
     badge: '1',
     permission: 'interns_view',
     end: true,
@@ -22,7 +13,6 @@ const HR_NAV_ITEMS = [
   {
     to: '/hr/programs',
     label: 'Quản lý Kỳ thực tập',
-    icon: Briefcase,
     badge: 'Q3/2026',
     badgeClass: 'badge--cyan',
     permission: 'programs_manage',
@@ -30,27 +20,23 @@ const HR_NAV_ITEMS = [
   {
     to: '/hr/mentors',
     label: 'Phân công & Ghép cặp Mentor',
-    icon: UserCheck,
     badge: '2/2',
     permission: 'programs_assign',
   },
   {
     to: '/hr/attendance',
     label: 'Tổng hợp công & Phụ cấp',
-    icon: Calendar,
     hasDot: true,
     permission: 'attendance_hr',
   },
   {
     to: '/hr/contracts',
     label: 'Hợp đồng thực tập & Tiếp nhận',
-    icon: Lock,
     permission: 'allowances',
   },
   {
     to: '/hr/reports',
     label: 'Báo cáo gửi Nhà trường',
-    icon: FileSpreadsheet,
     permission: 'stats_view',
   },
 ]
@@ -67,9 +53,6 @@ export default function HrLayout() {
       portalName="Tuyển dụng & Điều phối TTS"
       logoTitle="ICTU HR Hub"
       logoSubtitle="Hệ sinh thái Tuyển dụng & Điều phối TTS"
-      portalTagPrefix="PHÂN HỆ NGHIỆP VỤ"
-      portalTag="Quản lý Nhân sự & Tiếp nhận"
-      showPortalTagBox={true}
       sidebarSectionLabel="QUẢN LÝ NHÂN SỰ & TUYỂN DỤNG"
       navItems={HR_NAV_ITEMS}
       breadcrumbs={[

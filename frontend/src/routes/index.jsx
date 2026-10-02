@@ -27,7 +27,15 @@ import MentorLayout from '../features/mentor/MentorLayout.jsx'
 import MentorDashboardPage from '../features/mentor/MentorDashboardPage.jsx'
 import InternLayout from '../features/intern/InternLayout.jsx'
 import InternDashboardPage from '../features/intern/InternDashboardPage.jsx'
+import InternAttendancePage from '../features/intern/InternAttendancePage.jsx'
+import InternReportsPage from '../features/intern/InternReportsPage.jsx'
+import InternTrainingPage from '../features/intern/InternTrainingPage.jsx'
 import InternUploadPage from '../features/intern/InternUploadPage.jsx'
+import WeeklyReportForm from '../features/intern/WeeklyReportForm.jsx'
+import InternSchedulePage from '../features/intern/InternSchedulePage.jsx'
+import InternAllowancePage from '../features/intern/InternAllowancePage.jsx'
+import InternSupportPage from '../features/intern/InternSupportPage.jsx'
+
 
 export default function AppRoutes() {
   return (
@@ -106,8 +114,17 @@ export default function AppRoutes() {
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<InternDashboardPage />} />
+          <Route path="tasks" element={<Navigate to="/intern/dashboard" replace />} />
+          <Route path="schedule" element={<InternSchedulePage />} />
+          <Route path="attendance" element={<InternAttendancePage />} />
+          <Route path="reports" element={<InternReportsPage />} />
+          <Route path="allowance" element={<InternAllowancePage />} />
+          <Route path="support" element={<InternSupportPage />} />
+          <Route path="training" element={<InternTrainingPage />} />
           <Route path="upload" element={<InternUploadPage />} />
+          <Route path="report" element={<WeeklyReportForm />} />
         </Route>
+
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

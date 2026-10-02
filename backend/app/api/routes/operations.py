@@ -1,10 +1,10 @@
-from __future__ import annotations
-
+from datetime import datetime
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session, joinedload
 
-from app.api.deps import get_db, require_roles
+
+from app.api.deps import get_current_user, get_db, require_roles
 from app.models.user import User
 from app.models.intern_profile import InternProfile
 from app.models.program_member import ProgramMember
@@ -20,6 +20,7 @@ from app.schemas.operations import (
     ReportGradeRequest,
     EvaluationSaveRequest,
     ContractCreateRequest,
+    InternReportCreateRequest,
 )
 
 router = APIRouter(tags=["operations"])
@@ -210,6 +211,97 @@ def grade_report(report_id: int, payload: ReportGradeRequest, db: Session = Depe
         "status": report.status,
         "detail": "Đã lưu kết quả chấm điểm báo cáo tuần vào CSDL thành công.",
     }
+
+
+@router.post("/intern/reports", dependencies=[Depends(require_roles("intern", "admin", "hr", "mentor"))])
+def submit_intern_report(
+    payload: InternReportCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Thực tập sinh nộp báo cáo tuần vào CSDL."""
+    now_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+    report = InternReport(
+        intern_id=current_user.id,
+        week_title=payload.week_title,
+        period=f"{payload.week_title} (Năm học 2026)",
+        submitted_at=now_str,
+        tasks_done=payload.content,
+        issues="Không có khó khăn lớn",
+        self_assessment="Tốt",
+        status="pending",
+    )
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+
+    return {
+        "id": report.id,
+        "week_title": report.week_title,
+        "week_range": f"{report.week_title} (Năm học 2026)",
+        "submitted_at": report.submitted_at,
+        "summary": report.tasks_done,
+        "tasks_done": report.tasks_done,
+        "issues": report.issues or "Không có",
+        "plan": "Tiếp tục thực hiện nhiệm vụ Sprint theo kế hoạch",
+        "status": report.status,
+        "file_name": payload.file_name,
+        "message": f"Nộp báo cáo {payload.week_title} thành công!",
+    }
+
+
+@router.post("/intern/weekly-reports")
+async def submit_intern_weekly_reports_form(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Hỗ trợ nộp báo cáo tuần bằng FormData hoặc JSON."""
+    content_type = request.headers.get("content-type", "")
+    if "multipart/form-data" in content_type or "application/x-www-form-urlencoded" in content_type:
+        form = await request.form()
+        week_val = str(form.get("report_time") or form.get("week") or datetime.now().strftime("%d/%m/%Y %H:%M"))
+        content_val = str(form.get("content") or "")
+        file_obj = form.get("file")
+        file_name = getattr(file_obj, "filename", None) if file_obj else None
+    else:
+        try:
+            body = await request.json()
+            week_val = str(body.get("report_time") or body.get("week") or body.get("week_title") or datetime.now().strftime("%d/%m/%Y %H:%M"))
+            content_val = body.get("content") or ""
+            file_name = body.get("file_name")
+        except Exception:
+            week_val = datetime.now().strftime("%d/%m/%Y %H:%M")
+            content_val = ""
+            file_name = None
+
+    now_str = datetime.now().strftime("%d/%m/%Y %H:%M")
+    report = InternReport(
+        intern_id=1,
+        week_title=week_val,
+        period=f"Báo cáo: {week_val}",
+        submitted_at=now_str,
+        tasks_done=content_val,
+        issues="Không có khó khăn lớn",
+        self_assessment="Tốt",
+        status="pending",
+    )
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+
+    return {
+        "id": report.id,
+        "week": report.week_title,
+        "submittedDate": now_str,
+        "contentSummary": report.tasks_done,
+        "fileName": file_name or "BaoCao.pdf",
+        "fileSize": "1.2 MB",
+        "status": "Chờ duyệt",
+        "message": f"Nộp báo cáo {week_val} thành công!",
+    }
+
+
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -5,10 +5,8 @@ import {
   Menu,
   X,
   Bell,
-  Calendar,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
-import { useSystemSettings } from '../../context/SystemSettingsContext'
 import { hasPermission } from '../../hooks/usePermission'
 import logoApp from '../../assets/logo_app.png'
 import './EnterpriseAppShell.css'
@@ -16,31 +14,24 @@ import './EnterpriseAppShell.css'
 export default function EnterpriseAppShell({
   children,
   portalName = 'ICTU Portal',
-  portalTag = 'SaaS Portal',
-  portalTagPrefix = 'PHÂN HỆ',
   logoTitle = 'ICTU Portal',
   logoSubtitle = 'Quản lý Thực tập',
   navItems = [],
   breadcrumbs = [],
   customBreadcrumbs,
-  periodInfo,
   topbarActions,
   userCardMeta,
   defaultUserName,
   avatarText,
   statusBadge,
   sidebarSectionLabel = 'CHỨC NĂNG CHÍNH',
-  showPortalTagBox = false,
   adminUserCard = false,
   showNotifications = false,
   showTopbarUser = false,
 }) {
   const { user, logout } = useAuth()
-  const { settings } = useSystemSettings()
   const navigate = useNavigate()
   const location = useLocation()
-
-  const effectivePeriod = periodInfo ?? settings?.current_semester ?? 'Q3/2026'
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
@@ -109,21 +100,10 @@ export default function EnterpriseAppShell({
           <div className="sidebar-brand__text">
             <div className="sidebar-brand__title-row">
               <span className="sidebar-brand__title">{logoTitle}</span>
-              {!showPortalTagBox && <span className="sidebar-brand__badge">{portalTag}</span>}
             </div>
             <span className="sidebar-brand__sub">{logoSubtitle}</span>
           </div>
         </div>
-
-        {showPortalTagBox && (
-          <div className="sidebar-tag-panel">
-            <span className="tag-panel-label">{portalTagPrefix}</span>
-            <span className="tag-panel-badge tag-panel-badge-active">
-              <span className="tag-panel-dot" />
-              {portalTag}
-            </span>
-          </div>
-        )}
 
         {/* Menu chính */}
         <div className="sidebar-content">
@@ -132,7 +112,6 @@ export default function EnterpriseAppShell({
             {navItems
               .filter((item) => !item.permission || hasPermission(user, item.permission))
               .map((item) => {
-                const Icon = item.icon
                 const active = isItemActive(item)
                 return (
                   <Link
@@ -141,7 +120,6 @@ export default function EnterpriseAppShell({
                     className={`sidebar-nav-item ${active ? 'is-active' : ''}`}
                     title={item.label}
                   >
-                    {Icon && <Icon className="sidebar-nav-icon" size={18} />}
                     <span className="sidebar-nav-label">{item.label}</span>
                     {item.badge !== undefined && (
                       <span className={`sidebar-nav-pill ${item.badgeClass || ''}`}>{item.badge}</span>
@@ -226,13 +204,6 @@ export default function EnterpriseAppShell({
 
           <div className="topbar-right">
             {statusBadge && statusBadge}
-
-            {effectivePeriod && (
-              <div className="semester-badge">
-                <Calendar size={13} className="semester-icon" />
-                <span>{effectivePeriod}</span>
-              </div>
-            )}
 
             {topbarActions && (
               <div className="topbar-custom-actions">

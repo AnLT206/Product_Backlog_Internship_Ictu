@@ -1,0 +1,642 @@
+/* ==========================================================================
+   InternAllowancePage.css — Styling for Intern Allowance History & Income
+   ========================================================================== */
+
+.intern-allowance-page {
+  padding-bottom: 3rem;
+}
+
+/* ── KPI Summary Grid ── */
+.alw-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .alw-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .alw-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.alw-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.alw-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.alw-kpi-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.alw-kpi-icon-wrap.green {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.alw-kpi-icon-wrap.blue {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.alw-kpi-icon-wrap.amber {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.alw-kpi-icon-wrap.purple {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.alw-kpi-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.alw-kpi-label {
+  font-size: 0.8125rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.alw-kpi-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.alw-kpi-value .unit {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.alw-kpi-value-bank {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alw-kpi-sub {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+/* ── Main Data Card ── */
+.alw-main-card {
+  padding: 1.5rem;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+/* ── Filter Bar ── */
+.alw-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 1rem;
+}
+
+.alw-filter-controls {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.alw-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.alw-filter-item label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.alw-select {
+  height: 38px;
+  padding: 0 0.875rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: #f8fafc;
+  color: #1e293b;
+  font-size: 0.875rem;
+  outline: none;
+  transition: all 0.2s;
+  min-width: 140px;
+}
+
+.alw-select:focus {
+  border-color: #2563eb;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.alw-search-wrap {
+  min-width: 220px;
+}
+
+.alw-search-input-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 0.75rem;
+  height: 38px;
+  transition: all 0.2s;
+}
+
+.alw-search-input-box:focus-within {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.alw-search-input-box svg {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.alw-search-input-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.875rem;
+  color: #1e293b;
+  width: 100%;
+}
+
+.alw-count-badge {
+  font-size: 0.8125rem;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 0.5rem 0.875rem;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+/* ── Table Styling ── */
+.alw-table-wrapper {
+  overflow-x: auto;
+  margin: 0.5rem 0 1rem;
+}
+
+.alw-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+  color: #1e293b;
+}
+
+.alw-table th {
+  background: #f8fafc;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 2px solid #e2e8f0;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.alw-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.alw-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.alw-period-title {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.alw-period-code {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.125rem;
+}
+
+.alw-workdays-badge {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #334155;
+}
+
+.alw-bonus-text {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.alw-net-amount {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.alw-date-text {
+  font-size: 0.8125rem;
+  color: #334155;
+}
+
+.alw-tx-code {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-family: monospace;
+}
+
+/* Status badges */
+.alw-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.badge-paid {
+  background: #ecfdf5;
+  color: #059669;
+}
+.dot-paid {
+  background: #10b981;
+}
+
+.badge-processing {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.dot-processing {
+  background: #3b82f6;
+}
+
+.badge-pending {
+  background: #fefce8;
+  color: #ca8a04;
+}
+.dot-pending {
+  background: #eab308;
+}
+
+.alw-btn-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.alw-btn-view:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #2563eb;
+}
+
+/* ── Pagination ── */
+.alw-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.alw-page-info {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.alw-page-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.alw-page-btn {
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+}
+
+.alw-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.alw-page-number {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+
+.alw-page-number.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* ── Payslip Modal ── */
+.alw-slip-modal {
+  max-width: 680px;
+  width: 95%;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.alw-slip-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #f8fafc;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+.alw-slip-org-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #2563eb;
+  background: #dbeafe;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.alw-slip-org h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.alw-slip-org p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.alw-slip-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.alw-slip-intern-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.8125rem;
+  color: #334155;
+  line-height: 1.6;
+}
+
+.alw-slip-breakdown {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.alw-slip-breakdown h4 {
+  margin: 0 0 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.alw-slip-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.625rem 0;
+  border-bottom: 1px dashed #e2e8f0;
+  font-size: 0.875rem;
+  color: #334155;
+}
+
+.alw-slip-item-row.bonus-highlight {
+  background: #f0fdf4;
+  padding: 0.625rem 0.5rem;
+  border-radius: 6px;
+  border-bottom: none;
+  margin: 0.25rem 0;
+}
+
+.alw-slip-note {
+  font-size: 0.75rem;
+  color: #16a34a;
+  margin-top: 0.125rem;
+}
+
+.alw-sub-calc {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.alw-slip-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0 0.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.alw-slip-total-amount {
+  font-size: 1.25rem;
+  color: #059669;
+}
+
+.alw-slip-bank-info {
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  font-size: 0.8125rem;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.alw-slip-signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  text-align: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.alw-sig-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.alw-sig-title {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.alw-sig-space {
+  height: 55px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.digital-stamp {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #dc2626;
+  border: 2px dashed #dc2626;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  transform: rotate(-5deg);
+}
+
+.alw-sig-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #0f172a;
+}
+
+.alw-sig-role {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.alw-slip-footer {
+  padding: 1rem 1.5rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+/* Loading & Empty states */
+.alw-loading-state,
+.alw-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.alw-empty-state svg {
+  color: #cbd5e1;
+  margin-bottom: 1rem;
+}
+
+.alw-empty-state h3 {
+  color: #1e293b;
+  font-size: 1.125rem;
+  margin: 0 0 0.5rem;
+}
+
+.alw-empty-state p {
+  font-size: 0.875rem;
+  max-width: 420px;
+  margin: 0 0 1.25rem;
+}

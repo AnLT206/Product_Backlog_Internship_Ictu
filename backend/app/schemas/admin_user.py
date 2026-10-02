@@ -7,7 +7,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 AdminManagedRole = Literal["hr", "mentor", "intern", "admin"]
-AdminCreateRole = Literal["hr", "mentor", "intern", "admin"]
+AdminCreateRole = Literal["hr", "mentor", "intern"]
 UserStatus = Literal["active", "inactive", "pending"]
 
 

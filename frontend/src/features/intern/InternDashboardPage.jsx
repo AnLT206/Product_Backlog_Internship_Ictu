@@ -1,24 +1,72 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import {
-  Calendar,
-  Clock,
-  FileText,
-  CheckCircle2,
-  Star,
-  Search,
-  Download,
-  Plus,
-  TrendingUp,
-  Award,
-  DollarSign,
-  ShieldCheck,
-  CheckSquare,
-  MessageSquare,
-} from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import InternApplicantDashboard from './InternApplicantDashboard'
+import TaskProgressModal from './components/TaskProgressModal'
 import './InternDashboardPage.css'
+
+function generateTagsFromTitle(title) {
+  if (!title) return ['Sprint 1', 'Kỹ thuật']
+  const lower = title.toLowerCase().trim()
+  const tags = ['Sprint 1']
+
+  const rules = [
+    {
+      keywords: ['giao diện', 'ui', 'ux', 'frontend', 'figma', 'màn hình', 'trang', 'layout', 'css', 'react', 'dashboard', 'form', 'component', 'giao dien', 'view', 'modal', 'popup', 'menu'],
+      tag: 'Frontend',
+    },
+    {
+      keywords: ['api', 'backend', 'fastapi', 'rest', 'csdl', 'database', 'sql', 'migration', 'bảng', 'server', 'endpoint', 'token', 'jwt', 'auth', 'schema', 'dto', 'pydantic', 'controller', 'service', 'repository'],
+      tag: 'Backend',
+    },
+    {
+      keywords: ['test', 'kiểm thử', 'pytest', 'unit test', 'coverage', 'qa', 'automation', 'kiem thu'],
+      tag: 'Testing',
+    },
+    {
+      keywords: ['swagger', 'openapi', 'postman', 'tài liệu hóa api', 'docstring'],
+      tag: 'OpenAPI',
+    },
+    {
+      keywords: ['kiến trúc', 'tài liệu', 'diagram', 'mermaid', 'luồng', 'nghiệp vụ', 'docs', 'phân tích', 'thiết kế hệ thống', 'sơ đồ', 'specification', 'spec'],
+      tag: 'Architecture',
+    },
+    {
+      keywords: ['docker', 'deploy', 'ci/cd', 'nginx', 'devops', 'git', 'gitflow', 'container'],
+      tag: 'DevOps',
+    },
+  ]
+
+  rules.forEach(({ keywords, tag }) => {
+    if (keywords.some((kw) => lower.includes(kw))) {
+      tags.push(tag)
+    }
+  })
+
+  if (tags.length === 1) {
+    if (lower.includes('thiết kế') || lower.includes('thiet ke')) {
+      tags.push('Frontend')
+    } else if (lower.includes('xây dựng') || lower.includes('triển khai') || lower.includes('phát triển') || lower.includes('viết') || lower.includes('viet')) {
+      tags.push('Backend')
+    } else {
+      tags.push('Kỹ thuật')
+    }
+  }
+
+  return [...new Set(tags)].slice(0, 3)
+}
+
+function getTagClass(tag) {
+  const lower = tag.toLowerCase()
+  if (lower.includes('sprint')) return 'task-tag-badge--sprint'
+  if (lower.includes('frontend')) return 'task-tag-badge--frontend'
+  if (lower.includes('backend')) return 'task-tag-badge--backend'
+  if (lower.includes('test')) return 'task-tag-badge--testing'
+  if (lower.includes('architecture') || lower.includes('kiến trúc') || lower.includes('tài liệu')) return 'task-tag-badge--architecture'
+  if (lower.includes('api') || lower.includes('openapi') || lower.includes('swagger')) return 'task-tag-badge--api'
+  if (lower.includes('devops') || lower.includes('docker')) return 'task-tag-badge--devops'
+  return ''
+}
 
 const INITIAL_SPRINT1_TASKS = [
   {
@@ -28,8 +76,16 @@ const INITIAL_SPRINT1_TASKS = [
     due_at: '2026-10-02',
     priority: 'high',
     status: 'doing',
-    progress: 70,
+    progress: 75,
+    tags: generateTagsFromTitle('Phát triển REST API Quản lý Hồ sơ Thực tập sinh'),
+    prLink: 'https://github.com/ictu-interns/core-api/pull/102',
     note: 'Đã hoàn thành controller và validate schema Pydantic, đang viết route test.',
+    subtasks: [
+      { id: 'st-1', text: 'Thiết kế CSDL & migration bảng intern_profiles, intern_contracts', completed: true },
+      { id: 'st-2', text: 'Viết Pydantic schemas validate request & response (DTO)', completed: true },
+      { id: 'st-3', text: 'Xây dựng router POST /api/hr/interns và GET /api/hr/interns', completed: true },
+      { id: 'st-4', text: 'Viết PyTest coverage kiểm thử phân quyền JWT & HTTP status', completed: false },
+    ],
   },
   {
     id: 2,
@@ -39,7 +95,13 @@ const INITIAL_SPRINT1_TASKS = [
     priority: 'medium',
     status: 'done',
     progress: 100,
+    tags: generateTagsFromTitle('Nghiên cứu tài liệu Software Specification v2.1'),
+    prLink: 'https://github.com/ictu-interns/core-api/pull/98',
     note: 'Đã nghiệm thu xong với Mentor Bình, kiến trúc DB đã rõ ràng.',
+    subtasks: [
+      { id: 'st-21', text: 'Đọc tài liệu kiến trúc tổng quan hệ thống', completed: true },
+      { id: 'st-22', text: 'Tạo diagram luồng xác thực RBAC', completed: true },
+    ],
   },
   {
     id: 3,
@@ -47,45 +109,16 @@ const INITIAL_SPRINT1_TASKS = [
     description: 'Bổ sung mô tả tóm tắt cho từng endpoint và status code 200, 201, 400, 409.',
     due_at: '2026-10-06',
     priority: 'low',
-    status: 'todo',
-    progress: 0,
-    note: 'Chờ hoàn thành Task 1 để export OpenAPI schema.',
+    status: 'review',
+    progress: 50,
+    tags: generateTagsFromTitle('Viết tài liệu hướng dẫn sử dụng API Swagger'),
+    prLink: '',
+    note: 'Đã hoàn thành cấu hình theme Swagger ICTU, đang chờ nghiệm thu tài liệu.',
+    subtasks: [
+      { id: 'st-31', text: 'Cài đặt Swagger UI theme chuẩn ICTU', completed: true },
+      { id: 'st-32', text: 'Viết docstring cho từng route FastAPI', completed: false },
+    ],
   },
-]
-
-const INITIAL_REPORTS = [
-  {
-    id: 101,
-    week_range: 'Tuần 08 (21/09 - 27/09/2026)',
-    submitted_at: '27/09/2026 17:30',
-    summary: 'Đã hoàn thành module đăng nhập auth, tích hợp JWT token và xử lý phân quyền theo role admin/hr/mentor/intern.',
-    issues: 'Gặp chút khó khăn khi cấu hình CORS giữa Vite frontend port 8080 và FastAPI port 8000, đã fix xong.',
-    plan: 'Tuần tới tập trung làm giao diện form thêm hồ sơ thực tập sinh cho HR.',
-    file_name: 'BaoCaoTuan08_NguyenVanAn.docx',
-    feedback: 'Làm rất tốt! Chú ý thêm các trường hợp biên khi token hết hạn nhé.',
-    status: 'reviewed',
-    score: 4.8,
-  },
-  {
-    id: 102,
-    week_range: 'Tuần 07 (14/09 - 20/09/2026)',
-    submitted_at: '20/09/2026 17:15',
-    summary: 'Tìm hiểu kiến trúc dự án, cài đặt môi trường Docker Compose và kiểm thử API auth/register.',
-    issues: 'Không có vướng mắc.',
-    plan: 'Phát triển tiếp tính năng login và lưu trữ JWT session.',
-    file_name: 'BaoCaoTuan07_NguyenVanAn.docx',
-    feedback: 'Báo cáo đầy đủ, tiến độ đạt yêu cầu.',
-    status: 'reviewed',
-    score: 4.6,
-  },
-]
-
-const ATTENDANCE_LOGS = [
-  { date: '28/09/2026 (Hôm nay)', check_in: '08:15', check_out: '17:30', status: 'on_time' },
-  { date: '25/09/2026', check_in: '08:22', check_out: '17:35', status: 'on_time' },
-  { date: '24/09/2026', check_in: '08:28', check_out: '17:30', status: 'on_time' },
-  { date: '23/09/2026', check_in: '08:50', check_out: '17:40', status: 'late' },
-  { date: '22/09/2026', check_in: '08:10', check_out: '17:32', status: 'on_time' },
 ]
 
 export default function InternDashboardPage() {
@@ -94,51 +127,329 @@ export default function InternDashboardPage() {
   const navigate = useNavigate()
   const [isContractSignedLocally, setIsContractSignedLocally] = useState(false)
 
-  const [activeTab, setActiveTab] = useState('tasks')
-  const [tasks, setTasks] = useState(INITIAL_SPRINT1_TASKS)
-  const [reports] = useState(INITIAL_REPORTS)
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const stored = localStorage.getItem('intern_sprint1_tasks_v1')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Chuẩn hóa dữ liệu cũ và luôn tự động sinh tags mới theo tiêu đề nhiệm vụ
+          const normalized = parsed.map((t) => {
+            let taskItem = { ...t }
+            if (taskItem.id === 1 && taskItem.subtasks && taskItem.subtasks[2] && !taskItem.subtasks[2].completed) {
+              const updatedSubtasks = [...taskItem.subtasks]
+              updatedSubtasks[2] = { ...updatedSubtasks[2], completed: true }
+              taskItem = { ...taskItem, subtasks: updatedSubtasks, progress: 75 }
+            }
+            if (taskItem.id === 3 && taskItem.status === 'todo' && taskItem.progress === 0) {
+              taskItem = {
+                ...taskItem,
+                status: 'review',
+                progress: 50,
+                subtasks: [
+                  { id: 'st-31', text: 'Cài đặt Swagger UI theme chuẩn ICTU', completed: true },
+                  { id: 'st-32', text: 'Viết docstring cho từng route FastAPI', completed: false },
+                ],
+              }
+            }
+            taskItem.tags = generateTagsFromTitle(taskItem.title)
+            return taskItem
+          })
+          localStorage.setItem('intern_sprint1_tasks_v1', JSON.stringify(normalized))
+          return normalized
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return INITIAL_SPRINT1_TASKS
+  })
   const [searchQuery, setSearchQuery] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('all')
+  const [isPriorityOpen, setIsPriorityOpen] = useState(false)
+  const priorityDropdownRef = useRef(null)
   const [toast, setToast] = useState(null)
-
-  // Attendance Check-out state
-  const [attendance, setAttendance] = useState({
-    checkedIn: true,
-    checkInTime: '08:15',
-    checkedOut: false,
-    checkOutTime: null,
+  const [taskModal, setTaskModal] = useState({ open: false, task: null })
+  const [detailTaskModal, setDetailTaskModal] = useState(null)
+  const [createTaskModal, setCreateTaskModal] = useState(false)
+  const [newTaskForm, setNewTaskForm] = useState({
+    title: '',
+    description: '',
+    priority: 'medium',
   })
+  const [importedSubtasks, setImportedSubtasks] = useState([])
+  const [importedFileName, setImportedFileName] = useState('')
+  const fileInputRef = useRef(null)
 
-  // Modals
-  const [taskModal, setTaskModal] = useState({ open: false, task: null, progress: 0, status: 'doing', note: '' })
-  const [reportModal, setReportModal] = useState(false)
-  const [leaveModal, setLeaveModal] = useState(false)
+  // Đóng priority filter dropdown khi click bên ngoài hoặc bấm phím Escape
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (priorityDropdownRef.current && !priorityDropdownRef.current.contains(e.target)) {
+        setIsPriorityOpen(false)
+      }
+    }
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsPriorityOpen(false)
+    }
 
-  // Sync hash with activeTab
+    document.addEventListener('mousedown', handleClickOutside)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
+  // Tự động chuyển hướng nếu người dùng truy cập bằng hash URL cũ
   useEffect(() => {
     const hash = location.hash.replace('#', '')
-    if (['tasks', 'reports', 'attendance', 'training', 'allowance', 'contract', 'support'].includes(hash)) {
-      setActiveTab(hash)
-    } else if (!hash) {
-      setActiveTab('tasks')
+    if (hash === 'attendance') {
+      navigate('/intern/attendance', { replace: true })
+    } else if (hash === 'reports' || hash === 'report') {
+      navigate('/intern/reports', { replace: true })
+    } else if (hash === 'training') {
+      navigate('/intern/training', { replace: true })
     }
-  }, [location.hash])
-
-  function handleTabChange(tabKey) {
-    setActiveTab(tabKey)
-    if (tabKey === 'tasks') {
-      navigate('/intern/dashboard', { replace: true })
-    } else {
-      navigate(`/intern/dashboard#${tabKey}`, { replace: true })
-    }
-  }
+  }, [location.hash, navigate])
 
   function showToast(message, type = 'success') {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3500)
   }
 
-  // Nếu là ứng viên chưa duyệt (hoặc tài khoản ở trạng thái pending và chưa ký HĐ)
+  // ── ĐỒNG HỒ THỜI GIAN THỰC & CHẤM CÔNG HÔM NAY TRÊN DASHBOARD (Story 4) ──
+  function getTodayDateOnly() {
+    const d = new Date()
+    const dd = String(d.getDate()).padStart(2, '0')
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const yyyy = d.getFullYear()
+    return `${dd}/${mm}/${yyyy}`
+  }
+
+  function getTodayString() {
+    return `${getTodayDateOnly()} (Hôm nay)`
+  }
+
+  function calculateWorkDuration(checkInStr, checkOutStr, checkInTs, checkOutTs) {
+    if (!checkInStr || checkInStr === '--:--') return '--'
+    if (!checkOutStr || checkOutStr === '--:--') return 'Đang làm việc'
+
+    let diffSeconds = 0
+    if (checkInTs && checkOutTs && checkOutTs >= checkInTs) {
+      diffSeconds = Math.floor((checkOutTs - checkInTs) / 1000)
+    } else {
+      const [h1, m1, s1 = 0] = checkInStr.split(':').map(Number)
+      const [h2, m2, s2 = 0] = checkOutStr.split(':').map(Number)
+      if (!isNaN(h1) && !isNaN(m1) && !isNaN(h2) && !isNaN(m2)) {
+        const sec1 = h1 * 3600 + m1 * 60 + s1
+        const sec2 = h2 * 3600 + m2 * 60 + s2
+        diffSeconds = Math.max(0, sec2 - sec1)
+      }
+    }
+
+    if (diffSeconds >= 5 * 3600) {
+      diffSeconds -= 3600
+    }
+
+    const hours = Math.floor(diffSeconds / 3600)
+    const minutes = Math.floor((diffSeconds % 3600) / 60)
+    const seconds = diffSeconds % 60
+
+    if (hours > 0) {
+      return `${hours} giờ ${minutes < 10 ? '0' + minutes : minutes} phút`
+    }
+    if (minutes > 0) {
+      return `${minutes} phút ${seconds > 0 ? `${seconds} giây` : ''}`.trim()
+    }
+    return `${seconds > 0 ? `${seconds} giây` : '1 phút'}`
+  }
+
+  const [liveTime, setLiveTime] = useState(() => new Date())
+  const [attendance, setAttendance] = useState(() => {
+    try {
+      const saved = localStorage.getItem('intern_attendance_today_v2')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed.savedDate && parsed.savedDate === getTodayDateOnly()) {
+          return parsed
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return {
+      checkedIn: false,
+      checkInTime: null,
+      checkInTs: null,
+      checkedOut: false,
+      checkOutTime: null,
+      checkOutTs: null,
+      savedDate: getTodayDateOnly(),
+    }
+  })
+
+  // Timer cập nhật đồng hồ mỗi giây
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveTime(new Date())
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  function handleQuickCheckIn() {
+    const nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    const nowTs = Date.now()
+    const todayDateOnly = getTodayDateOnly()
+    const todayFull = getTodayString()
+
+    const updated = {
+      checkedIn: true,
+      checkInTime: nowStr,
+      checkInTs: nowTs,
+      checkedOut: false,
+      checkOutTime: null,
+      checkOutTs: null,
+      savedDate: todayDateOnly,
+    }
+    setAttendance(updated)
+    try {
+      localStorage.setItem('intern_attendance_today_v2', JSON.stringify(updated))
+      const savedHistory = localStorage.getItem('intern_attendance_history_v2')
+      let historyList = savedHistory ? JSON.parse(savedHistory) : []
+      const existsIndex = historyList.findIndex(
+        (item) => item.date && (item.date.includes(todayDateOnly) || item.date.includes('Hôm nay'))
+      )
+      if (existsIndex >= 0) {
+        historyList[existsIndex] = {
+          ...historyList[existsIndex],
+          date: todayFull,
+          check_in: nowStr,
+          checkInTs: nowTs,
+          check_out: '--:--',
+          checkOutTs: null,
+          total_hours: 'Đang làm việc',
+          status: 'on_time',
+          status_label: 'Đúng giờ',
+          method: 'AI Camera & Vân tay',
+        }
+      } else {
+        historyList.unshift({
+          id: Date.now(),
+          date: todayFull,
+          check_in: nowStr,
+          checkInTs: nowTs,
+          check_out: '--:--',
+          checkOutTs: null,
+          total_hours: 'Đang làm việc',
+          method: 'AI Camera & Vân tay',
+          status: 'on_time',
+          status_label: 'Đúng giờ',
+          note: 'Ghi nhận chấm công tự động qua Dashboard TTS',
+        })
+      }
+      localStorage.setItem('intern_attendance_history_v2', JSON.stringify(historyList))
+    } catch {
+      // fallback
+    }
+    showToast(`✓ Check-in thành công lúc ${nowStr}! Chúc bạn ngày làm việc hiệu quả.`, 'success')
+  }
+
+  function handleQuickCheckOut() {
+    if (!attendance.checkedIn) {
+      showToast('Bạn chưa Check-in hôm nay! Vui lòng Check-in trước khi Check-out.', 'error')
+      return
+    }
+    const nowStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    const nowTs = Date.now()
+    const todayDateOnly = getTodayDateOnly()
+    const todayFull = getTodayString()
+
+    const duration = calculateWorkDuration(
+      attendance.checkInTime,
+      nowStr,
+      attendance.checkInTs,
+      nowTs
+    )
+
+    const updated = {
+      ...attendance,
+      checkedOut: true,
+      checkOutTime: nowStr,
+      checkOutTs: nowTs,
+      savedDate: todayDateOnly,
+    }
+    setAttendance(updated)
+    try {
+      localStorage.setItem('intern_attendance_today_v2', JSON.stringify(updated))
+      const savedHistory = localStorage.getItem('intern_attendance_history_v2')
+      let historyList = savedHistory ? JSON.parse(savedHistory) : []
+      const existsIndex = historyList.findIndex(
+        (item) => item.date && (item.date.includes(todayDateOnly) || item.date.includes('Hôm nay'))
+      )
+      if (existsIndex >= 0) {
+        historyList[existsIndex] = {
+          ...historyList[existsIndex],
+          date: todayFull,
+          check_out: nowStr,
+          checkOutTs: nowTs,
+          total_hours: duration,
+          status: 'on_time',
+          status_label: 'Đúng giờ',
+          method: 'AI Camera & Vân tay',
+        }
+      } else {
+        historyList.unshift({
+          id: Date.now(),
+          date: todayFull,
+          check_in: attendance.checkInTime || nowStr,
+          checkInTs: attendance.checkInTs || nowTs,
+          check_out: nowStr,
+          checkOutTs: nowTs,
+          total_hours: duration,
+          method: 'AI Camera & Vân tay',
+          status: 'on_time',
+          status_label: 'Đúng giờ',
+          note: 'Ghi nhận tan ca qua Dashboard TTS',
+        })
+      }
+      localStorage.setItem('intern_attendance_history_v2', JSON.stringify(historyList))
+    } catch {
+      // fallback
+    }
+    showToast(`✓ Check-out thành công lúc ${nowStr}! Bạn đã hoàn thành ca làm việc.`, 'success')
+  }
+
+  // ── TÍNH TOÁN CÁC CHỈ SỐ KPI ĐỘNG TỪ THAO TÁC THỰC TẾ CỦA TTS ──
+  // 1. Tiến độ Sprint 1: Trung bình cộng % hoàn thành của tất cả các nhiệm vụ
+  const totalTasks = tasks.length
+  const sprintProgress = totalTasks > 0
+    ? Math.round(tasks.reduce((sum, t) => sum + (Number(t.progress) || 0), 0) / totalTasks)
+    : 0
+
+  // 2. Nhiệm vụ cá nhân: Tỷ lệ hoàn thành nhiệm vụ
+  const doneTasks = tasks.filter((t) => t.status === 'done').length
+  const tasksCompletionRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
+
+  // 3. Độ phủ Unit Test: Tính từ số lượng checklist / subtask test case đã kiểm thử
+  const totalSubtasks = tasks.reduce((sum, t) => sum + (t.subtasks?.length || 0), 0)
+  const completedSubtasks = tasks.reduce(
+    (sum, t) => sum + (t.subtasks?.filter((st) => st.completed).length || 0),
+    0
+  )
+  // Quy mô bộ test case của dự án (15 test chuẩn ban đầu, mở rộng theo subtasks)
+  const totalTests = Math.max(15, totalSubtasks > 0 ? totalSubtasks * 2 - 1 : 15)
+  // Số test pass tăng theo từng subtask kiểm thử hoàn thành (baseline 8 + completedSubtasks)
+  const passedTests = Math.min(totalTests, 8 + completedSubtasks)
+  const testCoverage = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0
+
+  // 4. Code Review & Merge (Pull Requests): Tính từ số lượng task có PR link và trạng thái done
+  const tasksWithPR = tasks.filter((t) => Boolean(t.prLink && t.prLink.trim()))
+  // Baseline 1 PR khởi tạo sprint + các task có PR đã hoàn thành (done)
+  const mergedPRs = 1 + tasksWithPR.filter((t) => t.status === 'done').length
+  const openPRs = tasksWithPR.filter((t) => t.status !== 'done').length
+  const prMergeRate = Math.min(100, Math.round((mergedPRs / (tasksWithPR.length + 1)) * 100))
+
+  // Nếu là ứng viên chưa duyệt
   const isApplicant =
     (user?.status === 'pending' ||
       (user?.email === 'ungvien@ictu.edu.vn' && user?.status !== 'active') ||
@@ -164,877 +475,971 @@ export default function InternDashboardPage() {
     )
   }
 
-  // Chấm công button
-  function handleToggleAttendance() {
-    if (!attendance.checkedOut) {
-      const now = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-      setAttendance((prev) => ({
-        ...prev,
-        checkedOut: true,
-        checkOutTime: now,
+  function handleSaveTask(updatedData) {
+    if (!taskModal.task) return
+    const updatedTasks = tasks.map((t) =>
+      t.id === taskModal.task.id
+        ? {
+          ...t,
+          progress: updatedData.progress,
+          status: updatedData.status,
+          note: updatedData.note,
+          subtasks: updatedData.subtasks,
+          prLink: updatedData.prLink !== undefined ? updatedData.prLink : t.prLink,
+        }
+        : t
+    )
+    setTasks(updatedTasks)
+    try {
+      localStorage.setItem('intern_sprint1_tasks_v1', JSON.stringify(updatedTasks))
+    } catch {
+      // fallback
+    }
+    setTaskModal({ open: false, task: null })
+    showToast(`Đã cập nhật tiến độ "${taskModal.task.title}" lên ${updatedData.progress}%!`)
+  }
+
+  async function handleFileImport(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const fileName = file.name
+    const ext = fileName.split('.').pop().toLowerCase()
+
+    try {
+      // 1. Đối với file text hoặc csv
+      if (ext === 'txt' || ext === 'csv') {
+        const text = await file.text()
+        const lines = text
+          .split(/\r?\n/)
+          .map((l) => l.replace(/^[-*•\d.)\s]+/, '').trim())
+          .filter((l) => l.length > 2)
+
+        if (lines.length > 0) {
+          const generated = lines.map((itemText, idx) => ({
+            id: `st-${Date.now()}-${idx}`,
+            text: itemText,
+            completed: false,
+          }))
+          setImportedSubtasks(generated)
+          setImportedFileName(fileName)
+          showToast(`Đã tự động trích xuất ${generated.length} đầu việc từ file [${fileName}]!`, 'success')
+          return
+        }
+      }
+
+      // 2. Thử đọc nội dung text XML (đối với file .docx, .xlsx dạng nén XML)
+      const rawText = await file.text().catch(() => '')
+      const xmlMatches = [...rawText.matchAll(/<[a-zA-Z:]*t[^>]*>([^<]+)<\/[a-zA-Z:]*t>/g)]
+        .map((m) => m[1].trim())
+        .filter((t) => t.length > 3 && !t.startsWith('Normal') && !t.startsWith('Calibri') && !t.startsWith('Times'))
+
+      if (xmlMatches.length > 0) {
+        const unique = [...new Set(xmlMatches)].slice(0, 10)
+        const generated = unique.map((itemText, idx) => ({
+          id: `st-${Date.now()}-${idx}`,
+          text: itemText,
+          completed: false,
+        }))
+        setImportedSubtasks(generated)
+        setImportedFileName(fileName)
+        showToast(`Đã tự động trích xuất ${generated.length} đầu việc từ file [${fileName}]!`, 'success')
+        return
+      }
+
+      // 3. Fallback thông minh cho file binary Word/Excel (tạo danh sách công việc chuẩn hóa theo tên file)
+      const cleanBaseName = fileName.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
+      const smartTasks = [
+        `Phân tích tài liệu yêu cầu (${cleanBaseName})`,
+        `Thiết kế CSDL & cấu trúc dữ liệu cho ${cleanBaseName}`,
+        `Viết API controller & xử lý logic nghiệp vụ`,
+        `Viết Unit Test & kiểm thử chất lượng theo checklist ${fileName}`,
+      ]
+      const generated = smartTasks.map((itemText, idx) => ({
+        id: `st-${Date.now()}-${idx}`,
+        text: itemText,
+        completed: false,
       }))
-      showToast(`Check-out thành công lúc ${now}! Chúc bạn buổi chiều vui vẻ.`, 'success')
-    } else {
-      showToast('Bạn đã hoàn tất ngày làm việc hôm nay (08:15 - ' + attendance.checkOutTime + ').', 'info')
+      setImportedSubtasks(generated)
+      setImportedFileName(fileName)
+      showToast(`Đã tự động trích xuất ${generated.length} đầu việc từ file [${fileName}]!`, 'success')
+    } catch (err) {
+      console.warn('File import error:', err)
+      showToast(`Không thể đọc file: ${err.message}`, 'error')
     }
   }
 
-  // Update Task Modal
-  function handleOpenTaskModal(task) {
-    setTaskModal({
-      open: true,
-      task,
-      progress: task.progress,
-      status: task.status,
-      note: task.note,
-    })
+  function handleClearImport() {
+    setImportedSubtasks([])
+    setImportedFileName('')
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  function handleSaveTask() {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskModal.task.id
-          ? {
-              ...t,
-              progress: Number(taskModal.progress),
-              status: taskModal.status,
-              note: taskModal.note,
-            }
-          : t
-      )
-    )
-    setTaskModal({ open: false, task: null, progress: 0, status: 'doing', note: '' })
-    showToast('Đã cập nhật tiến độ nhiệm vụ và đồng bộ báo cáo cho Mentor!')
+  function handleCreateTask(e) {
+    e.preventDefault()
+    if (!newTaskForm.title.trim()) return
+
+    // Nếu không import từ file -> dữ liệu task con hoàn toàn trống []
+    // Thực tập sinh sẽ tự tạo task con và phải nhập bằng tay
+    const finalSubtasks = importedSubtasks.length > 0 ? importedSubtasks : []
+
+    const newTask = {
+      id: Date.now(),
+      title: newTaskForm.title.trim(),
+      description: newTaskForm.description.trim() || 'Thực hiện chức năng theo yêu cầu kỹ thuật Sprint 1.',
+      due_at: '2026-10-08',
+      priority: newTaskForm.priority,
+      status: 'doing',
+      progress: 0,
+      tags: generateTagsFromTitle(newTaskForm.title.trim()),
+      prLink: '',
+      note: importedFileName
+        ? `Đã bóc tách tự động ${importedSubtasks.length} đầu việc con từ file: ${importedFileName}`
+        : 'Nhiệm vụ mới tạo thủ công (chưa có việc con).',
+      subtasks: finalSubtasks,
+    }
+
+    const updated = [newTask, ...tasks]
+    setTasks(updated)
+    try {
+      localStorage.setItem('intern_sprint1_tasks_v1', JSON.stringify(updated))
+    } catch {
+      // fallback
+    }
+    setCreateTaskModal(false)
+    setNewTaskForm({ title: '', description: '', priority: 'medium' })
+    handleClearImport()
+
+    if (finalSubtasks.length > 0) {
+      showToast(`Đã thêm nhiệm vụ "${newTask.title}" với ${finalSubtasks.length} đầu việc con từ file!`, 'success')
+    } else {
+      showToast(`Đã thêm nhiệm vụ "${newTask.title}"! Bạn có thể bấm "Cập nhật tiến độ" để tạo việc con bằng tay.`, 'success')
+    }
   }
 
+  const filteredTasks = tasks.filter((t) => {
+    const taskTags =
+      t.tags && t.tags.length > 0 && !t.tags.includes('Frontend/Backend')
+        ? t.tags
+        : generateTagsFromTitle(t.title)
+    const matchSearch =
+      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      taskTags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    const matchPriority = priorityFilter === 'all' || t.priority === priorityFilter
+    return matchSearch && matchPriority
+  })
+
+  const PRIORITY_OPTIONS = [
+    {
+      value: 'all',
+      label: 'Mức độ ưu tiên',
+      count: tasks.length,
+      dotClass: 'dot-all',
+      badgeClass: 'badge-all',
+    },
+    {
+      value: 'high',
+      label: 'Cao',
+      count: tasks.filter((t) => t.priority === 'high').length,
+      dotClass: 'dot-high',
+      badgeClass: 'badge-high',
+    },
+    {
+      value: 'medium',
+      label: 'Trung bình',
+      count: tasks.filter((t) => t.priority === 'medium').length,
+      dotClass: 'dot-medium',
+      badgeClass: 'badge-medium',
+    },
+    {
+      value: 'low',
+      label: 'Thấp',
+      count: tasks.filter((t) => t.priority === 'low').length,
+      dotClass: 'dot-low',
+      badgeClass: 'badge-low',
+    },
+  ]
+
+  const currentPriorityOption =
+    PRIORITY_OPTIONS.find((opt) => opt.value === priorityFilter) || PRIORITY_OPTIONS[0]
 
   return (
-    <div className="intern-portal-container">
-      {/* Toast Alert */}
+    <div className="intern-dashboard-container">
+      {/* Toast thông báo */}
       {toast && (
-        <div className={`portal-toast portal-toast--${toast.type}`} role="alert">
-          <CheckCircle2 size={18} />
+        <div className={`intern-toast intern-toast--${toast.type}`} role="alert">
           <span>{toast.message}</span>
         </div>
       )}
 
-      {/* ── 1. HEADER KHU VỰC CHÀO MỪNG & TÁC VỤ NHANH ── */}
-      <section className="intern-hero-header">
-        <div className="intern-hero-content">
-          <div className="intern-title-row">
-            <h1>Xin chào, {user?.full_name || 'Nguyễn Văn Bình'} 👋</h1>
-            <span className="intern-code-pill">Mã TTS: TTS0002</span>
-            <span className="intern-status-badge">
-              <CheckCircle2 size={14} />
-              Chế độ: Đã ký HĐ & Chính thức
+
+      {/* ── 1. REAL-TIME CLOCK & CHECK-IN / CHECK-OUT BANNER WIDGET (Story 4) ── */}
+      <section className="intern-clock-widget-card" aria-label="Chấm công hôm nay">
+        <div className="clock-widget-left">
+          <div className="clock-widget-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+          <div className="clock-widget-live">
+            <div className="clock-live-time-row">
+              <span className="clock-live-digits">
+                {liveTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+              <span className="clock-live-badge-today">Thời gian thực</span>
+            </div>
+            <span className="clock-live-date">
+              {liveTime.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}
             </span>
           </div>
 
-          <div className="intern-meta-grid">
-            <div className="intern-meta-item">
-              <span className="meta-label">Phòng ban:</span>
-              <strong className="meta-val">R&D Software Engineering</strong>
-            </div>
-            <div className="intern-meta-divider">·</div>
-            <div className="intern-meta-item">
-              <span className="meta-label">Mentor hướng dẫn:</span>
-              <strong className="meta-val">Trần Hoàng Quân (quan.th@ictu.edu.vn - 0912 345 678)</strong>
-            </div>
+          <div className="clock-widget-divider" />
+
+          <div className="clock-widget-status">
+            {!attendance.checkedIn ? (
+              <span className="clock-badge clock-badge--pending">
+                <span className="clock-badge-dot dot--pending" />
+                Chưa ghi nhận ca làm việc hôm nay
+              </span>
+            ) : !attendance.checkedOut ? (
+              <span className="clock-badge clock-badge--active">
+                <span className="clock-badge-dot dot--active" />
+                Đang trong ca làm việc · Check-in lúc: <strong>{attendance.checkInTime}</strong>
+              </span>
+            ) : (
+              <span className="clock-badge clock-badge--completed">
+                <span className="clock-badge-dot dot--completed" />
+                Đã hoàn thành ca ({attendance.checkInTime} – {attendance.checkOutTime})
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Cụm nút tác vụ nhanh */}
-        <div className="intern-action-cluster">
-          {/* Nút màu cam nổi bật: Check-out ca chiều */}
-          <button
-            type="button"
-            className="intern-btn intern-btn--orange"
-            onClick={handleToggleAttendance}
-            title="Chấm công check-out ca chiều"
-          >
-            <Clock size={16} />
-            <span>
-              {attendance.checkedOut
-                ? `Đã Check-out (${attendance.checkOutTime})`
-                : 'Check-out ca chiều (08:15 - 17:30)'}
-            </span>
-          </button>
+        <div className="clock-widget-right">
+          <div className="clock-action-buttons">
+            <button
+              type="button"
+              className={`clock-btn clock-btn--checkin ${attendance.checkedIn ? 'is-completed' : 'is-ready'}`}
+              onClick={handleQuickCheckIn}
+              disabled={attendance.checkedIn}
+              title={attendance.checkedIn ? `Bạn đã check-in lúc ${attendance.checkInTime}` : 'Bấm để ghi nhận giờ vào ca'}
+            >
+              {attendance.checkedIn ? (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                  <polyline points="10 17 15 12 10 7" />
+                  <line x1="15" y1="12" x2="3" y2="12" />
+                </svg>
+              )}
+              <span>{attendance.checkedIn ? `Đã Check-in (${attendance.checkInTime})` : 'Check-in vào ca'}</span>
+            </button>
 
-          <button
-            type="button"
-            className="intern-btn intern-btn--primary"
-            onClick={() => setReportModal(true)}
-          >
-            <FileText size={16} />
-            <span>Nộp báo cáo tuần 08</span>
-          </button>
-
-          <button
-            type="button"
-            className="intern-btn intern-btn--ghost"
-            onClick={() => {
-              setActiveTab('support')
-              showToast('Mở biểu mẫu gửi yêu cầu hỗ trợ (Ticket)', 'info')
-            }}
-          >
-            <MessageSquare size={16} />
-            <span>Gửi yêu cầu hỗ trợ (Ticket)</span>
-          </button>
+            <button
+              type="button"
+              className={`clock-btn clock-btn--checkout ${
+                attendance.checkedOut
+                  ? 'is-completed'
+                  : attendance.checkedIn
+                    ? 'is-ready'
+                    : 'is-disabled'
+              }`}
+              onClick={handleQuickCheckOut}
+              disabled={!attendance.checkedIn || attendance.checkedOut}
+              title={
+                !attendance.checkedIn
+                  ? 'Bạn cần Check-in trước khi Check-out'
+                  : attendance.checkedOut
+                    ? `Bạn đã hoàn tất tan ca lúc ${attendance.checkOutTime}`
+                    : 'Bấm để ghi nhận giờ tan ca'
+              }
+            >
+              {attendance.checkedOut ? (
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              )}
+              <span>{attendance.checkedOut ? `Đã Check-out (${attendance.checkOutTime})` : 'Check-out tan ca'}</span>
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* ── 2. HÀNG CHỈ SỐ KPI CARDS (4 THẺ) ── */}
-      <section className="intern-kpi-grid" aria-label="Chỉ số hiệu suất">
-        {/* Thẻ 1: Tiến độ kỳ thực tập */}
+      {/* ── 2. HÀNG CHỈ SỐ KPI CHUYÊN VỀ NHIỆM VỤ VÀ SPRINT ── */}
+      <section className="intern-kpi-grid" aria-label="Chỉ số hiệu suất Sprint">
+        {/* Thẻ 1: Tiến độ Sprint 1 */}
         <div className="intern-kpi-card intern-kpi-card--blue">
           <div className="kpi-card-header">
-            <span className="kpi-label">Tiến độ kỳ thực tập</span>
-            <div className="kpi-icon-badge kpi-icon-badge--blue">
-              <TrendingUp size={18} />
-            </div>
+            <span className="kpi-label">Tiến độ Sprint 1</span>
+            <span className="kpi-tag-label">{sprintProgress === 100 ? 'Hoàn thành' : 'Active'}</span>
           </div>
           <div className="kpi-val-row">
-            <span className="kpi-value">75%</span>
-            <span className="kpi-badge-pill kpi-badge-pill--blue">Đếm ngược còn 4 tuần</span>
+            <span className="kpi-value">{sprintProgress}%</span>
+            <span className="kpi-badge-pill kpi-badge-pill--blue">
+              {sprintProgress === 100 ? 'Đã hoàn tất' : 'Còn 4 ngày'}
+            </span>
           </div>
           <div className="kpi-progress-bar">
-            <div className="kpi-progress-fill" style={{ width: '75%' }} />
+            <div className="kpi-progress-fill" style={{ width: `${sprintProgress}%` }} />
           </div>
-          <span className="kpi-hint">Tuần 8 / 12 tuần thực tập tại ICTU</span>
         </div>
 
-        {/* Thẻ 2: Sprint 1 Tasks */}
+        {/* Thẻ 2: Nhiệm vụ cá nhân */}
         <div className="intern-kpi-card intern-kpi-card--purple">
           <div className="kpi-card-header">
-            <span className="kpi-label">Sprint 1 Tasks</span>
-            <div className="kpi-icon-badge kpi-icon-badge--purple">
-              <CheckSquare size={18} />
-            </div>
+            <span className="kpi-label">Nhiệm vụ cá nhân</span>
+            <span className="kpi-tag-label">Sprint 1</span>
           </div>
           <div className="kpi-val-row">
-            <span className="kpi-value">3</span>
+            <span className="kpi-value">{totalTasks}</span>
             <span className="kpi-unit">nhiệm vụ</span>
           </div>
-          <span className="kpi-hint">1 Đang làm · 1 Chờ nghiệm thu · 1 Hoàn tất</span>
+          <div className="kpi-progress-bar">
+            <div
+              className="kpi-progress-fill"
+              style={{
+                width: `${tasksCompletionRate || 66}%`,
+                background: '#8B5CF6',
+              }}
+            />
+          </div>
         </div>
 
-        {/* Thẻ 3: Chuyên cần tháng */}
+        {/* Thẻ 3: Độ phủ Test */}
         <div className="intern-kpi-card intern-kpi-card--green">
           <div className="kpi-card-header">
-            <span className="kpi-label">Chuyên cần tháng</span>
-            <div className="kpi-icon-badge kpi-icon-badge--green">
-              <Award size={18} />
-            </div>
+            <span className="kpi-label" title="Độ phủ Unit Test (PyTest)">Độ phủ Unit Test (PyTest)</span>
+            <span
+              className="kpi-tag-label"
+              style={{
+                color: '#2563EB',
+                borderColor: '#BFDBFE',
+                backgroundColor: '#EFF6FF',
+              }}
+            >
+              {testCoverage >= 80 ? 'Đạt chuẩn' : 'Cần bổ sung'}
+            </span>
           </div>
           <div className="kpi-val-row">
-            <span className="kpi-value">98%</span>
-            <span className="kpi-badge-pill kpi-badge-pill--green">Tốt</span>
+            <span className="kpi-value">{testCoverage}%</span>
+            <span className="kpi-badge-pill kpi-badge-pill--blue">
+              {passedTests}/{totalTests} Test pass
+            </span>
           </div>
-          <span className="kpi-hint">20 ngày đúng giờ · 1 ngày phép có lý do</span>
+          <div className="kpi-progress-bar">
+            <div
+              className="kpi-progress-fill"
+              style={{
+                width: `${testCoverage}%`,
+                background: 'linear-gradient(90deg, #2563EB 0%, #3B82F6 100%)',
+              }}
+            />
+          </div>
         </div>
 
-        {/* Thẻ 4: Trợ cấp dự kiến tháng 09 */}
+        {/* Thẻ 4: Pull Requests */}
         <div className="intern-kpi-card intern-kpi-card--orange">
           <div className="kpi-card-header">
-            <span className="kpi-label">Trợ cấp dự kiến tháng 09</span>
-            <div className="kpi-icon-badge kpi-icon-badge--orange">
-              <DollarSign size={18} />
-            </div>
+            <span className="kpi-label">Code Review & Merge</span>
+            <span className="kpi-tag-label">GitFlow</span>
           </div>
           <div className="kpi-val-row">
-            <span className="kpi-value">2.500.000 đ</span>
+            <span className="kpi-value">{mergedPRs}</span>
+            <span className="kpi-unit">PRs merged</span>
           </div>
-          <span className="kpi-hint">HR đã duyệt chờ chi trả · Đợt 05/10</span>
+          <div className="kpi-progress-bar">
+            <div
+              className="kpi-progress-fill"
+              style={{ width: `${prMergeRate}%`, background: '#F97316' }}
+            />
+          </div>
         </div>
       </section>
 
-      {/* ── 3. TABS ĐIỀU HƯỚNG NỘI DUNG ── */}
-      <nav className="intern-tabs-bar" aria-label="Tabs quản lý">
-        <button
-          type="button"
-          className={`intern-tab-btn ${activeTab === 'tasks' ? 'is-active' : ''}`}
-          onClick={() => handleTabChange('tasks')}
-        >
-          <CheckSquare size={16} />
-          <span>Nhiệm vụ cá nhân (Tasks - 3)</span>
-        </button>
-
-        <button
-          type="button"
-          className={`intern-tab-btn ${activeTab === 'attendance' ? 'is-active' : ''}`}
-          onClick={() => handleTabChange('attendance')}
-        >
-          <Clock size={16} />
-          <span>Chấm công & Điểm danh</span>
-        </button>
-
-        <button
-          type="button"
-          className={`intern-tab-btn ${activeTab === 'reports' ? 'is-active' : ''}`}
-          onClick={() => handleTabChange('reports')}
-        >
-          <FileText size={16} />
-          <span>Báo cáo tuần & Feedback (T8)</span>
-        </button>
-
-        <button
-          type="button"
-          className={`intern-tab-btn ${activeTab === 'training' ? 'is-active' : ''}`}
-          onClick={() => handleTabChange('training')}
-        >
-          <ShieldCheck size={16} />
-          <span>Tài liệu đào tạo & Onboarding</span>
-        </button>
-
-        <button
-          type="button"
-          className={`intern-tab-btn ${activeTab === 'allowance' ? 'is-active' : ''}`}
-          onClick={() => handleTabChange('allowance')}
-        >
-          <DollarSign size={16} />
-          <span>Chế độ & Trợ cấp cá nhân</span>
-        </button>
-      </nav>
-
-      {/* ── 4. NỘI DUNG CHÍNH CHIA 2 CỘT (70% - 30%) ── */}
-      {activeTab === 'tasks' && (
-        <div className="intern-main-grid">
-          {/* CỘT TRÁI (70%): Bảng nhiệm vụ cá nhân (Task Board & My Sprint) */}
-          <div className="intern-col-left">
-            <section className="intern-panel">
-              <div className="intern-panel-header">
-                <div className="panel-header-titles">
-                  <h2>Bảng nhiệm vụ cá nhân (Task Board & My Sprint - Sprint 1 / Active)</h2>
-                  <p>Theo dõi tiến độ source code, mã commit GitHub và đề xuất nghiệm thu tới Mentor.</p>
-                </div>
-
-                <div className="table-controls">
-                  <div className="search-input-wrap">
-                    <Search size={16} className="search-icon" />
-                    <input
-                      type="text"
-                      placeholder="Tìm task, commit..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="search-input"
-                    />
-                  </div>
-
-                  <select
-                    className="filter-select"
-                    value={priorityFilter}
-                    onChange={(e) => setPriorityFilter(e.target.value)}
-                  >
-                    <option value="all">Mọi commit</option>
-                    <option value="high">Ưu tiên cao</option>
-                    <option value="medium">Trung bình</option>
-                    <option value="low">Thấp</option>
-                  </select>
-
-                  <button
-                    type="button"
-                    className="intern-btn intern-btn--primary intern-btn--sm"
-                    onClick={() => {
-                      if (tasks.length > 0) handleOpenTaskModal(tasks[0])
-                    }}
-                  >
-                    <Plus size={15} />
-                    <span>+ Log tiến độ</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Danh sách task kỹ thuật dạng card chi tiết */}
-              <div className="task-cards-list">
-                {/* Task 1 */}
-                <div className="task-detail-card">
-                  <div className="task-card-header">
-                    <div className="task-code-row">
-                      <span className="task-code-tag">BACKEND-104</span>
-                      <span className="priority-badge priority-badge--danger">Ưu tiên cao</span>
-                      <span className="github-pr-badge">
-                        PR #42: feat/backend-intern-api CI Passed
-                      </span>
-                    </div>
-                    <span className="task-status-pill task-status-pill--doing">Đang làm</span>
-                  </div>
-
-                  <h3 className="task-card-title">Phát triển REST API Quản lý Hồ sơ Thực tập sinh</h3>
-                  <p className="task-card-desc">Thiết kế endpoint POST /api/hr/interns và GET /api/hr/interns có filter trường, ngành.</p>
-
-                  <div className="task-card-meta">
-                    <div className="task-meta-item">
-                      <Clock size={13} />
-                      <span>Hạn hoàn thành: <strong>2026-10-02</strong></span>
-                    </div>
-                    <div className="task-meta-item">
-                      <FileText size={13} />
-                      <span>Nhật ký code mới nhất: <em>feat(api): validate Pydantic schemas & routes</em></span>
-                    </div>
-                  </div>
-
-                  <div className="task-card-footer">
-                    <div className="task-progress-box">
-                      <span className="task-progress-label">Tiến độ: <strong>70%</strong></span>
-                      <div className="progress-bar-track">
-                        <div className="progress-bar-val" style={{ width: '70%' }} />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="intern-btn intern-btn--outline intern-btn--sm"
-                      onClick={() => handleOpenTaskModal(tasks[0])}
-                    >
-                      Cập nhật %
-                    </button>
-                  </div>
-                </div>
-
-                {/* Task 2 */}
-                <div className="task-detail-card">
-                  <div className="task-card-header">
-                    <div className="task-code-row">
-                      <span className="task-code-tag">DOCS-089</span>
-                      <span className="priority-badge priority-badge--warning">Trung bình</span>
-                      <span className="github-pr-badge github-pr-badge--merged">
-                        Merged: docs/spec-v2.1
-                      </span>
-                    </div>
-                    <span className="task-status-pill task-status-pill--done">Hoàn thành 100% (Nghiệm thu)</span>
-                  </div>
-
-                  <h3 className="task-card-title">Nghiên cứu tài liệu Software Specification v2.1 (Spec flow)</h3>
-                  <p className="task-card-desc">Đọc hiểu flow chart Mermaid, sequence diagram và quy tắc phân quyền JWT.</p>
-
-                  <div className="task-card-meta">
-                    <div className="task-meta-item">
-                      <Clock size={13} />
-                      <span>Hạn hoàn thành: <strong>2026-09-24</strong></span>
-                    </div>
-                    <div className="task-meta-item">
-                      <FileText size={13} />
-                      <span>Nhật ký code mới nhất: <em>docs(spec): merge sequence diagrams</em></span>
-                    </div>
-                  </div>
-
-                  <div className="task-card-footer">
-                    <div className="task-progress-box">
-                      <span className="task-progress-label">Tiến độ: <strong>100%</strong></span>
-                      <div className="progress-bar-track">
-                        <div className="progress-bar-val is-complete" style={{ width: '100%' }} />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="intern-btn intern-btn--outline intern-btn--sm"
-                      onClick={() => showToast('Mở tài liệu chi tiết Software Specification v2.1', 'info')}
-                    >
-                      Chi tiết
-                    </button>
-                  </div>
-                </div>
-
-                {/* Task 3 */}
-                <div className="task-detail-card">
-                  <div className="task-card-header">
-                    <div className="task-code-row">
-                      <span className="task-code-tag">TEST-042</span>
-                      <span className="priority-badge priority-badge--info">Trung bình</span>
-                      <span className="github-pr-badge github-pr-badge--review">
-                        PR #45: test/attendance-coverage Reviewing
-                      </span>
-                    </div>
-                    <span className="task-status-pill task-status-pill--review">Chờ nghiệm thu (85%)</span>
-                  </div>
-
-                  <h3 className="task-card-title">Viết Unit Test cho Module Chấm công tự động</h3>
-                  <p className="task-card-desc">Viết test case mock GPS, kiểm tra logic xử lý đi muộn và tính tổng công tháng.</p>
-
-                  <div className="task-card-meta">
-                    <div className="task-meta-item">
-                      <Clock size={13} />
-                      <span>Hạn hoàn thành: <strong>2026-10-06</strong></span>
-                    </div>
-                    <div className="task-meta-item">
-                      <FileText size={13} />
-                      <span>Nhật ký code mới nhất: <em>test(attendance): add unit test cases for lateness check</em></span>
-                    </div>
-                  </div>
-
-                  <div className="task-card-footer">
-                    <div className="task-progress-box">
-                      <span className="task-progress-label">Tiến độ: <strong>85%</strong></span>
-                      <div className="progress-bar-track">
-                        <div className="progress-bar-val" style={{ width: '85%' }} />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="intern-btn intern-btn--primary intern-btn--sm"
-                      onClick={() => showToast('Đã gửi yêu cầu nghiệm thu Unit Test tới Mentor Bình!', 'success')}
-                    >
-                      Xin duyệt
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Khối ghi chú Mentor */}
-              <div className="mentor-notes-card">
-                <div className="mentor-notes-header">
-                  <div className="mentor-notes-title-group">
-                    <Star size={18} className="star-icon" fill="#F59E0B" color="#F59E0B" />
-                    <h3>Nhật ký & Nhận xét mới nhất từ Mentor Trần Hoàng Quân</h3>
-                  </div>
-                  <div className="mentor-score-tags">
-                    <span className="score-pill">Điểm tuần: <strong>9.5/10</strong></span>
-                    <span className="score-pill score-pill--green">Điểm giữa kỳ: <strong>4.8/5.0</strong></span>
-                  </div>
-                </div>
-                <div className="mentor-notes-body">
-                  <p>
-                    "An làm việc rất có trách nhiệm, tư duy clean code và khả năng tối ưu hóa API (High performance) rất tốt. Chú ý viết thêm tài liệu Swagger rõ ràng cho các error code 400/409 để bên FE dễ tích hợp nhé."
-                  </p>
-                  <div className="mentor-notes-badges">
-                    <span className="tag-pill">Clean code</span>
-                    <span className="tag-pill">High performance</span>
-                    <span className="tag-pill">Proactive communication</span>
-                  </div>
-                </div>
-              </div>
-            </section>
+      {/* ── 3. BẢNG NHIỆM VỤ CÁ NHÂN (FULL WIDTH) ── */}
+      <section className="intern-panel" style={{ marginTop: '20px' }}>
+        <div className="intern-panel-header">
+          <div className="panel-header-titles">
+            <h2>Bảng nhiệm vụ cá nhân</h2>
           </div>
 
-          {/* CỘT PHẢI (30%): Khối Điểm danh & Chấm công GPS / Wi-Fi cơ quan */}
-          <div className="intern-col-right">
-            <section className="attendance-gps-card">
-              <div className="att-card-header">
-                <div>
-                  <h3>Điểm danh & Chấm công</h3>
-                  <span className="att-sub">GPS / Wi-Fi Cơ Quan</span>
-                </div>
-                <span className="status-badge status-badge--success">
-                  <CheckCircle2 size={13} />
-                  Ca làm việc hợp lệ
-                </span>
-              </div>
-
-              <div className="att-info-list">
-                <div className="att-info-item">
-                  <span className="att-info-lbl">Wi-Fi doanh nghiệp:</span>
-                  <strong className="att-info-val text-primary">ICTU-RD-OFFICE</strong>
-                </div>
-
-                <div className="att-info-item">
-                  <span className="att-info-lbl">IP xác thực:</span>
-                  <code className="att-ip-code">192.168.1.45</code>
-                </div>
-
-                <div className="att-info-item">
-                  <span className="att-info-lbl">Camera AI nhận diện:</span>
-                  <strong className="att-info-val text-success">Khuôn mặt hợp lệ (99.4%)</strong>
-                </div>
-
-                <div className="att-info-item">
-                  <span className="att-info-lbl">Giờ check-in sáng:</span>
-                  <strong className="att-info-val">08:15:22 (Đúng giờ)</strong>
-                </div>
-              </div>
-
-              <div className="att-reminder-callout">
-                <Clock size={16} />
-                <p>Thông báo: Ca chiều kết thúc lúc <strong>17:30</strong>. Vui lòng hoàn tất công việc trước khi ra về.</p>
-              </div>
-
-              <button
-                type="button"
-                className={`intern-btn-big-checkout ${attendance.checkedOut ? 'is-checked-out' : ''}`}
-                onClick={handleToggleAttendance}
-              >
-                <Clock size={18} />
-                <span>
-                  {attendance.checkedOut
-                    ? `Đã hoàn tất ngày làm việc (${attendance.checkOutTime})`
-                    : 'Check-out ca chiều ngay'}
-                </span>
-              </button>
-            </section>
-          </div>
-        </div>
-      )}
-      {/* TAB 2: BÁO CÁO TUẦN */}
-      {activeTab === 'reports' && (
-        <section className="intern-panel">
-          <div className="intern-panel-header">
-            <div className="panel-header-titles">
-              <h2>Báo cáo thực tập tuần & Nhận xét của Mentor</h2>
-              <p>Nộp báo cáo định kỳ trước 18:00 thứ Sáu hàng tuần để Mentor đánh giá kết quả Sprint.</p>
-            </div>
+          <div className="table-controls">
             <button
               type="button"
               className="intern-btn intern-btn--primary"
-              onClick={() => setReportModal(true)}
+              style={{ padding: '0.45rem 0.95rem', fontSize: '13px', whiteSpace: 'nowrap' }}
+              onClick={() => setCreateTaskModal(true)}
             >
-              <Plus size={16} />
-              <span>Nộp báo cáo tuần mới</span>
+              + Thêm nhiệm vụ
             </button>
-          </div>
 
-          <div className="reports-stack">
-            {reports.map((report) => (
-              <div key={report.id} className="report-card-item">
-                <div className="report-card-top">
-                  <div>
-                    <h3 className="report-title">{report.week_range}</h3>
-                    <span className="report-timestamp">Nộp lúc: {report.submitted_at}</span>
-                  </div>
-                  <span className="status-badge status-badge--success">
-                    <CheckCircle2 size={13} />
-                    Mentor đã nhận xét
+            <div className="search-input-wrap">
+              <svg
+                className="search-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Tìm nhiệm vụ, commit, module..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="search-input"
+              />
+            </div>
+
+            {/* Custom Priority Filter Dropdown */}
+            <div
+              ref={priorityDropdownRef}
+              className={`priority-filter-container ${isPriorityOpen ? 'is-open' : ''} ${priorityFilter !== 'all' ? 'has-active-filter' : ''}`}
+            >
+              <button
+                type="button"
+                className="priority-filter-trigger-btn"
+                onClick={() => setIsPriorityOpen((prev) => !prev)}
+                aria-haspopup="listbox"
+                aria-expanded={isPriorityOpen}
+                aria-label="Lọc theo mức độ ưu tiên"
+              >
+                <div className="priority-filter-trigger-left">
+                  <svg
+                    className="priority-filter-icon"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                    <line x1="4" y1="22" x2="4" y2="15" />
+                  </svg>
+                  <span className="priority-filter-current-value">
+                    {priorityFilter === 'all' ? 'Mức độ ưu tiên' : `Ưu tiên: ${currentPriorityOption.label}`}
                   </span>
                 </div>
-                <div className="report-body">
-                  <div className="report-section">
-                    <strong>1. Kết quả công việc đạt được trong tuần:</strong>
-                    <p>{report.summary}</p>
-                  </div>
-                  <div className="report-section">
-                    <strong>2. Khó khăn gặp phải:</strong>
-                    <p>{report.issues}</p>
-                  </div>
-                  <div className="report-section">
-                    <strong>3. Kế hoạch tuần tới:</strong>
-                    <p>{report.plan}</p>
-                  </div>
-                  {report.feedback && (
-                    <div className="report-feedback-box">
-                      <div className="feedback-header">
-                        <strong>Nhận xét từ Mentor Trần Hoàng Quân:</strong>
-                        <div className="feedback-score">
-                          <Star size={14} className="star-icon" fill="#F59E0B" color="#F59E0B" />
-                          <span>{report.score}/5.0</span>
-                        </div>
-                      </div>
-                      <p>"{report.feedback}"</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
-      {/* TAB 3: CHẤM CÔNG */}
-      {activeTab === 'attendance' && (
-        <section className="intern-panel">
-          <div className="intern-panel-header">
-            <div className="panel-header-titles">
-              <h2>Lịch sử chấm công hàng ngày (Check-in / Check-out)</h2>
-              <p>Hệ thống ghi nhận thời gian làm việc tự động tại Trung tâm ICTU.</p>
-            </div>
-          </div>
-          <table className="enterprise-data-table">
-            <thead>
-              <tr>
-                <th>Ngày</th>
-                <th>Check-in</th>
-                <th>Check-out</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ATTENDANCE_LOGS.map((item, idx) => (
-                <tr key={idx}>
-                  <td><strong>{item.date}</strong></td>
-                  <td>{item.check_in}</td>
-                  <td>{item.check_out}</td>
-                  <td>
-                    <span className={`status-badge status-badge--${item.status === 'on_time' ? 'success' : 'warning'}`}>
-                      {item.status === 'on_time' ? 'Đúng giờ' : 'Đi muộn'}
+                <div className="priority-filter-trigger-right">
+                  {priorityFilter !== 'all' && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="priority-filter-quick-clear"
+                      title="Xóa bộ lọc"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setPriorityFilter('all')
+                        setIsPriorityOpen(false)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.stopPropagation()
+                          setPriorityFilter('all')
+                          setIsPriorityOpen(false)
+                        }
+                      }}
+                    >
+                      ✕
                     </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      )}
+                  )}
+                  <svg
+                    className={`priority-filter-chevron ${isPriorityOpen ? 'is-open' : ''}`}
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </div>
+              </button>
 
-      {/* TAB 4: HỢP ĐỒNG */}
-      {activeTab === 'contract' && (
-        <section className="intern-panel">
-          <div className="intern-panel-header">
-            <div className="panel-header-titles">
-              <h2>Hợp đồng thực tập & Đánh giá năng lực</h2>
-              <p>Văn bản pháp lý bảo đảm quyền lợi thực tập và chứng nhận kết quả đào tạo.</p>
-            </div>
-          </div>
-          <div className="contract-box">
-            <div className="contract-info-left">
-              <FileText size={32} color="#2563EB" />
-              <div>
-                <h3>HopDongThucTap_ICTU_TTS0002_NguyenVanAn.pdf</h3>
-                <p>Doanh nghiệp: ICTU Software & AI Center · Thời hạn: 01/07/2026 - 31/10/2026</p>
-                <span className="status-badge status-badge--success">Đã ký kết hợp lệ & Lưu trữ hệ thống</span>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="intern-btn intern-btn--outline"
-              onClick={() => showToast('Đang tải file hợp đồng PDF về máy...')}
-            >
-              <Download size={16} />
-              <span>Tải bản sao hợp đồng</span>
-            </button>
-          </div>
-        </section>
-      )}
+              {isPriorityOpen && (
+                <div className="priority-filter-dropdown-menu" role="listbox">
+                  <div className="priority-filter-menu-header">
+                    <span>Mức độ ưu tiên</span>
+                  </div>
+                  {PRIORITY_OPTIONS.map((opt) => {
+                    const isSelected = priorityFilter === opt.value
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        className={`priority-filter-menu-item ${isSelected ? 'is-selected' : ''}`}
+                        onClick={() => {
+                          setPriorityFilter(opt.value)
+                          setIsPriorityOpen(false)
+                        }}
+                      >
+                        <span className="priority-filter-item-label">{opt.label}</span>
 
-      {/* TAB 5: YÊU CẦU HỖ TRỢ */}
-      {activeTab === 'support' && (
-        <section className="intern-panel">
-          <div className="intern-panel-header">
-            <div className="panel-header-titles">
-              <h2>Phiếu yêu cầu hỗ trợ (Support Tickets)</h2>
-              <p>Gửi yêu cầu cấp giấy chứng nhận thực tập, cấp tài khoản mạng, đổi máy trạm.</p>
-            </div>
-          </div>
-          <div className="ticket-card">
-            <div className="ticket-header">
-              <strong>Cấp giấy chứng nhận thực tập (Khoa CNTT - ĐH ICTU)</strong>
-              <span className="status-badge status-badge--success">Đã xử lý xong</span>
-            </div>
-            <p className="ticket-desc">Em cần xin giấy xác nhận đang thực tập tại công ty để nộp về khoa CNTT trường ICTU.</p>
-            <div className="ticket-reply">
-              <strong>Phòng Nhân sự HR (14:20 28/09):</strong>
-              <p>Phòng Nhân sự đã ký và đóng dấu giấy xác nhận. Em có thể qua phòng HR (P.302) nhận bản cứng nhé.</p>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── 5. FOOTER WIDGETS (2 CỘT) ── */}
-      <section className="intern-footer-widgets-grid">
-        {/* Cột 1: Nhận xét gần nhất từ Mentor Trần Hoàng Quân (kèm điểm đánh giá 4.8/5.0) */}
-        <div className="footer-widget-card">
-          <div className="widget-card-header">
-            <div className="widget-header-title">
-              <Star size={18} className="star-icon-filled" />
-              <h3>Nhận xét gần nhất từ Mentor Trần Hoàng Quân</h3>
-            </div>
-            <div className="widget-rating-badge">
-              <span className="rating-num">4.8</span>
-              <span className="rating-max">/ 5.0</span>
-            </div>
-          </div>
-
-          <div className="widget-card-body">
-            <div className="stars-row">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star
-                  key={s}
-                  size={16}
-                  fill={s <= 4 ? '#F59E0B' : '#E2E8F0'}
-                  color={s <= 4 ? '#F59E0B' : '#CBD5E1'}
-                />
-              ))}
-              <span className="stars-label">Đánh giá Sprint 1 · Tuần 08</span>
-            </div>
-
-            <blockquote className="mentor-quote">
-              "Bình tiếp thu kiến trúc hệ thống rất nhanh, chủ động tìm hiểu Docker và xử lý xong API auth đúng hạn. Cần chú ý thêm log validation cho các edge case."
-            </blockquote>
-
-            <div className="mentor-sign-row">
-              <div className="mentor-avatar">Q</div>
-              <div className="mentor-details">
-                <strong>Mentor Trần Hoàng Quân</strong>
-                <span>Trưởng nhóm Kỹ thuật phần mềm · ICTU Center</span>
-              </div>
+                        {isSelected && (
+                          <svg
+                            className="priority-filter-check-icon"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#2563eb"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Cột 2: Checklist "Lưu ý tuần 08" (lịch chấm công, deadline báo cáo, lịch họp sync) */}
-        <div className="footer-widget-card">
-          <div className="widget-card-header">
-            <div className="widget-header-title">
-              <Calendar size={18} className="calendar-icon-widget" />
-              <h3>Lưu ý tuần 08</h3>
+        {/* Danh sách nhiệm vụ (Task Cards) */}
+        <div className="task-cards-list">
+          {filteredTasks.length === 0 ? (
+            <div className="empty-tasks-state">
+              <p>Không tìm thấy nhiệm vụ nào phù hợp với bộ lọc hiện tại.</p>
             </div>
-            <span className="widget-week-tag">Tuần hiện tại</span>
-          </div>
+          ) : (
+            filteredTasks.map((t) => {
+              const isDoing = t.status === 'doing'
+              const isDone = t.status === 'done'
 
-          <div className="widget-card-body">
-            <div className="checklist-stack">
-              {/* Item 1: Lịch chấm công */}
-              <div className="checklist-item is-checked">
-                <div className="checklist-icon-wrap checklist-icon-wrap--done">
-                  <CheckCircle2 size={16} />
-                </div>
-                <div className="checklist-text">
-                  <strong>Lịch chấm công hàng ngày</strong>
-                  <p>Check-in trước 08:30 sáng tại cổng ICTU. (Hôm nay: Đã check-in lúc 08:15 đúng giờ).</p>
-                </div>
-              </div>
+              return (
+                <div
+                  key={t.id}
+                  className="task-row-card"
+                >
+                  <div className="task-row-main">
+                    <div className="task-row-header">
+                      <div className="task-title-group">
+                        <h3
+                          className="task-title task-title--clickable"
+                          onClick={() => setDetailTaskModal(t)}
+                          title="Click để xem mô tả chi tiết công việc"
+                        >
+                          {t.title}
+                        </h3>
+                        <div className="task-tags">
+                          {(t.tags && t.tags.length > 0 && !t.tags.includes('Frontend/Backend')
+                            ? t.tags
+                            : generateTagsFromTitle(t.title)
+                          ).map((tag, idx) => (
+                            <span key={idx} className={`task-tag-badge ${getTagClass(tag)}`}>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
 
-              {/* Item 2: Deadline báo cáo */}
-              <div className="checklist-item">
-                <div className="checklist-icon-wrap checklist-icon-wrap--pending">
-                  <Clock size={16} />
-                </div>
-                <div className="checklist-text">
-                  <strong>Deadline nộp Báo cáo tuần 08</strong>
-                  <p>Hoàn thành và tải file đính kèm trước 18:00 Thứ Sáu (02/10/2026).</p>
-                </div>
-              </div>
+                    {/* Thanh tiến độ % */}
+                    <div className="task-progress-block">
+                      <div className="task-progress-labels">
+                        <span className="task-progress-txt">Tiến độ thực hiện:</span>
+                        <strong className="task-progress-pct">{t.progress}%</strong>
+                      </div>
+                      <div className="task-progress-bar">
+                        <div
+                          className="task-progress-fill fill-blue"
+                          style={{ width: `${t.progress}%` }}
+                        />
+                      </div>
+                    </div>
 
-              {/* Item 3: Lịch họp sync */}
-              <div className="checklist-item">
-                <div className="checklist-icon-wrap checklist-icon-wrap--meeting">
-                  <Calendar size={16} />
+                    {/* Link PR nếu có */}
+                    {t.prLink && (
+                      <div className="task-pr-row" style={{ marginTop: '8px', fontSize: '12.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontWeight: 600, color: '#475569' }}>
+                          Pull Request:
+                        </span>
+                        <a
+                          href={t.prLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#2563EB', textDecoration: 'underline', wordBreak: 'break-all', fontWeight: 500 }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {t.prLink}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mục Mức độ ưu tiên & Trạng thái làm việc ở giữa */}
+                  <div className="task-row-badges-center">
+                    <span
+                      className={`priority-badge priority-badge--${
+                        t.priority === 'high' ? 'danger' : t.priority === 'medium' ? 'warning' : 'neutral'
+                      }`}
+                    >
+                      <span
+                        className={`badge-dot badge-dot--priority-${
+                          t.priority === 'high' ? 'danger' : t.priority === 'medium' ? 'warning' : 'neutral'
+                        }`}
+                      />
+                      {t.priority === 'high'
+                        ? 'Ưu tiên cao'
+                        : t.priority === 'medium'
+                          ? 'Bình thường'
+                          : 'Thấp'}
+                    </span>
+
+                    <span
+                      className={`status-badge status-badge--${
+                        isDone ? 'success' : isDoing ? 'info' : t.status === 'review' ? 'warning' : 'neutral'
+                      }`}
+                    >
+                      <span
+                        className={`badge-dot badge-dot--status-${
+                          isDone ? 'success' : isDoing ? 'info' : t.status === 'review' ? 'warning' : 'neutral'
+                        }`}
+                      />
+                      {isDone
+                        ? 'Đã hoàn thành'
+                        : isDoing
+                          ? 'Đang làm việc'
+                          : t.status === 'review'
+                            ? 'Chờ nghiệm thu'
+                            : 'Cần làm'}
+                    </span>
+                  </div>
+
+                  <div className="task-row-actions">
+                    <button
+                      type="button"
+                      className="intern-btn-task-action"
+                      onClick={() => setTaskModal({ open: true, task: t })}
+                    >
+                      Cập nhật tiến độ
+                    </button>
+                  </div>
                 </div>
-                <div className="checklist-text">
-                  <strong>Lịch họp Sync Sprint 1</strong>
-                  <p>Họp trực tiếp cùng Mentor lúc 09:30 Thứ Hai tại Phòng Hội đồng P.301.</p>
-                </div>
-              </div>
-            </div>
-          </div>
+              )
+            })
+          )}
         </div>
       </section>
 
-      {/* ── MODAL CẬP NHẬT TIẾN ĐỘ NHIỆM VỤ ── */}
-      {taskModal.open && (
-        <div className="modal-overlay">
-          <div className="modal-container">
-            <div className="modal-header">
-              <h3>Cập nhật tiến độ nhiệm vụ</h3>
-              <button
-                type="button"
-                className="modal-close-btn"
-                onClick={() => setTaskModal({ open: false, task: null, progress: 0, status: 'doing', note: '' })}
-              >
-                ✕
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="modal-field">
-                <label>Nhiệm vụ:</label>
-                <strong>{taskModal.task?.title}</strong>
-              </div>
 
-              <div className="modal-field">
-                <label htmlFor="task-progress-slider">
-                  Tiến độ hoàn thành: <strong>{taskModal.progress}%</strong>
-                </label>
-                <input
-                  id="task-progress-slider"
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="5"
-                  value={taskModal.progress}
-                  onChange={(e) => setTaskModal({ ...taskModal, progress: Number(e.target.value) })}
-                  className="modal-range"
-                />
-              </div>
 
-              <div className="modal-field">
-                <label htmlFor="task-status-select">Trạng thái:</label>
-                <select
-                  id="task-status-select"
-                  value={taskModal.status}
-                  onChange={(e) => setTaskModal({ ...taskModal, status: e.target.value })}
-                  className="modal-select"
+      {/* ── MODAL XEM CHI TIẾT CÔNG VIỆC ── */}
+      {detailTaskModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setDetailTaskModal(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.55)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px 16px',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            className="modal-container"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '620px',
+              width: '100%',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '16px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              padding: '24px',
+              border: '1px solid #E2E8F0',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px',
+                borderBottom: '1px solid #F1F5F9',
+                paddingBottom: '12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span
+                  style={{
+                    backgroundColor: '#EFF6FF',
+                    color: '#2563EB',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid #BFDBFE',
+                  }}
                 >
-                  <option value="doing">Đang thực hiện</option>
-                  <option value="done">Đã hoàn thành</option>
-                  <option value="todo">Chưa bắt đầu</option>
-                </select>
+                  Sprint 1 · Chi tiết
+                </span>
+                <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 700, color: '#0F172A' }}>
+                  Chi tiết công việc
+                </h3>
               </div>
-
-              <div className="modal-field">
-                <label htmlFor="task-note-input">Ghi chú kết quả & bàn giao:</label>
-                <textarea
-                  id="task-note-input"
-                  rows={3}
-                  value={taskModal.note}
-                  onChange={(e) => setTaskModal({ ...taskModal, note: e.target.value })}
-                  placeholder="Ghi chú các công việc đã làm hoặc khó khăn cần Mentor hỗ trợ..."
-                  className="modal-textarea"
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
               <button
                 type="button"
-                className="intern-btn intern-btn--ghost"
-                onClick={() => setTaskModal({ open: false, task: null, progress: 0, status: 'doing', note: '' })}
-              >
-                Hủy bỏ
-              </button>
-              <button
-                type="button"
-                className="intern-btn intern-btn--primary"
-                onClick={handleSaveTask}
-              >
-                Lưu cập nhật
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL NỘP BÁO CÁO TUẦN ── */}
-      {reportModal && (
-        <div className="modal-overlay">
-          <div className="modal-container">
-            <div className="modal-header">
-              <h3>Nộp báo cáo thực tập tuần 08</h3>
-              <button
-                type="button"
-                className="modal-close-btn"
-                onClick={() => setReportModal(false)}
+                onClick={() => setDetailTaskModal(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  color: '#64748B',
+                }}
               >
                 ✕
               </button>
             </div>
-            <div className="modal-body">
-              <div className="modal-field">
-                <label htmlFor="rep-summary">1. Kết quả công việc đạt được:</label>
-                <textarea
-                  id="rep-summary"
-                  rows={3}
-                  placeholder="Tóm tắt công việc bạn đã hoàn thành trong tuần..."
-                  className="modal-textarea"
-                />
-              </div>
-              <div className="modal-field">
-                <label htmlFor="rep-issues">2. Khó khăn gặp phải (nếu có):</label>
-                <input
-                  id="rep-issues"
-                  type="text"
-                  placeholder="Vấn đề cần Mentor hỗ trợ..."
-                  className="modal-input"
-                />
-              </div>
-              <div className="modal-field">
-                <label htmlFor="rep-plan">3. Kế hoạch tuần kế tiếp:</label>
-                <input
-                  id="rep-plan"
-                  type="text"
-                  placeholder="Nhiệm vụ tiếp theo..."
-                  className="modal-input"
-                />
+
+            {/* Task Title & Badges */}
+            <div style={{ marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', margin: '0 0 10px 0' }}>
+                {detailTaskModal.title}
+              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {(detailTaskModal.tags && detailTaskModal.tags.length > 0 && !detailTaskModal.tags.includes('Frontend/Backend')
+                  ? detailTaskModal.tags
+                  : generateTagsFromTitle(detailTaskModal.title)
+                ).map((tag, idx) => (
+                  <span key={idx} className={`task-tag-badge ${getTagClass(tag)}`}>
+                    {tag}
+                  </span>
+                ))}
+                <span
+                  className={`priority-badge priority-badge--${
+                    detailTaskModal.priority === 'high' ? 'danger' : detailTaskModal.priority === 'medium' ? 'warning' : 'neutral'
+                  }`}
+                >
+                  <span
+                    className={`badge-dot badge-dot--priority-${
+                      detailTaskModal.priority === 'high' ? 'danger' : detailTaskModal.priority === 'medium' ? 'warning' : 'neutral'
+                    }`}
+                  />
+                  {detailTaskModal.priority === 'high'
+                    ? 'Ưu tiên cao'
+                    : detailTaskModal.priority === 'medium'
+                      ? 'Bình thường'
+                      : 'Thấp'}
+                </span>
+                <span
+                  className={`status-badge status-badge--${
+                    detailTaskModal.status === 'done'
+                      ? 'success'
+                      : detailTaskModal.status === 'doing'
+                        ? 'info'
+                        : detailTaskModal.status === 'review'
+                          ? 'warning'
+                          : 'neutral'
+                  }`}
+                >
+                  <span
+                    className={`badge-dot badge-dot--status-${
+                      detailTaskModal.status === 'done'
+                        ? 'success'
+                        : detailTaskModal.status === 'doing'
+                          ? 'info'
+                          : detailTaskModal.status === 'review'
+                            ? 'warning'
+                            : 'neutral'
+                    }`}
+                  />
+                  {detailTaskModal.status === 'done'
+                    ? 'Đã hoàn thành'
+                    : detailTaskModal.status === 'doing'
+                      ? 'Đang làm việc'
+                      : detailTaskModal.status === 'review'
+                        ? 'Chờ nghiệm thu'
+                        : 'Cần làm'}
+                </span>
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: '#2563EB',
+                    backgroundColor: '#EFF6FF',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #BFDBFE',
+                  }}
+                >
+                  Tiến độ: {detailTaskModal.progress}%
+                </span>
               </div>
             </div>
-            <div className="modal-footer">
+
+            {/* Mô tả chi tiết công việc */}
+            <div style={{ marginBottom: '18px' }}>
+              <div
+                style={{
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: '#334155',
+                  marginBottom: '6px',
+                }}
+              >
+                Mô tả chi tiết công việc:
+              </div>
+              <div
+                style={{
+                  padding: '14px 16px',
+                  backgroundColor: '#F8FAFC',
+                  borderRadius: '10px',
+                  border: '1px solid #E2E8F0',
+                  fontSize: '13.5px',
+                  lineHeight: 1.6,
+                  color: '#334155',
+                  whiteSpace: 'pre-wrap',
+                }}
+              >
+                {detailTaskModal.description || 'Chưa có mô tả chi tiết cho nhiệm vụ này.'}
+              </div>
+            </div>
+
+            {/* Danh sách việc con nếu có */}
+            {detailTaskModal.subtasks && detailTaskModal.subtasks.length > 0 && (
+              <div style={{ marginBottom: '18px' }}>
+                <div
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: '#334155',
+                    marginBottom: '6px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span>Checklist việc con:</span>
+                  <span style={{ fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
+                    {detailTaskModal.subtasks.filter((st) => st.completed).length}/{detailTaskModal.subtasks.length} hoàn thành
+                  </span>
+                </div>
+                <div
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                  }}
+                >
+                  {detailTaskModal.subtasks.map((st, i) => (
+                    <div
+                      key={st.id || i}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '6px 0',
+                        fontSize: '13px',
+                        color: st.completed ? '#64748B' : '#1E293B',
+                        textDecoration: st.completed ? 'line-through' : 'none',
+                        borderBottom: i < detailTaskModal.subtasks.length - 1 ? '1px solid #F1F5F9' : 'none',
+                      }}
+                    >
+                      <span style={{ color: st.completed ? '#16A34A' : '#94A3B8' }}>
+                        {st.completed ? '✓' : '○'}
+                      </span>
+                      <span>{st.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Ghi chú nếu có */}
+            {detailTaskModal.note && (
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  Ghi chú tiến độ / Báo cáo Mentor:
+                </div>
+                <div
+                  style={{
+                    padding: '10px 14px',
+                    backgroundColor: '#FEF9C3',
+                    borderRadius: '8px',
+                    border: '1px solid #FDE68A',
+                    fontSize: '13px',
+                    color: '#713F12',
+                  }}
+                >
+                  {detailTaskModal.note}
+                </div>
+              </div>
+            )}
+
+            {/* Pull request nếu có */}
+            {detailTaskModal.prLink && (
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
+                  Pull Request:
+                </div>
+                <a
+                  href={detailTaskModal.prLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: '13px', color: '#2563EB', textDecoration: 'underline', wordBreak: 'break-all' }}
+                >
+                  {detailTaskModal.prLink}
+                </a>
+              </div>
+            )}
+
+            {/* Footer Buttons */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '10px',
+                marginTop: '20px',
+                paddingTop: '14px',
+                borderTop: '1px solid #F1F5F9',
+              }}
+            >
               <button
                 type="button"
                 className="intern-btn intern-btn--ghost"
-                onClick={() => setReportModal(false)}
+                onClick={() => setDetailTaskModal(null)}
               >
                 Đóng
               </button>
@@ -1042,70 +1447,365 @@ export default function InternDashboardPage() {
                 type="button"
                 className="intern-btn intern-btn--primary"
                 onClick={() => {
-                  setReportModal(false)
-                  showToast('Đã nộp báo cáo tuần 08 thành công cho Mentor Trần Hoàng Quân!')
+                  const taskToEdit = detailTaskModal
+                  setDetailTaskModal(null)
+                  setTaskModal({ open: true, task: taskToEdit })
                 }}
               >
-                Gửi báo cáo
+                Cập nhật tiến độ
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── MODAL XIN NGHỈ PHÉP ── */}
-      {leaveModal && (
-        <div className="modal-overlay">
-          <div className="modal-container">
-            <div className="modal-header">
-              <h3>Đăng ký xin nghỉ phép</h3>
+      {/* ── MODAL CẬP NHẬT TIẾN ĐỘ NHIỆM VỤ ── */}
+      <TaskProgressModal
+        isOpen={taskModal.open}
+        task={taskModal.task}
+        onClose={() => setTaskModal({ open: false, task: null })}
+        onSave={handleSaveTask}
+      />
+
+      {/* ── MODAL THÊM NHIỆM VỤ MỚI VÀO SPRINT ── */}
+      {createTaskModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setCreateTaskModal(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.55)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px 16px',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            className="modal-container"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '16px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              padding: '24px',
+              border: '1px solid #E2E8F0',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '18px',
+                borderBottom: '1px solid #F1F5F9',
+                paddingBottom: '12px',
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 700, color: '#0F172A' }}>
+                Thêm nhiệm vụ mới vào Sprint 1
+              </h3>
               <button
                 type="button"
-                className="modal-close-btn"
-                onClick={() => setLeaveModal(false)}
+                onClick={() => setCreateTaskModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  color: '#64748B',
+                }}
               >
                 ✕
               </button>
             </div>
-            <div className="modal-body">
-              <div className="modal-field">
-                <label htmlFor="leave-dates">Thời gian xin nghỉ:</label>
-                <input
-                  id="leave-dates"
-                  type="text"
-                  placeholder="Ví dụ: 05/10/2026 (1 ngày)"
-                  className="modal-input"
-                />
-              </div>
-              <div className="modal-field">
-                <label htmlFor="leave-reason">Lý do xin nghỉ:</label>
-                <textarea
-                  id="leave-reason"
-                  rows={3}
-                  placeholder="Trùng lịch thi kết thúc học phần tại trường ICTU..."
-                  className="modal-textarea"
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="intern-btn intern-btn--ghost"
-                onClick={() => setLeaveModal(false)}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                className="intern-btn intern-btn--primary"
-                onClick={() => {
-                  setLeaveModal(false)
-                  showToast('Đã gửi đơn xin nghỉ phép tới cán bộ HR xem xét!')
+
+            <form onSubmit={handleCreateTask}>
+              {/* 1. HÀNG ĐẦU TIÊN: TÊN NHIỆM VỤ (BÊN TRÁI) & ĐỘ ƯU TIÊN (BÊN PHẢI) */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 160px',
+                  gap: '14px',
+                  marginBottom: '14px',
+                  alignItems: 'start',
                 }}
               >
-                Gửi đơn xin nghỉ
-              </button>
-            </div>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      marginBottom: '6px',
+                      color: '#334155',
+                    }}
+                  >
+                    Tên nhiệm vụ <span style={{ color: '#EF4444' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ví dụ: Thiết kế API thông báo thời gian thực..."
+                    value={newTaskForm.title}
+                    onChange={(e) => setNewTaskForm({ ...newTaskForm, title: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      fontSize: '13.5px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      marginBottom: '6px',
+                      color: '#334155',
+                    }}
+                  >
+                    Độ ưu tiên
+                  </label>
+                  <select
+                    value={newTaskForm.priority}
+                    onChange={(e) => setNewTaskForm({ ...newTaskForm, priority: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      fontSize: '13.5px',
+                      outline: 'none',
+                      backgroundColor: '#FFFFFF',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="high">Cao</option>
+                    <option value="medium">Trung bình</option>
+                    <option value="low">Thấp</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 2. PHÍA DƯỚI: MÔ TẢ CÔNG VIỆC */}
+              <div style={{ marginBottom: '16px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    marginBottom: '6px',
+                    color: '#334155',
+                  }}
+                >
+                  Mô tả công việc
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Chi tiết yêu cầu kỹ thuật cần triển khai..."
+                  value={newTaskForm.description}
+                  onChange={(e) => setNewTaskForm({ ...newTaskForm, description: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #CBD5E1',
+                    fontSize: '13.5px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* 3. LINK IMPORT VIỆC TỪ FILE WORD, EXCEL,... HOẶC ĐỂ TRỐNG ĐỂ TỰ NHẬP TAY */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: '#334155',
+                    }}
+                  >
+                    Đầu việc con (Subtasks)
+                  </label>
+                  {importedFileName && (
+                    <button
+                      type="button"
+                      onClick={handleClearImport}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#EF4444',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        padding: 0,
+                      }}
+                    >
+                      ✕ Hủy file import
+                    </button>
+                  )}
+                </div>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".docx,.doc,.xlsx,.xls,.csv,.txt,.pdf"
+                  onChange={handleFileImport}
+                  style={{ display: 'none' }}
+                />
+
+                {!importedFileName ? (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      border: '1.5px dashed #93C5FD',
+                      backgroundColor: '#EFF6FF',
+                      borderRadius: '10px',
+                      padding: '14px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '10px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#2563EB'
+                      e.currentTarget.style.backgroundColor = '#DBEAFE'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#93C5FD'
+                      e.currentTarget.style.backgroundColor = '#EFF6FF'
+                    }}
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#2563EB"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ flexShrink: 0 }}
+                      aria-hidden="true"
+                    >
+                      <path d="M7 8H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-2" />
+                      <polyline points="8 12 12 16 16 12" />
+                      <line x1="12" y1="3" x2="12" y2="16" />
+                    </svg>
+                    <span
+                      style={{
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        color: '#2563EB',
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      Nhập công việc từ thiết bị
+                    </span>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      border: '1px solid #BFDBFE',
+                      backgroundColor: '#F0F9FF',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#0369A1', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>✓</span> Đã tự động tạo <strong>{importedSubtasks.length}</strong> việc con từ: <em>{importedFileName}</em>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#2563EB',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                        }}
+                      >
+                        Chọn file khác
+                      </button>
+                    </div>
+
+                    <div
+                      style={{
+                        maxHeight: '120px',
+                        overflowY: 'auto',
+                        padding: '6px 10px',
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: '6px',
+                        border: '1px solid #E2E8F0',
+                      }}
+                    >
+                      {importedSubtasks.map((st, i) => (
+                        <div
+                          key={st.id || i}
+                          style={{
+                            fontSize: '12.5px',
+                            color: '#334155',
+                            padding: '3px 0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <span style={{ color: '#2563EB', fontWeight: 700 }}>•</span>
+                          <span>{st.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: '10px',
+                  marginTop: '20px',
+                }}
+              >
+                <button
+                  type="button"
+                  className="intern-btn intern-btn--cancel"
+                  onClick={() => {
+                    setCreateTaskModal(false)
+                    handleClearImport()
+                  }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="intern-btn intern-btn--primary"
+                >
+                  Thêm vào Sprint 1
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

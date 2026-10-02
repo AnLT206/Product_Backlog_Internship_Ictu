@@ -16,7 +16,7 @@ from app.utils.hash_password import hash_password
 from app.utils.user_code import next_user_code
 
 MANAGED_ROLES = frozenset({"hr", "mentor", "intern", "admin"})
-CREATE_ROLES = frozenset({"hr", "mentor", "intern", "admin"})
+CREATE_ROLES = frozenset({"hr", "mentor", "intern"})
 
 
 class AdminUserService:

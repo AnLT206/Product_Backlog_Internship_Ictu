@@ -6,7 +6,7 @@
   padding: 0 0 2rem;
   max-width: 100%;
   margin: 0;
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: var(--fb-font);
   color: #0f172a;
   box-sizing: border-box;
 }

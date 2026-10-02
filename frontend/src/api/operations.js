@@ -105,3 +105,12 @@ export async function syncAllScores() {
     method: 'POST',
   })
 }
+
+/* ── INTERN WEEKLY REPORTS ── */
+export async function submitInternReport(reportData) {
+  return apiFetch('/api/intern/reports', {
+    method: 'POST',
+    body: JSON.stringify(reportData),
+  })
+}
+

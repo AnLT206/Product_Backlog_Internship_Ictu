@@ -11,7 +11,6 @@ export function getAdmissionApprovedEmailHtml(applicant = {}) {
   const code = applicant.student_code || 'TTS0003';
   const major = applicant.major || 'Công nghệ thông tin';
   const faculty = applicant.faculty || 'Khoa Công nghệ Thông tin';
-  const appliedDate = applicant.applied_at || '30/09/2026';
   const company = applicant.company || 'ICTU Software Engineering Lab';
   const project = applicant.project || 'Dự án Core API Microservice & Quản lý TTS';
 
@@ -184,8 +183,6 @@ export function getAdmissionApprovedEmailHtml(applicant = {}) {
 export function getAdmissionRejectedEmailHtml(applicant = {}, reason = '') {
   const name = applicant.full_name || 'Nguyễn Văn An';
   const code = applicant.student_code || 'TTS0003';
-  const major = applicant.major || 'Công nghệ thông tin';
-  const faculty = applicant.faculty || 'Khoa Công nghệ Thông tin';
   const rejectReason = reason || 'Hồ sơ chưa đáp ứng yêu cầu số tín chỉ tích lũy tối thiểu hoặc chứng chỉ kỹ năng chuyên môn đầu vào theo khung yêu cầu của kỳ này.';
 
   return `<!DOCTYPE html>

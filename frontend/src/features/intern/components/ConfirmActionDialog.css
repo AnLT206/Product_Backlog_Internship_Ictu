@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  font-family: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-family: var(--fb-font);
   -webkit-font-smoothing: antialiased;
   animation: backdrop-in 0.18s ease;
 }

@@ -45,3 +45,11 @@ class ContractCreateRequest(BaseModel):
     intern_id: int
     contract_code: str
     doc_type: str = "Thỏa thuận thực tập 3 bên & NDA"
+
+
+# ── Intern Weekly Report Schema ──
+class InternReportCreateRequest(BaseModel):
+    week_title: str = Field(..., min_length=1, max_length=255)
+    content: str = Field(..., min_length=1)
+    file_name: str | None = None
+

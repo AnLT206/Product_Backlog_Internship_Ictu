@@ -24,6 +24,8 @@
  */
 
 import { useState, useRef } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { uploadDocument } from '../../api/documents';
 import { buildToast } from '../../api/interns';
 import './InternUploadPage.css';
@@ -66,10 +68,16 @@ function validateFile(file) {
 /**
  * InternUploadPage
  *
- * Form TTS upload CV / đơn xin thực tập.
- * Sau upload thành công hiển thị link xem trước + tải xuống.
+ * Form dành riêng cho Ứng viên upload CV / đơn xin thực tập.
+ * Thực tập sinh chính thức không cần thao tác màn hình này.
  */
 function InternUploadPage() {
+  const { user } = useAuth();
+  const isApplicant =
+    user?.status === 'pending' ||
+    (user?.email === 'ungvien@ictu.edu.vn' && user?.status !== 'active') ||
+    (user?.code === 'TTS9999' && user?.status !== 'active');
+
   /* ── State ── */
   const [docType, setDocType]   = useState('cv');
   const [file, setFile]         = useState(null);        // File object
@@ -93,6 +101,11 @@ function InternUploadPage() {
      TODO: Khi BE thật và dùng XMLHttpRequest, thay bằng progress event thật.
   ── */
   const [progress, setProgress] = useState(0); // 0..100
+
+  // Đã là thực tập sinh chính thức thì tự động chuyển hướng về Dashboard
+  if (!isApplicant) {
+    return <Navigate to="/intern/dashboard" replace />;
+  }
 
   /* ── Handlers ── */
   function handleDocTypeChange(e) {

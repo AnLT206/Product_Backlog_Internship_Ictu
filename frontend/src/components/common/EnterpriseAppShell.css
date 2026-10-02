@@ -7,7 +7,7 @@
   min-height: 100vh;
   background-color: var(--bg-app);
   color: var(--text-primary);
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: var(--fb-font);
   position: relative;
 }
 
@@ -27,7 +27,6 @@
 }
 
 /* Sidebar Brand Header */
-/* Sidebar Brand Header */
 .sidebar-brand {
   min-height: var(--topbar-height);
   height: auto;
@@ -37,7 +36,7 @@
   gap: 0.75rem;
   border-bottom: 1px solid var(--border-main);
   background-color: #ffffff;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--fb-font);
 }
 
 .sidebar-brand__logo-wrap {
@@ -103,54 +102,6 @@
   max-width: 175px;
 }
 
-/* Sidebar Tag Panel (PHÂN HỆ: Quản trị Hệ thống) */
-.sidebar-tag-panel {
-  margin: 0.75rem 0.85rem 0.25rem;
-  padding: 0.4rem 0.75rem;
-  background-color: #F8FAFC;
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.tag-panel-label {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: #64748B;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-family: inherit;
-  line-height: 1;
-}
-
-.tag-panel-badge {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #2563EB;
-  background-color: #EFF6FF;
-  border: 1px solid #BFDBFE;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-family: inherit;
-  line-height: 1.2;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.tag-panel-dot {
-  width: 6.5px;
-  height: 6.5px;
-  border-radius: 50%;
-  background-color: #10B981;
-  display: inline-block;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-}
 
 .sidebar-nav-pill.badge--cyan {
   background-color: #E0F2FE;
@@ -194,19 +145,20 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.55rem 0.65rem;
+  padding: 0.65rem 0.85rem;
   border-radius: var(--radius-md);
   color: var(--text-secondary);
-  font-size: 0.83rem;
+  font-size: 0.84rem;
   font-weight: 500;
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 
 .sidebar-nav-item:hover {
-  background-color: var(--bg-surface-hover);
+  background-color: #EFF6FF;
   color: var(--primary);
+  transform: translateX(3px);
 }
 
 .sidebar-nav-item.is-active {
@@ -495,7 +447,7 @@
   padding: 0.42rem 0.75rem;
   font-size: 0.775rem;
   font-weight: 600;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--fb-font);
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);

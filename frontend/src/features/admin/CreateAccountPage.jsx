@@ -9,7 +9,6 @@ import { createAccount } from '../../api/admin';
 import './CreateAccountPage.css';
 
 const ROLE_OPTIONS = [
-  { value: 'admin', label: 'Quản trị viên (Admin)', desc: 'Toàn quyền cấu hình hệ thống & an toàn thông tin' },
   { value: 'hr', label: 'Nhân sự (HR)', desc: 'Quản lý hồ sơ & chương trình tuyển dụng' },
   { value: 'mentor', label: 'Mentor', desc: 'Hướng dẫn, giao việc & đánh giá TTS' },
   { value: 'intern', label: 'Thực tập sinh (Intern)', desc: 'Tài khoản ứng viên / sinh viên thực tập' },
@@ -19,7 +18,7 @@ const ALLOWED_ROLES = new Set(ROLE_OPTIONS.map((o) => o.value));
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const NOTES = [
-  'Admin có thể tạo tài khoản cho tất cả các vai trò.',
+  'Admin có thể cấp tài khoản cho Nhân sự (HR), Mentor và Thực tập sinh.',
   'Tài khoản mới được kích hoạt và có thể đăng nhập ngay lập tức.',
   'Mật khẩu tạm tối thiểu 6 ký tự.',
   'Nên dùng email domain tổ chức (@ictu.edu.vn).',
@@ -147,7 +146,7 @@ function CreateAccountPage() {
           <div className="create-account-pagehead__row">
             <div>
               <h1>Tạo tài khoản nội bộ</h1>
-              <p>Cấp tài khoản HR hoặc Mentor.</p>
+              <p>Cấp tài khoản Nhân sự (HR), Mentor hoặc Thực tập sinh.</p>
             </div>
             <Link to="/admin/dashboard" className="create-account-back">
               ← Quay lại

@@ -1,22 +1,14 @@
 import { Outlet, useLocation } from 'react-router-dom'
-import {
-  Activity,
-  Users,
-  ShieldCheck,
-  Sliders,
-  FileText,
-  DatabaseBackup,
-} from 'lucide-react'
 import EnterpriseAppShell from '../../components/common/EnterpriseAppShell'
 import './AdminDashboardPage.css'
 
 const ADMIN_NAV_ITEMS = [
-  { to: '/admin/dashboard', label: 'Tổng quan & Giám sát Hệ thống', icon: Activity, end: true },
-  { to: '/admin/users', label: 'Quản lý Tài khoản & Định danh', icon: Users, permission: 'admin_users' },
-  { to: '/admin/roles', label: 'Ma trận Phân quyền (RBAC)', icon: ShieldCheck, permission: 'admin_roles' },
-  { to: '/admin/settings', label: 'Cấu hình Tham số & SSO/LDAP', icon: Sliders, permission: 'admin_users' },
-  { to: '/admin/system-logs', label: 'Nhật ký Truy vết (Audit Log)', icon: FileText, badge: '24', permission: 'admin_audit_logs' },
-  { to: '/admin/backup', label: 'Sao lưu & Khôi phục Dữ liệu', icon: DatabaseBackup, permission: 'admin_backup' },
+  { to: '/admin/dashboard', label: 'Tổng quan & Giám sát Hệ thống', end: true },
+  { to: '/admin/users', label: 'Quản lý Tài khoản & Định danh', permission: 'admin_users' },
+  { to: '/admin/roles', label: 'Ma trận Phân quyền (RBAC)', permission: 'admin_roles' },
+  { to: '/admin/settings', label: 'Cấu hình Tham số & SSO/LDAP', permission: 'admin_users' },
+  { to: '/admin/system-logs', label: 'Nhật ký Truy vết (Audit Log)', badge: '24', permission: 'admin_audit_logs' },
+  { to: '/admin/backup', label: 'Sao lưu & Khôi phục Dữ liệu', permission: 'admin_backup' },
 ]
 
 export default function AdminLayout() {
@@ -31,8 +23,6 @@ export default function AdminLayout() {
       portalName="Quản trị Hệ thống"
       logoTitle="ICTU Admin Console"
       logoSubtitle="DevSecOps & Infra Control"
-      portalTag="Quản trị Hệ thống"
-      showPortalTagBox={true}
       sidebarSectionLabel="BẢNG ĐIỀU KHIỂN KỸ THUẬT"
       navItems={ADMIN_NAV_ITEMS}
       breadcrumbs={[

@@ -1,6 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
+  /* System Typography */
+  --fb-font: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-family: var(--fb-font);
+
   /* ICTU Design System Colors */
   --primary: #2563EB;
   --primary-hover: #1D4ED8;
@@ -23,10 +27,11 @@
   --text-subtle: #94A3B8;
   --text-white: #FFFFFF;
   
-  --success: #10B981;
-  --success-bg: #ECFDF5;
-  --success-text: #065F46;
-  --success-border: #A7F3D0;
+  --success: #2563EB;
+  --success-hover: #1D4ED8;
+  --success-bg: #EFF6FF;
+  --success-text: #1D4ED8;
+  --success-border: #BFDBFE;
 
   --warning: #F59E0B;
   --warning-bg: #FFFBEB;
@@ -69,7 +74,7 @@
   --topbar-height: 64px;
 
   color-scheme: light;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--fb-font);
   line-height: 1.5;
   font-weight: 400;
   color: var(--text-primary);
@@ -95,7 +100,9 @@ body {
   min-width: 320px;
   background-color: var(--bg-app);
   color: var(--text-primary);
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--fb-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button,
@@ -103,7 +110,7 @@ input,
 optgroup,
 select,
 textarea {
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--fb-font);
   font-size: 100%;
   line-height: inherit;
 }

@@ -20,6 +20,12 @@ class AdminService:
     def create_user(self, payload: AdminUserCreateRequest) -> AdminUserResponse:
         """Thêm mới tài khoản người dùng với vai trò bất kỳ và mã hóa mật khẩu bcrypt (SCRUM-18)."""
         # 1. Kiểm tra email đã tồn tại hay chưa
+        if payload.role == "admin":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Admin không thể tạo tài khoản Quản trị viên (Admin).",
+            )
+
         existing = self.db.query(User).filter(User.email == payload.email).first()
         if existing:
             raise HTTPException(

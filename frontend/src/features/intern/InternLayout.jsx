@@ -1,28 +1,20 @@
 import { Outlet } from 'react-router-dom'
-import {
-  CheckSquare,
-  Clock,
-  FileText,
-  BookOpen,
-  DollarSign,
-  LayoutDashboard,
-  UploadCloud,
-} from 'lucide-react'
 import EnterpriseAppShell from '../../components/common/EnterpriseAppShell'
 import { useAuth } from '../../context/AuthContext'
 
 const INTERN_NAV_ITEMS = [
-  { to: '/intern/dashboard', label: 'Nhiệm vụ cá nhân (Tasks)', icon: CheckSquare, permission: 'tasks_update', end: true },
-  { to: '/intern/upload', label: 'Tải lên CV & Đơn thực tập', icon: UploadCloud, permission: 'auth_login' },
-  { to: '/intern/dashboard#attendance', label: 'Chấm công & Điểm danh', icon: Clock, permission: 'attendance_self' },
-  { to: '/intern/dashboard#reports', label: 'Báo cáo tuần & Feedback', icon: FileText, badge: 'T8', permission: 'reports_submit' },
-  { to: '/intern/dashboard#training', label: 'Tài liệu đào tạo & Onboarding', icon: BookOpen, permission: 'schedule_view' },
-  { to: '/intern/dashboard#allowance', label: 'Chế độ & Trợ cấp cá nhân', icon: DollarSign, permission: 'allowances' },
+  { to: '/intern/dashboard', label: 'Dashboard', permission: 'tasks_update', end: true },
+  { to: '/intern/schedule', label: 'Lịch thực tập cá nhân', permission: 'schedule_view' },
+  { to: '/intern/attendance', label: 'Lịch sử chấm công - nghỉ phép', permission: 'attendance_self' },
+  { to: '/intern/reports', label: 'Báo cáo tuần & Feedback', permission: 'reports_submit' },
+  { to: '/intern/allowance', label: 'Phụ cấp & Thu nhập', permission: 'allowances' },
+  { to: '/intern/support', label: 'Yêu cầu hỗ trợ (Tickets)', permission: 'support_tickets' },
+  { to: '/intern/training', label: 'Tài liệu đào tạo & Onboarding', permission: 'schedule_view' },
 ]
 
 const APPLICANT_NAV_ITEMS = [
-  { to: '/intern/dashboard', label: 'Hồ sơ & Tiến trình ứng tuyển', icon: LayoutDashboard, end: true },
-  { to: '/intern/upload', label: 'Tải lên CV & Đơn thực tập', icon: UploadCloud },
+  { to: '/intern/dashboard', label: 'Hồ sơ & Tiến trình ứng tuyển', end: true },
+  { to: '/intern/upload', label: 'Tải lên CV & Đơn thực tập' },
 ]
 
 export default function InternLayout() {
@@ -37,8 +29,6 @@ export default function InternLayout() {
   return (
     <EnterpriseAppShell
       portalName="Thực tập Doanh nghiệp"
-      portalTag={isApplicant ? 'Ứng viên Thực tập' : 'Thực tập sinh'}
-      showPortalTagBox={true}
       logoTitle="ICTU Intern Hub"
       logoSubtitle={isApplicant ? 'Cổng Tuyển Dụng & Đào Tạo' : 'Hệ thống Thực tập Doanh nghiệp'}
       sidebarSectionLabel={isApplicant ? 'HỒ SƠ ỨNG TUYỂN' : 'KHÔNG GIAN LÀM VIỆC TTS'}

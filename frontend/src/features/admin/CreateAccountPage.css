@@ -8,7 +8,7 @@
   --admin-body: #334155;
   --admin-muted: #64748b;
   --admin-line: #e2e8f0;
-  --admin-font: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+  --admin-font: var(--fb-font, 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
 
   width: 100%;
   font-family: var(--admin-font);
@@ -155,8 +155,14 @@
 
 .role-cards {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .role-cards {
+    grid-template-columns: 1fr;
+  }
 }
 
 .role-card {
