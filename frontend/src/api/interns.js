@@ -5,22 +5,17 @@
  *
  * Quy tắc folder-structure.md §3: "Gọi API → src/api/, không fetch rải
  * trong mọi component/feature."
+ *
+ * Trạng thái tích hợp:
+ *   ✅ approveIntern  → POST /api/hr/interns/{id}/approve   (đã có BE)
+ *   ✅ rejectIntern   → PATCH /api/hr/interns/{id}/status   (đã có BE)
+ *   ✅ createIntern   → POST /api/hr/interns                (đã có BE)
+ *   ✅ getInterns     → GET  /api/hr/interns                (đã có BE)
+ *   ✅ getActiveInterns → GET /api/hr/interns?status=active  (đã có BE)
+ *   🔧 updateIntern  → PUT /api/hr/interns/{id}            (CHƯA có BE — giữ mock)
+ *   🔧 getInternById → GET /api/hr/interns/{id}            (CHƯA có BE — giữ mock)
  */
 
-/* ─────────────────────────────────────────────
-   Cách tích hợp vào UI form sửa hồ sơ (dành cho người phụ trách UI):
-
-   import { updateIntern, buildToast } from '../api/interns';
-
-   async function handleSave(internId, formData) {
-     const { ok, status, data } = await updateIntern(internId, formData);
-     setToast(buildToast(ok, status, data));
-     setTimeout(() => setToast(null), 4000);
-   }
-───────────────────────────────────────────── */
-
-// TODO: Bỏ comment import bên dưới và xóa toàn bộ khối MOCK khi BE có endpoint thật
-// import apiFetch from './client';
 import apiFetch from './client';
 
 /* ─────────────────────────────────────────────
@@ -30,70 +25,40 @@ import apiFetch from './client';
 /**
  * Gọi API cập nhật hồ sơ thực tập sinh.
  *
- * TODO: PUT /api/hr/interns/{id} chưa có trong backend (chờ API thật).
- *       Khi BE sẵn sàng: xóa khối MOCK bên dưới, bỏ comment fetch thật.
+ * 🔧 MOCK — PUT /api/hr/interns/{id} chưa có trong backend.
+ *    Khi BE sẵn sàng: xóa khối MOCK bên dưới và bỏ comment fetch thật.
  *
- * @param {number|string} internId - ID của thực tập sinh cần cập nhật.
- * @param {object} payload - Dữ liệu hồ sơ đã sửa. Các field được phép:
- *   full_name, phone_number, dob, gender, university, major, academic_year,
- *   gpa, address (software-specification.md §5.1)
+ * @param {number|string} internId
+ * @param {object} payload
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
- *
- * @example
- * import { updateIntern } from '../api/interns';
- *
- * const result = await updateIntern(42, {
- *   full_name: 'Nguyễn Văn B',
- *   university: 'ICTU',
- *   gpa: 3.5,
- * });
  */
 export async function updateIntern(internId, payload) {
-  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
+  /* ── MOCK (xóa khi BE có PUT /api/hr/interns/{id}) ── */
   await new Promise((r) => setTimeout(r, 600));
 
-  // Mô phỏng 404 nếu internId = 0 (để test lỗi)
   if (Number(internId) === 0) {
-    return {
-      ok: false,
-      status: 404,
-      data: { detail: 'Không tìm thấy hồ sơ thực tập sinh.' },
-    };
+    return { ok: false, status: 404, data: { detail: 'Không tìm thấy hồ sơ thực tập sinh.' } };
   }
 
-  // Mô phỏng 422 nếu gpa > 4 (để test validate)
   if (payload.gpa !== undefined && Number(payload.gpa) > 4) {
     return {
       ok: false,
       status: 422,
-      data: {
-        detail: [
-          { loc: ['body', 'gpa'], msg: 'GPA không được vượt quá 4.0.' },
-        ],
-      },
+      data: { detail: [{ loc: ['body', 'gpa'], msg: 'GPA không được vượt quá 4.0.' }] },
     };
   }
 
-  // Mô phỏng thành công 200
   return {
     ok: true,
     status: 200,
-    data: {
-      id: Number(internId),
-      ...payload,
-      role: 'intern',
-      status: 'active',
-    },
+    data: { id: Number(internId), ...payload, role: 'intern', status: 'active' },
   };
-  /* ── END MOCK ─────────────────────────────────────────────────────────
-
-  // TODO: Bỏ comment khối này khi BE có PUT /api/hr/interns/{id}
-  //       (yêu cầu role: hr hoặc admin — apiFetch tự gắn Authorization header)
+  /* ── Bỏ comment khi BE có PUT /api/hr/interns/{id} ──
   return apiFetch(`/api/hr/interns/${internId}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
   });
-  ─────────────────────────────────────────────────────────────────────── */
+  ── */
 }
 
 /* ─────────────────────────────────────────────
@@ -102,39 +67,20 @@ export async function updateIntern(internId, payload) {
 
 /**
  * Phân tích kết quả API và trả về nội dung toast tương ứng.
- * UI tự gọi setState để hiển thị (xem pattern trong CreateAccountPage.jsx).
  *
- * @param {boolean} ok              - res.ok từ API call
- * @param {number}  status          - HTTP status code
- * @param {object}  data            - Body JSON từ server
- * @param {string}  [successMessage='Cập nhật hồ sơ thành công!'] - Message khi thành công
+ * @param {boolean} ok
+ * @param {number}  status
+ * @param {object}  data
+ * @param {string}  [successMessage='Cập nhật hồ sơ thành công!']
  * @returns {{ type: 'success'|'error', message: string }}
- *
- * @example
- * import { updateIntern, buildToast } from '../api/interns';
- *
- * const [toast, setToast] = useState(null);
- *
- * async function handleSave() {
- *   const { ok, status, data } = await updateIntern(internId, formData);
- *   setToast(buildToast(ok, status, data));
- *   setTimeout(() => setToast(null), 4000);
- * }
  */
 export function buildToast(ok, status, data, successMessage = 'Cập nhật hồ sơ thành công!') {
-  if (ok) {
-    return { type: 'success', message: successMessage };
-  }
+  if (ok) return { type: 'success', message: successMessage };
 
-  // 404 — Không tìm thấy
   if (status === 404) {
-    return {
-      type: 'error',
-      message: data?.detail ?? 'Không tìm thấy hồ sơ thực tập sinh.',
-    };
+    return { type: 'error', message: data?.detail ?? 'Không tìm thấy hồ sơ thực tập sinh.' };
   }
 
-  // 422 — Validate fail (format FastAPI: { detail: [...] } hoặc { detail: "..." })
   if (status === 422) {
     const detail = data?.detail;
     if (Array.isArray(detail)) {
@@ -144,11 +90,7 @@ export function buildToast(ok, status, data, successMessage = 'Cập nhật hồ
     return { type: 'error', message: detail ?? 'Dữ liệu không hợp lệ.' };
   }
 
-  // 500 hoặc lỗi khác
-  return {
-    type: 'error',
-    message: data?.detail ?? 'Đã xảy ra lỗi, vui lòng thử lại.',
-  };
+  return { type: 'error', message: data?.detail ?? 'Đã xảy ra lỗi, vui lòng thử lại.' };
 }
 
 /* ─────────────────────────────────────────────
@@ -156,45 +98,15 @@ export function buildToast(ok, status, data, successMessage = 'Cập nhật hồ
 ───────────────────────────────────────────── */
 
 /**
- * Gọi API duyệt hồ sơ thực tập sinh.
+ * Duyệt hồ sơ thực tập sinh.
  *
- * TODO: POST /api/hr/interns/{id}/approve đã có trong backend (routes/interns.py).
- *       Khi sẵn sàng tích hợp: xóa khối MOCK, bỏ comment fetch thật bên dưới.
+ * ✅ API thật: POST /api/hr/interns/{id}/approve (role: hr, admin)
  *
- * @param {number|string} internId - ID thực tập sinh cần duyệt.
+ * @param {number|string} internId
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
- *
- * @example
- * import { approveIntern, buildToast } from '../api/interns';
- *
- * const { ok, status, data } = await approveIntern(internId);
- * setToast(buildToast(ok, status, data, 'Duyệt hồ sơ thành công!'));
  */
 export async function approveIntern(internId) {
-  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
-  await new Promise((r) => setTimeout(r, 600));
-
-  // Mô phỏng 404 nếu internId = 0 (để test lỗi)
-  if (Number(internId) === 0) {
-    return {
-      ok: false,
-      status: 404,
-      data: { detail: 'Không tìm thấy hồ sơ thực tập sinh.' },
-    };
-  }
-
-  // Mô phỏng thành công 200
-  return {
-    ok: true,
-    status: 200,
-    data: { id: Number(internId), status: 'active' },
-  };
-  /* ── END MOCK ─────────────────────────────────────────────────────────
-
-  // TODO: Bỏ comment khối này khi sẵn sàng dùng API thật
-  //       (endpoint đã có: POST /api/hr/interns/{id}/approve — role: hr/admin)
   return apiFetch(`/api/hr/interns/${internId}/approve`, { method: 'POST' });
-  ─────────────────────────────────────────────────────────────────────── */
 }
 
 /* ─────────────────────────────────────────────
@@ -202,50 +114,21 @@ export async function approveIntern(internId) {
 ───────────────────────────────────────────── */
 
 /**
- * Gọi API từ chối hồ sơ thực tập sinh.
- * Theo software-specification.md §5.4: "Từ chối bắt buộc có note."
+ * Từ chối / vô hiệu hóa hồ sơ thực tập sinh.
  *
- * TODO: POST /api/hr/interns/{id}/reject chưa có trong backend (chờ API thật).
- *       Khi BE sẵn sàng: xóa khối MOCK, bỏ comment fetch thật bên dưới.
+ * ✅ API thật: PATCH /api/hr/interns/{id}/status (role: hr, admin)
+ *    Gửi status='inactive' kèm note lý do từ chối.
+ *    (Backend không có endpoint /reject riêng — dùng PATCH status thay thế.)
  *
- * @param {number|string} internId - ID thực tập sinh cần từ chối.
- * @param {string} note            - Lý do từ chối (bắt buộc — spec §5.4).
+ * @param {number|string} internId
+ * @param {string} note - Lý do từ chối (bắt buộc theo spec §5.4)
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
- *
- * @example
- * import { rejectIntern, buildToast } from '../api/interns';
- *
- * const { ok, status, data } = await rejectIntern(internId, 'Không đủ điều kiện');
- * setToast(buildToast(ok, status, data, 'Đã từ chối hồ sơ.'));
  */
 export async function rejectIntern(internId, note) {
-  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
-  await new Promise((r) => setTimeout(r, 600));
-
-  // Mô phỏng 404 nếu internId = 0 (để test lỗi)
-  if (Number(internId) === 0) {
-    return {
-      ok: false,
-      status: 404,
-      data: { detail: 'Không tìm thấy hồ sơ thực tập sinh.' },
-    };
-  }
-
-  // Mô phỏng thành công 200
-  return {
-    ok: true,
-    status: 200,
-    data: { id: Number(internId), status: 'inactive', note },
-  };
-  /* ── END MOCK ─────────────────────────────────────────────────────────
-
-  // TODO: Bỏ comment khối này khi BE có POST /api/hr/interns/{id}/reject
-  //       Body: { note } — apiFetch tự gắn Authorization header
-  return apiFetch(`/api/hr/interns/${internId}/reject`, {
-    method: 'POST',
-    body: JSON.stringify({ note }),
+  return apiFetch(`/api/hr/interns/${internId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'inactive', note }),
   });
-  ─────────────────────────────────────────────────────────────────────── */
 }
 
 /* ─────────────────────────────────────────────
@@ -253,71 +136,22 @@ export async function rejectIntern(internId, note) {
 ───────────────────────────────────────────── */
 
 /**
- * Gọi API thêm mới hồ sơ thực tập sinh (HR nhập hộ).
+ * Thêm mới hồ sơ thực tập sinh (HR nhập hộ).
  *
- * TODO: POST /api/hr/interns chưa tồn tại ở backend (chờ API thật).
- *       Khi BE sẵn sàng: xóa khối MOCK bên dưới, bỏ comment fetch thật.
- *       Không cần đổi tên hàm hay shape trả về — InternCreatePage sẽ
- *       không phải sửa 1 dòng nào khi chuyển từ MOCK sang API thật.
+ * ✅ API thật: POST /api/hr/interns (role: hr, admin)
  *
- * @param {{
- *   full_name:     string,
- *   email:         string,
- *   phone_number?: string,
- *   dob?:          string,
- *   gender?:       'male'|'female'|'other',
- *   university?:   string,
- *   major?:        string,
- *   academic_year?: string,
- *   gpa?:          number,
- *   address?:      string,
- * }} body  Dữ liệu hồ sơ — field bắt buộc theo software-specification.md §4.3
+ * Request body (InternCreateRequest — field bắt buộc theo spec §4.3):
+ *   full_name, email, password (bắt buộc)
+ *   phone_number, dob, gender, university, major, academic_year, gpa, address (tùy chọn)
+ *
+ * @param {object} body
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
- *
- * @example
- * import { createIntern, buildToast } from '../api/interns';
- *
- * const { ok, status, data } = await createIntern({
- *   full_name: 'Nguyễn Văn A',
- *   email: 'a@ictu.edu.vn',
- *   university: 'ICTU',
- *   major: 'CNTT',
- * });
- * setToast(buildToast(ok, status, data, 'Thêm hồ sơ thành công!'));
  */
 export async function createIntern(body) {
-  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
-  // Giả lập network delay
-  await new Promise((r) => setTimeout(r, 700));
-
-  // Mô phỏng 409 nếu email chứa "exists" (để test lỗi trùng email)
-  if (body.email?.toLowerCase().includes('exists')) {
-    return {
-      ok: false,
-      status: 409,
-      data: { detail: 'Email đã được sử dụng trong hệ thống.' },
-    };
-  }
-
-  // Mô phỏng thành công 201
-  return {
-    ok: true,
-    status: 201,
-    data: {
-      id: Math.floor(Math.random() * 10000),
-      ...body,
-      status: 'pending',
-    },
-  };
-  /* ── END MOCK ─────────────────────────────────────────────────────────
-
-  // TODO: Bỏ comment khối này khi BE có POST /api/hr/interns (role: hr/admin)
-  //       apiFetch tự gắn Authorization: Bearer <token> từ localStorage
   return apiFetch('/api/hr/interns', {
     method: 'POST',
     body: JSON.stringify(body),
   });
-  ─────────────────────────────────────────────────────────────────────── */
 }
 
 /* ─────────────────────────────────────────────
@@ -327,32 +161,16 @@ export async function createIntern(body) {
 /**
  * Lấy chi tiết hồ sơ thực tập sinh theo ID.
  *
- * TODO: GET /api/hr/interns/{id} chưa tồn tại ở backend
- *       (backend/app/api/routes/interns.py chỉ có POST, POST approve, POST contract).
- *       Khi BE sẵn sàng: xóa khối MOCK bên dưới, bỏ comment fetch thật.
- *       Không cần đổi tên hàm hay shape trả về — InternEditPage sẽ không
- *       phải sửa 1 dòng nào khi chuyển từ MOCK sang API thật.
+ * 🔧 MOCK — GET /api/hr/interns/{id} chưa có trong backend.
+ *    Khi BE sẵn sàng: xóa khối MOCK và bỏ comment fetch thật.
  *
- * @param {number|string} internId - ID của thực tập sinh cần lấy chi tiết.
+ * @param {number|string} internId
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
- *   data có shape khớp InternRegisterResponse:
- *     { id, email, full_name, status, role, phone_number, dob, gender,
- *       university, major, academic_year, gpa, address }
- *
- * @example
- * import { getInternById } from '../api/interns';
- *
- * const { ok, status, data } = await getInternById(42);
- * if (ok) {
- *   // Đổ data vào form state
- * }
  */
 export async function getInternById(internId) {
-  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
-  // Giả lập network delay
+  /* ── MOCK (xóa khi BE có GET /api/hr/interns/{id}) ── */
   await new Promise((r) => setTimeout(r, 400));
 
-  // Trả về dữ liệu mẫu đủ field để InternEditPage pre-fill
   return {
     ok: true,
     status: 200,
@@ -372,12 +190,9 @@ export async function getInternById(internId) {
       address:       '123 Đường ABC, Thái Nguyên',
     },
   };
-  /* ── END MOCK ─────────────────────────────────────────────────────────
-
-  // TODO: Bỏ comment khối này khi BE có GET /api/hr/interns/{id}
-  //       (role: hr hoặc admin — apiFetch tự gắn Authorization header)
+  /* ── Bỏ comment khi BE có GET /api/hr/interns/{id} ──
   return apiFetch(`/api/hr/interns/${internId}`, { method: 'GET' });
-  ─────────────────────────────────────────────────────────────────────── */
+  ── */
 }
 
 /* ─────────────────────────────────────────────
@@ -387,94 +202,39 @@ export async function getInternById(internId) {
 /**
  * Lấy danh sách thực tập sinh với bộ lọc tuỳ chọn.
  *
- * TODO: GET /api/hr/interns chưa tồn tại ở backend
- *       (backend/app/api/routes/interns.py chỉ có POST, PATCH status,
- *        POST approve, POST contract — không có GET list).
- *       Khi BE sẵn sàng: xóa khối MOCK bên dưới, bỏ comment fetch thật.
- *       Không cần đổi tên hàm hay shape trả về — InternListPage sẽ không
- *       phải sửa 1 dòng nào khi chuyển từ MOCK sang API thật.
+ * ✅ API thật: GET /api/hr/interns (role: hr, admin)
  *
- * @param {{
- *   major?: string,  - Lọc theo ngành học (khớp chính xác)
- *   q?:     string,  - Tìm kiếm theo tên hoặc email (full-text)
- *   page?:  number,  - Số trang (1-based, mặc định 1)
- * }} [params={}]
+ * Query params hỗ trợ (backend/app/api/routes/interns.py):
+ *   q          string    — tìm kiếm tên hoặc email
+ *   university string    — lọc theo trường đại học
+ *   major      string    — lọc theo ngành học
+ *   status     string    — 'pending' | 'active' | 'inactive'
+ *   page       number    — số trang (1-based)
+ *   page_size  number    — số item/trang (max 100)
+ *
+ * Response shape (InternListResponse):
+ *   { items: InternListItem[], total, page, page_size, total_pages }
+ *
+ * @param {{ q?: string, major?: string, university?: string, status?: string, page?: number, page_size?: number }} [params]
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
- *   data có shape: { items: InternRegisterResponse[], total: number, page: number }
- *
- * @example
- * import { getInterns } from '../api/interns';
- *
- * const { ok, data } = await getInterns({ major: 'Công nghệ thông tin', q: 'An' });
- * if (ok) {
- *   setInterns(data.items);
- * }
  */
-export async function getInterns({ major = '', q = '', page = 1 } = {}) {
-  /* ── MOCK (xóa khi có API thật) ─────────────────────────────────────── */
-  // Giả lập network delay
-  await new Promise((r) => setTimeout(r, 450));
-
-  // Dữ liệu mẫu — đủ cấu trúc field theo InternRegisterResponse
-  const ALL_INTERNS = [
-    {
-      id: 1, full_name: 'Nguyễn Văn An',    email: 'an.nv@ictu.edu.vn',
-      university: 'Đại học Công nghệ thông tin và Truyền thông',
-      major: 'Công nghệ thông tin', status: 'pending',
-    },
-    {
-      id: 2, full_name: 'Trần Thị Bình',  email: 'binh.tt@ictu.edu.vn',
-      university: 'Đại học Bách Khoa Hà Nội',
-      major: 'Kỹ thuật phần mềm', status: 'active',
-    },
-    {
-      id: 3, full_name: 'Lê Hoàng Cường', email: 'cuong.lh@ictu.edu.vn',
-      university: 'Học viện Công nghệ Bưu chính Viễn thông',
-      major: 'An toàn thông tin', status: 'active',
-    },
-    {
-      id: 4, full_name: 'Phạm Thị Dung',  email: 'dung.pt@ictu.edu.vn',
-      university: 'Đại học Công nghệ thông tin và Truyền thông',
-      major: 'Hệ thống thông tin', status: 'inactive',
-    },
-    {
-      id: 5, full_name: 'Hoàng Văn Em',   email: 'em.hv@ictu.edu.vn',
-      university: 'Đại học Thái Nguyên',
-      major: 'Công nghệ thông tin', status: 'pending',
-    },
-  ];
-
-  // Lọc theo major
-  let result = major
-    ? ALL_INTERNS.filter((i) => i.major === major)
-    : ALL_INTERNS;
-
-  // Lọc theo q (tên / email, case-insensitive)
-  if (q.trim()) {
-    const needle = q.trim().toLowerCase();
-    result = result.filter(
-      (i) =>
-        i.full_name.toLowerCase().includes(needle) ||
-        i.email.toLowerCase().includes(needle)
-    );
-  }
-
-  return {
-    ok:     true,
-    status: 200,
-    data:   { items: result, total: result.length, page },
-  };
-  /* ── END MOCK ─────────────────────────────────────────────────────────
-
-  // TODO: Bỏ comment khối này khi BE có GET /api/hr/interns
-  //       (role: hr hoặc admin — apiFetch tự gắn Authorization header)
-  const params = new URLSearchParams();
-  if (major) params.set('major', major);
-  if (q)     params.set('q', q);
-  if (page)  params.set('page', String(page));
-  const qs = params.toString();
-  return apiFetch(`/api/hr/interns${qs ? `?${qs}` : ''}`, { method: 'GET' });
-  ─────────────────────────────────────────────────────────────────────── */
+export async function getInterns({
+  q = '',
+  major = '',
+  university = '',
+  status = '',
+  page = 1,
+  page_size,
+} = {}) {
+  const qs = new URLSearchParams();
+  if (q)          qs.set('q', q);
+  if (major)      qs.set('major', major);
+  if (university) qs.set('university', university);
+  if (status)     qs.set('status', status);
+  if (page)       qs.set('page', String(page));
+  if (page_size)  qs.set('page_size', String(page_size));
+  const query = qs.toString();
+  return apiFetch(`/api/hr/interns${query ? `?${query}` : ''}`, { method: 'GET' });
 }
 
 /* ─────────────────────────────────────────────
@@ -484,16 +244,7 @@ export async function getInterns({ major = '', q = '', page = 1 } = {}) {
 /**
  * Lấy danh sách thực tập sinh đang active (dùng cho màn hình phân công mentor).
  *
- * Endpoint đã có thật, gọi trực tiếp, không cần mock.
- * Route: GET /api/hr/interns?status=active&page_size=100
- * (backend/app/api/routes/interns.py — page_size tối đa 100)
- *
- * Hàm riêng, KHÔNG thay đổi getInterns() để không ảnh hưởng các trang khác.
- *
- * Response shape: { items: InternListItem[], total, page, page_size, total_pages }
- *
- * TODO(backend): InternListItem chưa có mentor_id/has_mentor nên chưa lọc
- * được TTS "chưa có mentor".
+ * ✅ API thật: GET /api/hr/interns?status=active&page_size=100
  *
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
  */

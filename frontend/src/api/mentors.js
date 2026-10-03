@@ -143,3 +143,49 @@ export async function assignInternsToMentor(mentorId, internIds, programId = nul
     body:   JSON.stringify({ intern_ids: internIds, program_id: programId }),
   });
 }
+
+/* ─────────────────────────────────────────────
+   getAssignedInterns
+───────────────────────────────────────────── */
+
+/**
+ * Lấy danh sách thực tập sinh đang thuộc quyền hướng dẫn của Mentor đang
+ * đăng nhập (dùng cho dropdown "Intern phụ trách" trong TaskCreateModal).
+ *
+ * Endpoint đã có thật, gọi trực tiếp, KHÔNG mock.
+ * Route: GET /api/mentor/assigned-interns
+ * (backend/app/api/routes/mentor_assignments.py)
+ *
+ * Quyền: mentor, admin
+ *
+ * Response shape (AssignedInternListResponse):
+ *   {
+ *     items: [
+ *       {
+ *         intern_id:    number,
+ *         intern_code:  string | null,
+ *         intern_name:  string | null,
+ *         intern_email: string,
+ *         program_id:   number,
+ *         program_name: string | null,
+ *         assigned_at:  string | null,
+ *       }
+ *     ],
+ *     total: number
+ *   }
+ *
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ *
+ * @example
+ * import { getAssignedInterns } from '../api/mentors';
+ *
+ * const { ok, data } = await getAssignedInterns();
+ * if (ok) {
+ *   // data.items — mảng AssignedInternItem
+ *   // Hiển thị: `${intern_name} (${intern_code || intern_email})`
+ *   // value   : intern_id
+ * }
+ */
+export async function getAssignedInterns() {
+  return apiFetch('/api/mentor/assigned-interns', { method: 'GET' });
+}

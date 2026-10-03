@@ -3,7 +3,6 @@ import HomePage from '../features/home/HomePage.jsx'
 import LoginPage from '../features/auth/LoginPage.jsx'
 import RegisterPage from '../features/auth/RegisterPage.jsx'
 import NotFoundPage from '../features/common/NotFoundPage.jsx'
-import RoleHomePage from '../features/common/RoleHomePage.jsx'
 import AdminLayout from '../features/admin/AdminLayout.jsx'
 import AdminDashboardPage from '../features/admin/AdminDashboardPage.jsx'
 import CreateAccountPage from '../features/admin/CreateAccountPage.jsx'
@@ -25,6 +24,10 @@ import ProgramListPage from '../features/programs/ProgramListPage.jsx'
 import ProgramFormPage from '../features/programs/ProgramFormPage.jsx'
 import MentorListPage from '../features/mentors/MentorListPage.jsx'
 import MentorAssignPage from '../features/mentors/MentorAssignPage.jsx'
+import MentorLayout from '../features/mentors/MentorLayout.jsx'
+import MentorDashboardPage from '../features/mentors/MentorDashboardPage.jsx'
+import MentorInternsPage from '../features/mentors/MentorInternsPage.jsx'
+import MentorTasksPage from '../features/mentors/MentorTasksPage.jsx'
 
 export default function AppRoutes() {
   return (
@@ -71,13 +74,18 @@ export default function AppRoutes() {
         </Route>
 
         <Route
-          path="/mentor/dashboard"
+          path="/mentor"
           element={
             <RequireAuth roles={['mentor', 'admin']}>
-              <RoleHomePage roleLabel="Mentor" />
+              <MentorLayout />
             </RequireAuth>
           }
-        />
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<MentorDashboardPage />} />
+          <Route path="interns" element={<MentorInternsPage />} />
+          <Route path="tasks" element={<MentorTasksPage />} />
+        </Route>
         <Route
           path="/intern"
           element={

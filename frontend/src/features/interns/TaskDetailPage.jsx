@@ -20,7 +20,7 @@
 
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { buildTaskToast, getTask, updateTaskProgress } from '../../api/tasks'
+import { buildTaskToast, getInternTask, updateInternTask } from '../../api/tasks'
 import './TaskDetailPage.css'
 
 /* ──────────────────────────────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ export default function TaskDetailPage() {
     async function loadTask() {
       setLoading(true)
       setFetchError(null)
-      const { ok, data } = await getTask(id)
+      const { ok, data } = await getInternTask(id)
       if (ok) {
         setTask(data)
         setSelectedStatus(data.status)   // sync dropdown với dữ liệu thật
@@ -87,7 +87,7 @@ export default function TaskDetailPage() {
     setUpdating(true)
     setToast(null)
 
-    const { ok, status, data } = await updateTaskProgress(id, selectedStatus)
+    const { ok, status, data } = await updateInternTask(id, { status: selectedStatus })
     const toastMsg = buildTaskToast(ok, status, data)
 
     if (ok) {
@@ -149,7 +149,7 @@ export default function TaskDetailPage() {
             {currentMeta.label}
           </span>
           <span className="task-detail__meta-sep">·</span>
-          <span className="task-detail__meta-text">Hạn chót: {formatDate(task.deadline)}</span>
+          <span className="task-detail__meta-text">Hạn chót: {formatDate(task.due_at)}</span>
           <span className="task-detail__meta-sep">·</span>
           <span className="task-detail__meta-text">Giao ngày: {formatDate(task.created_at)}</span>
         </div>
@@ -181,11 +181,11 @@ export default function TaskDetailPage() {
           <div className="task-detail__info-grid">
             <div className="task-detail__field">
               <span className="task-detail__field-label">Hạn chót</span>
-              <span className="task-detail__field-value">{formatDate(task.deadline)}</span>
+              <span className="task-detail__field-value">{formatDate(task.due_at)}</span>
             </div>
             <div className="task-detail__field">
-              <span className="task-detail__field-label">Chương trình</span>
-              <span className="task-detail__field-value">{task.program_name}</span>
+              <span className="task-detail__field-label">Thực tập sinh</span>
+              <span className="task-detail__field-value">{task.intern_name ?? '—'}</span>
             </div>
           </div>
 
@@ -193,11 +193,10 @@ export default function TaskDetailPage() {
             <span className="task-detail__field-label">Mentor phụ trách</span>
             <div className="task-detail__mentor">
               <span className="task-detail__mentor-avatar" aria-hidden="true">
-                {task.mentor_name.charAt(0)}
+                {task.mentor_name ? task.mentor_name.charAt(0) : 'M'}
               </span>
               <div>
-                <p className="task-detail__mentor-name">{task.mentor_name}</p>
-                <p className="task-detail__mentor-email">{task.mentor_email}</p>
+                <p className="task-detail__mentor-name">{task.mentor_name ?? '—'}</p>
               </div>
             </div>
           </div>
