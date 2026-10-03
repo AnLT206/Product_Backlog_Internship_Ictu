@@ -5,9 +5,9 @@
  * US 16: "Là thực tập sinh, tôi muốn cập nhật tiến độ công việc để mentor theo dõi."
  *
  * Task 1: Giao diện tĩnh với MOCK data.
- * Task 2 (task này): Gọi getTasks() từ src/api/tasks.js khi mở trang.
+ * Task 2 (task này): Gọi getInternTasks() từ src/api/tasks.js khi mở trang.
  *   - Hiển thị trạng thái loading rõ ràng.
- *   - Thay MOCK bằng dữ liệu API trả về.
+ *   - Thay MOCK bằng dữ liệu API thật (GET /api/intern/tasks).
  *
  * Trạng thái công việc (theo backend tasks.py):
  *   "todo"     → Chưa bắt đầu
@@ -18,7 +18,7 @@
 
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { getTasks } from '../../api/tasks'
+import { getInternTasks } from '../../api/tasks'
 import './TaskListPage.css'
 
 /* ──────────────────────────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ export default function TaskListPage() {
     async function loadTasks() {
       setLoading(true)
       setError(null)
-      const { ok, data } = await getTasks()
+      const { ok, data } = await getInternTasks()
       if (ok) {
         setTasks(data.items ?? [])
       } else {
@@ -165,7 +165,7 @@ export default function TaskListPage() {
               <tbody>
                 {tasks.map((task) => {
                   const meta = STATUS_META[task.status] ?? { label: task.status, tone: 'todo' }
-                  const overdue = isOverdue(task.deadline, task.status)
+                  const overdue = isOverdue(task.due_at, task.status)
                   return (
                     <tr key={task.id} className="task-table__row">
                       <td>
@@ -176,7 +176,7 @@ export default function TaskListPage() {
                       </td>
                       <td className="task-table__mentor">{task.mentor_name}</td>
                       <td className={`task-table__deadline${overdue ? ' task-table__deadline--overdue' : ''}`}>
-                        {formatDeadline(task.deadline)}
+                        {formatDeadline(task.due_at)}
                         {overdue && <span className="task-table__overdue-badge">Quá hạn</span>}
                       </td>
                       <td>

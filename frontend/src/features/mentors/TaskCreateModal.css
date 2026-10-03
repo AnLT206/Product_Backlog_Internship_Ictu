@@ -1,0 +1,372 @@
+/* ============================================================
+   TaskCreateModal.css  –  Mentor: Modal form tạo nhiệm vụ (US 15)
+   Tất cả class dùng prefix "tc-" để tránh xung đột với MentorFormModal.
+   Design tokens kế thừa từ MentorFormModal.css / TaskListPage.css.
+   KHÔNG thêm thư viện ngoài, KHÔNG tự chế theme mới.
+   ============================================================ */
+
+/* ── Backdrop ── */
+.tc-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: tc-backdrop-in 0.18s ease;
+}
+
+@keyframes tc-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Dialog ── */
+.tc-modal-dialog {
+  /* design tokens — đồng bộ với MentorFormModal */
+  --tc-blue:        #1877f2;
+  --tc-blue-hover:  #166fe5;
+  --tc-blue-soft:   #e7f3ff;
+  --tc-ink:         #0f172a;
+  --tc-body:        #1c1e21;
+  --tc-muted:       #65676b;
+  --tc-line:        #e4e6eb;
+  --tc-bg:          #f0f2f5;
+  --tc-green:       #15803d;
+  --tc-green-soft:  #f0fdf4;
+  --tc-red:         #b91c1c;
+  --tc-red-soft:    #fef2f2;
+  --tc-font:        'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid var(--tc-line);
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.04),
+    0 24px 60px rgba(15, 23, 42, 0.16);
+  width: 100%;
+  max-width: 520px;
+  font-family: var(--tc-font);
+  color: var(--tc-body);
+  -webkit-font-smoothing: antialiased;
+  animation: tc-dialog-in 0.2s ease;
+  /* Cho phép scroll nội bộ nếu màn hình nhỏ */
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes tc-dialog-in {
+  from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.tc-modal-dialog *,
+.tc-modal-dialog *::before,
+.tc-modal-dialog *::after {
+  box-sizing: border-box;
+}
+
+/* ── Header ── */
+.tc-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px 0;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.tc-modal-badge {
+  display: inline-flex;
+  margin: 0 0 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--tc-green-soft);
+  border: 1px solid #86efac;
+  color: var(--tc-green);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tc-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--tc-ink);
+  line-height: 1.25;
+}
+
+.tc-modal-header h2 span { color: var(--tc-blue); }
+
+/* ── Close button ── */
+.tc-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--tc-muted);
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+  flex-shrink: 0;
+}
+.tc-modal-close:hover {
+  background: var(--tc-bg);
+  color: var(--tc-ink);
+}
+
+/* ── Divider ── */
+.tc-modal-divider {
+  margin: 18px 24px 0;
+  border: none;
+  border-top: 1px solid var(--tc-line);
+  flex-shrink: 0;
+}
+
+/* ── Form body (scrollable) ── */
+.tc-modal-body {
+  padding: 20px 24px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+/* ── Form group ── */
+.tc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tc-form-group label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--tc-ink);
+}
+
+.tc-required {
+  color: #e5342a;
+  margin-left: 2px;
+}
+
+/* Inputs and select */
+.tc-form-group input[type="text"],
+.tc-form-group input[type="datetime-local"],
+.tc-form-group select {
+  height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid var(--tc-line);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--tc-font);
+  color: var(--tc-ink);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.tc-form-group input[type="text"]:focus,
+.tc-form-group input[type="datetime-local"]:focus,
+.tc-form-group select:focus {
+  border-color: var(--tc-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.12);
+}
+
+.tc-form-group input::placeholder { color: var(--tc-muted); }
+
+/* Textarea */
+.tc-form-group textarea {
+  padding: 10px 14px;
+  border: 1.5px solid var(--tc-line);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--tc-font);
+  color: var(--tc-ink);
+  background: #fff;
+  outline: none;
+  resize: vertical;
+  min-height: 90px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  line-height: 1.55;
+}
+
+.tc-form-group textarea::placeholder { color: var(--tc-muted); }
+
+.tc-form-group textarea:focus {
+  border-color: var(--tc-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.12);
+}
+
+/* Select chevron icon */
+.tc-form-group select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2365676b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.tc-form-group select:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Error state */
+.tc-form-group--error input[type="text"],
+.tc-form-group--error input[type="datetime-local"],
+.tc-form-group--error select,
+.tc-form-group--error textarea {
+  border-color: #e5342a;
+  box-shadow: 0 0 0 3px rgba(229, 52, 42, 0.1);
+}
+
+/* Inline validation error message */
+.tc-form-error {
+  font-size: 12.5px;
+  color: #e5342a;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Hint (info / warning text below field) */
+.tc-form-hint {
+  font-size: 12.5px;
+  color: var(--tc-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+
+.tc-form-hint--error {
+  color: var(--tc-red);
+}
+
+/* ── Footer buttons ── */
+.tc-modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 16px 24px 22px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.tc-modal-cancel {
+  height: 42px;
+  padding: 0 20px;
+  border: 1.5px solid var(--tc-line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--tc-muted);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--tc-font);
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+.tc-modal-cancel:hover {
+  border-color: var(--tc-body);
+  color: var(--tc-body);
+}
+
+.tc-modal-submit {
+  height: 42px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 10px;
+  background: var(--tc-blue);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--tc-font);
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(24, 119, 242, 0.28);
+  transition: background 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+.tc-modal-submit:hover:not(:disabled) {
+  background: var(--tc-blue-hover);
+  box-shadow: 0 6px 18px rgba(24, 119, 242, 0.36);
+}
+.tc-modal-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ── Submit error banner (lỗi từ API) ── */
+.tc-submit-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #fecaca;
+  background: var(--tc-red-soft);
+  color: var(--tc-red);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+/* Disabled inputs khi đang gửi */
+.tc-form-group input:disabled,
+.tc-form-group textarea:disabled {
+  background: var(--tc-bg);
+  cursor: not-allowed;
+}
+
+/* Spinner trong nút submit */
+.tc-modal-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tc-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: tc-spin 0.7s linear infinite;
+}
+
+@keyframes tc-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 560px) {
+  .tc-modal-backdrop {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .tc-modal-dialog {
+    border-radius: 20px 20px 0 0;
+    max-width: 100%;
+    max-height: calc(100vh - 12px);
+  }
+
+  .tc-modal-footer {
+    padding-bottom: max(22px, env(safe-area-inset-bottom));
+  }
+}

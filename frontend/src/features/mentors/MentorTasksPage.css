@@ -1,0 +1,342 @@
+/* ============================================================
+   MentorTasksPage.css  —  Mentor: Danh sách nhiệm vụ
+   Prefix "mtp-" (MentorTasksPage) để tránh xung đột.
+   Kế thừa tokens từ MentorDashboardPage / TaskListPage (intern).
+   ============================================================ */
+
+.mtp-page {
+  --mtp-primary:       #1877f2;
+  --mtp-primary-hover: #166fe5;
+  --mtp-primary-soft:  #e7f3ff;
+  --mtp-ink:           #1a2332;
+  --mtp-muted:         #64748b;
+  --mtp-line:          #e2e8f0;
+  --mtp-font:          'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  --status-todo-bg:      #f1f5f9;
+  --status-todo-text:    #475569;
+  --status-doing-bg:     #eff6ff;
+  --status-doing-text:   #1d4ed8;
+  --status-done-bg:      #f0fdf4;
+  --status-done-text:    #15803d;
+  --status-canceled-bg:  #fef2f2;
+  --status-canceled-text:#b91c1c;
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: var(--mtp-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+.mtp-page *,
+.mtp-page *::before,
+.mtp-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── Toast ── */
+.mtp-toast {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  animation: mtpToastIn 0.2s ease;
+}
+
+@keyframes mtpToastIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.mtp-toast--success { background: var(--status-done-bg); color: var(--status-done-text); border: 1px solid #86efac; }
+.mtp-toast--error   { background: var(--status-canceled-bg); color: var(--status-canceled-text); border: 1px solid #fca5a5; }
+
+/* ── Header ── */
+.mtp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--mtp-line);
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+}
+
+.mtp-crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mtp-muted);
+}
+
+.mtp-header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--mtp-ink);
+  letter-spacing: -0.02em;
+}
+
+.mtp-lead {
+  margin: 6px 0 0;
+  font-size: 0.86rem;
+  color: var(--mtp-muted);
+  line-height: 1.5;
+}
+
+/* ── Button ── */
+.mtp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 0.84rem;
+  font-weight: 650;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.mtp-btn--primary { background: var(--mtp-primary); color: #fff; }
+.mtp-btn--primary:hover { background: var(--mtp-primary-hover); }
+
+/* ── Summary cards ── */
+.mtp-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.mtp-sum-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--mtp-line);
+  background: #fff;
+  text-align: center;
+}
+
+.mtp-sum-card--todo     { border-top: 3px solid #94a3b8; }
+.mtp-sum-card--doing    { border-top: 3px solid #3b82f6; }
+.mtp-sum-card--done     { border-top: 3px solid #22c55e; }
+.mtp-sum-card--canceled { border-top: 3px solid #ef4444; }
+
+.mtp-sum-card__count {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--mtp-ink);
+}
+
+.mtp-sum-card--todo .mtp-sum-card__count { color: var(--status-todo-text); }
+.mtp-sum-card--doing .mtp-sum-card__count { color: var(--status-doing-text); }
+.mtp-sum-card--done .mtp-sum-card__count { color: var(--status-done-text); }
+.mtp-sum-card--canceled .mtp-sum-card__count { color: var(--status-canceled-text); }
+
+.mtp-sum-card__label { font-size: 12px; font-weight: 600; color: var(--mtp-muted); }
+
+/* ── Filters ── */
+.mtp-filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mtp-filter-select {
+  height: 38px;
+  padding: 0 36px 0 12px;
+  border: 1.5px solid var(--mtp-line);
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-family: var(--mtp-font);
+  color: var(--mtp-ink);
+  background: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.mtp-filter-select:focus {
+  border-color: var(--mtp-primary);
+  box-shadow: 0 0 0 3px rgba(24,119,242,0.12);
+}
+
+/* ── Panel ── */
+.mtp-panel {
+  background: #fff;
+  border: 1px solid var(--mtp-line);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+}
+
+/* Loading / Error / Empty */
+.mtp-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 24px;
+  font-size: 14px;
+  color: var(--mtp-muted);
+}
+
+.mtp-spinner {
+  display: inline-block;
+  width: 20px; height: 20px;
+  border: 2px solid var(--mtp-line);
+  border-top-color: var(--mtp-primary);
+  border-radius: 50%;
+  animation: mtpSpin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes mtpSpin { to { transform: rotate(360deg); } }
+
+.mtp-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--status-canceled-text);
+}
+
+.mtp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 24px;
+  color: var(--mtp-muted);
+  font-size: 14px;
+}
+
+.mtp-empty-icon { font-size: 36px; }
+
+/* ── Table ── */
+.mtp-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mtp-table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.mtp-table thead tr {
+  background: #f8fafc;
+  border-bottom: 2px solid var(--mtp-line);
+}
+
+.mtp-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mtp-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.mtp-row {
+  border-bottom: 1px solid var(--mtp-line);
+  transition: background 0.1s ease;
+}
+
+.mtp-row:last-child { border-bottom: none; }
+.mtp-row:hover { background: #f8fafc; }
+
+.mtp-table td {
+  padding: 12px 14px;
+  color: var(--mtp-ink);
+  vertical-align: top;
+}
+
+.mtp-task-title { margin: 0 0 3px; font-weight: 600; font-size: 13.5px; }
+.mtp-task-desc  { margin: 0; font-size: 11.5px; color: var(--mtp-muted); line-height: 1.45; max-width: 320px; }
+
+.mtp-cell-muted { font-size: 13px; color: var(--mtp-muted); white-space: nowrap; }
+
+.mtp-col--intern   { width: 140px; }
+.mtp-col--deadline { width: 130px; }
+.mtp-col--progress { width: 120px; }
+.mtp-col--status   { width: 130px; }
+.mtp-col--date     { width: 110px; }
+
+.mtp-deadline { white-space: nowrap; }
+.mtp-deadline--overdue { color: var(--status-canceled-text); }
+
+.mtp-overdue-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--status-canceled-bg);
+  color: var(--status-canceled-text);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Progress bar */
+.mtp-progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--mtp-line);
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.mtp-progress-bar__fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--mtp-primary);
+  transition: width 0.3s ease;
+}
+
+.mtp-progress-label { font-size: 11px; color: var(--mtp-muted); font-weight: 600; }
+
+/* Badge */
+.mtp-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mtp-badge--todo     { background: var(--status-todo-bg);     color: var(--status-todo-text); }
+.mtp-badge--doing    { background: var(--status-doing-bg);    color: var(--status-doing-text); }
+.mtp-badge--done     { background: var(--status-done-bg);     color: var(--status-done-text); }
+.mtp-badge--canceled { background: var(--status-canceled-bg); color: var(--status-canceled-text); }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .mtp-header { flex-direction: column; padding: 14px; }
+  .mtp-header h1 { font-size: 1.1rem; }
+  .mtp-filters { flex-direction: column; }
+  .mtp-filter-select { width: 100%; }
+}
