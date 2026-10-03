@@ -17,6 +17,8 @@ import InternCreatePage from '../features/interns/InternCreatePage.jsx'
 import InternDashboardPage from '../features/interns/InternDashboardPage.jsx'
 import InternLayout from '../features/interns/InternLayout.jsx'
 import InternUploadPage from '../features/interns/InternUploadPage.jsx'
+import TaskListPage from '../features/interns/TaskListPage.jsx'
+import TaskDetailPage from '../features/interns/TaskDetailPage.jsx'
 import HRDashboardPage from '../features/hr/HRDashboardPage.jsx'
 import HRLayout from '../features/hr/HRLayout.jsx'
 import ProgramListPage from '../features/programs/ProgramListPage.jsx'
@@ -85,6 +87,8 @@ export default function AppRoutes() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<InternDashboardPage />} />
           <Route path="documents/upload" element={<InternUploadPage />} />
+          <Route path="tasks" element={<TaskListPage />} />
+          <Route path="tasks/:id" element={<TaskDetailPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

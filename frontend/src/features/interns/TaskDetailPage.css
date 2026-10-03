@@ -1,0 +1,386 @@
+/* ======================================================
+   TaskDetailPage.css
+   Route: /intern/tasks/:id
+   Kế thừa theme từ InternLayout (intern-main có padding).
+   Token màu bám theo InternDashboardPage.css.
+   ====================================================== */
+
+.task-detail-page {
+  --fb-blue:        #1877f2;
+  --fb-blue-hover:  #166fe5;
+  --fb-blue-soft:   #e7f3ff;
+  --fb-ink:         #0f172a;
+  --fb-body:        #1c1e21;
+  --fb-muted:       #65676b;
+  --fb-line:        #e4e6eb;
+
+  /* Trạng thái badge */
+  --status-todo-bg:      #f1f5f9;
+  --status-todo-text:    #475569;
+  --status-doing-bg:     #eff6ff;
+  --status-doing-text:   #1d4ed8;
+  --status-done-bg:      #f0fdf4;
+  --status-done-text:    #15803d;
+  --status-canceled-bg:  #fef2f2;
+  --status-canceled-text:#b91c1c;
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.task-detail-page *,
+.task-detail-page *::before,
+.task-detail-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── NOT FOUND ── */
+.task-detail__not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 24px;
+  color: var(--fb-muted);
+  font-size: 14px;
+}
+
+.task-detail__not-found-icon {
+  font-size: 40px;
+}
+
+/* ── HEADER ── */
+.task-detail__header {
+  padding: 24px 28px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--fb-line);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+.task-detail__crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--fb-muted);
+  margin-bottom: 8px;
+}
+
+.task-detail__crumb-link {
+  color: var(--fb-blue);
+  text-decoration: none;
+}
+
+.task-detail__crumb-link:hover {
+  text-decoration: underline;
+}
+
+.task-detail__title {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--fb-ink);
+}
+
+.task-detail__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.task-detail__meta-sep {
+  color: var(--fb-line);
+}
+
+.task-detail__meta-text {
+  font-size: 13px;
+  color: var(--fb-muted);
+}
+
+/* ── BODY 2-col ── */
+.task-detail__body {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── CARDS ── */
+.task-detail__card {
+  background: #fff;
+  border: 1px solid var(--fb-line);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.task-detail__section-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fb-ink);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--fb-line);
+}
+
+/* ── FIELDS ── */
+.task-detail__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-detail__field-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--fb-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.task-detail__field-value {
+  font-size: 14px;
+  color: var(--fb-ink);
+  margin: 0;
+}
+
+.task-detail__desc {
+  line-height: 1.65;
+  color: var(--fb-body);
+}
+
+.task-detail__notes {
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: #fffbeb;
+  border-left: 3px solid #fbbf24;
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.6;
+}
+
+.task-detail__info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ── MENTOR ── */
+.task-detail__mentor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.task-detail__mentor-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--fb-blue-soft);
+  color: var(--fb-blue);
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.task-detail__mentor-name {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fb-ink);
+}
+
+.task-detail__mentor-email {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fb-muted);
+}
+
+/* ── UPDATE PANEL ── */
+.task-detail__update-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fb-muted);
+}
+
+.task-detail__select-wrap {
+  position: relative;
+}
+
+.task-detail__select {
+  width: 100%;
+  padding: 10px 36px 10px 12px;
+  border: 1.5px solid var(--fb-line);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--fb-ink);
+  background: #fff;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.task-detail__select:focus {
+  border-color: var(--fb-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.12);
+}
+
+.task-detail__select-wrap::after {
+  content: '▾';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 12px;
+  color: var(--fb-muted);
+}
+
+.task-detail__preview-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.task-detail__preview-label {
+  font-size: 12px;
+  color: var(--fb-muted);
+}
+
+/* ── STATUS BADGE ── */
+.task-status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.task-status-badge--todo     { background: var(--status-todo-bg);     color: var(--status-todo-text); }
+.task-status-badge--doing    { background: var(--status-doing-bg);    color: var(--status-doing-text); }
+.task-status-badge--done     { background: var(--status-done-bg);     color: var(--status-done-text); }
+.task-status-badge--canceled { background: var(--status-canceled-bg); color: var(--status-canceled-text); }
+
+/* ── UPDATE BUTTON ── */
+.task-detail__btn-update {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  background: var(--fb-blue);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+  align-self: flex-start;
+}
+
+.task-detail__btn-update:hover:not(.task-detail__btn-update--disabled) {
+  background: var(--fb-blue-hover);
+}
+
+.task-detail__btn-update--disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* ── TOAST ── */
+.task-detail__toast {
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  animation: taskToastIn 0.2s ease;
+}
+
+.task-detail__toast--success {
+  background: var(--status-done-bg);
+  color: var(--status-done-text);
+  border: 1px solid #86efac;
+}
+
+@keyframes taskToastIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── API NOTE ── */
+.task-detail__api-note {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  font-size: 12px;
+  color: var(--fb-muted);
+  line-height: 1.55;
+}
+
+.task-detail__api-note code {
+  font-family: 'Fira Mono', monospace;
+  font-size: 11.5px;
+  background: #e2e8f0;
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: var(--fb-ink);
+}
+
+/* ── FOOTER ── */
+.task-detail__footer {
+  padding-top: 4px;
+}
+
+.task-detail__back-link {
+  font-size: 13px;
+  color: var(--fb-blue);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.task-detail__back-link:hover {
+  text-decoration: underline;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .task-detail__body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .task-detail__header {
+    padding: 16px;
+  }
+
+  .task-detail__title {
+    font-size: 18px;
+  }
+
+  .task-detail__card {
+    padding: 16px;
+  }
+
+  .task-detail__info-grid {
+    grid-template-columns: 1fr;
+  }
+}

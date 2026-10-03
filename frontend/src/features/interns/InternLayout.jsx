@@ -13,6 +13,7 @@ import './InternLayout.css'
 const NAV = [
   { to: '/intern/dashboard',         label: 'Tổng quan',              end: true,  ready: true  },
   { to: '/intern/documents/upload',  label: 'CV / Đơn xin thực tập',              ready: true  },
+  { to: '/intern/tasks',             label: 'Công việc của tôi',                   ready: true  },
   { to: '/intern/profile',           label: 'Hồ sơ cá nhân',                      ready: false },
   { to: '/intern/schedule',          label: 'Lịch thực tập',                       ready: false },
   { to: '/intern/reports',           label: 'Báo cáo tuần',                        ready: false },
