@@ -4,87 +4,24 @@
  *
  * US 16: "Là thực tập sinh, tôi muốn cập nhật tiến độ công việc để mentor theo dõi."
  *
- * Task 1 (task này):
- *   - Giao diện tĩnh: hiển thị thông tin chi tiết công việc.
- *   - Dropdown chọn trạng thái tiến độ — đổi giá trị trong state cục bộ.
- *   - CHƯA gọi API (task 2 sẽ tích hợp PATCH /api/intern/tasks/:id).
- *
- * Task 2 (TODO):
- *   - Gọi GET /api/intern/tasks/:id để lấy dữ liệu thật thay MOCK_TASK.
- *   - Gọi PATCH /api/intern/tasks/:id khi bấm "Cập nhật".
- *   - Xử lý toast thành công / lỗi.
+ * Task 1: Giao diện tĩnh, state cục bộ.
+ * Task 2 (task này):
+ *   - Gọi getTask(id) khi mở trang để lấy dữ liệu thật.
+ *   - Khi bấm "Cập nhật", gọi updateTaskProgress(id, status).
+ *   - Thành công: navigate về /intern/tasks (danh sách tự refresh khi load lại).
+ *   - Lỗi: hiện toast lỗi, không điều hướng.
  *
  * Trạng thái công việc (theo backend tasks.py):
  *   "todo"     → Chưa bắt đầu
  *   "doing"    → Đang thực hiện
  *   "done"     → Hoàn thành
  *   "canceled" → Đã huỷ
- *
- * TODO (task 2): Xác nhận lại với nhóm backend nếu enum có thay đổi.
  */
 
-import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { buildTaskToast, getTask, updateTaskProgress } from '../../api/tasks'
 import './TaskDetailPage.css'
-
-/* ──────────────────────────────────────────────────────────────────────────────
-   MOCK DATA — một công việc mẫu để UI test độc lập với backend.
-   TODO (task 2): Xóa MOCK_TASKS, thay bằng fetch GET /api/intern/tasks/:id.
-   ─────────────────────────────────────────────────────────────────────────── */
-const MOCK_TASKS = {
-  1: {
-    id: 1,
-    title: 'Nghiên cứu công nghệ React và Vite',
-    description:
-      'Đọc tài liệu chính thức tại reactjs.org và vitejs.dev. Thực hành tạo project mẫu với Vite, hiểu rõ cấu trúc thư mục, cách import CSS module và cách cấu hình biến môi trường VITE_*.',
-    deadline: '2026-10-10',
-    status: 'doing',
-    mentor_name: 'Nguyễn Văn Bình',
-    mentor_email: 'binh.nv@ictu.edu.vn',
-    program_name: 'Kỳ thực tập Thu 2026',
-    created_at: '2026-09-28',
-    notes: 'Ưu tiên hoàn thành phần routing và state management trước cuối tuần.',
-  },
-  2: {
-    id: 2,
-    title: 'Viết báo cáo tuần đầu tiên',
-    description:
-      'Tóm tắt những gì đã học và làm được trong tuần 1. Bao gồm: công cụ đã tiếp cận, khó khăn gặp phải và kế hoạch tuần tiếp theo.',
-    deadline: '2026-10-07',
-    status: 'done',
-    mentor_name: 'Nguyễn Văn Bình',
-    mentor_email: 'binh.nv@ictu.edu.vn',
-    program_name: 'Kỳ thực tập Thu 2026',
-    created_at: '2026-09-28',
-    notes: '',
-  },
-  3: {
-    id: 3,
-    title: 'Thiết kế sơ đồ cơ sở dữ liệu module hồ sơ',
-    description:
-      'Tham khảo spec §4.2 và vẽ ERD cho module intern_profiles. Sử dụng draw.io hoặc dbdiagram.io, export ra PNG và PDF.',
-    deadline: '2026-10-15',
-    status: 'todo',
-    mentor_name: 'Trần Thị Lan',
-    mentor_email: 'lan.tt@ictu.edu.vn',
-    program_name: 'Kỳ thực tập Thu 2026',
-    created_at: '2026-09-30',
-    notes: 'Tham khảo thêm bảng users và intern_profiles trong database/schema.sql.',
-  },
-  4: {
-    id: 4,
-    title: 'Review code Pull Request #58',
-    description:
-      'Review và comment theo checklist nhóm. Chú ý convention đặt tên hàm và kiểm tra edge case.',
-    deadline: '2026-10-05',
-    status: 'canceled',
-    mentor_name: 'Nguyễn Văn Bình',
-    mentor_email: 'binh.nv@ictu.edu.vn',
-    program_name: 'Kỳ thực tập Thu 2026',
-    created_at: '2026-09-29',
-    notes: 'PR đã được đóng, không cần review nữa.',
-  },
-}
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Helpers
@@ -114,27 +51,76 @@ function formatDate(isoDate) {
    Component
    ─────────────────────────────────────────────────────────────────────────── */
 export default function TaskDetailPage() {
-  const { id } = useParams()
+  const { id }   = useParams()
+  const navigate = useNavigate()
 
-  // TODO (task 2): Thay bằng state loading + useEffect fetch GET /api/intern/tasks/:id
-  const task = MOCK_TASKS[id] ?? null
+  // ── Tất cả useState phải khai báo TRƯỚC mọi useEffect ──
+  const [task, setTask]                   = useState(null)
+  const [loading, setLoading]             = useState(true)
+  const [fetchError, setFetchError]       = useState(null)
+  const [selectedStatus, setSelectedStatus] = useState('todo')
+  const [updating, setUpdating]           = useState(false)
+  const [toast, setToast]                 = useState(null)   // { type, message }
 
-  // Local state cho dropdown — chưa gọi API
-  const [selectedStatus, setSelectedStatus] = useState(task?.status ?? 'todo')
-  const [saved, setSaved] = useState(false)
+  // ── Fetch task khi mở trang ──
+  useEffect(() => {
+    async function loadTask() {
+      setLoading(true)
+      setFetchError(null)
+      const { ok, data } = await getTask(id)
+      if (ok) {
+        setTask(data)
+        setSelectedStatus(data.status)   // sync dropdown với dữ liệu thật
+      } else {
+        setFetchError(data?.detail ?? 'Không thể tải thông tin công việc.')
+      }
+      setLoading(false)
+    }
+    void loadTask()
+  }, [id])
 
-  // TODO (task 2): Thay hàm này bằng lời gọi PATCH /api/intern/tasks/:id
-  function handleUpdate() {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+  // ── Handler cập nhật tiến độ ──
+  function clearToast() { setToast(null) }
+
+  async function handleUpdate() {
+    if (updating) return
+    setUpdating(true)
+    setToast(null)
+
+    const { ok, status, data } = await updateTaskProgress(id, selectedStatus)
+    const toastMsg = buildTaskToast(ok, status, data)
+
+    if (ok) {
+      // Thành công: navigate về danh sách → TaskListPage gọi lại getTasks() tươi
+      // Truyền toast qua location.state để TaskListPage hiển thị
+      navigate('/intern/tasks', { state: { toast: toastMsg } })
+      // Không setUpdating(false) vì component sẽ unmount
+    } else {
+      // Lỗi: hiện toast tại chỗ, không điều hướng
+      setToast(toastMsg)
+      setUpdating(false)
+    }
   }
 
-  if (!task) {
+  /* ── Loading state ── */
+  if (loading) {
+    return (
+      <div className="task-detail-page">
+        <div className="task-detail__loading" role="status" aria-live="polite">
+          <span className="task-detail__spinner" aria-hidden="true" />
+          <span>Đang tải thông tin công việc…</span>
+        </div>
+      </div>
+    )
+  }
+
+  /* ── Fetch error / not found ── */
+  if (fetchError || !task) {
     return (
       <div className="task-detail-page">
         <div className="task-detail__not-found">
-          <span className="task-detail__not-found-icon">🔍</span>
-          <p>Không tìm thấy công việc #{id}.</p>
+          <span className="task-detail__not-found-icon" aria-hidden="true">🔍</span>
+          <p>{fetchError ?? `Không tìm thấy công việc #${id}.`}</p>
           <Link to="/intern/tasks" className="task-detail__back-link">
             ← Về danh sách công việc
           </Link>
@@ -143,14 +129,14 @@ export default function TaskDetailPage() {
     )
   }
 
-  const currentMeta = STATUS_META[task.status] ?? STATUS_META.todo
+  const currentMeta  = STATUS_META[task.status]    ?? STATUS_META.todo
   const selectedMeta = STATUS_META[selectedStatus] ?? STATUS_META.todo
-  const isDirty = selectedStatus !== task.status
+  const isDirty      = selectedStatus !== task.status
 
   return (
     <div className="task-detail-page">
 
-      {/* ── BREADCRUMB + BACK ── */}
+      {/* ── BREADCRUMB ── */}
       <header className="task-detail__header">
         <nav className="task-detail__crumb" aria-label="Breadcrumb">
           <Link to="/intern/tasks" className="task-detail__crumb-link">Công việc của tôi</Link>
@@ -232,12 +218,9 @@ export default function TaskDetailPage() {
             </span>
           </div>
 
-          {/* Dropdown chọn trạng thái mới */}
+          {/* Dropdown */}
           <div className="task-detail__field">
-            <label
-              className="task-detail__field-label"
-              htmlFor="task-status-select"
-            >
+            <label className="task-detail__field-label" htmlFor="task-status-select">
               Trạng thái mới
             </label>
             <div className="task-detail__select-wrap">
@@ -245,7 +228,8 @@ export default function TaskDetailPage() {
                 id="task-status-select"
                 className="task-detail__select"
                 value={selectedStatus}
-                onChange={(e) => { setSelectedStatus(e.target.value); setSaved(false) }}
+                disabled={updating}
+                onChange={(e) => { setSelectedStatus(e.target.value); clearToast() }}
               >
                 {STATUS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -255,7 +239,7 @@ export default function TaskDetailPage() {
               </select>
             </div>
 
-            {/* Preview badge trạng thái mới */}
+            {/* Preview badge */}
             <div className="task-detail__preview-row">
               <span className="task-detail__preview-label">Xem trước:</span>
               <span className={`task-status-badge task-status-badge--${selectedMeta.tone}`}>
@@ -268,33 +252,35 @@ export default function TaskDetailPage() {
           <button
             id="task-update-btn"
             type="button"
-            className={`task-detail__btn-update${!isDirty ? ' task-detail__btn-update--disabled' : ''}`}
+            className={`task-detail__btn-update${(!isDirty || updating) ? ' task-detail__btn-update--disabled' : ''}`}
             onClick={handleUpdate}
-            disabled={!isDirty}
-            aria-disabled={!isDirty}
+            disabled={!isDirty || updating}
+            aria-disabled={!isDirty || updating}
           >
-            {/* TODO (task 2): Thêm loading spinner khi đang gọi API */}
-            Cập nhật tiến độ
+            {updating ? (
+              <>
+                <span className="task-detail__spinner task-detail__spinner--inline" aria-hidden="true" />
+                Đang cập nhật…
+              </>
+            ) : (
+              'Cập nhật tiến độ'
+            )}
           </button>
 
-          {/* Toast thành công (mock) */}
-          {saved && (
-            <div className="task-detail__toast task-detail__toast--success" role="alert">
-              ✓ Cập nhật thành công! (TODO task 2: kết nối API thật)
+          {/* Toast lỗi */}
+          {toast && (
+            <div
+              className={`task-detail__toast task-detail__toast--${toast.type}`}
+              role="alert"
+            >
+              {toast.type === 'error' ? '✗' : '✓'} {toast.message}
             </div>
           )}
-
-          {/* Ghi chú */}
-          <p className="task-detail__api-note">
-            {/* TODO (task 2): Xóa ghi chú này khi đã nối API */}
-            <strong>Lưu ý phát triển:</strong> Chức năng này hiện chỉ là giao diện tĩnh.
-            Task 2 sẽ tích hợp API <code>PATCH /api/intern/tasks/{'{id}'}</code>.
-          </p>
         </section>
 
       </div>
 
-      {/* ── FOOTER BACK ── */}
+      {/* ── FOOTER ── */}
       <footer className="task-detail__footer">
         <Link to="/intern/tasks" className="task-detail__back-link">
           ← Về danh sách công việc

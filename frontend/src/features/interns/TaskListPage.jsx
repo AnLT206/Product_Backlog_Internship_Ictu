@@ -4,74 +4,22 @@
  *
  * US 16: "Là thực tập sinh, tôi muốn cập nhật tiến độ công việc để mentor theo dõi."
  *
- * Task 1 (task này):
- *   - Giao diện tĩnh: bảng danh sách công việc được giao với MOCK data.
- *   - Cột: Tên công việc, Mô tả ngắn, Hạn chót, Trạng thái (badge màu).
- *   - Mỗi dòng có nút "Xem chi tiết" dẫn tới TaskDetailPage.
- *
- * Task 2 (TODO):
- *   - Thay MOCK_TASKS bằng state + useEffect gọi GET /api/intern/tasks.
- *   - Trạng thái lọc theo query param.
+ * Task 1: Giao diện tĩnh với MOCK data.
+ * Task 2 (task này): Gọi getTasks() từ src/api/tasks.js khi mở trang.
+ *   - Hiển thị trạng thái loading rõ ràng.
+ *   - Thay MOCK bằng dữ liệu API trả về.
  *
  * Trạng thái công việc (theo backend tasks.py):
  *   "todo"     → Chưa bắt đầu
  *   "doing"    → Đang thực hiện
  *   "done"     → Hoàn thành
  *   "canceled" → Đã huỷ
- *
- * TODO (task 2): Xác nhận lại với nhóm backend về danh sách trạng thái
- *   nếu có thay đổi enum trong TaskUpdateRequest.
  */
 
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { getTasks } from '../../api/tasks'
 import './TaskListPage.css'
-
-/* ──────────────────────────────────────────────────────────────────────────────
-   MOCK DATA
-   Cấu trúc khớp theo backend GET /api/intern/tasks:
-     id            int
-     title         str
-     description   str | null
-     deadline      str (ISO date)
-     status        "todo" | "doing" | "done" | "canceled"
-     mentor_name   str
-
-   TODO (task 2): Xóa mảng này, thay bằng state + fetch thật.
-   ─────────────────────────────────────────────────────────────────────────── */
-const MOCK_TASKS = [
-  {
-    id: 1,
-    title: 'Nghiên cứu công nghệ React và Vite',
-    description: 'Đọc tài liệu chính thức, thực hành tạo project mẫu.',
-    deadline: '2026-10-10',
-    status: 'doing',
-    mentor_name: 'Nguyễn Văn Bình',
-  },
-  {
-    id: 2,
-    title: 'Viết báo cáo tuần đầu tiên',
-    description: 'Tóm tắt những gì đã học trong tuần 1.',
-    deadline: '2026-10-07',
-    status: 'done',
-    mentor_name: 'Nguyễn Văn Bình',
-  },
-  {
-    id: 3,
-    title: 'Thiết kế sơ đồ cơ sở dữ liệu module hồ sơ',
-    description: 'Tham khảo spec và vẽ ERD cho module intern_profiles.',
-    deadline: '2026-10-15',
-    status: 'todo',
-    mentor_name: 'Trần Thị Lan',
-  },
-  {
-    id: 4,
-    title: 'Review code Pull Request #58',
-    description: 'Review và comment theo checklist nhóm.',
-    deadline: '2026-10-05',
-    status: 'canceled',
-    mentor_name: 'Nguyễn Văn Bình',
-  },
-]
 
 /* ──────────────────────────────────────────────────────────────────────────────
    Helpers
@@ -98,7 +46,38 @@ function isOverdue(isoDate, status) {
    Component
    ─────────────────────────────────────────────────────────────────────────── */
 export default function TaskListPage() {
-  const tasks = MOCK_TASKS // TODO (task 2): replace with API data
+  const location = useLocation()
+
+  const [tasks, setTasks]     = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
+
+  // Khởi tạo toast từ navigate state (nếu có) — dùng lazy initializer tránh setState trong effect
+  const [toast, setToast] = useState(
+    () => location.state?.toast ?? null
+  )
+
+  // Tự ẩn toast sau 4 giây
+  useEffect(() => {
+    if (!toast) return undefined
+    const timer = setTimeout(() => setToast(null), 4000)
+    return () => clearTimeout(timer)
+  }, [toast])
+
+  useEffect(() => {
+    async function loadTasks() {
+      setLoading(true)
+      setError(null)
+      const { ok, data } = await getTasks()
+      if (ok) {
+        setTasks(data.items ?? [])
+      } else {
+        setError(data?.detail ?? 'Không thể tải danh sách công việc.')
+      }
+      setLoading(false)
+    }
+    void loadTasks()
+  }, [])
 
   const counts = tasks.reduce((acc, t) => {
     acc[t.status] = (acc[t.status] || 0) + 1
@@ -123,6 +102,16 @@ export default function TaskListPage() {
         </div>
       </header>
 
+      {/* ── TOAST từ cập nhật thành công ── */}
+      {toast && (
+        <div
+          className={`task-list__toast task-list__toast--${toast.type}`}
+          role="alert"
+        >
+          {toast.type === 'success' ? '✓' : '✗'} {toast.message}
+        </div>
+      )}
+
       {/* ── SUMMARY BADGES ── */}
       <section className="task-list__summary" aria-label="Tổng quan công việc">
         {Object.entries(STATUS_META).map(([key, meta]) => (
@@ -135,12 +124,33 @@ export default function TaskListPage() {
 
       {/* ── TABLE ── */}
       <section className="task-list__panel" aria-label="Danh sách công việc">
-        {tasks.length === 0 ? (
+
+        {/* Loading */}
+        {loading && (
+          <div className="task-list__loading" role="status" aria-live="polite">
+            <span className="task-list__spinner" aria-hidden="true" />
+            <span>Đang tải danh sách công việc…</span>
+          </div>
+        )}
+
+        {/* Error */}
+        {!loading && error && (
+          <div className="task-list__error" role="alert">
+            <span className="task-list__error-icon" aria-hidden="true">⚠️</span>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Empty */}
+        {!loading && !error && tasks.length === 0 && (
           <div className="task-list__empty">
-            <span className="task-list__empty-icon">📋</span>
+            <span className="task-list__empty-icon" aria-hidden="true">📋</span>
             <p>Chưa có công việc nào được giao.</p>
           </div>
-        ) : (
+        )}
+
+        {/* Table */}
+        {!loading && !error && tasks.length > 0 && (
           <div className="task-table-wrap">
             <table className="task-table">
               <thead>
