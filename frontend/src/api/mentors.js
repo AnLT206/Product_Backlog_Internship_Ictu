@@ -91,3 +91,55 @@ export async function createMentor(body) {
     body:   JSON.stringify(body),
   });
 }
+
+/* ─────────────────────────────────────────────
+   getMentors
+───────────────────────────────────────────── */
+
+/**
+ * Lấy danh sách mentor (HR / Admin only).
+ *
+ * Endpoint đã có thật, gọi trực tiếp, không cần mock.
+ * Route: GET /api/hr/mentors
+ * (backend/app/api/routes/mentors.py)
+ *
+ * Response shape (MentorResponse[]):
+ *   [{ id, email, full_name, role, status, phone_number, dob, position, department_id }]
+ *
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function getMentors() {
+  return apiFetch('/api/hr/mentors', { method: 'GET' });
+}
+
+/* ─────────────────────────────────────────────
+   assignInternsToMentor
+───────────────────────────────────────────── */
+
+/**
+ * Phân công một hoặc nhiều thực tập sinh cho mentor (HR / Admin only).
+ *
+ * Endpoint đã có thật, gọi trực tiếp, không cần mock.
+ * Route: POST /api/hr/mentors/{mentor_id}/assign-interns
+ * (backend/app/api/routes/mentor_assignments.py)
+ *
+ * Request body (MentorAssignInternsRequest):
+ *   intern_ids  {number[]}     ít nhất 1 id dương
+ *   program_id  {number|null}  ID kỳ thực tập (tuỳ chọn)
+ *
+ * Response 200 (MentorAssignResponse):
+ *   { mentor_id, mentor_name, assigned_count, intern_ids, message }
+ *
+ * Lỗi: { detail: string } hoặc 422 { detail: [{ msg, ... }] }
+ *
+ * @param {number} mentorId
+ * @param {number[]} internIds
+ * @param {number|null} [programId=null]
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function assignInternsToMentor(mentorId, internIds, programId = null) {
+  return apiFetch(`/api/hr/mentors/${mentorId}/assign-interns`, {
+    method: 'POST',
+    body:   JSON.stringify({ intern_ids: internIds, program_id: programId }),
+  });
+}

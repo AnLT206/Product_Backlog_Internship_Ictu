@@ -21,6 +21,7 @@
 
 // TODO: Bỏ comment import bên dưới và xóa toàn bộ khối MOCK khi BE có endpoint thật
 // import apiFetch from './client';
+import apiFetch from './client';
 
 /* ─────────────────────────────────────────────
    updateIntern
@@ -474,4 +475,28 @@ export async function getInterns({ major = '', q = '', page = 1 } = {}) {
   const qs = params.toString();
   return apiFetch(`/api/hr/interns${qs ? `?${qs}` : ''}`, { method: 'GET' });
   ─────────────────────────────────────────────────────────────────────── */
+}
+
+/* ─────────────────────────────────────────────
+   getActiveInterns
+───────────────────────────────────────────── */
+
+/**
+ * Lấy danh sách thực tập sinh đang active (dùng cho màn hình phân công mentor).
+ *
+ * Endpoint đã có thật, gọi trực tiếp, không cần mock.
+ * Route: GET /api/hr/interns?status=active&page_size=100
+ * (backend/app/api/routes/interns.py — page_size tối đa 100)
+ *
+ * Hàm riêng, KHÔNG thay đổi getInterns() để không ảnh hưởng các trang khác.
+ *
+ * Response shape: { items: InternListItem[], total, page, page_size, total_pages }
+ *
+ * TODO(backend): InternListItem chưa có mentor_id/has_mentor nên chưa lọc
+ * được TTS "chưa có mentor".
+ *
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function getActiveInterns() {
+  return apiFetch('/api/hr/interns?status=active&page_size=100', { method: 'GET' });
 }

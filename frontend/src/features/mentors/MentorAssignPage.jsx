@@ -4,41 +4,81 @@
  *
  * US: "Là HR, tôi muốn phân công thực tập sinh cho mentor để họ được hướng dẫn."
  *
- * Task này (UI): dữ liệu MOCK, nút "Phân công" CHƯA gọi API.
- * Task kế tiếp: nối API thật
- *   - GET /hr/mentors                (danh sách mentor)
- *   - GET /hr/interns?status=active  (danh sách TTS)
- *   - endpoint gán mentor trong backend/app/api/routes/mentor_assignments.py
+ * Dữ liệu thật từ backend (src/api/):
+ *   - GET  /api/hr/mentors                              → getMentors()
+ *   - GET  /api/hr/interns?status=active&page_size=100  → getActiveInterns()
+ *   - POST /api/hr/mentors/{mentor_id}/assign-interns   → assignInternsToMentor()
  *
  * TODO(backend): InternListItem (backend/app/schemas/intern.py) KHÔNG có field
  * mentor_id / has_mentor và GET /hr/interns không hỗ trợ lọc theo mentor.
  * Hiện hiển thị TOÀN BỘ TTS active; cần backend bổ sung field này để ẩn
  * các TTS đã có mentor.
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { getMentors, assignInternsToMentor } from '../../api/mentors'
+import { getActiveInterns, buildToast } from '../../api/interns'
 import './MentorAssignPage.css'
 
-// MOCK — sẽ thay bằng GET /hr/mentors
-const MOCK_MENTORS = [
-  { id: 1, full_name: 'Nguyễn Văn An', email: 'an.nguyen@ictu.edu.vn' },
-  { id: 2, full_name: 'Trần Thị Bình', email: 'binh.tran@ictu.edu.vn' },
-  { id: 3, full_name: 'Lê Hoàng Cường', email: 'cuong.le@ictu.edu.vn' },
-]
-
-// MOCK — sẽ thay bằng GET /hr/interns (status active)
-const MOCK_INTERNS = [
-  { id: 101, full_name: 'Phạm Minh Đức', email: 'duc.pham@sv.ictu.edu.vn', university: 'ĐH CNTT&TT', major: 'Khoa học máy tính' },
-  { id: 102, full_name: 'Hoàng Thu Hà', email: 'ha.hoang@sv.ictu.edu.vn', university: 'ĐH CNTT&TT', major: 'Hệ thống thông tin' },
-  { id: 103, full_name: 'Vũ Quang Huy', email: 'huy.vu@sv.ictu.edu.vn', university: 'ĐH CNTT&TT', major: 'Kỹ thuật phần mềm' },
-  { id: 104, full_name: 'Đặng Ngọc Lan', email: 'lan.dang@sv.ictu.edu.vn', university: 'ĐH CNTT&TT', major: 'An toàn thông tin' },
-]
+const TOAST_MS = 4000
+const NETWORK_ERROR = 'Không thể kết nối máy chủ, vui lòng thử lại.'
 
 export default function MentorAssignPage() {
+  const [mentors, setMentors] = useState([])
+  const [interns, setInterns] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [mentorId, setMentorId] = useState('')
   const [selected, setSelected] = useState([])
+  const [toast, setToast] = useState(null)
 
-  const allChecked = selected.length === MOCK_INTERNS.length
-  const canSubmit = mentorId !== '' && selected.length > 0
+  const allChecked = interns.length > 0 && selected.length === interns.length
+
+  // Tự ẩn toast sau ít giây.
+  useEffect(() => {
+    if (!toast) return undefined
+    const timer = setTimeout(() => setToast(null), TOAST_MS)
+    return () => clearTimeout(timer)
+  }, [toast])
+
+  // Tải mentor + TTS khi mở trang (setState chỉ sau await).
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [mentorRes, internRes] = await Promise.all([
+          getMentors(),
+          getActiveInterns(),
+        ])
+        if (mentorRes.ok) {
+          setMentors(Array.isArray(mentorRes.data) ? mentorRes.data : [])
+        } else {
+          setToast(buildToast(mentorRes.ok, mentorRes.status, mentorRes.data))
+        }
+        if (internRes.ok) {
+          setInterns(internRes.data?.items ?? [])
+        } else {
+          setToast(buildToast(internRes.ok, internRes.status, internRes.data))
+        }
+      } catch {
+        setToast({ type: 'error', message: NETWORK_ERROR })
+      }
+      setLoading(false)
+    }
+    void loadData()
+  }, [])
+
+  // Tải lại danh sách TTS sau khi phân công thành công (cập nhật bằng state, không reload trang).
+  async function refreshInterns() {
+    try {
+      const { ok, status, data } = await getActiveInterns()
+      if (ok) {
+        setInterns(data?.items ?? [])
+      } else {
+        setToast(buildToast(ok, status, data))
+      }
+    } catch {
+      setToast({ type: 'error', message: NETWORK_ERROR })
+    }
+  }
 
   function toggleIntern(id) {
     setSelected((prev) =>
@@ -47,12 +87,43 @@ export default function MentorAssignPage() {
   }
 
   function toggleAll() {
-    setSelected(allChecked ? [] : MOCK_INTERNS.map((i) => i.id))
+    setSelected(allChecked ? [] : interns.map((i) => i.id))
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
-    // TODO: gọi API phân công ở task sau — chưa gọi API ở task này.
+    if (submitting) return
+
+    if (mentorId === '') {
+      setToast({ type: 'error', message: 'Vui lòng chọn mentor.' })
+      return
+    }
+    if (selected.length === 0) {
+      setToast({ type: 'error', message: 'Vui lòng chọn ít nhất 1 thực tập sinh.' })
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const { ok, status, data } = await assignInternsToMentor(
+        Number(mentorId),
+        selected,
+        null,
+      )
+      if (ok) {
+        const count = data?.assigned_count ?? selected.length
+        setToast(
+          buildToast(ok, status, data, `Đã phân công ${count} thực tập sinh cho mentor.`),
+        )
+        setSelected([])
+        await refreshInterns()
+      } else {
+        setToast(buildToast(ok, status, data))
+      }
+    } catch {
+      setToast({ type: 'error', message: NETWORK_ERROR })
+    }
+    setSubmitting(false)
   }
 
   return (
@@ -67,6 +138,15 @@ export default function MentorAssignPage() {
           </p>
         </header>
 
+        {toast && (
+          <div
+            className={`mentor-assign-toast mentor-assign-toast--${toast.type}`}
+            role={toast.type === 'error' ? 'alert' : 'status'}
+          >
+            {toast.message}
+          </div>
+        )}
+
         <form className="mentor-assign-card" onSubmit={handleSubmit} noValidate>
           <div className="mentor-assign-field">
             <label htmlFor="mentor-assign-select" className="mentor-assign-label">
@@ -79,7 +159,7 @@ export default function MentorAssignPage() {
               onChange={(e) => setMentorId(e.target.value)}
             >
               <option value="">-- Chọn mentor --</option>
-              {MOCK_MENTORS.map((m) => (
+              {mentors.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.full_name} ({m.email})
                 </option>
@@ -102,7 +182,13 @@ export default function MentorAssignPage() {
             </div>
 
             <ul className="mentor-assign-list">
-              {MOCK_INTERNS.map((i) => (
+              {loading && (
+                <li className="mentor-assign-empty">Đang tải dữ liệu...</li>
+              )}
+              {!loading && interns.length === 0 && (
+                <li className="mentor-assign-empty">Không có thực tập sinh nào.</li>
+              )}
+              {interns.map((i) => (
                 <li key={i.id} className="mentor-assign-item">
                   <label className="mentor-assign-check">
                     <input
@@ -114,7 +200,8 @@ export default function MentorAssignPage() {
                     <span className="mentor-assign-intern">
                       <strong>{i.full_name}</strong>
                       <small>
-                        {i.email} · {i.major}
+                        {i.email}
+                        {i.major ? ` · ${i.major}` : ''}
                       </small>
                     </span>
                   </label>
@@ -125,7 +212,7 @@ export default function MentorAssignPage() {
             {/* TODO(backend): GET /hr/interns chưa có field mentor_id/has_mentor
                 nên hiện hiển thị toàn bộ TTS active, chưa lọc "chưa có mentor". */}
             <p className="mentor-assign-hint">
-              Đã chọn {selected.length}/{MOCK_INTERNS.length} thực tập sinh.
+              Đã chọn {selected.length}/{interns.length} thực tập sinh.
             </p>
           </div>
 
@@ -134,9 +221,9 @@ export default function MentorAssignPage() {
               id="mentor-assign-submit"
               type="submit"
               className="mentor-assign-btn"
-              disabled={!canSubmit}
+              disabled={submitting || loading}
             >
-              Phân công
+              {submitting ? 'Đang phân công...' : 'Phân công'}
             </button>
           </div>
         </form>
