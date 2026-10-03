@@ -31,6 +31,7 @@ class WeeklyReport(Base):
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    attachment_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     difficulties: Mapped[str | None] = mapped_column(Text, nullable=True)
     next_week_plan: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(

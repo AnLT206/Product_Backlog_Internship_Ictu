@@ -1,0 +1,246 @@
+/* ============================================================
+   MentorAssignPage.css – HR: Phân công mentor
+   Design tokens đồng bộ với MentorListPage.css
+   ============================================================ */
+
+.mentor-assign-page {
+  --fb-blue:        #1877f2;
+  --fb-blue-hover:  #166fe5;
+  --fb-blue-soft:   #e7f3ff;
+  --fb-ink:         #0f172a;
+  --fb-body:        #1c1e21;
+  --fb-muted:       #65676b;
+  --fb-line:        #e4e6eb;
+  --fb-bg:          #f0f2f5;
+  --fb-font:        'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  padding: 36px 28px 60px;
+  font-family: var(--fb-font);
+  color: var(--fb-body);
+  background: var(--fb-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.mentor-assign-page *,
+.mentor-assign-page *::before,
+.mentor-assign-page *::after {
+  box-sizing: border-box;
+}
+
+.mentor-assign-page__glow {
+  position: fixed;
+  inset: -20% auto auto 30%;
+  width: min(900px, 110vw);
+  height: min(900px, 110vw);
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 40% 40%, rgba(24, 119, 242, 0.08) 0%, rgba(24, 119, 242, 0.02) 42%, transparent 70%),
+    radial-gradient(circle at 70% 70%, rgba(14, 165, 233, 0.05) 0%, transparent 55%);
+  filter: blur(14px);
+}
+
+.mentor-assign-shell {
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mentor-assign-badge {
+  display: inline-flex;
+  margin: 0 0 10px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--fb-blue-soft);
+  border: 1px solid #d0e4ff;
+  color: var(--fb-blue);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mentor-assign-title {
+  margin: 0 0 6px;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--fb-ink);
+}
+
+.mentor-assign-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fb-muted);
+}
+
+.mentor-assign-card {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid var(--fb-line);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.mentor-assign-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mentor-assign-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--fb-ink);
+}
+
+.mentor-assign-select {
+  width: 100%;
+  padding: 11px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--fb-body);
+  background: #fff;
+  border: 1px solid var(--fb-line);
+  border-radius: 8px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.mentor-assign-select:focus {
+  outline: none;
+  border-color: var(--fb-blue);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+}
+
+.mentor-assign-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mentor-assign-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--fb-line);
+  border-radius: 8px;
+}
+
+.mentor-assign-item + .mentor-assign-item {
+  border-top: 1px solid var(--fb-line);
+}
+
+.mentor-assign-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.mentor-assign-item .mentor-assign-check:hover {
+  background: var(--fb-bg);
+}
+
+.mentor-assign-check--all {
+  padding: 0;
+  font-weight: 600;
+  color: var(--fb-muted);
+}
+
+.mentor-assign-check input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--fb-blue);
+  cursor: pointer;
+}
+
+.mentor-assign-intern {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mentor-assign-intern small {
+  font-size: 12.5px;
+  color: var(--fb-muted);
+}
+
+.mentor-assign-hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--fb-muted);
+}
+
+.mentor-assign-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mentor-assign-btn {
+  padding: 11px 28px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--fb-blue);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.mentor-assign-btn:hover:not(:disabled) {
+  background: var(--fb-blue-hover);
+}
+
+.mentor-assign-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .mentor-assign-page { padding: 24px 16px 48px; }
+  .mentor-assign-card { padding: 18px; }
+}
+
+/* ── Toast & trạng thái rỗng ── */
+.mentor-assign-toast {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.mentor-assign-toast--success {
+  background: #e6f6ec;
+  border-color: #b7e4c7;
+  color: #1a7f37;
+}
+
+.mentor-assign-toast--error {
+  background: #fdecea;
+  border-color: #f5c2c0;
+  color: #c62828;
+}
+
+.mentor-assign-empty {
+  padding: 18px 14px;
+  font-size: 13.5px;
+  color: var(--fb-muted);
+  text-align: center;
+}

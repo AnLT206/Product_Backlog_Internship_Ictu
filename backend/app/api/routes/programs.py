@@ -6,6 +6,7 @@ from app.schemas.program import (
     ProgramAssignRequest,
     ProgramAssignResponse,
     ProgramCreateRequest,
+    ProgramPeriodRequest,
     ProgramResponse,
     ProgramUpdateRequest,
 )
@@ -63,6 +64,20 @@ def update_program(
     db: Session = Depends(get_db),
 ) -> ProgramResponse:
     return ProgramService(db).update_program(program_id, payload)
+
+
+@router.put(
+    "/{program_id}/period",
+    response_model=ProgramResponse,
+    summary="Chỉnh sửa khoảng thời gian thực tập",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def update_program_period(
+    program_id: int,
+    payload: ProgramPeriodRequest,
+    db: Session = Depends(get_db),
+) -> ProgramResponse:
+    return ProgramService(db).update_period(program_id, payload)
 
 
 @router.patch(

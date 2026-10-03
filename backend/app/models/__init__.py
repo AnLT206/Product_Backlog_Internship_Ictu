@@ -1,11 +1,14 @@
 from app.models.department import Department
 from app.models.document import Document
+from app.models.evaluation import Evaluation
 from app.models.intern_profile import InternProfile
 from app.models.internship_program import InternshipProgram
+from app.models.leave_request import LeaveRequest
 from app.models.notification import Notification
 from app.models.permission import Permission, RolePermission
 from app.models.program_member import ProgramMember
 from app.models.role import Role
+from app.models.schedule import Schedule
 from app.models.system_log import SystemLog
 from app.models.attendance import Attendance
 from app.models.allowance_history import AllowanceHistory
@@ -20,16 +23,19 @@ __all__ = [
     "Attendance",
     "Department",
     "Document",
+    "Evaluation",
     "Notification",
     "Permission",
     "RolePermission",
     "Role",
     "ReportFeedback",
+    "Schedule",
     "SupportRequest",
     "SystemLog",
     "Task",
     "User",
     "InternProfile",
+    "LeaveRequest",
     "InternshipProgram",
     "ProgramMember",
     "UserProfile",

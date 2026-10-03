@@ -12,6 +12,7 @@ from app.schemas.program import (
     ProgramAssignRequest,
     ProgramAssignResponse,
     ProgramCreateRequest,
+    ProgramPeriodRequest,
     ProgramResponse,
     ProgramUpdateRequest,
 )
@@ -140,6 +141,22 @@ class ProgramService:
                 detail="Không thể cập nhật chương trình thực tập.",
             ) from None
 
+        return self._to_response(row)
+
+    def update_period(self, program_id: int, payload: ProgramPeriodRequest) -> ProgramResponse:
+        """Chỉnh ngày bắt đầu và kết thúc của một kỳ thực tập."""
+        row = self._get_or_404(program_id)
+        row.start_date = payload.start_date
+        row.end_date = payload.end_date
+        try:
+            self.db.commit()
+            self.db.refresh(row)
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể cập nhật khoảng thời gian thực tập.",
+            ) from None
         return self._to_response(row)
 
     def close_program(self, program_id: int) -> ProgramResponse:

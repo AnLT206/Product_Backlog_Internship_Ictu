@@ -14,11 +14,17 @@ import RequireAuth from './RequireAuth.jsx'
 import InternListPage from '../features/interns/InternListPage.jsx'
 import InternEditPage from '../features/interns/InternEditPage.jsx'
 import InternCreatePage from '../features/interns/InternCreatePage.jsx'
+import InternDashboardPage from '../features/interns/InternDashboardPage.jsx'
+import InternLayout from '../features/interns/InternLayout.jsx'
+import InternUploadPage from '../features/interns/InternUploadPage.jsx'
+import TaskListPage from '../features/interns/TaskListPage.jsx'
+import TaskDetailPage from '../features/interns/TaskDetailPage.jsx'
 import HRDashboardPage from '../features/hr/HRDashboardPage.jsx'
 import HRLayout from '../features/hr/HRLayout.jsx'
 import ProgramListPage from '../features/programs/ProgramListPage.jsx'
 import ProgramFormPage from '../features/programs/ProgramFormPage.jsx'
 import MentorListPage from '../features/mentors/MentorListPage.jsx'
+import MentorAssignPage from '../features/mentors/MentorAssignPage.jsx'
 
 export default function AppRoutes() {
   return (
@@ -61,6 +67,7 @@ export default function AppRoutes() {
           <Route path="programs" element={<ProgramListPage />} />
           <Route path="programs/new" element={<ProgramFormPage />} />
           <Route path="mentors" element={<MentorListPage />} />
+          <Route path="mentors/assign" element={<MentorAssignPage />} />
         </Route>
 
         <Route
@@ -72,13 +79,19 @@ export default function AppRoutes() {
           }
         />
         <Route
-          path="/intern/dashboard"
+          path="/intern"
           element={
             <RequireAuth roles={['intern']}>
-              <RoleHomePage roleLabel="Thực tập sinh" />
+              <InternLayout />
             </RequireAuth>
           }
-        />
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<InternDashboardPage />} />
+          <Route path="documents/upload" element={<InternUploadPage />} />
+          <Route path="tasks" element={<TaskListPage />} />
+          <Route path="tasks/:id" element={<TaskDetailPage />} />
+        </Route>
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

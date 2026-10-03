@@ -1,0 +1,414 @@
+/* ======================================================
+   InternDashboardPage.css
+   Chạy bên trong InternLayout (intern-main đã có padding).
+   Token màu kế thừa từ InternLayout (--int-*).
+   ====================================================== */
+
+.intern-dash-page {
+  --fb-blue: #1877f2;
+  --fb-blue-hover: #166fe5;
+  --fb-blue-soft: #e7f3ff;
+  --fb-ink: #0f172a;
+  --fb-body: #1c1e21;
+  --fb-muted: #65676b;
+  --fb-line: #e4e6eb;
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.intern-dash-page *,
+.intern-dash-page *::before,
+.intern-dash-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── HERO / WELCOME ── */
+.intern-dash__header {
+  padding: 24px 28px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--fb-line);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+.intern-dash__hero-body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.intern-dash__badge {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--fb-blue-soft);
+  color: var(--fb-blue);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.intern-dash__header h1 {
+  margin: 0;
+  font-size: clamp(20px, 2.5vw, 26px);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--fb-ink);
+}
+
+.intern-dash__lead {
+  margin: 6px 0 0;
+  max-width: 55ch;
+  color: var(--fb-muted);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.intern-dash__header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Breadcrumb */
+.intern-dash__crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--fb-muted);
+  font-weight: 500;
+}
+
+/* ── THỐNG KÊ ── */
+.intern-dash__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.intern-stat {
+  position: relative;
+  padding: 20px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--fb-line);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.intern-stat:hover {
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.intern-stat::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #cbd5e1;
+}
+
+.intern-stat--primary::before { background: var(--fb-blue); }
+.intern-stat--info::before    { background: #0ea5e9; }
+.intern-stat--warn::before    { background: #f59e0b; }
+.intern-stat--neutral::before { background: #94a3b8; }
+
+.intern-stat__icon {
+  display: block;
+  font-size: 18px;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.intern-stat__label {
+  margin: 0;
+  color: var(--fb-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.intern-stat__value {
+  margin: 8px 0 4px;
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--fb-ink);
+}
+
+.intern-stat__hint {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* ── PANEL CHUNG ── */
+.intern-dash__panel {
+  padding: 22px 24px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--fb-line);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+.intern-dash__panel--stretch {
+  min-height: 200px;
+}
+
+.intern-dash__panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.intern-dash__panel h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--fb-ink);
+  letter-spacing: -0.01em;
+}
+
+.intern-dash__panel-desc {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--fb-muted);
+  line-height: 1.4;
+}
+
+/* ── TIẾN TRÌNH ── */
+.intern-progress {
+  display: flex;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.intern-progress__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  min-width: 72px;
+}
+
+.intern-progress__line {
+  position: absolute;
+  top: 16px;
+  left: calc(50% + 16px);
+  right: calc(-50% + 16px);
+  height: 2px;
+  background: var(--fb-line);
+}
+
+.intern-progress__line--done {
+  background: var(--fb-blue);
+}
+
+.intern-progress__dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  z-index: 1;
+  position: relative;
+  background: #f1f5f9;
+  border: 2px solid #cbd5e1;
+  color: #64748b;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.intern-progress__step--done .intern-progress__dot {
+  background: var(--fb-blue);
+  border-color: var(--fb-blue);
+  color: #fff;
+}
+
+.intern-progress__step--active .intern-progress__dot {
+  background: #fff;
+  border-color: var(--fb-blue);
+  color: var(--fb-blue);
+  box-shadow: 0 0 0 4px rgba(24, 119, 242, 0.12);
+}
+
+.intern-progress__label {
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fb-muted);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.intern-progress__step--done .intern-progress__label,
+.intern-progress__step--active .intern-progress__label {
+  color: var(--fb-ink);
+}
+
+/* ── TRUY CẬP NHANH ── */
+.intern-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.intern-quick-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--fb-line);
+  text-decoration: none;
+  color: var(--fb-ink);
+  background: #fafbfc;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.intern-quick-card:hover {
+  background: var(--fb-blue-soft);
+  border-color: #b6d4fe;
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.1);
+  transform: translateY(-1px);
+}
+
+.intern-quick-card__icon {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.intern-quick-card__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fb-ink);
+  line-height: 1.3;
+}
+
+.intern-quick-card__desc {
+  font-size: 12px;
+  color: var(--fb-muted);
+  line-height: 1.4;
+}
+
+/* ── BẢNG HOẠT ĐỘNG ── */
+.intern-table-wrap {
+  border: 1px solid var(--fb-line);
+  border-radius: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.intern-table {
+  width: 100%;
+  min-width: 440px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.intern-table th {
+  text-align: left;
+  padding: 11px 14px;
+  background: #f8fafc;
+  color: var(--fb-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--fb-line);
+  white-space: nowrap;
+}
+
+.intern-table td {
+  padding: 12px 14px;
+  color: var(--fb-ink);
+  border-bottom: 1px solid var(--fb-line);
+  font-size: 13px;
+}
+
+.intern-table tr:last-child td {
+  border-bottom: none;
+}
+
+.intern-table__time {
+  color: var(--fb-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.intern-status-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.intern-status-badge--success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.intern-status-badge--pending {
+  background: #fef9c3;
+  color: #92400e;
+}
+
+.intern-status-badge--error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .intern-dash__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .intern-dash__header {
+    padding: 18px 16px;
+  }
+
+  .intern-dash__panel {
+    padding: 16px;
+  }
+
+  .intern-dash__stats {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .intern-dash__stats {
+    grid-template-columns: 1fr;
+  }
+}

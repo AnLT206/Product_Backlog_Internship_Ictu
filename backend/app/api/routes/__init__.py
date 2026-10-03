@@ -2,15 +2,20 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     admin,
+    allowances,
     attendance,
     auth,
     departments,
     documents,
+    evaluations,
     intern_contract,
     interns,
+    leaves,
     mentors,
     mentor_assignments,
     programs,
+    reports,
+    schedules,
     support_requests,
     tasks,
     weekly_reports,
@@ -18,14 +23,19 @@ from app.api.routes import (
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth.router)
+api_router.include_router(allowances.router)
 api_router.include_router(departments.router)
 api_router.include_router(documents.router)           # /api/hr/documents/*
 api_router.include_router(documents.intern_router)    # /api/intern/documents/*
+api_router.include_router(evaluations.router)
 api_router.include_router(intern_contract.router)
 api_router.include_router(interns.router)
+api_router.include_router(leaves.router)
 api_router.include_router(mentors.router)
 api_router.include_router(mentor_assignments.router)
 api_router.include_router(programs.router)
+api_router.include_router(reports.router)
+api_router.include_router(schedules.router)
 api_router.include_router(admin.router)
 api_router.include_router(admin.users_router)
 api_router.include_router(tasks.router)
