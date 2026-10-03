@@ -7,56 +7,71 @@
  * Dữ liệu thật từ backend (src/api/):
  *   - GET  /api/hr/mentors                              → getMentors()
  *   - GET  /api/hr/interns?status=active&page_size=100  → getActiveInterns()
+ *   - GET  /api/hr/programs                             → getPrograms()
  *   - POST /api/hr/mentors/{mentor_id}/assign-interns   → assignInternsToMentor()
  *
+ * Yêu cầu backend: truyền program_id bắt buộc vì TTS mới chưa thuộc kỳ thực tập
+ * nào — backend sẽ 400 nếu program_id = null và TTS chưa có ProgramMember.
+ *
  * TODO(backend): InternListItem (backend/app/schemas/intern.py) KHÔNG có field
- * mentor_id / has_mentor và GET /hr/interns không hỗ trợ lọc theo mentor.
- * Hiện hiển thị TOÀN BỘ TTS active; cần backend bổ sung field này để ẩn
- * các TTS đã có mentor.
+ * mentor_id / has_mentor nên hiện hiển thị TOÀN BỘ TTS active, chưa lọc TTS
+ * chưa có mentor.
  */
 import { useEffect, useState } from 'react'
 import { getMentors, assignInternsToMentor } from '../../api/mentors'
 import { getActiveInterns, buildToast } from '../../api/interns'
+import { getPrograms } from '../../api/programs'
 import './MentorAssignPage.css'
 
 const TOAST_MS = 4000
 const NETWORK_ERROR = 'Không thể kết nối máy chủ, vui lòng thử lại.'
 
 export default function MentorAssignPage() {
-  const [mentors, setMentors] = useState([])
-  const [interns, setInterns] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [mentors, setMentors]     = useState([])
+  const [interns, setInterns]     = useState([])
+  const [programs, setPrograms]   = useState([])
+  const [loading, setLoading]     = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [mentorId, setMentorId] = useState('')
-  const [selected, setSelected] = useState([])
-  const [toast, setToast] = useState(null)
+  const [mentorId, setMentorId]   = useState('')
+  const [programId, setProgramId] = useState('')
+  const [selected, setSelected]   = useState([])
+  const [toast, setToast]         = useState(null)
 
   const allChecked = interns.length > 0 && selected.length === interns.length
 
-  // Tự ẩn toast sau ít giây.
+  // Tự ẩn toast sau TOAST_MS ms.
   useEffect(() => {
     if (!toast) return undefined
     const timer = setTimeout(() => setToast(null), TOAST_MS)
     return () => clearTimeout(timer)
   }, [toast])
 
-  // Tải mentor + TTS khi mở trang (setState chỉ sau await).
+  // Tải Mentor + TTS + Kỳ thực tập khi mở trang (setState chỉ sau await).
   useEffect(() => {
     async function loadData() {
       try {
-        const [mentorRes, internRes] = await Promise.all([
+        const [mentorRes, internRes, programRes] = await Promise.all([
           getMentors(),
           getActiveInterns(),
+          getPrograms(),
         ])
+
         if (mentorRes.ok) {
           setMentors(Array.isArray(mentorRes.data) ? mentorRes.data : [])
         } else {
           setToast(buildToast(mentorRes.ok, mentorRes.status, mentorRes.data))
         }
+
         if (internRes.ok) {
           setInterns(internRes.data?.items ?? [])
         } else {
           setToast(buildToast(internRes.ok, internRes.status, internRes.data))
+        }
+
+        if (programRes.ok) {
+          setPrograms(Array.isArray(programRes.data) ? programRes.data : [])
+        } else {
+          setToast(buildToast(programRes.ok, programRes.status, programRes.data))
         }
       } catch {
         setToast({ type: 'error', message: NETWORK_ERROR })
@@ -66,7 +81,7 @@ export default function MentorAssignPage() {
     void loadData()
   }, [])
 
-  // Tải lại danh sách TTS sau khi phân công thành công (cập nhật bằng state, không reload trang).
+  // Tải lại danh sách TTS sau khi phân công thành công (React state, không reload trang).
   async function refreshInterns() {
     try {
       const { ok, status, data } = await getActiveInterns()
@@ -98,6 +113,10 @@ export default function MentorAssignPage() {
       setToast({ type: 'error', message: 'Vui lòng chọn mentor.' })
       return
     }
+    if (programId === '') {
+      setToast({ type: 'error', message: 'Vui lòng chọn kỳ thực tập.' })
+      return
+    }
     if (selected.length === 0) {
       setToast({ type: 'error', message: 'Vui lòng chọn ít nhất 1 thực tập sinh.' })
       return
@@ -108,7 +127,7 @@ export default function MentorAssignPage() {
       const { ok, status, data } = await assignInternsToMentor(
         Number(mentorId),
         selected,
-        null,
+        Number(programId),
       )
       if (ok) {
         const count = data?.assigned_count ?? selected.length
@@ -134,7 +153,7 @@ export default function MentorAssignPage() {
           <p className="mentor-assign-badge">Phân công</p>
           <h1 className="mentor-assign-title">Phân công mentor</h1>
           <p className="mentor-assign-subtitle">
-            Chọn mentor và các thực tập sinh sẽ được mentor đó hướng dẫn.
+            Chọn mentor, kỳ thực tập và các thực tập sinh sẽ được mentor đó hướng dẫn.
           </p>
         </header>
 
@@ -148,6 +167,7 @@ export default function MentorAssignPage() {
         )}
 
         <form className="mentor-assign-card" onSubmit={handleSubmit} noValidate>
+          {/* ── Chọn Mentor ── */}
           <div className="mentor-assign-field">
             <label htmlFor="mentor-assign-select" className="mentor-assign-label">
               Mentor
@@ -157,6 +177,7 @@ export default function MentorAssignPage() {
               className="mentor-assign-select"
               value={mentorId}
               onChange={(e) => setMentorId(e.target.value)}
+              disabled={loading}
             >
               <option value="">-- Chọn mentor --</option>
               {mentors.map((m) => (
@@ -167,6 +188,34 @@ export default function MentorAssignPage() {
             </select>
           </div>
 
+          {/* ── Chọn Kỳ thực tập ── */}
+          <div className="mentor-assign-field">
+            <label htmlFor="mentor-assign-program" className="mentor-assign-label">
+              Kỳ thực tập
+            </label>
+            <select
+              id="mentor-assign-program"
+              className="mentor-assign-select"
+              value={programId}
+              onChange={(e) => setProgramId(e.target.value)}
+              disabled={loading}
+            >
+              <option value="">-- Chọn kỳ thực tập --</option>
+              {programs
+                .filter((p) => p.status !== 'closed')
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                    {p.status === 'closed' ? ' (Đã đóng)' : ''}
+                  </option>
+                ))}
+            </select>
+            {!loading && programs.length === 0 && (
+              <p className="mentor-assign-hint">Không có kỳ thực tập nào đang mở.</p>
+            )}
+          </div>
+
+          {/* ── Danh sách TTS ── */}
           <div className="mentor-assign-field">
             <div className="mentor-assign-list-head">
               <span className="mentor-assign-label">Thực tập sinh</span>
@@ -176,6 +225,7 @@ export default function MentorAssignPage() {
                   type="checkbox"
                   checked={allChecked}
                   onChange={toggleAll}
+                  disabled={loading || interns.length === 0}
                 />
                 <span>Chọn tất cả</span>
               </label>

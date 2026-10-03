@@ -9,6 +9,7 @@
 
 // TODO: Bỏ comment import bên dưới và xóa toàn bộ khối MOCK khi BE có endpoint thật
 // import apiFetch from './client';
+import apiFetch from './client';
 
 /* ─────────────────────────────────────────────
    createProgram
@@ -70,4 +71,27 @@ export async function createProgram(body) {
     body: JSON.stringify(body),
   });
   ─────────────────────────────────────────────────────────────────────── */
+}
+
+/* ─────────────────────────────────────────────
+   getPrograms
+───────────────────────────────────────────── */
+
+/**
+ * Lấy danh sách kỳ/chương trình thực tập (HR / Admin only).
+ *
+ * Endpoint đã có thật, gọi trực tiếp, không cần mock.
+ * Route: GET /api/hr/programs
+ * (backend/app/api/routes/programs.py)
+ *
+ * Response shape (ProgramResponse[]):
+ *   [{ id, name, department, description, start_date, end_date,
+ *      max_interns, status, is_deleted, current_interns, ... }]
+ *
+ * Chỉ trả về các kỳ chưa xóa mềm (include_deleted=false mặc định).
+ *
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function getPrograms() {
+  return apiFetch('/api/hr/programs', { method: 'GET' });
 }
