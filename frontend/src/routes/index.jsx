@@ -24,6 +24,7 @@ import HRLayout from '../features/hr/HRLayout.jsx'
 import ProgramListPage from '../features/programs/ProgramListPage.jsx'
 import ProgramFormPage from '../features/programs/ProgramFormPage.jsx'
 import MentorListPage from '../features/mentors/MentorListPage.jsx'
+import MentorAssignPage from '../features/mentors/MentorAssignPage.jsx'
 
 export default function AppRoutes() {
   return (
@@ -66,6 +67,7 @@ export default function AppRoutes() {
           <Route path="programs" element={<ProgramListPage />} />
           <Route path="programs/new" element={<ProgramFormPage />} />
           <Route path="mentors" element={<MentorListPage />} />
+          <Route path="mentors/assign" element={<MentorAssignPage />} />
         </Route>
 
         <Route

@@ -9,7 +9,8 @@ const NAV = [
   { to: '/hr/interns', label: 'Thực tập sinh', end: true },
   { to: '/hr/interns/new', label: 'Thêm hồ sơ mới' },
   { to: '/hr/programs', label: 'Chương trình' },
-  { to: '/hr/mentors', label: 'Mentor' },
+  { to: '/hr/mentors', label: 'Mentor', end: true },
+  { to: '/hr/mentors/assign', label: 'Phân công mentor' },
 ]
 
 export default function HRLayout() {
