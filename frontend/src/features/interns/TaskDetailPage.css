@@ -278,6 +278,40 @@
 .task-status-badge--done     { background: var(--status-done-bg);     color: var(--status-done-text); }
 .task-status-badge--canceled { background: var(--status-canceled-bg); color: var(--status-canceled-text); }
 
+/* ── LOADING ── */
+.task-detail__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 80px 24px;
+  font-size: 14px;
+  color: var(--fb-muted);
+}
+
+.task-detail__spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--fb-line);
+  border-top-color: var(--fb-blue);
+  border-radius: 50%;
+  animation: detailSpinAnim 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+.task-detail__spinner--inline {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+@keyframes detailSpinAnim {
+  to { transform: rotate(360deg); }
+}
+
 /* ── UPDATE BUTTON ── */
 .task-detail__btn-update {
   padding: 10px 20px;
