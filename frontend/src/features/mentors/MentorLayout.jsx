@@ -21,6 +21,7 @@ const NAV = [
   { to: '/mentor/dashboard', label: 'Tổng quan',              end: true },
   { to: '/mentor/interns',   label: 'Thực tập sinh của tôi',  end: true },
   { to: '/mentor/tasks',     label: 'Danh sách nhiệm vụ',     end: true },
+  { to: '/mentor/reports',   label: 'Báo cáo cần duyệt',      end: false },
 ]
 
 export default function MentorLayout() {

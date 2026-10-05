@@ -1,0 +1,457 @@
+/* ============================================================
+   ReportDetailPage.css  —  Mentor: Chi tiết báo cáo & phản hồi
+   Prefix "rdp-" để tránh xung đột với các trang khác.
+   Theme: Thống nhất với MentorDashboardPage / MentorTasksPage.
+   ============================================================ */
+
+.rdp-page {
+  --rdp-primary:       #1877f2;
+  --rdp-primary-hover: #166fe5;
+  --rdp-primary-soft:  #e7f3ff;
+  --rdp-ink:           #1a2332;
+  --rdp-muted:         #64748b;
+  --rdp-line:          #e2e8f0;
+  --rdp-bg-subtle:     #f8fafc;
+  --rdp-font:          'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-family: var(--rdp-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+.rdp-page *,
+.rdp-page *::before,
+.rdp-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── Toast Notification ── */
+.rdp-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  animation: rdpSlideDown 0.25s ease-out;
+}
+
+@keyframes rdpSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.rdp-toast--success {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.rdp-toast--error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.rdp-toast__close {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: currentColor;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+/* ── Header ── */
+.rdp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid var(--rdp-line);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.rdp-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--rdp-muted);
+  text-decoration: none;
+  margin-bottom: 8px;
+  transition: color 0.15s ease;
+}
+
+.rdp-back-link:hover {
+  color: var(--rdp-primary);
+}
+
+.rdp-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rdp-week-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--rdp-primary-soft);
+  color: var(--rdp-primary);
+}
+
+.rdp-header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--rdp-ink);
+  letter-spacing: -0.02em;
+}
+
+.rdp-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rdp-status-badge--submitted {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.rdp-status-badge--reviewed {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+/* ── 2-Column Layout ── */
+.rdp-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1.2fr);
+  gap: 18px;
+  align-items: start;
+}
+
+/* ── Generic Card ── */
+.rdp-card {
+  background: #ffffff;
+  border: 1px solid var(--rdp-line);
+  border-radius: 10px;
+  padding: 22px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  margin-bottom: 18px;
+}
+
+.rdp-card:last-child {
+  margin-bottom: 0;
+}
+
+.rdp-card__title {
+  margin: 0 0 14px;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--rdp-ink);
+  letter-spacing: -0.01em;
+}
+
+.rdp-card__desc {
+  margin: 0 0 16px;
+  font-size: 0.82rem;
+  color: var(--rdp-muted);
+  line-height: 1.5;
+}
+
+.rdp-divider {
+  height: 1px;
+  background: var(--rdp-line);
+  margin: 20px 0;
+}
+
+/* ── Meta Info Grid ── */
+.rdp-meta-card {
+  padding: 18px 22px;
+  background: var(--rdp-bg-subtle);
+}
+
+.rdp-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.rdp-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rdp-meta-item__label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--rdp-muted);
+}
+
+.rdp-meta-item__val {
+  font-size: 0.88rem;
+  color: var(--rdp-ink);
+}
+
+.rdp-meta-item__val--bold {
+  font-weight: 700;
+  color: var(--rdp-primary);
+}
+
+/* ── Prose Content ── */
+.rdp-prose {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: #334155;
+}
+
+.rdp-prose p {
+  margin: 0 0 8px;
+}
+
+.rdp-prose p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Feedback History ── */
+.rdp-card--history {
+  border-left: 4px solid var(--rdp-primary);
+}
+
+.rdp-feedback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rdp-feedback-item {
+  background: var(--rdp-bg-subtle);
+  border: 1px solid var(--rdp-line);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.rdp-feedback-item__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.rdp-feedback-mentor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rdp-feedback-mentor strong {
+  font-size: 0.88rem;
+  color: var(--rdp-ink);
+}
+
+.rdp-feedback-date {
+  font-size: 0.76rem;
+  color: var(--rdp-muted);
+}
+
+.rdp-feedback-score {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.rdp-feedback-comment {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #334155;
+  white-space: pre-wrap;
+}
+
+/* ── Feedback Form Card ── */
+.rdp-form-card {
+  position: sticky;
+  top: 18px;
+}
+
+.rdp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rdp-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rdp-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--rdp-ink);
+}
+
+.rdp-req {
+  color: #ef4444;
+}
+
+.rdp-opt {
+  font-size: 0.76rem;
+  font-weight: 400;
+  color: var(--rdp-muted);
+}
+
+.rdp-score-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 140px;
+}
+
+.rdp-input {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--rdp-line);
+  background: #ffffff;
+  font-size: 0.88rem;
+  color: var(--rdp-ink);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rdp-input:focus,
+.rdp-textarea:focus {
+  border-color: var(--rdp-primary);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.12);
+}
+
+.rdp-score-unit {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--rdp-muted);
+}
+
+.rdp-textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--rdp-line);
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--rdp-ink);
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rdp-textarea--error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.rdp-field-error {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: #ef4444;
+}
+
+/* ── Buttons ── */
+.rdp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.rdp-btn--primary {
+  background: var(--rdp-primary);
+  color: #ffffff;
+}
+
+.rdp-btn--primary:hover:not(:disabled) {
+  background: var(--rdp-primary-hover);
+}
+
+.rdp-btn--primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.rdp-btn--block {
+  width: 100%;
+}
+
+/* ── Not Found State ── */
+.rdp-notfound {
+  text-align: center;
+  padding: 64px 24px;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid var(--rdp-line);
+}
+
+.rdp-notfound h2 {
+  font-size: 1.35rem;
+  margin: 0 0 8px;
+  color: var(--rdp-ink);
+}
+
+.rdp-notfound p {
+  color: var(--rdp-muted);
+  margin: 0 0 20px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .rdp-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .rdp-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rdp-form-card {
+    position: static;
+  }
+}
