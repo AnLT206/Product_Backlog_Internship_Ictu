@@ -28,6 +28,8 @@ import MentorLayout from '../features/mentors/MentorLayout.jsx'
 import MentorDashboardPage from '../features/mentors/MentorDashboardPage.jsx'
 import MentorInternsPage from '../features/mentors/MentorInternsPage.jsx'
 import MentorTasksPage from '../features/mentors/MentorTasksPage.jsx'
+import ReportListPage from '../features/mentors/ReportListPage.jsx'
+import ReportDetailPage from '../features/mentors/ReportDetailPage.jsx'
 
 export default function AppRoutes() {
   return (
@@ -85,6 +87,8 @@ export default function AppRoutes() {
           <Route path="dashboard" element={<MentorDashboardPage />} />
           <Route path="interns" element={<MentorInternsPage />} />
           <Route path="tasks" element={<MentorTasksPage />} />
+          <Route path="reports" element={<ReportListPage />} />
+          <Route path="reports/:id" element={<ReportDetailPage />} />
         </Route>
         <Route
           path="/intern"
