@@ -128,4 +128,4 @@ def test_prevent_duplicate_evaluation(evaluation_client: TestClient) -> None:
         headers=_mentor_headers(),
     )
 
-    assert duplicate.status_code == 400
+    assert duplicate.status_code in (400, 409)

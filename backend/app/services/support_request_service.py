@@ -34,6 +34,7 @@ class SupportRequestService:
             title=req.title,
             content=req.content,
             category=req.category,
+            document_type=req.document_type,
             priority=req.priority,
             status=req.status,
             response_note=req.response_note,
@@ -48,6 +49,13 @@ class SupportRequestService:
         self, user_id: int, payload: SupportRequestCreate
     ) -> SupportRequestResponse:
         """Thực tập sinh tạo yêu cầu hỗ trợ mới (Task 5)."""
+        valid_document_types = {"internship_confirmation", "completion_certificate", "other"}
+        if payload.document_type is not None and payload.document_type not in valid_document_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Loại giấy tờ không hợp lệ. Chỉ chấp nhận: internship_confirmation, completion_certificate, other.",
+            )
+
         user = self.db.query(User).filter(User.id == user_id).first()
         if not user:
             raise HTTPException(
@@ -60,6 +68,7 @@ class SupportRequestService:
             title=payload.title,
             content=payload.content,
             category=payload.category,
+            document_type=payload.document_type,
             priority=payload.priority,
             status="pending",
         )
