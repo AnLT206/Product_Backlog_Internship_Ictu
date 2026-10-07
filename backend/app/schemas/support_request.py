@@ -24,6 +24,9 @@ class SupportRequestCreate(BaseModel):
     priority: SupportRequestPriority = Field(
         default="medium", description="Mức độ ưu tiên: low, medium, high, urgent"
     )
+    document_type: str | None = Field(
+        default=None, description="Loại giấy tờ xin cấp (nếu có): internship_confirmation, completion_certificate, other"
+    )
 
     @field_validator("title", "content")
     @classmethod
@@ -56,6 +59,7 @@ class SupportRequestResponse(BaseModel):
     title: str
     content: str
     category: str
+    document_type: str | None = None
     priority: str
     status: str
     response_note: str | None = None
