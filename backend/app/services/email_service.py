@@ -27,6 +27,38 @@ class EmailService:
         background_tasks.add_task(EmailService.send_email, to_email, subject, body)
 
     @staticmethod
+    def format_meeting_email(
+        intern_name: str,
+        meeting_title: str,
+        start_time: str,
+        end_time: str,
+        meeting_link: str | None,
+        host_name: str | None,
+        description: str | None = None,
+    ) -> tuple[str, str]:
+        """Tạo tiêu đề và nội dung email thông báo lịch họp cho thực tập sinh (SCRUM-179)."""
+        subject = f"[ICTU Internship] Thông báo lịch họp: {meeting_title}"
+        body_lines = [
+            f"Xin chào {intern_name},",
+            "",
+            f"Bạn có một lịch họp mới trên Hệ thống Quản lý Thực tập sinh ICTU:",
+            f"- Tiêu đề: {meeting_title}",
+            f"- Người chủ trì: {host_name or 'Ban Quản trị / HR'}",
+            f"- Thời gian bắt đầu: {start_time}",
+            f"- Thời gian kết thúc: {end_time}",
+            f"- Địa điểm / Link họp: {meeting_link or 'Sẽ cập nhật sau'}",
+        ]
+        if description:
+            body_lines.append(f"- Ghi chú / Nội dung: {description}")
+        body_lines.extend([
+            "",
+            "Vui lòng sắp xếp thời gian tham gia đúng giờ.",
+            "Trân trọng,",
+            "Ban Quản lý Thực tập sinh ICTU",
+        ])
+        return subject, "\n".join(body_lines)
+
+    @staticmethod
     def send_email(to_email: str, subject: str, body: str) -> bool:
         settings = get_settings()
         required_settings = {

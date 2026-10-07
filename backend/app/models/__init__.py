@@ -12,6 +12,9 @@ from app.models.schedule import Schedule
 from app.models.system_log import SystemLog
 from app.models.attendance import Attendance
 from app.models.allowance_history import AllowanceHistory
+from app.models.allowance import Allowance
+from app.models.meeting import Meeting, MeetingAttendee
+from app.models.work_shift import WorkShift
 from app.models.support_request import SupportRequest
 from app.models.task import Task
 from app.models.user import User
@@ -19,11 +22,14 @@ from app.models.user_profile import UserProfile
 from app.models.weekly_report import ReportFeedback, WeeklyReport
 
 __all__ = [
+    "Allowance",
     "AllowanceHistory",
     "Attendance",
     "Department",
     "Document",
     "Evaluation",
+    "Meeting",
+    "MeetingAttendee",
     "Notification",
     "Permission",
     "RolePermission",
@@ -40,6 +46,7 @@ __all__ = [
     "ProgramMember",
     "UserProfile",
     "WeeklyReport",
+    "WorkShift",
 ]
 
 
