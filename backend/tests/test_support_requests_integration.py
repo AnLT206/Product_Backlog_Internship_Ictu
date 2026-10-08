@@ -318,6 +318,63 @@ def test_hr_update_support_request_resolved(support_client):
     assert data["response_note"] == "Đã duyệt đơn nghỉ phép của em."
 
 
+def test_support_request_end_to_end_hr_resolution_visible_to_intern(support_client):
+    client, _ = support_client
+    intern_headers = _auth(1, "intern")
+    hr_headers = _auth(3, "hr")
+    response_note = "Đã duyệt yêu cầu và sẽ gửi giấy xác nhận trong tuần này."
+
+    create_response = client.post(
+        "/api/support-requests",
+        json={
+            "title": "Xin giấy xác nhận thực tập",
+            "content": "Em cần giấy xác nhận để hoàn thiện hồ sơ tại trường.",
+            "category": "procedure",
+            "document_type": "internship_confirmation",
+            "priority": "high",
+        },
+        headers=intern_headers,
+    )
+    assert create_response.status_code == 201
+    created_request = create_response.json()
+    request_id = created_request["id"]
+    assert created_request["status"] == "pending"
+    assert created_request["response_note"] is None
+
+    hr_list_response = client.get("/api/support-requests", headers=hr_headers)
+    assert hr_list_response.status_code == 200
+    hr_request = next(
+        item for item in hr_list_response.json() if item["id"] == request_id
+    )
+    assert hr_request["user_id"] == 1
+    assert hr_request["status"] == "pending"
+
+    update_response = client.patch(
+        f"/api/support-requests/{request_id}",
+        json={"status": "resolved", "response_note": response_note},
+        headers=hr_headers,
+    )
+    assert update_response.status_code == 200
+    updated_request = update_response.json()
+    assert updated_request["status"] == "resolved"
+    assert updated_request["response_note"] == response_note
+    assert updated_request["responder_id"] == 3
+    assert updated_request["responder_name"] == "HR Manager"
+    assert updated_request["resolved_at"] is not None
+
+    intern_list_response = client.get(
+        "/api/support-requests/my",
+        headers=intern_headers,
+    )
+    assert intern_list_response.status_code == 200
+    visible_request = next(
+        item for item in intern_list_response.json() if item["id"] == request_id
+    )
+    assert visible_request["status"] == "resolved"
+    assert visible_request["response_note"] == response_note
+    assert visible_request["responder_name"] == "HR Manager"
+
+
 def test_intern_forbidden_to_update_support_request(support_client):
     client, _ = support_client
 
