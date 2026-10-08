@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.api.deps import get_db
+from app.core.config import Settings
 from app.core.database import Base
 from app.main import app
 from app.models.notification import Notification
@@ -123,6 +124,69 @@ def test_create_meeting_triggers_email_notification(meeting_client):
         assert "Hop Kickoff Du an Thuc tap" in first_call_body
         assert "https://meet.google.com/abc-xyz-123" in first_call_body
         assert "HR Linh Chi" in first_call_body
+
+
+def test_create_meeting_sends_well_formed_email_with_schedule_details(
+    meeting_client,
+):
+    client, _ = meeting_client
+    hr_token = create_access_token(user_id=1, role="hr")
+    smtp_settings = Settings(
+        smtp_host="smtp.example.com",
+        smtp_port=587,
+        smtp_username="mailer@example.com",
+        smtp_password="test-password",
+        smtp_from_email="mailer@example.com",
+        smtp_from_name="ICTU Internship",
+        smtp_use_tls=True,
+    )
+    payload = {
+        "title": "Buoi huong dan Onboarding",
+        "description": "Huong dan quy trinh thuc tap",
+        "start_time": "2026-10-15T09:00:00",
+        "end_time": "2026-10-15T10:30:00",
+        "meeting_link": "https://meet.example.com/onboarding",
+        "intern_ids": [10],
+    }
+
+    with (
+        patch(
+            "app.services.email_service.get_settings",
+            return_value=smtp_settings,
+        ),
+        patch("app.services.email_service.smtplib.SMTP") as smtp_factory,
+    ):
+        smtp = smtp_factory.return_value.__enter__.return_value
+        response = client.post(
+            "/api/hr/meetings",
+            json=payload,
+            headers={"Authorization": f"Bearer {hr_token}"},
+        )
+
+    assert response.status_code == 201
+    smtp_factory.assert_called_once_with(
+        "smtp.example.com",
+        587,
+        timeout=10,
+    )
+    smtp.starttls.assert_called_once_with()
+    smtp.login.assert_called_once_with("mailer@example.com", "test-password")
+    smtp.send_message.assert_called_once()
+
+    email_message = smtp.send_message.call_args.args[0]
+    assert email_message["To"] == "intern10@example.com"
+    assert email_message["From"] == "ICTU Internship <mailer@example.com>"
+    assert email_message["Subject"] == (
+        "[ICTU Internship] Thông báo lịch họp: Buoi huong dan Onboarding"
+    )
+    assert email_message.get_content_type() == "text/plain"
+    assert email_message.get_content_charset() == "utf-8"
+    email_body = email_message.get_content()
+    assert "15/10/2026 09:00" in email_body
+    assert "15/10/2026 10:30" in email_body
+    assert "Buoi huong dan Onboarding" in email_body
+    assert "https://meet.example.com/onboarding" in email_body
+    assert "HR Linh Chi" in email_body
 
 
 @pytest.mark.parametrize(
