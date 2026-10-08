@@ -102,3 +102,12 @@ class MentorResponse(BaseModel):
     dob: date | None = None
     position: str | None = None
     department_id: int | None = None
+
+
+class MentorWorkloadResponse(BaseModel):
+    mentor_id: int
+    mentor_name: str | None
+    program_id: int | None
+    program_name: str | None
+    active_intern_count: int
+    quota: int | None

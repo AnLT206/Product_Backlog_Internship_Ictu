@@ -1,12 +1,20 @@
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, case, func
+from sqlalchemy.orm import Session, aliased
 
 from app.models.department import Department
+from app.models.internship_program import InternshipProgram
+from app.models.program_member import ProgramMember
 from app.models.role import Role
 from app.models.user import User
 from app.models.user_profile import UserProfile
-from app.schemas.mentor import MentorCreateRequest, MentorResponse, MentorUpdateRequest
+from app.schemas.mentor import (
+    MentorCreateRequest,
+    MentorResponse,
+    MentorUpdateRequest,
+    MentorWorkloadResponse,
+)
 from app.utils.hash_password import hash_password
 from app.utils.user_code import next_user_code
 
@@ -46,6 +54,92 @@ class MentorService:
                 department_id=profile.department_id if profile else None,
             )
             for user, profile in mentor_rows
+        ]
+
+    def get_workload(self) -> list[MentorWorkloadResponse]:
+        mentor_user = aliased(User)
+        mentor_role = aliased(Role)
+        intern_user = aliased(User)
+        intern_role = aliased(Role)
+
+        assigned_programs = (
+            self.db.query(
+                ProgramMember.mentor_user_id.label("mentor_id"),
+                ProgramMember.program_id.label("program_id"),
+            )
+            .join(InternshipProgram, ProgramMember.program_id == InternshipProgram.id)
+            .filter(
+                ProgramMember.mentor_user_id.is_not(None),
+                InternshipProgram.is_deleted.is_(False),
+            )
+            .group_by(ProgramMember.mentor_user_id, ProgramMember.program_id)
+            .subquery()
+        )
+
+        rows = (
+            self.db.query(
+                mentor_user.id.label("mentor_id"),
+                mentor_user.full_name.label("mentor_name"),
+                InternshipProgram.id.label("program_id"),
+                InternshipProgram.name.label("program_name"),
+                func.count(
+                    func.distinct(
+                        case(
+                            (intern_role.id.is_not(None), intern_user.id),
+                        )
+                    )
+                ).label("active_intern_count"),
+                InternshipProgram.max_interns.label("quota"),
+            )
+            .join(mentor_role, mentor_user.role_id == mentor_role.id)
+            .outerjoin(assigned_programs, assigned_programs.c.mentor_id == mentor_user.id)
+            .outerjoin(
+                InternshipProgram,
+                InternshipProgram.id == assigned_programs.c.program_id,
+            )
+            .outerjoin(
+                ProgramMember,
+                and_(
+                    ProgramMember.mentor_user_id == mentor_user.id,
+                    ProgramMember.program_id == assigned_programs.c.program_id,
+                ),
+            )
+            .outerjoin(
+                intern_user,
+                and_(
+                    intern_user.id == ProgramMember.intern_user_id,
+                    intern_user.status == "active",
+                ),
+            )
+            .outerjoin(
+                intern_role,
+                and_(
+                    intern_role.id == intern_user.role_id,
+                    intern_role.name == "intern",
+                ),
+            )
+            .filter(mentor_role.name == MENTOR_ROLE_NAME)
+            .group_by(
+                mentor_user.id,
+                mentor_user.full_name,
+                InternshipProgram.id,
+                InternshipProgram.name,
+                InternshipProgram.max_interns,
+            )
+            .order_by(mentor_user.id, InternshipProgram.id)
+            .all()
+        )
+
+        return [
+            MentorWorkloadResponse(
+                mentor_id=row.mentor_id,
+                mentor_name=row.mentor_name,
+                program_id=row.program_id,
+                program_name=row.program_name,
+                active_intern_count=row.active_intern_count,
+                quota=row.quota,
+            )
+            for row in rows
         ]
 
     def create_mentor(self, payload: MentorCreateRequest) -> MentorResponse:
