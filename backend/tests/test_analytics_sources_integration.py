@@ -1,8 +1,11 @@
 from collections.abc import Generator
 from datetime import date, datetime
+from io import BytesIO
 
 import pytest
 from fastapi.testclient import TestClient
+from openpyxl import load_workbook
+from pypdf import PdfReader
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -32,7 +35,8 @@ def analytics_client() -> Generator[tuple[TestClient, sessionmaker], None, None]
     with session_factory() as db:
         hr_role = Role(name="hr", description="HR")
         intern_role = Role(name="intern", description="Intern")
-        db.add_all([hr_role, intern_role])
+        admin_role = Role(name="admin", description="Admin")
+        db.add_all([hr_role, intern_role, admin_role])
         db.flush()
 
         hr = User(
@@ -42,6 +46,15 @@ def analytics_client() -> Generator[tuple[TestClient, sessionmaker], None, None]
             password_hash="hashed",
             full_name="HR User",
             role_id=hr_role.id,
+            status="active",
+        )
+        admin = User(
+            id=2,
+            code="AD0001",
+            email="admin@example.com",
+            password_hash="hashed",
+            full_name="Admin User",
+            role_id=admin_role.id,
             status="active",
         )
         intern1 = User(
@@ -80,7 +93,7 @@ def analytics_client() -> Generator[tuple[TestClient, sessionmaker], None, None]
             max_interns=50,
             status="open",
         )
-        db.add_all([hr, intern1, intern2, intern3, program])
+        db.add_all([hr, admin, intern1, intern2, intern3, program])
         db.flush()
 
         # Intern profiles
@@ -258,3 +271,120 @@ def test_get_analytics_sources_forbidden_for_intern(analytics_client):
         headers={"Authorization": f"Bearer {intern_token}"},
     )
     assert response.status_code == 403
+
+
+def test_export_analytics_xlsx_with_filters(analytics_client):
+    client, _ = analytics_client
+    hr_token = create_access_token(user_id=1, role="hr")
+
+    response = client.get(
+        "/api/hr/analytics/export",
+        params={
+            "format": "xlsx",
+            "program_id": 1,
+            "status": "approved",
+            "from_date": "2026-03-01",
+            "to_date": "2026-03-02",
+        },
+        headers={"Authorization": f"Bearer {hr_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    disposition = response.headers["content-disposition"]
+    assert disposition.startswith('attachment; filename="intern-analytics-')
+    assert disposition.endswith('.xlsx"')
+
+    workbook = load_workbook(BytesIO(response.content), data_only=True)
+    assert workbook.sheetnames == ["Tổng quan", "Theo trường", "Theo ngành"]
+    summary = workbook["Tổng quan"]
+    assert summary["A10"].value == "Tổng số thực tập sinh"
+    assert summary["B10"].value == 2
+    assert summary["B5"].value == "1"
+    university_rows = list(workbook["Theo trường"].values)
+    assert ("ICTU", 2, 1) in university_rows
+
+
+def test_export_analytics_pdf_contains_vietnamese(analytics_client):
+    client, session_factory = analytics_client
+    hr_token = create_access_token(user_id=1, role="hr")
+    with session_factory() as db:
+        profile = db.query(InternProfile).filter(InternProfile.user_id == 10).one()
+        profile.university = "Đại học Thái Nguyên"
+        db.commit()
+
+    response = client.get(
+        "/api/hr/analytics/export?format=pdf&program_id=1",
+        headers={"Authorization": f"Bearer {hr_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    disposition = response.headers["content-disposition"]
+    assert disposition.startswith('attachment; filename="intern-analytics-')
+    assert disposition.endswith('.pdf"')
+    assert response.content.startswith(b"%PDF-")
+    pdf_text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(response.content)).pages)
+    assert "BÁO CÁO THỐNG KÊ THỰC TẬP SINH" in pdf_text
+    assert "Đại học Thái Nguyên" in pdf_text
+    assert "Tổng số thực tập sinh: 2" in pdf_text
+
+
+@pytest.mark.parametrize("file_format", ["xlsx", "pdf"])
+def test_export_analytics_empty_data(analytics_client, file_format):
+    client, _ = analytics_client
+    hr_token = create_access_token(user_id=1, role="hr")
+
+    response = client.get(
+        "/api/hr/analytics/export",
+        params={"format": file_format, "status": "rejected"},
+        headers={"Authorization": f"Bearer {hr_token}"},
+    )
+
+    assert response.status_code == 200
+    if file_format == "xlsx":
+        workbook = load_workbook(BytesIO(response.content), data_only=True)
+        assert workbook["Tổng quan"]["B10"].value == 0
+        assert workbook["Theo trường"]["A2"].value == "Không có dữ liệu"
+        assert workbook["Theo ngành"]["A2"].value == "Không có dữ liệu"
+    else:
+        pdf_text = "\n".join(
+            page.extract_text() or ""
+            for page in PdfReader(BytesIO(response.content)).pages
+        )
+        assert "Tổng số thực tập sinh: 0" in pdf_text
+        assert pdf_text.count("Không có dữ liệu") == 2
+
+
+def test_export_analytics_rejects_invalid_format(analytics_client):
+    client, _ = analytics_client
+    hr_token = create_access_token(user_id=1, role="hr")
+
+    response = client.get(
+        "/api/hr/analytics/export?format=csv",
+        headers={"Authorization": f"Bearer {hr_token}"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_export_analytics_requires_hr_or_admin(analytics_client):
+    client, _ = analytics_client
+    intern_token = create_access_token(user_id=10, role="intern")
+
+    unauthenticated = client.get("/api/hr/analytics/export?format=xlsx")
+    forbidden = client.get(
+        "/api/hr/analytics/export?format=xlsx",
+        headers={"Authorization": f"Bearer {intern_token}"},
+    )
+    admin_token = create_access_token(user_id=2, role="admin")
+    admin_response = client.get(
+        "/api/hr/analytics/export?format=xlsx",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+
+    assert unauthenticated.status_code == 401
+    assert forbidden.status_code == 403
+    assert admin_response.status_code == 200
