@@ -326,14 +326,17 @@ def test_hr_get_mentor_workload_by_program(assign_client):
     by_pair = {(row["mentor_id"], row["program_id"]): row for row in rows}
     assert by_pair[(3, 1)]["active_intern_count"] == 1
     assert by_pair[(3, 1)]["quota"] == 10
+    assert by_pair[(3, 1)]["workload_status"] == "not_assessed"
     assert by_pair[(3, 2)]["active_intern_count"] == 1
     assert by_pair[(3, 2)]["quota"] == 5
     assert by_pair[(6, 2)]["active_intern_count"] == 0
     assert by_pair[(6, 2)]["quota"] == 5
+    assert by_pair[(6, 2)]["workload_status"] == "not_assessed"
     no_program = by_pair[(5, None)]
     assert no_program["program_name"] is None
     assert no_program["active_intern_count"] == 0
     assert no_program["quota"] is None
+    assert no_program["workload_status"] == "not_assessed"
     assert all(row["program_id"] != 3 for row in rows)
 
 

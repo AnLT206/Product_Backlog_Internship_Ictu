@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy import and_, case, func
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, aliased
 
 from app.models.department import Department

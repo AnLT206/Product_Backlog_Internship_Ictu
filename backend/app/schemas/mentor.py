@@ -111,3 +111,4 @@ class MentorWorkloadResponse(BaseModel):
     program_name: str | None
     active_intern_count: int
     quota: int | None
+    workload_status: Literal["not_assessed"] = "not_assessed"
