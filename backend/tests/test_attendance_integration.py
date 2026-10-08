@@ -15,6 +15,7 @@ from app.core.database import Base
 from app.main import app
 from app.models.attendance import Attendance
 from app.models.internship_program import InternshipProgram
+from app.models.program_member import ProgramMember
 from app.models.role import Role
 from app.models.user import User
 from app.models.work_shift import WorkShift
@@ -224,6 +225,7 @@ def test_attendance_status_with_new_work_schedule(attendance_client, monkeypatch
         )
         db.add(program)
         db.flush()
+        db.add(ProgramMember(program_id=program.id, intern_user_id=10))
         db.add(
             WorkShift(
                 program_id=program.id,

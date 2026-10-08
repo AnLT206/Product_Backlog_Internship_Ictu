@@ -80,10 +80,19 @@ def meeting_client() -> Generator[tuple[TestClient, sessionmaker], None, None]:
         with session_factory() as db:
             yield db
 
+    import app.api.activity_log_filter as activity_filter
+    import app.core.database as database
+
+    original_session_local = database.SessionLocal
+    original_activity_session_local = activity_filter.SessionLocal
+    database.SessionLocal = session_factory
+    activity_filter.SessionLocal = session_factory
     app.dependency_overrides[get_db] = override_get_db
     client = TestClient(app)
     yield client, session_factory
     app.dependency_overrides.clear()
+    database.SessionLocal = original_session_local
+    activity_filter.SessionLocal = original_activity_session_local
     Base.metadata.drop_all(engine)
     engine.dispose()
 
@@ -256,6 +265,35 @@ def test_notification_read_state_persists_after_reloading_list(meeting_client):
         item for item in notifications if item["id"] == notification_id
     )
     assert reloaded_notification["is_read"] is True
+
+
+def test_notifications_are_scoped_to_current_user(meeting_client):
+    client, session_factory = meeting_client
+    with session_factory() as db:
+        notification = Notification(
+            user_id=11,
+            title="Thông báo riêng",
+            body="Chỉ dành cho thực tập sinh khác.",
+            is_read=False,
+        )
+        db.add(notification)
+        db.commit()
+        notification_id = notification.id
+
+    headers = {
+        "Authorization": f"Bearer {create_access_token(user_id=10, role='intern')}"
+    }
+    list_response = client.get("/api/notifications", headers=headers)
+    assert list_response.status_code == 200
+    assert all(item["user_id"] == 10 for item in list_response.json()["items"])
+
+    update_response = client.patch(
+        f"/api/notifications/{notification_id}/read",
+        headers=headers,
+    )
+    assert update_response.status_code == 404
+    with session_factory() as db:
+        assert db.get(Notification, notification_id).is_read is False
 
 
 def test_create_meeting_invalid_time(meeting_client):

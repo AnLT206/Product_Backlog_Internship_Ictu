@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-AttendanceStatus = Literal["present", "late", "half_day", "absent"]
+AttendanceStatus = Literal["present", "late", "half_day", "absent", "early_leave"]
 
 
 class AttendanceCheckInRequest(BaseModel):

@@ -28,7 +28,14 @@ class Attendance(Base):
     check_out_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     total_hours: Mapped[Decimal | None] = mapped_column(Numeric(4, 2), nullable=True)
     status: Mapped[str] = mapped_column(
-        Enum("present", "late", "half_day", "absent", name="attendance_status"),
+        Enum(
+            "present",
+            "late",
+            "half_day",
+            "absent",
+            "early_leave",
+            name="attendance_status",
+        ),
         default="present",
         nullable=False,
     )

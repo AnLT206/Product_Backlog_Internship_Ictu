@@ -17,6 +17,12 @@ MENTOR_ENDPOINTS = [
         id="list-mentors",
     ),
     pytest.param(
+        "get",
+        "/api/hr/mentors/workload",
+        None,
+        id="mentor-workload",
+    ),
+    pytest.param(
         "post",
         "/api/hr/mentors",
         {

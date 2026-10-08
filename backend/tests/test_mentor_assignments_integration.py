@@ -271,6 +271,83 @@ def test_hr_get_assigned_interns(assign_client):
     assert item["program_name"] == "Kỳ Thực tập Mùa Thu 2026"
 
 
+def test_hr_get_mentor_workload_by_program(assign_client):
+    client, session_factory = assign_client
+
+    with session_factory() as db:
+        mentor_role = db.query(Role).filter(Role.name == "mentor").one()
+        db.query(User).filter(User.id == 2).update({User.status: "inactive"})
+        db.add_all(
+            [
+                User(
+                    id=5,
+                    code="MT0002",
+                    email="mentor-no-program@example.com",
+                    password_hash="hash",
+                    full_name="Mentor No Program",
+                    role_id=mentor_role.id,
+                    status="active",
+                ),
+                User(
+                    id=6,
+                    code="MT0003",
+                    email="mentor-inactive-intern@example.com",
+                    password_hash="hash",
+                    full_name="Mentor Inactive Intern",
+                    role_id=mentor_role.id,
+                    status="active",
+                ),
+                InternshipProgram(
+                    id=3,
+                    name="Deleted Program",
+                    department="Engineering",
+                    start_date=date.today(),
+                    end_date=date.today() + timedelta(days=30),
+                    max_interns=99,
+                    is_deleted=True,
+                ),
+            ]
+        )
+        db.add_all(
+            [
+                ProgramMember(program_id=1, intern_user_id=1, mentor_user_id=3),
+                ProgramMember(program_id=1, intern_user_id=2, mentor_user_id=3),
+                ProgramMember(program_id=2, intern_user_id=1, mentor_user_id=3),
+                ProgramMember(program_id=2, intern_user_id=2, mentor_user_id=6),
+                ProgramMember(program_id=3, intern_user_id=1, mentor_user_id=3),
+            ]
+        )
+        db.commit()
+
+    response = client.get("/api/hr/mentors/workload", headers=_auth(4, "hr"))
+
+    assert response.status_code == 200
+    rows = response.json()
+    by_pair = {(row["mentor_id"], row["program_id"]): row for row in rows}
+    assert by_pair[(3, 1)]["active_intern_count"] == 1
+    assert by_pair[(3, 1)]["quota"] == 10
+    assert by_pair[(3, 2)]["active_intern_count"] == 1
+    assert by_pair[(3, 2)]["quota"] == 5
+    assert by_pair[(6, 2)]["active_intern_count"] == 0
+    assert by_pair[(6, 2)]["quota"] == 5
+    no_program = by_pair[(5, None)]
+    assert no_program["program_name"] is None
+    assert no_program["active_intern_count"] == 0
+    assert no_program["quota"] is None
+    assert all(row["program_id"] != 3 for row in rows)
+
+
+def test_intern_cannot_get_mentor_workload(assign_client):
+    client, _ = assign_client
+
+    response = client.get(
+        "/api/hr/mentors/workload",
+        headers=_auth(1, "intern"),
+    )
+
+    assert response.status_code == 403
+
+
 def test_mentor_get_my_assigned_interns(assign_client):
     client, _ = assign_client
 

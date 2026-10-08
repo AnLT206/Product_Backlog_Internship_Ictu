@@ -2,7 +2,12 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_roles
-from app.schemas.mentor import MentorCreateRequest, MentorResponse, MentorUpdateRequest
+from app.schemas.mentor import (
+    MentorCreateRequest,
+    MentorResponse,
+    MentorUpdateRequest,
+    MentorWorkloadResponse,
+)
 from app.services.mentor_service import MentorService
 
 router = APIRouter(prefix="/hr/mentors", tags=["mentors"])
@@ -29,6 +34,18 @@ def create_mentor(
 )
 def list_mentors(db: Session = Depends(get_db)) -> list[MentorResponse]:
     return MentorService(db).list_mentors()
+
+
+@router.get(
+    "/workload",
+    response_model=list[MentorWorkloadResponse],
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def get_mentor_workload(
+    db: Session = Depends(get_db),
+) -> list[MentorWorkloadResponse]:
+    return MentorService(db).get_workload()
 
 
 @router.patch(

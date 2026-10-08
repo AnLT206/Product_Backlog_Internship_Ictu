@@ -15,6 +15,7 @@ from app.api.routes import (
     meetings,
     mentors,
     mentor_assignments,
+    notifications,
     programs,
     reports,
     schedules,
@@ -38,6 +39,7 @@ api_router.include_router(leaves.router)
 api_router.include_router(meetings.router)
 api_router.include_router(mentors.router)
 api_router.include_router(mentor_assignments.router)
+api_router.include_router(notifications.router)
 api_router.include_router(programs.router)
 api_router.include_router(reports.router)
 api_router.include_router(schedules.router)
