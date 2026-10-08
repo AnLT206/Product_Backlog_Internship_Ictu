@@ -545,7 +545,9 @@ TTS cập nhật: Select trạng thái + % + **Lưu**.
 | `GET /api/hr/stats/by-university` | Đếm TTS theo trường |
 | `GET /api/hr/stats/by-major` | Đếm theo ngành |
 | `GET /api/hr/stats/completion-rate` | (số hoàn thành / tổng) * 100 — **định nghĩa “hoàn thành” = có evaluation hoặc status chương trình done** (team chốt 1 công thức) |
-| `GET /api/hr/stats/export?format=xlsx\|pdf` | File download |
+| `GET /api/hr/analytics/export?format=xlsx\|pdf` | File download; cùng prefix với API analytics hiện có, hỗ trợ các filter `program_id`, `status`, `from_date`, `to_date` |
+
+> Đường dẫn export được đặt dưới `/api/hr/analytics` để nhất quán với router hiện có (`/api/hr/analytics/sources`); không triển khai thêm endpoint trùng chức năng tại `/api/hr/stats/export`.
 
 ### 11.2. UI `/hr/analytics`
 

@@ -25,7 +25,10 @@ services:
 
   # Backend API (FastAPI) — seed admin tự chạy trước uvicorn (dev)
   backend:
-    image: python:3.11-slim
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ictu-internship-backend:dev
     container_name: ictu_internship_backend
     working_dir: /app
     volumes:
