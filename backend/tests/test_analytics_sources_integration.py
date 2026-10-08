@@ -184,6 +184,71 @@ def test_get_analytics_sources_empty(analytics_client):
     assert data["by_major"] == []
 
 
+def test_new_empty_program_analytics_returns_zero_without_division_by_zero(
+    analytics_client,
+):
+    client, session_factory = analytics_client
+    hr_token = create_access_token(user_id=1, role="hr")
+
+    with session_factory() as db:
+        db.add(
+            InternshipProgram(
+                id=2,
+                name="Dot moi chua co thuc tap sinh",
+                department="IT",
+                start_date=date(2026, 7, 1),
+                end_date=date(2026, 12, 31),
+                max_interns=20,
+                status="open",
+            )
+        )
+        db.commit()
+
+    response = client.get(
+        "/api/hr/analytics/sources?program_id=2",
+        headers={"Authorization": f"Bearer {hr_token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_interns"] == 0
+    assert data["by_university"] == []
+    assert data["by_major"] == []
+
+
+def test_analytics_sources_with_one_intern_returns_100_percent(analytics_client):
+    client, session_factory = analytics_client
+    hr_token = create_access_token(user_id=1, role="hr")
+
+    with session_factory() as db:
+        db.add(
+            InternshipProgram(
+                id=2,
+                name="Dot moi co mot thuc tap sinh",
+                department="IT",
+                start_date=date(2026, 7, 1),
+                end_date=date(2026, 12, 31),
+                max_interns=20,
+                status="open",
+            )
+        )
+        db.add(ProgramMember(program_id=2, intern_user_id=10))
+        db.commit()
+
+    response = client.get(
+        "/api/hr/analytics/sources?program_id=2",
+        headers={"Authorization": f"Bearer {hr_token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_interns"] == 1
+    assert data["by_university"] == [
+        {"name": "ICTU", "count": 1, "percentage": 100.0}
+    ]
+    assert data["by_major"] == [
+        {"name": "Cong nghe thong tin", "count": 1, "percentage": 100.0}
+    ]
+
+
 def test_get_analytics_sources_forbidden_for_intern(analytics_client):
     client, _ = analytics_client
     intern_token = create_access_token(user_id=10, role="intern")
