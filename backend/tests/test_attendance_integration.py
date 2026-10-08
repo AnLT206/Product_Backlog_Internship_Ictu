@@ -1,7 +1,7 @@
 """Tests tích hợp cho Quản lý chấm công check-in / check-out (Tasks 3, 4)."""
 
 from collections.abc import Generator
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 import pytest
@@ -14,8 +14,10 @@ from app.api.deps import get_db
 from app.core.database import Base
 from app.main import app
 from app.models.attendance import Attendance
+from app.models.internship_program import InternshipProgram
 from app.models.role import Role
 from app.models.user import User
+from app.models.work_shift import WorkShift
 from app.utils.authenticate_login import create_access_token
 import app.models as _models  # noqa: F401
 
@@ -205,6 +207,68 @@ def test_intern_duplicate_check_out_rejected(attendance_client):
     res2 = client.post("/api/intern/attendance/check-out", headers=headers)
     assert res2.status_code == 400
     assert "đã check-out ngày hôm nay rồi" in res2.json()["detail"]
+
+
+def test_attendance_status_with_new_work_schedule(attendance_client, monkeypatch):
+    client, session_factory = attendance_client
+    today = datetime.now().date()
+
+    with session_factory() as db:
+        program = InternshipProgram(
+            name="Attendance status test program",
+            department="IT",
+            start_date=today,
+            end_date=today,
+            max_interns=1,
+            status="open",
+        )
+        db.add(program)
+        db.flush()
+        db.add(
+            WorkShift(
+                program_id=program.id,
+                group_name="Attendance status test group",
+                shift_type="full_time",
+                start_time=time(8, 0),
+                end_time=time(17, 0),
+                days_of_week=str(today.isoweekday()),
+                flexible_minutes=0,
+                is_active=True,
+            )
+        )
+        db.commit()
+
+    class FrozenDateTime(datetime):
+        current = datetime.combine(today, time(8, 15))
+
+        @classmethod
+        def now(cls, tz=None):
+            return cls.current
+
+    monkeypatch.setattr("app.services.attendance_service.datetime", FrozenDateTime)
+    headers = {
+        "Authorization": f"Bearer {create_access_token(user_id=10, role='intern')}"
+    }
+
+    check_in_response = client.post(
+        "/api/intern/attendance/check-in",
+        headers=headers,
+    )
+    assert check_in_response.status_code == 201
+    check_in_data = check_in_response.json()
+
+    FrozenDateTime.current = datetime.combine(today, time(16, 45))
+    check_out_response = client.post(
+        "/api/intern/attendance/check-out",
+        headers=headers,
+    )
+    assert check_out_response.status_code == 200
+    check_out_data = check_out_response.json()
+
+    assert (
+        check_in_data["status"],
+        check_out_data["status"],
+    ) == ("late", "early_leave")
 
 
 # ── Lịch sử & Trạng thái Chấm công ──────────────────────────────────────────
