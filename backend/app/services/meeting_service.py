@@ -7,6 +7,7 @@ from app.models.meeting import Meeting, MeetingAttendee
 from app.models.user import User
 from app.schemas.meeting import MeetingAttendeeItem, MeetingCreate, MeetingResponse
 from app.services.email_service import EmailService
+from app.services.notification_service import NotificationService
 
 
 class MeetingService:
@@ -114,6 +115,7 @@ class MeetingService:
         now = datetime.now()
         start_str = data.start_time.strftime("%d/%m/%Y %H:%M")
         end_str = data.end_time.strftime("%d/%m/%Y %H:%M")
+        notification_service = NotificationService(self.db)
 
         for intern in interns:
             subject, body = EmailService.format_meeting_email(
@@ -142,6 +144,12 @@ class MeetingService:
                 notified_at=notified_at,
             )
             self.db.add(attendee)
+            notification_service.create_notification(
+                user_id=intern.id,
+                title=f"Lịch họp: {meeting.title}",
+                body=f"Bạn được mời tham dự cuộc họp lúc {start_str} - {end_str}.",
+                commit=False,
+            )
 
         self.db.commit()
         self.db.refresh(meeting)

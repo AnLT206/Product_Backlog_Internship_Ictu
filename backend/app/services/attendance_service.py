@@ -1,13 +1,16 @@
 """Service xử lý logic chấm công và tính toán thời gian làm việc (Tasks 3, 4)."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.attendance import Attendance
+from app.models.internship_program import InternshipProgram
+from app.models.program_member import ProgramMember
 from app.models.user import User
+from app.models.work_shift import WorkShift
 from app.schemas.attendance import (
     AttendanceListResponse,
     AttendanceResponse,
@@ -40,6 +43,37 @@ class AttendanceService:
             created_at=att.created_at,
         )
 
+    def _get_work_shift(self, user_id: int, work_date: date) -> WorkShift | None:
+        shifts = (
+            self.db.query(WorkShift)
+            .join(
+                ProgramMember,
+                ProgramMember.program_id == WorkShift.program_id,
+            )
+            .join(
+                InternshipProgram,
+                InternshipProgram.id == WorkShift.program_id,
+            )
+            .filter(
+                ProgramMember.intern_user_id == user_id,
+                WorkShift.is_active.is_(True),
+                InternshipProgram.is_deleted.is_(False),
+                InternshipProgram.start_date <= work_date,
+                InternshipProgram.end_date >= work_date,
+            )
+            .order_by(WorkShift.id.desc())
+            .all()
+        )
+        weekday = str(work_date.isoweekday())
+        return next(
+            (
+                shift
+                for shift in shifts
+                if weekday in {day.strip() for day in shift.days_of_week.split(",")}
+            ),
+            None,
+        )
+
     def check_in(self, current_user: User, note: str | None = None) -> AttendanceResponse:
         """Thực tập sinh check-in đầu ngày làm việc (Task 4)."""
         today = datetime.now().date()
@@ -57,11 +91,21 @@ class AttendanceService:
                 detail="Bạn đã check-in ngày hôm nay rồi.",
             )
 
+        work_shift = self._get_work_shift(current_user.id, today)
+        attendance_status = "present"
+        if work_shift:
+            shift_start = datetime.combine(today, work_shift.start_time)
+            latest_on_time = shift_start + timedelta(
+                minutes=work_shift.flexible_minutes
+            )
+            if now > latest_on_time:
+                attendance_status = "late"
+
         new_record = Attendance(
             user_id=current_user.id,
             work_date=today,
             check_in_at=now,
-            status="present",
+            status=attendance_status,
             note=note.strip() if note else None,
         )
         self.db.add(new_record)
@@ -110,9 +154,17 @@ class AttendanceService:
         record.check_out_at = now
         record.total_hours = total_hours
 
-        # Cập nhật trạng thái nếu làm ít hơn nửa ngày (< 4 tiếng)
+        work_shift = self._get_work_shift(current_user.id, today)
+
+        # Preserve the existing half-day rule; otherwise mark an early departure.
         if total_hours < Decimal("4.00") and record.status == "present":
             record.status = "half_day"
+        elif total_hours >= Decimal("4.00") and work_shift:
+            earliest_on_time = datetime.combine(today, work_shift.end_time) - timedelta(
+                minutes=work_shift.flexible_minutes
+            )
+            if now < earliest_on_time:
+                record.status = "early_leave"
 
         if note and note.strip():
             record.note = f"{record.note}; {note.strip()}" if record.note else note.strip()

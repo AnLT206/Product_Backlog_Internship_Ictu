@@ -231,7 +231,7 @@ CREATE TABLE IF NOT EXISTS `attendance` (
     `check_in_at` DATETIME NOT NULL,
     `check_out_at` DATETIME NULL,
     `total_hours` DECIMAL(4, 2) NULL,
-    `status` ENUM('present', 'late', 'half_day', 'absent') NOT NULL DEFAULT 'present',
+    `status` ENUM('present', 'late', 'half_day', 'absent', 'early_leave') NOT NULL DEFAULT 'present',
     `note` VARCHAR(255) NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
