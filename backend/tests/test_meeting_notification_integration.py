@@ -11,6 +11,7 @@ from sqlalchemy.pool import StaticPool
 from app.api.deps import get_db
 from app.core.database import Base
 from app.main import app
+from app.models.notification import Notification
 from app.models.role import Role
 from app.models.user import User
 from app.services.email_service import EmailService
@@ -31,7 +32,8 @@ def meeting_client() -> Generator[tuple[TestClient, sessionmaker], None, None]:
     with session_factory() as db:
         hr_role = Role(name="hr", description="HR")
         intern_role = Role(name="intern", description="Intern")
-        db.add_all([hr_role, intern_role])
+        mentor_role = Role(name="mentor", description="Mentor")
+        db.add_all([hr_role, intern_role, mentor_role])
         db.flush()
 
         hr = User(
@@ -61,7 +63,16 @@ def meeting_client() -> Generator[tuple[TestClient, sessionmaker], None, None]:
             role_id=intern_role.id,
             status="active",
         )
-        db.add_all([hr, intern1, intern2])
+        mentor = User(
+            id=2,
+            code="MT0002",
+            email="mentor@example.com",
+            password_hash="hashed",
+            full_name="Mentor Minh Anh",
+            role_id=mentor_role.id,
+            status="active",
+        )
+        db.add_all([hr, mentor, intern1, intern2])
         db.commit()
 
     def override_get_db() -> Generator[Session, None, None]:
@@ -112,6 +123,75 @@ def test_create_meeting_triggers_email_notification(meeting_client):
         assert "Hop Kickoff Du an Thuc tap" in first_call_body
         assert "https://meet.google.com/abc-xyz-123" in first_call_body
         assert "HR Linh Chi" in first_call_body
+
+
+@pytest.mark.parametrize(
+    ("host_id", "host_role", "host_name"),
+    [(1, "hr", "HR Linh Chi"), (2, "mentor", "Mentor Minh Anh")],
+)
+def test_create_meeting_creates_in_app_notifications_for_attendees(
+    meeting_client, host_id, host_role, host_name
+):
+    client, session_factory = meeting_client
+    token = create_access_token(user_id=host_id, role=host_role)
+
+    with patch.object(EmailService, "send_email", return_value=True):
+        response = client.post(
+            "/api/hr/meetings",
+            json={
+                "title": "Lich huong dan tu dong",
+                "description": "Lich moi cho thuc tap sinh",
+                "start_time": "2026-10-15T09:00:00",
+                "end_time": "2026-10-15T10:00:00",
+                "intern_ids": [10],
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert response.status_code == 201
+    assert response.json()["host_name"] == host_name
+    with session_factory() as db:
+        notifications = db.query(Notification).filter(Notification.user_id == 10).all()
+        assert len(notifications) == 1
+        assert "Lich huong dan tu dong" in notifications[0].title
+        assert notifications[0].is_read is False
+
+
+def test_notification_read_state_persists_after_reloading_list(meeting_client):
+    client, session_factory = meeting_client
+    intern_token = create_access_token(user_id=10, role="intern")
+    headers = {"Authorization": f"Bearer {intern_token}"}
+
+    with session_factory() as db:
+        notification = Notification(
+            user_id=10,
+            title="Lich moi",
+            body="Ban co mot lich moi.",
+            is_read=False,
+        )
+        db.add(notification)
+        db.commit()
+        db.refresh(notification)
+        notification_id = notification.id
+
+    initial_response = client.get("/api/notifications", headers=headers)
+    assert initial_response.status_code == 200
+
+    mark_read_response = client.patch(
+        f"/api/notifications/{notification_id}/read",
+        headers=headers,
+    )
+    assert mark_read_response.status_code == 200
+
+    reloaded_response = client.get("/api/notifications", headers=headers)
+    assert reloaded_response.status_code == 200
+    notifications = reloaded_response.json()
+    if isinstance(notifications, dict):
+        notifications = notifications["items"]
+    reloaded_notification = next(
+        item for item in notifications if item["id"] == notification_id
+    )
+    assert reloaded_notification["is_read"] is True
 
 
 def test_create_meeting_invalid_time(meeting_client):
