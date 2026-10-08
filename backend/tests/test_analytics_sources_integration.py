@@ -332,6 +332,50 @@ def test_export_analytics_pdf_contains_vietnamese(analytics_client):
     assert "Tổng số thực tập sinh: 2" in pdf_text
 
 
+def test_reports_export_excel_alias_streams_xlsx_with_filters(analytics_client):
+    client, _ = analytics_client
+    hr_token = create_access_token(user_id=1, role="hr")
+
+    response = client.get(
+        "/api/hr/reports/export",
+        params={
+            "type": "excel",
+            "program_id": 1,
+            "status": "approved",
+            "from_date": "2026-03-01",
+            "to_date": "2026-03-02",
+        },
+        headers={"Authorization": f"Bearer {hr_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    assert response.headers["content-disposition"].startswith(
+        'attachment; filename="intern-analytics-'
+    )
+    assert response.headers["content-disposition"].endswith('.xlsx"')
+    workbook = load_workbook(BytesIO(response.content), data_only=True)
+    assert workbook["Tổng quan"]["B10"].value == 2
+    assert workbook["Tổng quan"]["B5"].value == "1"
+
+
+def test_reports_export_pdf_alias(analytics_client):
+    client, _ = analytics_client
+    hr_token = create_access_token(user_id=1, role="hr")
+
+    response = client.get(
+        "/api/hr/reports/export?type=pdf&program_id=1",
+        headers={"Authorization": f"Bearer {hr_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.headers["content-disposition"].endswith('.pdf"')
+    assert response.content.startswith(b"%PDF-")
+
+
 @pytest.mark.parametrize("file_format", ["xlsx", "pdf"])
 def test_export_analytics_empty_data(analytics_client, file_format):
     client, _ = analytics_client
@@ -369,6 +413,12 @@ def test_export_analytics_rejects_invalid_format(analytics_client):
 
     assert response.status_code == 422
 
+    alias_response = client.get(
+        "/api/hr/reports/export?type=csv",
+        headers={"Authorization": f"Bearer {hr_token}"},
+    )
+    assert alias_response.status_code == 422
+
 
 def test_export_analytics_requires_hr_or_admin(analytics_client):
     client, _ = analytics_client
@@ -384,7 +434,19 @@ def test_export_analytics_requires_hr_or_admin(analytics_client):
         "/api/hr/analytics/export?format=xlsx",
         headers={"Authorization": f"Bearer {admin_token}"},
     )
+    alias_unauthenticated = client.get("/api/hr/reports/export?type=excel")
+    alias_forbidden = client.get(
+        "/api/hr/reports/export?type=excel",
+        headers={"Authorization": f"Bearer {intern_token}"},
+    )
+    alias_admin_response = client.get(
+        "/api/hr/reports/export?type=excel",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
 
     assert unauthenticated.status_code == 401
     assert forbidden.status_code == 403
     assert admin_response.status_code == 200
+    assert alias_unauthenticated.status_code == 401
+    assert alias_forbidden.status_code == 403
+    assert alias_admin_response.status_code == 200
