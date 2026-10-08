@@ -27,6 +27,7 @@ from app.api.routes import (
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth.router)
+api_router.include_router(analytics.reports_router)
 api_router.include_router(allowances.router)
 api_router.include_router(analytics.router)
 api_router.include_router(departments.router)
