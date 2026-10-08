@@ -292,6 +292,32 @@ def test_mentor_get_my_assigned_interns(assign_client):
     assert ids == {1, 2}
 
 
+def test_hr_assignment_is_visible_to_assigned_mentor(assign_client):
+    client, _ = assign_client
+
+    assignment_response = client.post(
+        "/api/hr/mentors/3/assign-interns",
+        json={"intern_ids": [1], "program_id": 1},
+        headers=_auth(4, "hr"),
+    )
+    assert assignment_response.status_code in (200, 201)
+    assignment_data = assignment_response.json()
+    assert assignment_data["mentor_id"] == 3
+    assert assignment_data["intern_ids"] == [1]
+
+    mentor_response = client.get(
+        "/api/mentor/assigned-interns",
+        headers=_auth(3, "mentor"),
+    )
+    assert mentor_response.status_code == 200
+    mentor_data = mentor_response.json()
+    assert mentor_data["total"] == 1
+    assert [
+        (item["intern_id"], item["intern_code"], item["intern_name"])
+        for item in mentor_data["items"]
+    ] == [(1, "TTS0001", "Intern One")]
+
+
 def test_hr_unassign_intern(assign_client):
     client, session_factory = assign_client
 
