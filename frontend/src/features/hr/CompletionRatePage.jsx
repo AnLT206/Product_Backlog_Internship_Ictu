@@ -8,63 +8,19 @@
  * US: "Là HR, tôi muốn xem tỷ lệ hoàn thành chương trình để đánh giá
  * chất lượng thực tập."
  *
- * Dữ liệu MOCK — Task 2 sẽ gọi API thật.
- * Tên trường khớp với backend ProgramMember / InternProfile schema:
- *   total, completed, in_progress, not_completed, completion_rate
+ * Tích hợp API qua getCompletionStats() từ src/api/programs.js:
+ *   - Lấy dữ liệu thống kê kỳ hiện tại và đợt trước
+ *   - Phần trăm làm tròn bằng Math.round (dạng "78%")
+ *   - Xử lý an toàn khi chia cho 0: hiển thị "0%" hoặc "Chưa có dữ liệu", tuyệt đối không để NaN
+ *   - So sánh tỷ lệ với đợt trước: mũi tên và màu xanh khi tăng, đỏ khi giảm, xám khi bằng nhau,
+ *     hoặc "Chưa có dữ liệu so sánh" nếu thiếu dữ liệu đợt trước
+ *   - Trạng thái loading và trạng thái lỗi rõ ràng
  */
 
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { getCompletionStats } from '../../api/programs'
 import './CompletionRatePage.css'
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Mock data (Task 2 thay bằng gọi API /api/hr/programs/stats hoặc tương đương)
-   ───────────────────────────────────────────────────────────────────────── */
-const MOCK_SUMMARY = {
-  total: 124,
-  completed: 87,
-  in_progress: 29,
-  not_completed: 8,
-  completion_rate: 70, // phần trăm = completed / total * 100
-}
-
-const MOCK_PROGRAMS = [
-  {
-    id: 1,
-    name: 'Kỳ thực tập Hè 2026',
-    department: 'Công nghệ Thông tin',
-    total: 40,
-    completed: 32,
-    in_progress: 7,
-    not_completed: 1,
-  },
-  {
-    id: 2,
-    name: 'Kỳ thực tập Thu 2025',
-    department: 'Khoa học Dữ liệu',
-    total: 28,
-    completed: 25,
-    in_progress: 3,
-    not_completed: 0,
-  },
-  {
-    id: 3,
-    name: 'Kỳ thực tập Xuân 2025',
-    department: 'Kỹ thuật Phần mềm',
-    total: 35,
-    completed: 22,
-    in_progress: 10,
-    not_completed: 3,
-  },
-  {
-    id: 4,
-    name: 'Kỳ thực tập Hè 2025',
-    department: 'Trí tuệ Nhân tạo',
-    total: 21,
-    completed: 8,
-    in_progress: 9,
-    not_completed: 4,
-  },
-]
 
 /* ─────────────────────────────────────────────────────────────────────────────
    KPI Card definitions
@@ -75,30 +31,109 @@ const KPI_CARDS = [
     label: 'Tổng thực tập sinh',
     hint: 'Toàn bộ TTS trong hệ thống',
     tone: 'primary',
-    getValue: (s) => s.total,
+    getValue: (s) => s.total ?? 0,
   },
   {
     key: 'completed',
     label: 'Đã hoàn thành',
     hint: 'Kết thúc chương trình thành công',
     tone: 'success',
-    getValue: (s) => s.completed,
+    getValue: (s) => s.completed ?? 0,
   },
   {
     key: 'in_progress',
     label: 'Đang thực hiện',
     hint: 'Hiện đang trong chương trình',
     tone: 'warn',
-    getValue: (s) => s.in_progress,
+    getValue: (s) => s.in_progress ?? 0,
   },
   {
     key: 'not_completed',
     label: 'Không hoàn thành',
     hint: 'Rời chương trình hoặc thất bại',
     tone: 'danger',
-    getValue: (s) => s.not_completed,
+    getValue: (s) => s.not_completed ?? 0,
   },
 ]
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Helper tính toán & định dạng phần trăm an toàn (tránh NaN khi chia cho 0)
+   ───────────────────────────────────────────────────────────────────────── */
+function getPercentage(value, total) {
+  if (!total || total <= 0) return 0
+  return Math.round((Number(value || 0) / Number(total)) * 100)
+}
+
+function formatPercentage(value, total) {
+  if (!total || total <= 0) return '0%'
+  return `${getPercentage(value, total)}%`
+}
+
+/**
+ * Tính toán chênh lệch tỷ lệ hoàn thành so với đợt trước.
+ * Trả về { hasData, diff, arrow, tone, text, badgeText, currentRate, prevRate }
+ */
+function getComparison(currentSummary, prevPeriod) {
+  if (!prevPeriod || prevPeriod.total == null || prevPeriod.total === undefined) {
+    return {
+      hasData: false,
+      diff: 0,
+      arrow: '',
+      tone: 'muted',
+      text: 'Chưa có dữ liệu so sánh',
+      badgeText: 'Chưa có dữ liệu so sánh',
+      currentRate: 0,
+      prevRate: 0,
+    }
+  }
+
+  const currentRate = (currentSummary && currentSummary.total > 0)
+    ? Math.round((Number(currentSummary.completed || 0) / Number(currentSummary.total)) * 100)
+    : 0
+
+  const prevRate = Number(prevPeriod.total || 0) > 0
+    ? (prevPeriod.completion_rate != null
+        ? Math.round(Number(prevPeriod.completion_rate))
+        : Math.round((Number(prevPeriod.completed || 0) / Number(prevPeriod.total)) * 100))
+    : (prevPeriod.completion_rate != null ? Math.round(Number(prevPeriod.completion_rate)) : 0)
+
+  const diff = currentRate - prevRate
+
+  if (diff > 0) {
+    return {
+      hasData: true,
+      diff,
+      arrow: '↑',
+      tone: 'up', // xanh khi tăng
+      badgeText: `+${diff}%`,
+      text: `↑ +${diff}% so với đợt trước`,
+      currentRate,
+      prevRate,
+    }
+  }
+  if (diff < 0) {
+    return {
+      hasData: true,
+      diff,
+      arrow: '↓',
+      tone: 'down', // đỏ khi giảm
+      badgeText: `${diff}%`,
+      text: `↓ ${diff}% so với đợt trước`,
+      currentRate,
+      prevRate,
+    }
+  }
+  return {
+    hasData: true,
+    diff: 0,
+    arrow: '→',
+    tone: 'same', // xám khi bằng nhau
+    badgeText: '0%',
+    text: '→ 0% so với đợt trước',
+    currentRate,
+    prevRate,
+  }
+}
 
 /* ─────────────────────────────────────────────────────────────────────────────
    SVG Donut Chart — thuần SVG, không thư viện
@@ -129,17 +164,23 @@ function DonutSegment({ percentage, color, offset, strokeWidth }) {
 }
 
 function DonutChart({ summary }) {
-  const { total, completed, in_progress, not_completed } = summary
-  if (total === 0) return <div className="crp-donut-empty">Chưa có dữ liệu</div>
+  const total = Number(summary?.total || 0)
+  const completed = Number(summary?.completed || 0)
+  const in_progress = Number(summary?.in_progress || 0)
+  const not_completed = Number(summary?.not_completed || 0)
 
-  // Tính phần trăm
+  // Xử lý an toàn khi tổng bằng 0: không chia cho 0, không để NaN
+  if (total === 0) {
+    return <div className="crp-donut-empty">Chưa có dữ liệu</div>
+  }
+
+  // Tính phần trăm các nhóm
   const pCompleted = (completed / total) * 100
   const pInProgress = (in_progress / total) * 100
   const pNotCompleted = (not_completed / total) * 100
   const pOther = Math.max(0, 100 - pCompleted - pInProgress - pNotCompleted)
 
-  // Cumulative offset (theo chiều kim đồng hồ từ top, strokeDashoffset âm = xoay ngược chiều kim)
-  // SVG gốc bắt đầu từ 3h, ta offset 90 độ về 12h
+  // Cumulative offset từ vị trí 12h
   const quarterCirc = CIRCUMFERENCE * 0.25
   const offsetCompleted = quarterCirc
   const offsetInProgress = offsetCompleted + (pCompleted / 100) * CIRCUMFERENCE
@@ -255,7 +296,7 @@ function DonutChart({ summary }) {
    Mini progress bar (dùng trong bảng theo chương trình)
    ───────────────────────────────────────────────────────────────────────── */
 function MiniBar({ value, total, color }) {
-  const pct = total === 0 ? 0 : Math.round((value / total) * 100)
+  const pct = !total || total <= 0 ? 0 : Math.round((Number(value || 0) / Number(total)) * 100)
   return (
     <div className="crp-mini-bar" title={`${pct}%`}>
       <div
@@ -270,8 +311,46 @@ function MiniBar({ value, total, color }) {
    Main Page Component
    ───────────────────────────────────────────────────────────────────────── */
 export default function CompletionRatePage() {
-  const summary = MOCK_SUMMARY
-  const programs = MOCK_PROGRAMS
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [stats, setStats] = useState(null)
+
+  /* ── Gọi API lấy dữ liệu thống kê ──
+     Quy tắc ESLint (set-state-in-effect):
+     Mọi setState trong hàm phải nằm sau dòng await */
+  async function loadStats() {
+    const res = await getCompletionStats()
+    if (res.ok && res.data) {
+      setStats(res.data)
+      setError(null)
+    } else {
+      setError(res.data?.message || 'Không thể tải dữ liệu thống kê. Vui lòng thử lại.')
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadStats()
+  }, [])
+
+  const summary = stats?.summary ?? {
+    total: 0,
+    completed: 0,
+    in_progress: 0,
+    not_completed: 0,
+    completion_rate: 0,
+  }
+  const previousPeriod = stats?.previous_period ?? null
+  const programs = stats?.programs ?? []
+
+  const comparison = getComparison(summary, previousPeriod)
+
+  function handleRetry() {
+    setLoading(true)
+    setError(null)
+    void loadStats()
+  }
 
   return (
     <div className="crp-page">
@@ -291,124 +370,239 @@ export default function CompletionRatePage() {
         </div>
       </div>
 
-      {/* ── KPI Cards Row ── */}
-      <section className="crp-kpi-grid" aria-label="Thẻ chỉ số KPI">
-        {KPI_CARDS.map((card) => (
-          <article key={card.key} className={`crp-kpi crp-kpi--${card.tone}`}>
-            <p className="crp-kpi__label">{card.label}</p>
-            <p className="crp-kpi__value">{card.getValue(summary)}</p>
-            <p className="crp-kpi__hint">{card.hint}</p>
-          </article>
-        ))}
-      </section>
-
-      {/* ── Chart + Legend row ── */}
-      <section className="crp-chart-section" aria-label="Biểu đồ tỷ lệ hoàn thành">
-        <div className="crp-chart-card">
-          <h2 className="crp-section-title">Biểu đồ vòng tỷ lệ hoàn thành</h2>
-          <p className="crp-section-desc">
-            Tổng hợp tất cả chương trình thực tập hiện có trong hệ thống.
-          </p>
-          <DonutChart summary={summary} />
+      {/* ── Trạng thái Loading ── */}
+      {loading && (
+        <div className="crp-state crp-state--loading" role="status" aria-live="polite">
+          <span className="crp-spinner" aria-hidden="true" />
+          <span>Đang tải dữ liệu thống kê…</span>
         </div>
+      )}
 
-        {/* ── Quick insights ── */}
-        <div className="crp-insights-card">
-          <h2 className="crp-section-title">Chỉ số nổi bật</h2>
-          <p className="crp-section-desc">So sánh và phân tích nhanh.</p>
-
-          <div className="crp-insight-list">
-            <div className="crp-insight-item">
-              <div className="crp-insight-item__icon crp-insight-item__icon--green">✓</div>
-              <div>
-                <p className="crp-insight-item__label">Tỷ lệ thành công</p>
-                <p className="crp-insight-item__val crp-insight-item__val--green">
-                  {Math.round((summary.completed / summary.total) * 100)}%
-                </p>
-              </div>
-            </div>
-            <div className="crp-insight-item">
-              <div className="crp-insight-item__icon crp-insight-item__icon--amber">⏳</div>
-              <div>
-                <p className="crp-insight-item__label">Đang thực hiện</p>
-                <p className="crp-insight-item__val crp-insight-item__val--amber">
-                  {Math.round((summary.in_progress / summary.total) * 100)}%
-                </p>
-              </div>
-            </div>
-            <div className="crp-insight-item">
-              <div className="crp-insight-item__icon crp-insight-item__icon--red">✗</div>
-              <div>
-                <p className="crp-insight-item__label">Không hoàn thành</p>
-                <p className="crp-insight-item__val crp-insight-item__val--red">
-                  {Math.round((summary.not_completed / summary.total) * 100)}%
-                </p>
-              </div>
-            </div>
-            <div className="crp-insight-item">
-              <div className="crp-insight-item__icon crp-insight-item__icon--blue">📋</div>
-              <div>
-                <p className="crp-insight-item__label">Số chương trình</p>
-                <p className="crp-insight-item__val crp-insight-item__val--blue">
-                  {programs.length}
-                </p>
-              </div>
-            </div>
+      {/* ── Trạng thái Lỗi ── */}
+      {!loading && error && (
+        <div className="crp-state crp-state--error" role="alert">
+          <span className="crp-state__icon" aria-hidden="true">⚠️</span>
+          <div className="crp-state__content">
+            <p className="crp-state__msg">{error}</p>
+            <button
+              type="button"
+              className="crp-btn-retry"
+              onClick={handleRetry}
+            >
+              Thử lại
+            </button>
           </div>
         </div>
-      </section>
+      )}
 
-      {/* ── Per-program breakdown table ── */}
-      <section className="crp-table-section" aria-label="Chi tiết theo chương trình">
-        <div className="crp-table-card">
-          <div className="crp-table-head">
-            <h2 className="crp-section-title">Chi tiết theo chương trình</h2>
-            <p className="crp-section-desc">Tỷ lệ hoàn thành của từng kỳ thực tập.</p>
-          </div>
-          <div className="crp-table-wrap">
-            <table className="crp-table">
-              <thead>
-                <tr>
-                  <th scope="col">Chương trình</th>
-                  <th scope="col">Bộ phận</th>
-                  <th scope="col">Tổng TTS</th>
-                  <th scope="col">Hoàn thành</th>
-                  <th scope="col">Đang TH</th>
-                  <th scope="col">Không HT</th>
-                  <th scope="col" style={{ width: '18%' }}>Tỷ lệ HT</th>
-                </tr>
-              </thead>
-              <tbody>
-                {programs.map((prog) => {
-                  const rate = prog.total === 0
-                    ? 0
-                    : Math.round((prog.completed / prog.total) * 100)
-                  return (
-                    <tr key={prog.id} className="crp-tr">
-                      <td>
-                        <span className="crp-prog-name">{prog.name}</span>
-                      </td>
-                      <td>
-                        <span className="crp-dept-badge">{prog.department}</span>
-                      </td>
-                      <td className="crp-num">{prog.total}</td>
-                      <td className="crp-num crp-num--green">{prog.completed}</td>
-                      <td className="crp-num crp-num--amber">{prog.in_progress}</td>
-                      <td className="crp-num crp-num--red">{prog.not_completed}</td>
-                      <td>
-                        <div className="crp-rate-cell">
-                          <MiniBar value={prog.completed} total={prog.total} color="#16a34a" />
-                          <span className="crp-rate-pct">{rate}%</span>
-                        </div>
-                      </td>
+      {/* ── Nội dung chính khi đã tải xong và không có lỗi ── */}
+      {!loading && !error && (
+        <>
+          {/* ── KPI Cards Row ── */}
+          <section className="crp-kpi-grid" aria-label="Thẻ chỉ số KPI">
+            {KPI_CARDS.map((card) => (
+              <article key={card.key} className={`crp-kpi crp-kpi--${card.tone}`}>
+                <div className="crp-kpi__header">
+                  <p className="crp-kpi__label">{card.label}</p>
+                  {card.key === 'completed' && (
+                    <span
+                      className={`crp-comp-tag crp-comp-tag--${comparison.tone}`}
+                      title={comparison.hasData ? comparison.text : 'Chưa có dữ liệu so sánh'}
+                    >
+                      {comparison.hasData ? (
+                        <>
+                          <span className="crp-comp-tag__arrow">{comparison.arrow}</span>
+                          <span>{comparison.badgeText}</span>
+                        </>
+                      ) : (
+                        <span>Chưa có so sánh</span>
+                      )}
+                    </span>
+                  )}
+                </div>
+                <p className="crp-kpi__value">{card.getValue(summary)}</p>
+                <p className="crp-kpi__hint">{card.hint}</p>
+              </article>
+            ))}
+          </section>
+
+          {/* ── Chart + Legend row ── */}
+          <section className="crp-chart-section" aria-label="Biểu đồ tỷ lệ hoàn thành">
+            <div className="crp-chart-card">
+              <h2 className="crp-section-title">Biểu đồ vòng tỷ lệ hoàn thành</h2>
+              <p className="crp-section-desc">
+                Tổng hợp tất cả chương trình thực tập hiện có trong hệ thống.
+              </p>
+              <DonutChart summary={summary} />
+            </div>
+
+            {/* ── Quick insights ── */}
+            <div className="crp-insights-card">
+              <h2 className="crp-section-title">Chỉ số nổi bật & So sánh</h2>
+              <p className="crp-section-desc">So sánh tỷ lệ và phân tích nhanh với đợt trước.</p>
+
+              <div className="crp-insight-list">
+                {/* Tỷ lệ thành công */}
+                <div className="crp-insight-item">
+                  <div className="crp-insight-item__icon crp-insight-item__icon--green">✓</div>
+                  <div className="crp-insight-item__body">
+                    <p className="crp-insight-item__label">Tỷ lệ thành công</p>
+                    <div className="crp-insight-rate-row">
+                      <p className="crp-insight-item__val crp-insight-item__val--green">
+                        {formatPercentage(summary.completed, summary.total)}
+                      </p>
+                      {comparison.hasData ? (
+                        <span
+                          className={`crp-diff-badge crp-diff-badge--${comparison.tone}`}
+                          title={`Kỳ trước: ${comparison.prevRate}%`}
+                        >
+                          {comparison.arrow} {comparison.badgeText}
+                        </span>
+                      ) : (
+                        <span className="crp-diff-badge crp-diff-badge--muted">
+                          Chưa có dữ liệu so sánh
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* So sánh với đợt trước */}
+                <div className="crp-insight-item">
+                  <div
+                    className={`crp-insight-item__icon crp-insight-item__icon--${
+                      comparison.tone === 'up'
+                        ? 'green'
+                        : comparison.tone === 'down'
+                        ? 'red'
+                        : 'gray'
+                    }`}
+                  >
+                    {comparison.tone === 'up' ? '📈' : comparison.tone === 'down' ? '📉' : '📊'}
+                  </div>
+                  <div className="crp-insight-item__body">
+                    <p className="crp-insight-item__label">
+                      So với đợt trước {previousPeriod?.name ? `(${previousPeriod.name})` : ''}
+                    </p>
+                    {comparison.hasData ? (
+                      <p
+                        className={`crp-insight-item__val crp-insight-item__val--${
+                          comparison.tone === 'up'
+                            ? 'green'
+                            : comparison.tone === 'down'
+                            ? 'red'
+                            : 'gray'
+                        }`}
+                      >
+                        <span className="crp-diff-arrow">{comparison.arrow}</span>{' '}
+                        <span>{comparison.badgeText}</span>
+                        <span className="crp-insight-item__sub">
+                          {' '}(kỳ trước: {formatPercentage(previousPeriod.completed, previousPeriod.total)})
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="crp-insight-item__val crp-insight-item__val--muted crp-insight-item__val--text">
+                        Chưa có dữ liệu so sánh
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Đang thực hiện */}
+                <div className="crp-insight-item">
+                  <div className="crp-insight-item__icon crp-insight-item__icon--amber">⏳</div>
+                  <div className="crp-insight-item__body">
+                    <p className="crp-insight-item__label">Đang thực hiện</p>
+                    <p className="crp-insight-item__val crp-insight-item__val--amber">
+                      {formatPercentage(summary.in_progress, summary.total)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Không hoàn thành */}
+                <div className="crp-insight-item">
+                  <div className="crp-insight-item__icon crp-insight-item__icon--red">✗</div>
+                  <div className="crp-insight-item__body">
+                    <p className="crp-insight-item__label">Không hoàn thành</p>
+                    <p className="crp-insight-item__val crp-insight-item__val--red">
+                      {formatPercentage(summary.not_completed, summary.total)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Số chương trình */}
+                <div className="crp-insight-item">
+                  <div className="crp-insight-item__icon crp-insight-item__icon--blue">📋</div>
+                  <div className="crp-insight-item__body">
+                    <p className="crp-insight-item__label">Số chương trình</p>
+                    <p className="crp-insight-item__val crp-insight-item__val--blue">
+                      {programs.length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ── Per-program breakdown table ── */}
+          <section className="crp-table-section" aria-label="Chi tiết theo chương trình">
+            <div className="crp-table-card">
+              <div className="crp-table-head">
+                <h2 className="crp-section-title">Chi tiết theo chương trình</h2>
+                <p className="crp-section-desc">Tỷ lệ hoàn thành của từng kỳ thực tập.</p>
+              </div>
+              <div className="crp-table-wrap">
+                <table className="crp-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Chương trình</th>
+                      <th scope="col">Bộ phận</th>
+                      <th scope="col">Tổng TTS</th>
+                      <th scope="col">Hoàn thành</th>
+                      <th scope="col">Đang TH</th>
+                      <th scope="col">Không HT</th>
+                      <th scope="col" style={{ width: '18%' }}>Tỷ lệ HT</th>
                     </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+                  </thead>
+                  <tbody>
+                    {programs.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                          Chưa có dữ liệu chương trình
+                        </td>
+                      </tr>
+                    ) : (
+                      programs.map((prog) => {
+                        const rate = formatPercentage(prog.completed, prog.total)
+                        return (
+                          <tr key={prog.id} className="crp-tr">
+                            <td>
+                              <span className="crp-prog-name">{prog.name}</span>
+                            </td>
+                            <td>
+                              <span className="crp-dept-badge">{prog.department}</span>
+                            </td>
+                            <td className="crp-num">{prog.total ?? 0}</td>
+                            <td className="crp-num crp-num--green">{prog.completed ?? 0}</td>
+                            <td className="crp-num crp-num--amber">{prog.in_progress ?? 0}</td>
+                            <td className="crp-num crp-num--red">{prog.not_completed ?? 0}</td>
+                            <td>
+                              <div className="crp-rate-cell">
+                                <MiniBar value={prog.completed} total={prog.total} color="#16a34a" />
+                                <span className="crp-rate-pct">{rate}</span>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
     </div>
   )
 }
