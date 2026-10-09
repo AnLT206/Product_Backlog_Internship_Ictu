@@ -72,6 +72,82 @@
   line-height: 1.55;
 }
 
+/* ── Trạng thái Loading & Lỗi ── */
+.crp-state {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.crp-state--loading {
+  background: #fff;
+  border: 1px solid var(--crp-line);
+  color: var(--crp-muted);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.crp-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid #cbd5e1;
+  border-top-color: var(--crp-blue);
+  border-radius: 50%;
+  animation: crp-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes crp-spin {
+  to { transform: rotate(360deg); }
+}
+
+.crp-state--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  box-shadow: 0 1px 4px rgba(220, 38, 38, 0.06);
+}
+
+.crp-state__icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.crp-state__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.crp-state__msg {
+  margin: 0;
+  font-weight: 600;
+  color: #991b1b;
+}
+
+.crp-btn-retry {
+  padding: 6px 14px;
+  background: #fff;
+  border: 1px solid #f87171;
+  border-radius: 6px;
+  color: #dc2626;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.crp-btn-retry:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
 /* ── KPI Cards ── */
 .crp-kpi-grid {
   display: grid;
@@ -105,6 +181,13 @@
 .crp-kpi--warn::before    { background: #f59e0b; }
 .crp-kpi--danger::before  { background: #ef4444; }
 
+.crp-kpi__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .crp-kpi__label {
   margin: 0;
   font-size: 0.78rem;
@@ -112,6 +195,41 @@
   color: var(--crp-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.crp-comp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 12px;
+  line-height: 1.3;
+}
+
+.crp-comp-tag--up {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.crp-comp-tag--down {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.crp-comp-tag--same,
+.crp-comp-tag--muted {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.crp-comp-tag__arrow {
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
 .crp-kpi__value {
@@ -267,12 +385,59 @@
 .crp-insight-item__icon--amber { background: #fffbeb; }
 .crp-insight-item__icon--red   { background: #fef2f2; }
 .crp-insight-item__icon--blue  { background: var(--crp-blue-soft); }
+.crp-insight-item__icon--gray  { background: #f1f5f9; }
+
+.crp-insight-item__body {
+  flex: 1;
+  min-width: 0;
+}
 
 .crp-insight-item__label {
   margin: 0 0 3px;
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--crp-muted);
+}
+
+.crp-insight-rate-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.crp-diff-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.crp-diff-badge--up {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.crp-diff-badge--down {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.crp-diff-badge--same,
+.crp-diff-badge--muted {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.crp-diff-arrow {
+  font-weight: 800;
 }
 
 .crp-insight-item__val {
@@ -286,6 +451,20 @@
 .crp-insight-item__val--amber { color: #b45309; }
 .crp-insight-item__val--red   { color: #dc2626; }
 .crp-insight-item__val--blue  { color: #1877f2; }
+.crp-insight-item__val--gray,
+.crp-insight-item__val--muted { color: #64748b; }
+
+.crp-insight-item__val--text {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.crp-insight-item__sub {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #64748b;
+  letter-spacing: 0;
+}
 
 /* ── Table Section ── */
 .crp-table-section { display: flex; flex-direction: column; }
