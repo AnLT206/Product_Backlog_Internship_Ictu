@@ -443,6 +443,108 @@ def test_hr_update_support_request_resolved(support_client):
     assert data["response_note"] == "Đã duyệt đơn nghỉ phép của em."
 
 
+@pytest.mark.parametrize(
+    ("decision_status", "response_note"),
+    [
+        ("resolved", "Đã duyệt yêu cầu hỗ trợ."),
+        ("rejected", "Yêu cầu chưa đủ điều kiện xử lý."),
+    ],
+)
+def test_hr_respond_to_support_request_persists_final_decision(
+    support_client, decision_status, response_note
+):
+    client, session_factory = support_client
+    create_response = client.post(
+        "/api/support-requests",
+        json={
+            "title": "Yêu cầu cần HR phản hồi",
+            "content": "Em cần HR xem xét và phản hồi yêu cầu này.",
+            "category": "procedure",
+        },
+        headers=_auth(1, "intern"),
+    )
+    request_id = create_response.json()["id"]
+
+    response = client.put(
+        f"/api/hr/support-requests/{request_id}/respond",
+        json={"status": decision_status, "response_note": response_note},
+        headers=_auth(3, "hr"),
+    )
+
+    assert response.status_code == 200
+    response_data = response.json()
+    assert response_data["status"] == decision_status
+    assert response_data["response_note"] == response_note
+    assert response_data["responder_id"] == 3
+    assert response_data["responder_name"] == "HR Manager"
+    assert response_data["resolved_at"] is not None
+
+    with session_factory() as db:
+        persisted_request = db.get(SupportRequest, request_id)
+        assert persisted_request is not None
+        assert persisted_request.status == decision_status
+        assert persisted_request.response_note == response_note
+        assert persisted_request.responder_id == 3
+        assert persisted_request.resolved_at is not None
+
+
+def test_respond_to_missing_support_request_returns_404(support_client):
+    client, _ = support_client
+    response = client.put(
+        "/api/hr/support-requests/99999/respond",
+        json={"status": "resolved", "response_note": "Đã xử lý."},
+        headers=_auth(3, "hr"),
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("user_id", "role"),
+    [(1, "intern"), (4, "mentor")],
+)
+def test_non_hr_users_cannot_respond_to_support_request(
+    support_client, user_id, role
+):
+    client, _ = support_client
+    response = client.put(
+        "/api/hr/support-requests/1/respond",
+        json={"status": "resolved", "response_note": "Đã xử lý."},
+        headers=_auth(user_id, role),
+    )
+    assert response.status_code == 403
+
+
+def test_respond_to_support_request_requires_authentication(support_client):
+    client, _ = support_client
+    response = client.put(
+        "/api/hr/support-requests/1/respond",
+        json={"status": "resolved", "response_note": "Đã xử lý."},
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"status": "resolved"},
+        {"status": "resolved", "response_note": "   "},
+        {"status": "resolved", "response_note": "x" * 1001},
+        {"status": "in_progress", "response_note": "Đang xử lý."},
+        {"status": "approved", "response_note": "Đã duyệt."},
+    ],
+)
+def test_respond_to_support_request_validates_final_status_and_note(
+    support_client, payload
+):
+    client, _ = support_client
+    response = client.put(
+        "/api/hr/support-requests/1/respond",
+        json=payload,
+        headers=_auth(3, "hr"),
+    )
+    assert response.status_code == 422
+
+
 def test_support_request_end_to_end_hr_resolution_visible_to_intern(support_client):
     client, _ = support_client
     intern_headers = _auth(1, "intern")

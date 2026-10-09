@@ -48,6 +48,25 @@ class SupportRequestUpdateStatus(BaseModel):
     )
 
 
+class SupportRequestRespond(SupportRequestUpdateStatus):
+    """HR/Admin chốt yêu cầu hỗ trợ bằng quyết định và nội dung phản hồi."""
+
+    status: Literal["resolved", "rejected"] = Field(
+        ..., description="Trạng thái kết thúc: resolved hoặc rejected"
+    )
+    response_note: str = Field(
+        ..., min_length=1, max_length=1000, description="Nội dung phản hồi bắt buộc"
+    )
+
+    @field_validator("response_note")
+    @classmethod
+    def strip_response_note(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Nội dung phản hồi không được để trống.")
+        return cleaned
+
+
 class SupportRequestResponse(BaseModel):
     """Thông tin yêu cầu hỗ trợ trả về cho client."""
 
