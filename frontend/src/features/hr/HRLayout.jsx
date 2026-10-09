@@ -11,6 +11,7 @@ const NAV = [
   { to: '/hr/programs', label: 'Chương trình' },
   { to: '/hr/mentors', label: 'Mentor', end: true },
   { to: '/hr/mentors/assign', label: 'Phân công mentor' },
+  { to: '/hr/completion-rate', label: 'Tỷ lệ hoàn thành', end: true },
 ]
 
 export default function HRLayout() {

@@ -1,0 +1,414 @@
+/* ============================================================
+   CompletionRatePage.css
+   Route: /hr/completion-rate
+   Prefix "crp-" để tránh xung đột với các trang khác.
+   Design tokens kế thừa từ HRDashboardPage.css:
+     --fb-blue / --fb-blue-soft / --fb-ink / --fb-muted / --fb-line
+   ============================================================ */
+
+.crp-page {
+  --crp-blue:      #1877f2;
+  --crp-blue-soft: #e7f3ff;
+  --crp-ink:       #0f172a;
+  --crp-muted:     #64748b;
+  --crp-line:      #e2e8f0;
+  --crp-bg:        #f8fafc;
+  --crp-font:      'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-family: var(--crp-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+.crp-page *,
+.crp-page *::before,
+.crp-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── Header ── */
+.crp-header {
+  padding: 22px 26px;
+  background: #fff;
+  border: 1px solid var(--crp-line);
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.crp-crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--crp-muted);
+}
+
+.crp-crumb__link {
+  color: var(--crp-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.crp-crumb__link:hover { color: var(--crp-blue); }
+
+.crp-crumb__sep { color: #cbd5e1; }
+
+.crp-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  color: var(--crp-ink);
+}
+
+.crp-lead {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: var(--crp-muted);
+  line-height: 1.55;
+}
+
+/* ── KPI Cards ── */
+.crp-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.crp-kpi {
+  position: relative;
+  padding: 22px 24px;
+  background: #fff;
+  border: 1px solid var(--crp-line);
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+/* Left accent bar — bám design hr-stat::before */
+.crp-kpi::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #cbd5e1;
+}
+
+.crp-kpi--primary::before { background: #1877f2; }
+.crp-kpi--success::before { background: #16a34a; }
+.crp-kpi--warn::before    { background: #f59e0b; }
+.crp-kpi--danger::before  { background: #ef4444; }
+
+.crp-kpi__label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--crp-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.crp-kpi__value {
+  margin: 12px 0 6px;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--crp-ink);
+  line-height: 1;
+}
+
+.crp-kpi--success .crp-kpi__value { color: #16a34a; }
+.crp-kpi--warn .crp-kpi__value    { color: #b45309; }
+.crp-kpi--danger .crp-kpi__value  { color: #dc2626; }
+
+.crp-kpi__hint {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+/* ── Chart + Insights ── */
+.crp-chart-section {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.crp-chart-card,
+.crp-insights-card {
+  background: #fff;
+  border: 1px solid var(--crp-line);
+  border-radius: 10px;
+  padding: 24px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.crp-section-title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--crp-ink);
+  letter-spacing: -0.01em;
+}
+
+.crp-section-desc {
+  margin: 0 0 20px;
+  font-size: 0.83rem;
+  color: var(--crp-muted);
+}
+
+/* ── Donut SVG ── */
+.crp-donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.crp-donut-empty {
+  font-size: 0.9rem;
+  color: var(--crp-muted);
+  padding: 24px;
+  text-align: center;
+}
+
+/* Text inside SVG */
+.crp-donut-pct {
+  font-family: var(--crp-font);
+  font-size: 28px;
+  font-weight: 800;
+  fill: #0f172a;
+  letter-spacing: -0.03em;
+}
+
+.crp-donut-sub {
+  font-family: var(--crp-font);
+  font-size: 11px;
+  font-weight: 600;
+  fill: #64748b;
+  letter-spacing: 0.02em;
+}
+
+/* ── Legend ── */
+.crp-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 160px;
+}
+
+.crp-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.crp-legend__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.crp-legend__text {
+  flex: 1;
+  font-size: 0.84rem;
+  color: #334155;
+}
+
+.crp-legend__val {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--crp-ink);
+  min-width: 24px;
+  text-align: right;
+}
+
+/* ── Insights Card ── */
+.crp-insight-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.crp-insight-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--crp-bg);
+  border: 1px solid var(--crp-line);
+  border-radius: 8px;
+}
+
+.crp-insight-item__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.crp-insight-item__icon--green { background: #f0fdf4; }
+.crp-insight-item__icon--amber { background: #fffbeb; }
+.crp-insight-item__icon--red   { background: #fef2f2; }
+.crp-insight-item__icon--blue  { background: var(--crp-blue-soft); }
+
+.crp-insight-item__label {
+  margin: 0 0 3px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--crp-muted);
+}
+
+.crp-insight-item__val {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.crp-insight-item__val--green { color: #16a34a; }
+.crp-insight-item__val--amber { color: #b45309; }
+.crp-insight-item__val--red   { color: #dc2626; }
+.crp-insight-item__val--blue  { color: #1877f2; }
+
+/* ── Table Section ── */
+.crp-table-section { display: flex; flex-direction: column; }
+
+.crp-table-card {
+  background: #fff;
+  border: 1px solid var(--crp-line);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.crp-table-head {
+  padding: 20px 24px 0;
+}
+
+.crp-table-wrap {
+  overflow-x: auto;
+}
+
+.crp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.crp-table th {
+  background: #f8fafc;
+  padding: 11px 18px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--crp-muted);
+  border-top: 1px solid var(--crp-line);
+  border-bottom: 1px solid var(--crp-line);
+  white-space: nowrap;
+}
+
+.crp-table td {
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--crp-line);
+  vertical-align: middle;
+  color: var(--crp-ink);
+}
+
+.crp-tr:last-child td { border-bottom: none; }
+
+.crp-tr:hover { background: #f8fafc; }
+
+.crp-prog-name {
+  font-weight: 600;
+  color: var(--crp-ink);
+}
+
+.crp-dept-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--crp-blue-soft);
+  color: var(--crp-blue);
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.crp-num {
+  font-weight: 600;
+  text-align: center;
+}
+
+.crp-num--green { color: #16a34a; }
+.crp-num--amber { color: #b45309; }
+.crp-num--red   { color: #dc2626; }
+
+/* ── Rate cell ── */
+.crp-rate-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.crp-mini-bar {
+  flex: 1;
+  height: 7px;
+  background: #f1f5f9;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.crp-mini-bar__fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.crp-rate-pct {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--crp-ink);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .crp-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .crp-chart-section {
+    grid-template-columns: 1fr;
+  }
+
+  .crp-donut-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .crp-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
