@@ -23,6 +23,7 @@ import { useAuth } from '../../context/AuthContext'
 import { getAssignedInterns } from '../../api/mentors'
 import { getMentorTasks } from '../../api/tasks'
 import TaskCreateModal from './TaskCreateModal'
+import MeetingCreateModal from '../../components/common/MeetingCreateModal'
 import './MentorDashboardPage.css'
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -73,8 +74,9 @@ export default function MentorDashboardPage() {
   const [tasksError,   setTasksError]   = useState(null)
 
   /* ── Modal & Toast ── */
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [toast,           setToast]           = useState(null)
+  const [showCreateModal,  setShowCreateModal]  = useState(false)
+  const [showMeetingModal, setShowMeetingModal] = useState(false)
+  const [toast,            setToast]            = useState(null)
 
   /* ── Tự ẩn toast sau 4 giây ── */
   useEffect(() => {
@@ -165,6 +167,14 @@ export default function MentorDashboardPage() {
           <Link className="mentor-dash__btn mentor-dash__btn--ghost" to="/mentor/tasks">
             Nhiệm vụ
           </Link>
+          <button
+            id="mentor-dash-create-meeting-btn"
+            type="button"
+            className="mentor-dash__btn mentor-dash__btn--ghost"
+            onClick={() => setShowMeetingModal(true)}
+          >
+            📅 Đặt lịch họp
+          </button>
           <button
             id="mentor-dash-create-task-btn"
             type="button"
@@ -400,6 +410,18 @@ export default function MentorDashboardPage() {
           onClose={() => setShowCreateModal(false)}
           onSuccess={handleTaskCreated}
           onToast={setToast}
+        />
+      )}
+
+      {/* ── MODAL ĐẶT LỊCH HỌP ── */}
+      {showMeetingModal && (
+        <MeetingCreateModal
+          isOpen={showMeetingModal}
+          onClose={() => setShowMeetingModal(false)}
+          role="mentor"
+          onSuccess={() => {
+            setToast({ type: 'success', message: 'Đã lưu lịch họp thành công!' })
+          }}
         />
       )}
     </div>
