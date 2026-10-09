@@ -20,6 +20,7 @@ import TaskListPage from '../features/interns/TaskListPage.jsx'
 import TaskDetailPage from '../features/interns/TaskDetailPage.jsx'
 import HRDashboardPage from '../features/hr/HRDashboardPage.jsx'
 import HRLayout from '../features/hr/HRLayout.jsx'
+import CompletionRatePage from '../features/hr/CompletionRatePage.jsx'
 import ProgramListPage from '../features/programs/ProgramListPage.jsx'
 import ProgramFormPage from '../features/programs/ProgramFormPage.jsx'
 import MentorListPage from '../features/mentors/MentorListPage.jsx'
@@ -71,6 +72,7 @@ export default function AppRoutes() {
           <Route path="programs/new" element={<ProgramFormPage />} />
           <Route path="mentors" element={<MentorListPage />} />
           <Route path="mentors/assign" element={<MentorAssignPage />} />
+          <Route path="completion-rate" element={<CompletionRatePage />} />
         </Route>
 
         <Route
