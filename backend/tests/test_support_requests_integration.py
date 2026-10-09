@@ -238,17 +238,142 @@ def test_hr_list_all_support_requests_with_filters(support_client):
     )
 
     # HR xem tất cả
-    res = client.get("/api/support-requests", headers=_auth(3, "hr"))
+    res = client.get("/api/hr/support-requests", headers=_auth(3, "hr"))
     assert res.status_code == 200
     all_items = res.json()
     assert len(all_items) >= 2
 
     # Lọc theo category
-    res_tech = client.get("/api/support-requests?category=technical", headers=_auth(3, "hr"))
+    res_tech = client.get(
+        "/api/hr/support-requests?category=technical",
+        headers=_auth(3, "hr"),
+    )
     assert res_tech.status_code == 200
     tech_items = res_tech.json()
     assert len(tech_items) == 1
     assert tech_items[0]["category"] == "technical"
+
+
+def test_hr_and_admin_list_support_requests_by_status(support_client):
+    client, session_factory = support_client
+    with session_factory() as db:
+        db.add(
+            User(
+                id=5,
+                code="AD0001",
+                email="admin@example.com",
+                password_hash="hash",
+                full_name="Admin User",
+                role_id=4,
+                status="active",
+            )
+        )
+        db.add_all(
+            [
+                SupportRequest(
+                    user_id=1,
+                    title=f"Request {request_status}",
+                    content="Support request details.",
+                    category="technical",
+                    status=request_status,
+                )
+                for request_status in (
+                    "pending",
+                    "in_progress",
+                    "resolved",
+                    "rejected",
+                )
+            ]
+        )
+        db.commit()
+
+    hr_response = client.get(
+        "/api/hr/support-requests?status=in_progress",
+        headers=_auth(3, "hr"),
+    )
+    assert hr_response.status_code == 200
+    assert len(hr_response.json()) == 1
+    assert hr_response.json()[0]["status"] == "in_progress"
+
+    admin_response = client.get(
+        "/api/hr/support-requests?status=rejected",
+        headers=_auth(5, "admin"),
+    )
+    assert admin_response.status_code == 200
+    assert len(admin_response.json()) == 1
+    assert admin_response.json()[0]["status"] == "rejected"
+
+    all_response = client.get(
+        "/api/hr/support-requests",
+        headers=_auth(3, "hr"),
+    )
+    assert all_response.status_code == 200
+    assert {item["status"] for item in all_response.json()} == {
+        "pending",
+        "in_progress",
+        "resolved",
+        "rejected",
+    }
+
+
+@pytest.mark.parametrize(
+    ("user_id", "role"),
+    [(1, "intern"), (4, "mentor")],
+)
+def test_non_hr_users_cannot_list_all_support_requests(
+    support_client, user_id, role
+):
+    client, _ = support_client
+    response = client.get(
+        "/api/hr/support-requests",
+        headers=_auth(user_id, role),
+    )
+    assert response.status_code == 403
+
+
+def test_hr_support_request_list_requires_authentication(support_client):
+    client, _ = support_client
+    response = client.get("/api/hr/support-requests")
+    assert response.status_code == 401
+
+
+def test_hr_support_request_pagination_and_category_filters(support_client):
+    client, session_factory = support_client
+    with session_factory() as db:
+        db.add_all(
+            [
+                SupportRequest(
+                    user_id=1,
+                    title="Technical request one",
+                    content="Details for technical request one.",
+                    category="technical",
+                    status="pending",
+                ),
+                SupportRequest(
+                    user_id=2,
+                    title="Technical request two",
+                    content="Details for technical request two.",
+                    category="technical",
+                    status="resolved",
+                ),
+                SupportRequest(
+                    user_id=1,
+                    title="Procedure request",
+                    content="Details for procedure request.",
+                    category="procedure",
+                    status="pending",
+                ),
+            ]
+        )
+        db.commit()
+
+    response = client.get(
+        "/api/hr/support-requests?category=technical&limit=1&offset=1",
+        headers=_auth(3, "hr"),
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    assert response.json()[0]["category"] == "technical"
 
 
 def test_hr_view_all_support_requests_success(support_client):
