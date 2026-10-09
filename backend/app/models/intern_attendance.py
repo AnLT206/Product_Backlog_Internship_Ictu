@@ -24,7 +24,15 @@ class InternAttendance(Base):
     actual_days: Mapped[int] = mapped_column(Integer, default=22)
     late_days: Mapped[int] = mapped_column(Integer, default=0)
     leave_days: Mapped[int] = mapped_column(Integer, default=0)
-    allowance: Mapped[int] = mapped_column(Integer, default=2500000)
+    allowance: Mapped[int] = mapped_column(Integer, default=3660000)
+    base_allowance: Mapped[int] = mapped_column(Integer, default=2500000)
+    lunch_allowance: Mapped[int] = mapped_column(Integer, default=660000)
+    bonus_amount: Mapped[int] = mapped_column(Integer, default=500000)
+    bonus_reason: Mapped[str | None] = mapped_column(
+        String(255), default="Thưởng hoàn thành xuất sắc nhiệm vụ Sprint & chuyên cần 100%"
+    )
+    deduction_amount: Mapped[int] = mapped_column(Integer, default=0)
+    deduction_reason: Mapped[str | None] = mapped_column(String(255), default="")
     status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, approved, rejected
     status_label: Mapped[str | None] = mapped_column(String(50), default="Chờ duyệt phụ cấp")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

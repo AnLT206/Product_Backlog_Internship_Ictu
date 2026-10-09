@@ -1,0 +1,62 @@
+/* frontend/src/components/common/MainLayout.css */
+.ui-main-wrapper {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--fb-font);
+  position: relative;
+  width: 100%;
+}
+
+.ui-main-content-layout {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100vh;
+  transition: margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ui-page-container {
+  flex: 1;
+  padding: 1.75rem 2rem 2.5rem;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* Mobile Backdrop */
+.ui-layout-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 45;
+  animation: uiBackdropFade 0.2s ease-out;
+}
+
+@keyframes uiBackdropFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Responsive Adaptations */
+@media (max-width: 1024px) {
+  .ui-main-content-layout {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .ui-page-container {
+    padding: 1.25rem 1rem 2rem;
+  }
+}
+

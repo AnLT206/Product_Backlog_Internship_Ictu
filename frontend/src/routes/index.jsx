@@ -17,12 +17,14 @@ import InternCreatePage from '../features/intern/InternCreatePage.jsx'
 import InternEditPage from '../features/intern/InternEditPage.jsx'
 import ProgramListPage from '../features/programs/ProgramListPage.jsx'
 import ProgramFormPage from '../features/programs/ProgramFormPage.jsx'
-import MentorListPage from '../features/mentor/MentorListPage.jsx'
+import MentorAssignmentPage from '../features/hr/MentorAssignmentPage.jsx'
 import HrLayout from '../features/hr/HrLayout.jsx'
 import HrDashboardPage from '../features/hr/HrDashboardPage.jsx'
 import HrAttendancePage from '../features/hr/HrAttendancePage.jsx'
 import HrContractsPage from '../features/hr/HrContractsPage.jsx'
 import HrReportsPage from '../features/hr/HrReportsPage.jsx'
+import HRAnalyticsDashboard from '../features/hr/HRAnalyticsDashboard.jsx'
+import SupportTicketManager from '../features/hr/SupportTicketManager.jsx'
 import MentorLayout from '../features/mentor/MentorLayout.jsx'
 import MentorDashboardPage from '../features/mentor/MentorDashboardPage.jsx'
 import InternLayout from '../features/intern/InternLayout.jsx'
@@ -35,6 +37,7 @@ import WeeklyReportForm from '../features/intern/WeeklyReportForm.jsx'
 import InternSchedulePage from '../features/intern/InternSchedulePage.jsx'
 import InternAllowancePage from '../features/intern/InternAllowancePage.jsx'
 import InternSupportPage from '../features/intern/InternSupportPage.jsx'
+import InternProfilePage from '../features/intern/InternProfilePage.jsx'
 
 
 export default function AppRoutes() {
@@ -81,10 +84,16 @@ export default function AppRoutes() {
           <Route path="interns/:id/edit" element={<InternEditPage />} />
           <Route path="programs" element={<ProgramListPage />} />
           <Route path="programs/new" element={<ProgramFormPage />} />
-          <Route path="mentors" element={<MentorListPage />} />
+          <Route path="mentors" element={<Navigate to="/hr/mentor-assignment" replace />} />
+          <Route path="mentor-assignment" element={<MentorAssignmentPage />} />
           <Route path="attendance" element={<HrAttendancePage />} />
+          <Route path="attendance-report" element={<Navigate to="/hr/attendance?tab=report" replace />} />
+          <Route path="work-schedule" element={<Navigate to="/hr/attendance?tab=schedule" replace />} />
+          <Route path="allowances" element={<Navigate to="/hr/attendance?tab=allowance" replace />} />
           <Route path="contracts" element={<HrContractsPage />} />
-          <Route path="reports" element={<HrReportsPage />} />
+          <Route path="reports" element={<Navigate to="/hr/analytics" replace />} />
+          <Route path="analytics" element={<HRAnalyticsDashboard />} />
+          <Route path="tickets" element={<SupportTicketManager />} />
         </Route>
 
         {/* ── Phân hệ Mentor (Mentor Portal) ── */}
@@ -107,13 +116,14 @@ export default function AppRoutes() {
         <Route
           path="/intern"
           element={
-            <RequireAuth roles={['intern']}>
+            <RequireAuth roles={['intern', 'hr', 'admin']}>
               <InternLayout />
             </RequireAuth>
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<InternDashboardPage />} />
+          <Route path="roadmap" element={<Navigate to="/intern/dashboard" replace />} />
           <Route path="tasks" element={<Navigate to="/intern/dashboard" replace />} />
           <Route path="schedule" element={<InternSchedulePage />} />
           <Route path="attendance" element={<InternAttendancePage />} />
@@ -123,6 +133,7 @@ export default function AppRoutes() {
           <Route path="training" element={<InternTrainingPage />} />
           <Route path="upload" element={<InternUploadPage />} />
           <Route path="report" element={<WeeklyReportForm />} />
+          <Route path="profile" element={<InternProfilePage />} />
         </Route>
 
 

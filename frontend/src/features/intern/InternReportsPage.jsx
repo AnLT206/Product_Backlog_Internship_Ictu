@@ -3,8 +3,13 @@ import {
   FileText,
   CheckCircle2,
   Download,
+  Eye,
+  Trash2,
+  Lock,
 } from 'lucide-react'
+import apiFetch from '../../api/client'
 import WeeklyReportForm from './WeeklyReportForm'
+import { useInternMetrics, notifyInternDataChanged } from './utils/internMetrics'
 import './InternDashboardPage.css'
 import './InternReportsPage.css'
 
@@ -94,6 +99,7 @@ const INITIAL_REPORTS = [
 ]
 
 export default function InternReportsPage() {
+  const { metrics, refreshMetrics } = useInternMetrics()
   const [reports, setReports] = useState(() => {
     try {
       const stored = localStorage.getItem('intern_report_history')
@@ -129,39 +135,107 @@ export default function InternReportsPage() {
   const [toast, setToast] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Đồng bộ thời gian thực từ localStorage khi component mount & migrate bản ghi cũ
+  // Đồng bộ thời gian thực từ CSDL và localStorage khi component mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('intern_report_history')
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const migrated = parsed.map((item, idx) => ({
-            ...item,
-            report_time:
-              item.report_time && !item.report_time.startsWith('Tuần')
-                ? item.report_time
-                : (item.submitted_at && !item.submitted_at.startsWith('Tuần')
-                    ? item.submitted_at.replace(' (Vừa xong)', '')
-                    : (idx === 0 ? '28/09/2026 16:45' : '20/09/2026 17:15')),
-            task_name:
-              item.task_name ||
-              (idx === 0
-                ? 'Phát triển API phân quyền RBAC & Unit Test Sprint 1'
-                : 'Kiểm thử API auth/register & môi trường Docker Compose'),
-          }))
-          setReports(migrated)
-          localStorage.setItem('intern_report_history', JSON.stringify(migrated))
+    async function loadReports() {
+      let merged = []
+      // 1. Tải từ API CSDL
+      try {
+        const res = await apiFetch('/api/intern/reports')
+        if (res.ok && Array.isArray(res.data) && res.data.length > 0) {
+          merged = res.data
         }
+      } catch (err) {
+        console.warn('Load api reports fallback:', err)
       }
-    } catch (err) {
-      console.warn('LocalStorage error:', err)
+
+      // 2. Kết hợp với localStorage
+      try {
+        const stored = localStorage.getItem('intern_report_history')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            parsed.forEach((item) => {
+              const exists = merged.some((m) => m.id === item.id)
+              if (!exists) {
+                merged.push(item)
+              } else {
+                merged = merged.map((m) =>
+                  m.id === item.id
+                    ? {
+                        ...item,
+                        ...m,
+                        feedback: m.mentor_feedback || m.feedback || item.feedback,
+                        score: m.score ?? item.score,
+                        status: m.status || item.status,
+                      }
+                    : m
+                )
+              }
+            })
+          }
+        }
+      } catch (err) {
+        console.warn('LocalStorage error:', err)
+      }
+
+      if (merged.length > 0) {
+        setReports(merged)
+        try {
+          localStorage.setItem('intern_report_history', JSON.stringify(merged))
+        } catch {}
+      }
+    }
+
+    loadReports()
+
+    const handleDataChanged = () => {
+      loadReports()
+    }
+    window.addEventListener('storage', handleDataChanged)
+    window.addEventListener('intern_data_changed', handleDataChanged)
+    return () => {
+      window.removeEventListener('storage', handleDataChanged)
+      window.removeEventListener('intern_data_changed', handleDataChanged)
     }
   }, [])
 
   function showToast(message, type = 'success') {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3500)
+  }
+
+  // Xóa báo cáo khi Mentor chưa phê duyệt
+  const handleDeleteReport = (id, e) => {
+    if (e) e.stopPropagation()
+    const report = reports.find((r) => r.id === id)
+    if (!report) return
+
+    if (report.status === 'Đã duyệt' || report.status === 'approved') {
+      showToast('Báo cáo đã được Mentor phê duyệt, không thể xóa.', 'error')
+      return
+    }
+
+    if (window.confirm(`Bạn có chắc chắn muốn xóa báo cáo "${getTaskName(report)}" không?`)) {
+      setReports((prev) => {
+        const next = prev.filter((r) => r.id !== id)
+        try {
+          localStorage.setItem('intern_report_history', JSON.stringify(next))
+        } catch {
+          // fallback
+        }
+        notifyInternDataChanged()
+        refreshMetrics()
+        return next
+      })
+      if (selectedReport?.id === id) {
+        setSelectedReport(null)
+      }
+      if (typeof id === 'number' && id > 0) {
+        apiFetch(`/api/intern/reports/${id}`, { method: 'DELETE' }).catch(() => {})
+      }
+      showToast('Đã xóa báo cáo thực tập thành công!')
+    }
   }
 
   // Lọc báo cáo theo từ khóa
@@ -219,6 +293,73 @@ export default function InternReportsPage() {
         </div>
       </header>
 
+      {/* ── CÁC THẺ CHỈ SỐ BÁO CÁO & ĐÁNH GIÁ SPRINT (TỰ ĐỘNG LIÊN KẾT) ── */}
+      <section className="att-kpi-summary-grid" aria-label="Chỉ số báo cáo Sprint">
+        <div className="att-kpi-card">
+          <div className="att-kpi-icon att-kpi-icon--purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+          </div>
+          <div className="att-kpi-info">
+            <span className="att-kpi-label">Báo cáo định kỳ đã nộp</span>
+            <div className="att-kpi-value">
+              {metrics.submittedReportsCount} <span className="att-kpi-unit">bản</span>
+            </div>
+            <span className="att-kpi-sub">{metrics.approvedReportsCount} báo cáo đã được Mentor duyệt</span>
+          </div>
+        </div>
+
+        <div className="att-kpi-card">
+          <div className="att-kpi-icon att-kpi-icon--amber">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+          </div>
+          <div className="att-kpi-info">
+            <span className="att-kpi-label">Điểm rèn luyện & KPI</span>
+            <div className="att-kpi-value">
+              {metrics.kpiScore} <span className="att-kpi-unit">/ 100 đ</span>
+            </div>
+            <span className="att-kpi-sub">Xếp hạng: Hạng {metrics.kpiGrade} ({metrics.kpiGradeLabel})</span>
+          </div>
+        </div>
+
+        <div className="att-kpi-card">
+          <div className="att-kpi-icon att-kpi-icon--blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+          <div className="att-kpi-info">
+            <span className="att-kpi-label">Tiến độ Sprint 1 liên kết</span>
+            <div className="att-kpi-value">{metrics.sprintProgress}%</div>
+            <span className="att-kpi-sub">{metrics.doneTasks}/{metrics.totalTasks} nhiệm vụ đã hoàn thành</span>
+          </div>
+        </div>
+
+        <div className="att-kpi-card">
+          <div className="att-kpi-icon att-kpi-icon--green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          </div>
+          <div className="att-kpi-info">
+            <span className="att-kpi-label">Chuyên cần tháng 10</span>
+            <div className="att-kpi-value">
+              {metrics.actualWorkDays} <span className="att-kpi-unit">/ {metrics.standardWorkDays} ngày</span>
+            </div>
+            <span className="att-kpi-sub">Tỷ lệ chuyên cần đạt {metrics.attendanceRate}%</span>
+          </div>
+        </div>
+      </section>
 
       {/* ── BẢNG LỊCH SỬ BÁO CÁO ĐÃ NỘP ── */}
       <section className="reports-history-panel">
@@ -256,15 +397,16 @@ export default function InternReportsPage() {
             <thead>
               <tr>
                 <th style={{ width: '180px' }}>Thời gian nộp</th>
-                <th style={{ minWidth: '320px' }}>Tên công việc</th>
-                <th style={{ width: '180px' }}>File đính kèm</th>
-                <th style={{ width: '120px', textAlign: 'center' }}>Trạng thái</th>
+                <th style={{ minWidth: '300px' }}>Tên công việc</th>
+                <th style={{ width: '170px' }}>File đính kèm</th>
+                <th style={{ width: '110px', textAlign: 'center' }}>Trạng thái</th>
+                <th style={{ width: '130px', textAlign: 'center' }}>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {filteredReports.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ padding: '36px 16px', textAlign: 'center', color: '#64748B' }}>
+                  <td colSpan={5} style={{ padding: '36px 16px', textAlign: 'center', color: '#64748B' }}>
                     Không tìm thấy báo cáo nào phù hợp với từ khóa tìm kiếm.
                   </td>
                 </tr>
@@ -314,6 +456,37 @@ export default function InternReportsPage() {
                       >
                         {r.status || 'Chờ duyệt'}
                       </span>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div className="reports-action-group">
+                        <button
+                          type="button"
+                          className="reports-action-btn reports-action-btn--view"
+                          onClick={() => setSelectedReport(r)}
+                          title="Xem lại chi tiết báo cáo & nhận xét"
+                        >
+                          <Eye size={13} />
+                          <span>Xem</span>
+                        </button>
+                        {r.status !== 'Đã duyệt' && r.status !== 'approved' ? (
+                          <button
+                            type="button"
+                            className="reports-action-btn reports-action-btn--delete"
+                            onClick={(e) => handleDeleteReport(r.id, e)}
+                            title="Xóa báo cáo khi Mentor chưa duyệt"
+                          >
+                            <Trash2 size={13} />
+                            <span>Xóa</span>
+                          </button>
+                        ) : (
+                          <span
+                            className="reports-action-locked"
+                            title="Mentor đã duyệt — không thể xóa"
+                          >
+                            <Lock size={12} />
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -389,6 +562,8 @@ export default function InternReportsPage() {
                   } catch (err) {
                     console.warn('LocalStorage write error:', err)
                   }
+                  notifyInternDataChanged()
+                  refreshMetrics()
                   return updated
                 })
 
@@ -530,7 +705,20 @@ export default function InternReportsPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="reports-modal-footer">
+            <div className="reports-modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {selectedReport.status !== 'Đã duyệt' && selectedReport.status !== 'approved' ? (
+                <button
+                  type="button"
+                  className="reports-btn-danger"
+                  onClick={() => handleDeleteReport(selectedReport.id)}
+                  title="Xóa báo cáo khi Mentor chưa phê duyệt"
+                >
+                  <Trash2 size={14} />
+                  <span>Hủy / Xóa báo cáo này</span>
+                </button>
+              ) : (
+                <div />
+              )}
               <button
                 type="button"
                 className="wrf-btn wrf-btn-cancel"

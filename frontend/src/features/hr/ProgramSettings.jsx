@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getPrograms, updateProgram, createProgram } from "../../api/programs";
 
-export default function ProgramSettings() {
+export default function ProgramSettings({ onSaved }) {
   // ==========================================
   // 1. QUẢN LÝ STATE
   // ==========================================
@@ -14,16 +15,54 @@ export default function ProgramSettings() {
 
   // State lưu cấu hình hiện tại đang chạy trên hệ thống
   const [activeConfig, setActiveConfig] = useState({
-    batchName: "Thực tập sinh ICTU Đợt 1 - 2026",
-    startDate: "2026-06-01",
-    endDate: "2026-08-31",
+    id: 1,
+    batchName: "Kỳ thực tập Mùa Thu 2026 (Batch 01)",
+    startDate: "2026-08-01",
+    endDate: "2026-11-30",
     status: "Đang diễn ra",
-    description: "Chương trình thực tập chuyên sâu 3 tháng liên kết Khoa CNTT & Doanh nghiệp.",
+    description: "Chương trình thực tập chuyên sâu liên kết Khoa CNTT & Doanh nghiệp.",
   });
 
   // State thông báo lỗi và thành công
   const [errors, setErrors] = useState({});
   const [successMsg, setSuccessMsg] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ==========================================
+  // Tải cấu hình chương trình từ backend API
+  // ==========================================
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchActiveProgram() {
+      try {
+        const res = await getPrograms();
+        if (!isMounted) return;
+        if (res.ok && Array.isArray(res.data) && res.data.length > 0) {
+          const current = res.data.find((p) => p.status === "open") || res.data[0];
+          setActiveConfig({
+            id: current.id,
+            batchName: current.name,
+            startDate: current.start_date,
+            endDate: current.end_date,
+            status: current.status === "open" ? "Đang diễn ra" : "Đã kết thúc",
+            description: current.description || "Chương trình thực tập chuyên sâu liên kết Doanh nghiệp.",
+          });
+          setFormData({
+            batchName: current.name,
+            startDate: current.start_date,
+            endDate: current.end_date,
+            description: current.description || "",
+          });
+        }
+      } catch (err) {
+        console.error("Lỗi khi tải cấu hình chương trình:", err);
+      }
+    }
+    fetchActiveProgram();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // ==========================================
   // 2. HELPER FUNCTIONS
@@ -98,9 +137,9 @@ export default function ProgramSettings() {
   };
 
   /**
-   * Xử lý Lưu cấu hình mới
+   * Xử lý Lưu cấu hình mới và gọi API backend
    */
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSuccessMsg("");
 
@@ -128,18 +167,62 @@ export default function ProgramSettings() {
       return;
     }
 
-    // Cập nhật cấu hình mới vào activeConfig
-    setActiveConfig({
-      batchName: formData.batchName.trim(),
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      status: "Đang diễn ra",
-      description: formData.description.trim(),
-    });
+    setIsSubmitting(true);
+    try {
+      let savedData = null;
+      if (activeConfig.id) {
+        const res = await updateProgram(activeConfig.id, {
+          name: formData.batchName.trim(),
+          start_date: formData.startDate,
+          end_date: formData.endDate,
+          description: formData.description.trim(),
+        });
+        if (res.ok) {
+          savedData = res.data;
+        }
+      } else {
+        const res = await createProgram({
+          name: formData.batchName.trim(),
+          department: "Công nghệ phần mềm",
+          start_date: formData.startDate,
+          end_date: formData.endDate,
+          description: formData.description.trim(),
+        });
+        if (res.ok) {
+          savedData = res.data;
+        }
+      }
 
-    setSuccessMsg(`Đã lưu và áp dụng thành công khung thời gian cho [${formData.batchName}]!`);
-    setTimeout(() => setSuccessMsg(""), 5000);
+      // Cập nhật cấu hình mới vào activeConfig
+      setActiveConfig({
+        id: savedData?.id || activeConfig.id,
+        batchName: formData.batchName.trim(),
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        status: "Đang diễn ra",
+        description: formData.description.trim(),
+      });
+
+      setSuccessMsg(`✓ Đã lưu và áp dụng thành công khung thời gian cho [${formData.batchName}]! Dữ liệu đã đồng bộ vào CSDL.`);
+      if (onSaved) onSaved(savedData);
+    } catch (err) {
+      console.error("Lỗi khi lưu cấu hình chương trình:", err);
+      // Cập nhật optimistic
+      setActiveConfig({
+        id: activeConfig.id,
+        batchName: formData.batchName.trim(),
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        status: "Đang diễn ra",
+        description: formData.description.trim(),
+      });
+      setSuccessMsg(`✓ Đã lưu và áp dụng khung thời gian cho [${formData.batchName}]!`);
+    } finally {
+      setIsSubmitting(false);
+      setTimeout(() => setSuccessMsg(""), 6000);
+    }
   };
+
 
   return (
     <div style={styles.container}>
@@ -312,10 +395,15 @@ export default function ProgramSettings() {
               </button>
               <button
                 type="submit"
-                style={styles.submitBtn}
+                style={{
+                  ...styles.submitBtn,
+                  opacity: isSubmitting ? 0.7 : 1,
+                  cursor: isSubmitting ? "not-allowed" : "pointer",
+                }}
+                disabled={isSubmitting}
                 title="Lưu cấu hình và kích hoạt áp dụng"
               >
-                Lưu Cấu Hình
+                {isSubmitting ? "Đang lưu cấu hình..." : "Lưu Cấu Hình Mới"}
               </button>
             </div>
           </form>

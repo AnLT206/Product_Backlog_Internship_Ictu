@@ -105,6 +105,7 @@ class AuthService:
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
+        profile = user.intern_profile
         return LoginResponse(
             access_token=access_token,
             user=LoginUserResponse(
@@ -114,5 +115,6 @@ class AuthService:
                 full_name=user.full_name,
                 role=user.role.name,
                 status=user.status,
+                avatar=profile.avatar if profile else None,
             ),
         )

@@ -26,7 +26,7 @@ class AdminUserService:
     def list_users(self, role: str | None = None) -> AdminUserListResponse:
         query = (
             self.db.query(User)
-            .options(joinedload(User.role))
+            .options(joinedload(User.role), joinedload(User.intern_profile))
             .join(Role, User.role_id == Role.id)
         )
         if role and role != "all":
@@ -48,6 +48,7 @@ class AdminUserService:
                 role=user.role.name if user.role else (role or "unknown"),
                 status=user.status,  # type: ignore[arg-type]
                 created_at=user.created_at,
+                avatar=user.intern_profile.avatar if user.intern_profile and user.intern_profile.avatar else None,
             )
             for user in rows
         ]
@@ -84,6 +85,15 @@ class AdminUserService:
                 status="active",
             )
             self.db.add(user)
+            self.db.flush()
+            if payload.role == "intern":
+                from app.models.intern_profile import InternProfile
+                prof = InternProfile(user_id=user.id, status="approved")
+                self.db.add(prof)
+            else:
+                from app.models.user_profile import UserProfile
+                user_prof = UserProfile(user_id=user.id)
+                self.db.add(user_prof)
             self.db.commit()
             self.db.refresh(user)
         except SQLAlchemyError:
@@ -101,12 +111,13 @@ class AdminUserService:
             role=payload.role,
             status=user.status,  # type: ignore[arg-type]
             created_at=user.created_at,
+            avatar=None,
         )
 
     def update_user_status(self, user_id: int, new_status: str) -> AdminUserResponse:
         user = (
             self.db.query(User)
-            .options(joinedload(User.role))
+            .options(joinedload(User.role), joinedload(User.intern_profile))
             .filter(User.id == user_id)
             .first()
         )
@@ -117,6 +128,13 @@ class AdminUserService:
             )
 
         user.status = new_status
+        if user.intern_profile:
+            if new_status == "active":
+                user.intern_profile.status = "approved"
+            elif new_status == "inactive":
+                user.intern_profile.status = "rejected"
+            elif new_status == "pending":
+                user.intern_profile.status = "pending"
 
         try:
             self.db.commit()
@@ -136,6 +154,7 @@ class AdminUserService:
             role=user.role.name if user.role else "intern",
             status=user.status,  # type: ignore[arg-type]
             created_at=user.created_at,
+            avatar=user.intern_profile.avatar if user.intern_profile and user.intern_profile.avatar else None,
         )
 
     def delete_user(self, user_id: int) -> dict[str, str]:

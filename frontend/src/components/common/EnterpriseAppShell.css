@@ -246,6 +246,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.user-avatar--img-wrap {
+  background: #f1f5f9;
+  border: 1px solid #bfdbfe;
+}
+
+.user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.user-profile-card--clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-profile-card--clickable:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 .user-status-dot {
@@ -257,6 +283,7 @@
   background-color: #10B981;
   border: 2px solid #ffffff;
   border-radius: 50%;
+  z-index: 2;
 }
 
 .user-info {
@@ -315,7 +342,8 @@
 .enterprise-topbar {
   height: var(--topbar-height);
   background-color: #ffffff;
-  border-bottom: 1px solid var(--border-main);
+  border-bottom: 1px solid #f1f5f9;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
   position: sticky;
   top: 0;
   z-index: 40;
@@ -1056,4 +1084,48 @@
   .topbar-avatar-name {
     display: none;
   }
+}
+
+/* ── Disable all rotate/animation effects on close and checkmark buttons ── */
+.idp-modal-close,
+.modal-close-btn,
+.reports-modal-close,
+.training-modal-close-btn,
+.mentor-modal-close,
+.btn-modal-close,
+.iad-modal-close,
+.training-check-btn,
+[class*="modal-close"],
+[class*="-modal-close"] {
+  animation: none !important;
+  transform: none !important;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease !important;
+}
+
+.idp-modal-close:hover,
+.modal-close-btn:hover,
+.reports-modal-close:hover,
+.training-modal-close-btn:hover,
+.mentor-modal-close:hover,
+.btn-modal-close:hover,
+.iad-modal-close:hover,
+.training-check-btn:hover,
+[class*="modal-close"]:hover,
+[class*="-modal-close"]:hover {
+  animation: none !important;
+  transform: none !important;
+}
+
+.idp-modal-close:active,
+.modal-close-btn:active,
+.reports-modal-close:active,
+.training-modal-close-btn:active,
+.mentor-modal-close:active,
+.btn-modal-close:active,
+.iad-modal-close:active,
+.training-check-btn:active,
+[class*="modal-close"]:active,
+[class*="-modal-close"]:active {
+  animation: none !important;
+  transform: none !important;
 }

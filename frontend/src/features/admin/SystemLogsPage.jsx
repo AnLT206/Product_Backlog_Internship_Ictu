@@ -21,6 +21,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { getSystemLogs } from '../../api/admin';
 import './SystemLogsPage.css';
@@ -104,6 +105,8 @@ function SystemLogsPage() {
   const [userIdInput,  setUserIdInput]  = useState('');
   // Giá trị đã submit — chỉ thay đổi khi bấm Tìm/Enter
   const [appliedUserId, setAppliedUserId] = useState(null); // null = không lọc
+  // Bản ghi log đang chọn để xem thông số chi tiết
+  const [selectedLog, setSelectedLog] = useState(null);
 
   /* ── Tính số trang từ total/limit (backend không trả sẵn) ── */
   const totalPages = total > 0 ? Math.ceil(total / PAGE_LIMIT) : 1;
@@ -154,6 +157,17 @@ function SystemLogsPage() {
     const id = setTimeout(() => setToast(null), 5000);
     return () => clearTimeout(id);
   }, [toast]);
+
+  /* ── Đóng modal khi bấm phím Escape ── */
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') setSelectedLog(null);
+    }
+    if (selectedLog) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [selectedLog]);
 
   /* ── Handler: submit tìm kiếm (Enter hoặc nút Tìm) ── */
   function handleSearch(e) {
@@ -288,7 +302,6 @@ function SystemLogsPage() {
                 <tr>
                   <th className="col-id"     scope="col">#</th>
                   <th className="col-time"   scope="col">Thời gian</th>
-                  <th className="col-user"   scope="col">User ID</th>
                   <th className="col-role"   scope="col">Vai trò</th>
                   <th className="col-action" scope="col">Action</th>
                   <th className="col-method" scope="col">Method</th>
@@ -303,7 +316,7 @@ function SystemLogsPage() {
                 {/* Trạng thái đang tải */}
                 {loading ? (
                   <tr>
-                    <td colSpan={10}>
+                    <td colSpan={9}>
                       <div className="sys-logs-loading">
                         <span className="sys-logs-loading__spinner" aria-hidden="true" />
                         Đang tải dữ liệu…
@@ -313,7 +326,7 @@ function SystemLogsPage() {
                 ) : logs.length === 0 ? (
                   /* Empty state */
                   <tr>
-                    <td colSpan={10}>
+                    <td colSpan={9}>
                       <div className="sys-logs-empty">
                         {appliedUserId != null
                           ? `Không tìm thấy nhật ký của User ID ${appliedUserId}.`
@@ -326,33 +339,38 @@ function SystemLogsPage() {
                   logs.map((log) => {
                     const { date, time } = formatDatetime(log.created_at);
                     return (
-                      <tr key={log.id}>
-                        {/* id */}
-                        <td className="col-id">{log.id}</td>
+                      <tr
+                        key={log.id}
+                        className="sys-logs-row"
+                        onClick={() => setSelectedLog(log)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedLog(log);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`Xem chi tiết truy vết #${log.id}`}
+                        title="Nhấp vào dòng để xem chi tiết nhật ký"
+                      >
+                        {/* id - hiển thị mã truy vết */}
+                        <td className="col-id">
+                          <span className="col-id-btn">
+                            #{log.id}
+                          </span>
+                        </td>
 
                         {/* created_at */}
-                        <td>
+                        <td className="col-time">
                           <div className="cell-time">
                             <div className="cell-time__date">{date}</div>
                             <div className="cell-time__clock">{time}</div>
                           </div>
                         </td>
 
-                        {/* user_id */}
-                        <td>
-                          {log.user_id != null ? (
-                            <span className="cell-user">
-                              <span className="cell-user__id" title={`User #${log.user_id}`}>
-                                {log.user_id}
-                              </span>
-                            </span>
-                          ) : (
-                            <span className="cell-null">—</span>
-                          )}
-                        </td>
-
                         {/* role */}
-                        <td>
+                        <td className="col-role">
                           {log.role ? (
                             <span className="cell-role">{log.role}</span>
                           ) : (
@@ -361,26 +379,26 @@ function SystemLogsPage() {
                         </td>
 
                         {/* action */}
-                        <td style={{ textAlign: 'center' }}>
+                        <td className="col-action" style={{ textAlign: 'center' }}>
                           <span className={`cell-action cell-action--${log.action}`}>
                             {log.action}
                           </span>
                         </td>
 
                         {/* method */}
-                        <td style={{ textAlign: 'center' }}>
+                        <td className="col-method" style={{ textAlign: 'center' }}>
                           <span className={`cell-method cell-method--${log.method}`}>
                             {log.method}
                           </span>
                         </td>
 
                         {/* path */}
-                        <td>
+                        <td className="col-path">
                           <span className="cell-path">{log.path}</span>
                         </td>
 
                         {/* resource */}
-                        <td>
+                        <td className="col-res">
                           {log.resource ? (
                             <span className="cell-resource" title={log.resource}>
                               {log.resource}
@@ -391,14 +409,14 @@ function SystemLogsPage() {
                         </td>
 
                         {/* status_code */}
-                        <td style={{ textAlign: 'center' }}>
+                        <td className="col-status" style={{ textAlign: 'center' }}>
                           <span className={`cell-status cell-status--${statusClass(log.status_code)}`}>
                             {log.status_code}
                           </span>
                         </td>
 
                         {/* ip_address */}
-                        <td>
+                        <td className="col-ip">
                           {log.ip_address ? (
                             <span className="cell-ip">{log.ip_address}</span>
                           ) : (
@@ -454,6 +472,196 @@ function SystemLogsPage() {
         </div>
 
       </div>
+
+      {/* ── Modal Chi tiết truy vết nhật ký hệ thống ── */}
+      {/* createPortal: render thẳng vào document.body để backdrop phủ toàn màn hình */}
+      {selectedLog && createPortal(
+        <div
+          className="sys-logs-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedLog(null);
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sys-logs-modal-title"
+        >
+          <div className="sys-logs-modal">
+            {/* Header */}
+            <div className="sys-logs-modal__header">
+              <div className="sys-logs-modal__title-wrap">
+                <div className="sys-logs-modal__title-icon" aria-hidden="true">
+                  📋
+                </div>
+                <div>
+                  <h2 id="sys-logs-modal-title" className="sys-logs-modal__title">
+                    Chi tiết truy vết nhật ký hệ thống
+                  </h2>
+                  <span className="sys-logs-modal__subtitle">
+                    Bản ghi truy vết kiểm toán bảo mật #{selectedLog.id}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="sys-logs-modal__close-btn"
+                onClick={() => setSelectedLog(null)}
+                aria-label="Đóng"
+                title="Đóng hộp thoại (Phím Esc)"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="sys-logs-modal__body">
+              <div className="sys-logs-modal__grid">
+                {/* ID & Thời gian */}
+                <div className="sys-logs-modal__field">
+                  <span className="sys-logs-modal__label">Mã truy vết (ID)</span>
+                  <div className="sys-logs-modal__value">
+                    <span className="sys-logs-modal__val-id">#{selectedLog.id}</span>
+                  </div>
+                </div>
+
+                <div className="sys-logs-modal__field">
+                  <span className="sys-logs-modal__label">Thời gian ghi nhận</span>
+                  <div className="sys-logs-modal__value">
+                    <span className="sys-logs-modal__val-text">
+                      {selectedLog.created_at
+                        ? `${formatDatetime(selectedLog.created_at).date} ${formatDatetime(selectedLog.created_at).time}`
+                        : '—'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Hành động & HTTP Method */}
+                <div className="sys-logs-modal__field">
+                  <span className="sys-logs-modal__label">Hành động (Action)</span>
+                  <div className="sys-logs-modal__value">
+                    <span className={`cell-action cell-action--${selectedLog.action}`}>
+                      {selectedLog.action}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="sys-logs-modal__field">
+                  <span className="sys-logs-modal__label">Phương thức HTTP (Method)</span>
+                  <div className="sys-logs-modal__value">
+                    <span className={`cell-method cell-method--${selectedLog.method}`}>
+                      {selectedLog.method}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Status Code & Đối tượng */}
+                <div className="sys-logs-modal__field">
+                  <span className="sys-logs-modal__label">Mã trạng thái (Status Code)</span>
+                  <div className="sys-logs-modal__value">
+                    <span className={`cell-status cell-status--${statusClass(selectedLog.status_code)}`}>
+                      {selectedLog.status_code}
+                    </span>
+                    <span className="sys-logs-modal__status-desc">
+                      {selectedLog.status_code >= 200 && selectedLog.status_code < 300
+                        ? 'Thành công'
+                        : selectedLog.status_code >= 400 && selectedLog.status_code < 500
+                        ? 'Lỗi Client'
+                        : selectedLog.status_code >= 500
+                        ? 'Lỗi Server'
+                        : ''}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="sys-logs-modal__field">
+                  <span className="sys-logs-modal__label">Đối tượng tác động (Resource)</span>
+                  <div className="sys-logs-modal__value">
+                    <span className="sys-logs-modal__val-text">
+                      {selectedLog.resource || '—'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* User ID & Vai trò */}
+                <div className="sys-logs-modal__field">
+                  <span className="sys-logs-modal__label">Tài khoản thực hiện (User ID)</span>
+                  <div className="sys-logs-modal__value">
+                    <span className="sys-logs-modal__val-text">
+                      {selectedLog.user_id != null ? `User #${selectedLog.user_id}` : 'Hệ thống / Chưa đăng nhập'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="sys-logs-modal__field">
+                  <span className="sys-logs-modal__label">Vai trò tài khoản (Role)</span>
+                  <div className="sys-logs-modal__value">
+                    {selectedLog.role ? (
+                      <span className="cell-role">{selectedLog.role}</span>
+                    ) : (
+                      <span className="cell-null">—</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Endpoint Path đầy đủ */}
+                <div className="sys-logs-modal__field sys-logs-modal__field--full">
+                  <span className="sys-logs-modal__label">Đường dẫn Endpoint API</span>
+                  <div className="sys-logs-modal__value sys-logs-modal__value--endpoint">
+                    <span className={`cell-method cell-method--${selectedLog.method}`}>
+                      {selectedLog.method}
+                    </span>
+                    <span className="sys-logs-modal__path-code">
+                      {selectedLog.path}
+                    </span>
+                  </div>
+                </div>
+
+                {/* IP Address đầy đủ */}
+                <div className="sys-logs-modal__field sys-logs-modal__field--full">
+                  <span className="sys-logs-modal__label">Địa chỉ IP nguồn (Client IP)</span>
+                  <div className="sys-logs-modal__value">
+                    {selectedLog.ip_address ? (
+                      <span className="cell-ip" style={{ fontSize: '13px', padding: '4px 12px' }}>
+                        {selectedLog.ip_address}
+                      </span>
+                    ) : (
+                      <span className="cell-null">—</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* User Agent đầy đủ */}
+                <div className="sys-logs-modal__field sys-logs-modal__field--full">
+                  <span className="sys-logs-modal__label">Trình duyệt & Thiết bị (User Agent)</span>
+                  <div className="sys-logs-modal__value sys-logs-modal__value--ua">
+                    {selectedLog.user_agent || '—'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="sys-logs-modal__footer">
+              <button
+                type="button"
+                className="sys-logs-modal__btn sys-logs-modal__btn--secondary"
+                onClick={() => {
+                  navigator.clipboard?.writeText(JSON.stringify(selectedLog, null, 2));
+                  setToast({ type: 'success', message: `Đã sao chép toàn bộ thông số truy vết #${selectedLog.id} vào clipboard!` });
+                }}
+              >
+                Sao chép thông số (JSON)
+              </button>
+              <button
+                type="button"
+                className="sys-logs-modal__btn sys-logs-modal__btn--primary"
+                onClick={() => setSelectedLog(null)}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
     </div>
   );
 }

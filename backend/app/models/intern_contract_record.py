@@ -31,6 +31,11 @@ class InternContractRecord(Base):
     status_label: Mapped[str | None] = mapped_column(
         String(100), default="Chờ xác nhận từ Trường"
     )
+    start_date: Mapped[str | None] = mapped_column(String(50), nullable=True, default="01/10/2026")
+    end_date: Mapped[str | None] = mapped_column(String(50), nullable=True, default="31/12/2026")
+    allowance: Mapped[str | None] = mapped_column(String(100), nullable=True, default="3.000.000 đ/tháng")
+    department: Mapped[str | None] = mapped_column(String(255), nullable=True, default="Trung tâm Phát triển Phần mềm ICTU")
+    notes: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()

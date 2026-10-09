@@ -43,11 +43,11 @@
   color: #92400e;
 }
 
-/* active → xanh lá nhạt */
+/* active → xanh biển */
 .status-badge--active {
-  background: #ecfdf5;
-  border: 1px solid #6ee7b7;
-  color: #065f46;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  color: #1d4ed8;
 }
 
 /* inactive → đỏ nhạt */
@@ -55,6 +55,14 @@
   background: #fef2f2;
   border: 1px solid #fca5a5;
   color: #991b1b;
+}
+
+/* no_cv / unsubmitted → xám slate trang nhã */
+.status-badge--no_cv,
+.status-badge--unsubmitted {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #475569;
 }
 
 /* Chấm tròn trước text */
@@ -65,9 +73,11 @@
   flex-shrink: 0;
 }
 
-.status-badge--pending .status-badge__dot  { background: #f59e0b; }
-.status-badge--active  .status-badge__dot  { background: #10b981; }
-.status-badge--inactive .status-badge__dot { background: #ef4444; }
+.status-badge--pending .status-badge__dot      { background: #f59e0b; }
+.status-badge--active  .status-badge__dot       { background: #2563eb; }
+.status-badge--inactive .status-badge__dot     { background: #ef4444; }
+.status-badge--no_cv .status-badge__dot,
+.status-badge--unsubmitted .status-badge__dot { background: #94a3b8; }
 
 /* ─────────────────────────────────────────────
    InternActionButtons
@@ -123,4 +133,27 @@
   border-color: #ef4444;
   color: #ffffff;
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+}
+
+/* Nút "Xem CV" — tông màu xanh da trời (sky) thanh lịch, thu hút */
+.intern-action-btn--view-cv {
+  background: #f0f9ff;
+  border-color: #7dd3fc;
+  color: #0369a1;
+  gap: 5px;
+}
+
+.intern-action-btn--view-cv:hover {
+  background: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+}
+
+/* Variant nhỏ gọn cho hồ sơ đã duyệt */
+.intern-action-btn--sm {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  border-radius: 6px;
 }

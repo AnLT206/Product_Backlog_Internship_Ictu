@@ -187,6 +187,15 @@
   box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
 }
 
+.intern-upload-form .form-group select:disabled {
+  background-color: #f8fafc;
+  color: #334155;
+  cursor: not-allowed;
+  border-color: #e2e8f0;
+  opacity: 0.9;
+  background-image: none;
+}
+
 /* ── file input ── */
 .intern-upload-file-wrapper {
   display: flex;

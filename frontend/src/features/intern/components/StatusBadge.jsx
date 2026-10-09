@@ -18,19 +18,21 @@ import './InternComponents.css';
 
 /** Map status → label tiếng Việt */
 const LABEL_MAP = {
-  pending:  'Chờ duyệt',
-  active:   'Đã duyệt',
-  inactive: 'Từ chối',
+  pending:     'Chờ duyệt',
+  active:      'Đã duyệt',
+  inactive:    'Từ chối',
+  unsubmitted: 'Chưa nộp CV',
+  no_cv:       'Chưa nộp CV',
 };
 
 /**
  * StatusBadge
  *
- * @param {{ status: 'pending'|'active'|'inactive' }} props
+ * @param {{ status: 'pending'|'active'|'inactive'|'no_cv'|'unsubmitted' }} props
  */
 function StatusBadge({ status }) {
   const label = LABEL_MAP[status] ?? status;
-  const modifier = ['pending', 'active', 'inactive'].includes(status)
+  const modifier = ['pending', 'active', 'inactive', 'no_cv', 'unsubmitted'].includes(status)
     ? status
     : 'inactive'; // fallback an toàn cho status không xác định
 

@@ -6,6 +6,9 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* ── 1. HEADER MENTOR ── */
@@ -94,7 +97,7 @@
 /* ── 2. HÀNG CHỈ SỐ KPI (4 THẺ) ── */
 .mentor-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1.25rem;
 }
 
@@ -158,7 +161,7 @@
 .mentor-panel {
   background-color: #ffffff;
   border: 1px solid var(--border-main);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  border-radius: var(--radius-lg, 14px);
   box-shadow: var(--shadow-xs);
   padding: 1.5rem;
 }
@@ -478,12 +481,19 @@
   line-height: 1.4;
 }
 
-/* Evaluation Summary Card */
+/* Evaluation Summary Card (Khung đánh giá năng lực cuối kỳ) */
 .eval-summary-card {
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-md);
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
   padding: 1.5rem;
-  background-color: #FAFAFC;
+  background-color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.eval-summary-card:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .eval-card-header {
@@ -491,47 +501,103 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1.25rem;
-  border-bottom: 1px solid var(--border-main);
-  padding-bottom: 0.85rem;
+  border-bottom: 1px solid #E2E8F0;
+  padding-bottom: 0.95rem;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .eval-card-header h3 {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  margin: 0;
+  color: #0F172A;
+  margin: 0 0 4px;
 }
 
 .eval-date {
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  font-size: 0.8rem;
+  color: #64748B;
 }
 
 .eval-scores-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
   margin-bottom: 1.25rem;
 }
 
+@media (max-width: 992px) {
+  .eval-scores-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .eval-scores-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .score-box {
-  background-color: #ffffff;
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-md);
-  padding: 1rem;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 0.35rem;
+  transition: all 0.2s ease;
+}
+
+.score-box:hover {
+  border-color: #93C5FD;
+  background-color: #FFFFFF;
+  box-shadow: 0 3px 8px rgba(37, 99, 235, 0.06);
+}
+
+.score-box--final {
+  background-color: #F0FDF4;
+  border-color: #86EFAC;
+}
+
+.score-box--final:hover {
+  border-color: #4ADE80;
+  background-color: #ECFDF5;
+  box-shadow: 0 3px 8px rgba(22, 163, 74, 0.08);
 }
 
 .score-label {
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748B;
 }
 
 .score-val {
-  font-size: 1.45rem;
-  font-weight: 700;
-  color: var(--primary);
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #1D4ED8;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.score-box--final .score-label {
+  color: #166534;
+}
+
+.score-box--final .score-val {
+  color: #16A34A;
+}
+
+.score-subtext {
+  font-size: 0.72rem;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.score-box--final .score-subtext {
+  color: #15803D;
+  font-weight: 600;
 }
 
 .score-rec {
@@ -653,7 +719,7 @@
 /* ── 6. CẤU TRÚC 2 CỘT MAIN GRID (65% - 35%) ── */
 .mentor-main-grid {
   display: grid;
-  grid-template-columns: 65% calc(35% - 1.5rem);
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
   gap: 1.5rem;
   align-items: start;
 }
@@ -711,6 +777,15 @@
   justify-content: center;
   box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.mentee-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .mentee-avatar-box--purple {
@@ -985,4 +1060,366 @@
   color: var(--text-secondary);
   margin: 0;
 }
+
+/* ── MODAL LỚN CHO ĐÁNH GIÁ & DUYỆT BÁO CÁO ── */
+.modal-container--large {
+  max-width: 820px !important;
+  width: 95vw !important;
+}
+
+.modal-container--medium {
+  max-width: 640px !important;
+  width: 90vw !important;
+}
+
+/* ── FORM TẠO TASK CẢI TIẾN ── */
+.task-form-intern-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  margin-top: 4px;
+}
+
+/* ── CHỨC NĂNG 2: BỘ LỌC BÁO CÁO & GIAO DIỆN DUYỆT ── */
+.report-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.report-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.report-pill-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #E2E8F0;
+  background-color: #FFFFFF;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.report-pill-btn:hover {
+  background-color: #F1F5F9;
+  color: #1E293B;
+}
+
+.report-pill-btn.is-active {
+  background-color: #2563EB;
+  color: #FFFFFF;
+  border-color: #2563EB;
+}
+
+.report-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  background-color: #F1F5F9;
+  color: #475569;
+}
+
+.report-pill-btn.is-active .report-pill-badge {
+  background-color: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+}
+
+.report-card-item--unread {
+  border-left: 4px solid #F59E0B !important;
+  background-color: #FFFDF8 !important;
+}
+
+.report-card-item--reviewed {
+  border-left: 4px solid #10B981 !important;
+}
+
+.report-status-badge--pending {
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+.report-status-badge--reviewed {
+  background-color: #D1FAE5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+
+/* Modal chi tiết báo cáo 2 cột */
+.report-detail-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .report-detail-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.report-intern-content-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background-color: #F8FAFC;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.report-intern-content-col h4 {
+  margin: 0 0 6px 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1D4ED8 !important;
+}
+
+.report-section strong {
+  color: #1D4ED8;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.report-mentor-feedback-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.report-score-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-quick-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #CBD5E1;
+  background-color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.score-quick-btn:hover,
+.score-quick-btn.is-selected {
+  background-color: #2563EB;
+  color: #FFFFFF;
+  border-color: #2563EB;
+}
+
+/* ── CHỨC NĂNG 3: FORM ĐÁNH GIÁ VỚI RATING SCALE & REAL-TIME CALCULATION ── */
+.eval-live-score-banner {
+  background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+  border: 1px solid #BFDBFE;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.eval-score-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.eval-score-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #2563EB;
+  color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+}
+
+.eval-score-num {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.eval-score-max {
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+.eval-score-meta h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1E3A8A;
+}
+
+.eval-score-sub {
+  font-size: 12.5px;
+  color: #3B82F6;
+  margin-top: 2px;
+}
+
+.eval-score-breakdown {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.eval-sub-score-box {
+  background-color: #FFFFFF;
+  border: 1px solid #BFDBFE;
+  border-radius: 8px;
+  padding: 6px 12px;
+  text-align: center;
+}
+
+.eval-sub-score-box .label {
+  font-size: 11px;
+  color: #64748B;
+  display: block;
+}
+
+.eval-sub-score-box .val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+/* Thẻ câu hỏi Rubric */
+.rating-question-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.rating-question-card:hover {
+  border-color: #93C5FD;
+}
+
+.rating-question-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.rating-question-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 4px;
+}
+
+.rating-question-desc {
+  font-size: 12.5px;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.rating-current-val-tag {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background-color: #EFF6FF;
+  color: #2563EB;
+  white-space: nowrap;
+}
+
+/* Nhóm nút thang điểm Rating Scale 1 - 5 */
+.rating-scale-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+@media (max-width: 600px) {
+  .rating-scale-row {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+  }
+}
+
+.rating-scale-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border: 1.5px solid #CBD5E1;
+  background-color: #F8FAFC;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.rating-scale-btn:hover {
+  border-color: #2563EB;
+  background-color: #EFF6FF;
+}
+
+.rating-scale-btn.is-selected {
+  border-color: #2563EB;
+  background-color: #2563EB;
+  color: #FFFFFF;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+
+.rating-scale-num {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.rating-scale-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #64748B;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.rating-scale-btn.is-selected .rating-scale-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 

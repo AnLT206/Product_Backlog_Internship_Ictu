@@ -64,6 +64,9 @@ class InternListItem(BaseModel):
     full_name: str | None = None
     role: str = "intern"
     status: str
+    has_cv: bool = False
+    cv_file_name: str | None = None
+    cv_id: int | None = None
     phone_number: str | None = None
     dob: date | None = None
     gender: str | None = None
@@ -72,6 +75,7 @@ class InternListItem(BaseModel):
     academic_year: str | None = None
     gpa: Decimal | None = None
     address: str | None = None
+    avatar: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

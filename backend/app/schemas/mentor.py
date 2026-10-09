@@ -121,3 +121,4 @@ class MentorInternItemResponse(BaseModel):
     current_mentor_id: int | None = None
     current_mentor_name: str | None = None
     is_assigned: bool = False
+    avatar: str | None = None

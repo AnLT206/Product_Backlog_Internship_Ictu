@@ -7,10 +7,10 @@ Script chuẩn hóa và làm sạch toàn bộ dữ liệu CSDL theo yêu cầu:
     1. mentor@ictu.edu.vn (Trần Hoàng Quân - Kỹ thuật phần mềm)
     2. mentor2@ictu.edu.vn (Phạm Quốc Hướng - Kiểm thử chất lượng)
 - 2 TTS (active):
-    1. intern@ictu.edu.vn / TTS0001 (Nguyễn Văn Bình)
+    1. intern@ictu.edu.vn / TTS0001 (TTS)
     2. tts02@student.ictu.edu.vn / TTS0002 (Lê Hoàng Nam)
 - 1 Ứng viên (pending):
-    1. ungvien@ictu.edu.vn / TTS0003 (Nguyễn Văn An)
+    1. ungvien@ictu.edu.vn / TTS0003 (Ứng viên)
 """
 
 from app.core.database import SessionLocal
@@ -83,7 +83,7 @@ def run_reset():
             code="HR0001",
             email="hr@ictu.edu.vn",
             password_hash=hash_password("Hr@123"),
-            full_name="HR",
+            full_name="Hr",
             role_id=hr_role.id,
             status="active"
         )
@@ -135,7 +135,7 @@ def run_reset():
         )
         db.add(tts2)
 
-        # 1 Ứng viên (pending)
+        # 1 Ứng viên (pending - Chưa nộp hồ sơ, chưa ghép mentor)
         applicant = User(
             id=7,
             code="TTS0003",
@@ -154,7 +154,7 @@ def run_reset():
         db.add(UserProfile(user_id=mentor2.id, position="QA Lead Engineer", phone_number="0988.333.444", department_id=2))
         db.add(UserProfile(user_id=hr.id, position="HR Manager", phone_number="0988.555.666", department_id=1))
 
-        # Profile cho 2 TTS & 1 Ứng viên
+        # Profile cho 2 TTS chính thức & 1 Ứng viên
         db.add(InternProfile(
             user_id=tts1.id,
             status="approved",
@@ -200,12 +200,10 @@ def run_reset():
             db.commit()
 
         # Ban đầu:
-        # TTS1 (Nguyễn Văn Bình) phân công cho Mentor1 (Trần Hoàng Quân)
-        # TTS2 (Lê Hoàng Nam) phân công cho Mentor2 (Phạm Quốc Hướng)
-        # Ứng viên (Nguyễn Văn An) chưa có mentor
+        # TTS1 (TTS) phân công cho Mentor1 (mentor@ictu.edu.vn)
+        # TTS2 (Lê Hoàng Nam) phân công cho Mentor2 (mentor2@ictu.edu.vn)
         db.add(ProgramMember(program_id=program.id, intern_user_id=tts1.id, mentor_user_id=mentor1.id))
         db.add(ProgramMember(program_id=program.id, intern_user_id=tts2.id, mentor_user_id=mentor2.id))
-        db.add(ProgramMember(program_id=program.id, intern_user_id=applicant.id, mentor_user_id=None))
         db.commit()
 
         print("[7] Tạo dữ liệu mẫu Nhiệm vụ và Báo cáo cho 2 TTS...")
@@ -307,24 +305,34 @@ def run_reset():
         db.add(InternContractRecord(
             intern_id=tts1.id,
             contract_code="HDTT-2026-001",
-            doc_type="Hợp đồng Thực tập & Cam kết Bảo mật (NDA)",
+            doc_type="Hợp đồng Tiếp nhận Thực tập & Cam kết Bảo mật (NDA)",
+            start_date="01/10/2026",
+            end_date="31/12/2026",
+            allowance="3.000.000 đ/tháng",
+            department="Trung tâm Phát triển Phần mềm ICTU",
+            notes="Thực tập sinh chính thức đợt 1",
             signed_intern=True,
             signed_company=True,
             signed_ictu=True,
             cert="ICTU-CA Verified",
-            status="completed",
-            status_label="Đã hoàn tất 3 bên"
+            status="active",
+            status_label="Đang hiệu lực"
         ))
         db.add(InternContractRecord(
             intern_id=tts2.id,
             contract_code="HDTT-2026-002",
-            doc_type="Hợp đồng Thực tập & Cam kết Bảo mật (NDA)",
+            doc_type="Hợp đồng Tiếp nhận Thực tập & Cam kết Bảo mật (NDA)",
+            start_date="01/10/2026",
+            end_date="31/12/2026",
+            allowance="3.000.000 đ/tháng",
+            department="Phòng Nghiên cứu Công nghệ Số & AI",
+            notes="Thực tập sinh chính thức đợt 1",
             signed_intern=True,
             signed_company=True,
-            signed_ictu=False,
-            cert="ICTU-CA Pending",
-            status="pending",
-            status_label="Chờ xác nhận từ Trường"
+            signed_ictu=True,
+            cert="ICTU-CA Verified",
+            status="active",
+            status_label="Đang hiệu lực"
         ))
 
         # Báo cáo gửi nhà trường
@@ -334,7 +342,7 @@ def run_reset():
             target="Phòng Đào tạo & Ban HTDN - ĐH CNTT & TT (ICTU)",
             submit_date="28/09/2026",
             total_students=2,
-            signer="Trần Thị Mai - HR Manager",
+            signer="Hr",
             cert="ICTU-EDUSIGN #8821",
             status="sent",
             status_label="Đã chuyển gửi"

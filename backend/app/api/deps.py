@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Security, status
+from fastapi import Depends, HTTPException, Query, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -44,7 +44,44 @@ def get_current_user(
         raise _unauthorized()
 
     user = db.query(User).filter(User.id == user_id).first()
-    if user is None or user.status != "active":
+    if user is None or user.status == "inactive":
+        raise _unauthorized()
+
+    return user
+
+
+def get_current_user_flexible(
+	credentials: Annotated[
+		HTTPAuthorizationCredentials | None,
+		Security(bearer_scheme),
+	] = None,
+	token: str | None = Query(default=None),
+	db: Session = Depends(get_db),
+) -> User:
+    raw_token = None
+    if credentials is not None and credentials.scheme.lower() == "bearer":
+        raw_token = credentials.credentials
+    elif token:
+        raw_token = token
+
+    if not raw_token:
+        raise _unauthorized()
+
+    payload = verify_access_token(raw_token)
+    if payload is None:
+        raise _unauthorized()
+
+    subject = payload.get("sub")
+    try:
+        user_id = int(subject)
+    except (TypeError, ValueError):
+        raise _unauthorized() from None
+
+    if user_id <= 0:
+        raise _unauthorized()
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None or user.status == "inactive":
         raise _unauthorized()
 
     return user
@@ -86,5 +123,5 @@ def require_permission(permission_key: str) -> Callable:
 	return permission_dependency
 
 
-__all__ = ["get_db", "get_current_user", "require_roles", "require_permission"]
+__all__ = ["get_db", "get_current_user", "get_current_user_flexible", "require_roles", "require_permission"]
 

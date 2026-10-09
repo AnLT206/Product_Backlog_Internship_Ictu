@@ -18,14 +18,14 @@
 
   position: relative;
   isolation: isolate;
-  min-height: 100svh;
+  min-height: 100%;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 40px 20px 60px;
+  padding: 4px 0 32px;
   font-family: var(--fb-font);
   color: var(--fb-body);
-  background: #fff;
+  background: transparent;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -36,18 +36,9 @@
   box-sizing: border-box;
 }
 
-/* ── glow background (giống CreateAccountPage) ── */
+/* ── glow background (đã tắt để phẳng mượt trên background chung) ── */
 .intern-create-page__glow {
-  position: absolute;
-  inset: -20% auto auto 40%;
-  width: min(720px, 90vw);
-  height: min(720px, 90vw);
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 40% 40%, rgba(24, 119, 242, 0.16) 0%, rgba(24, 119, 242, 0.05) 42%, transparent 70%),
-    radial-gradient(circle at 70% 70%, rgba(14, 165, 233, 0.1) 0%, transparent 55%);
-  filter: blur(10px);
+  display: none;
 }
 
 /* ── shell / wrapper ── */
@@ -83,11 +74,9 @@
 .intern-create-card {
   width: 100%;
   background: #fff;
-  border-radius: 24px;
-  border: 1px solid var(--fb-line);
-  box-shadow:
-    0 4px 6px rgba(15, 23, 42, 0.03),
-    0 24px 48px rgba(15, 23, 42, 0.08);
+  border-radius: 20px;
+  border: none;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05);
   overflow: hidden;
 }
 
@@ -95,7 +84,7 @@
 .intern-create-header {
   padding: 32px 32px 12px;
   text-align: center;
-  border-bottom: 1px solid var(--fb-line);
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .intern-create-badge {

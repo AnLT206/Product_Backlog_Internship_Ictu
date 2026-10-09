@@ -4,10 +4,12 @@ import {
   LogOut,
   Menu,
   X,
-  Bell,
 } from 'lucide-react'
+import NotificationBell from './NotificationBell'
+import ErrorBoundary from './ErrorBoundary'
 import { useAuth } from '../../context/AuthContext'
 import { hasPermission } from '../../hooks/usePermission'
+import { getSavedAvatar } from '../../utils/avatarHelper'
 import logoApp from '../../assets/logo_app.png'
 import './EnterpriseAppShell.css'
 
@@ -22,6 +24,7 @@ export default function EnterpriseAppShell({
   topbarActions,
   userCardMeta,
   defaultUserName,
+  customUserName,
   avatarText,
   statusBadge,
   sidebarSectionLabel = 'CHỨC NĂNG CHÍNH',
@@ -34,12 +37,23 @@ export default function EnterpriseAppShell({
   const location = useLocation()
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [notifOpen, setNotifOpen] = useState(false)
+  const [, setAvatarTick] = useState(0)
 
-  // Close mobile sidebar and notif popover on route change
+  useEffect(() => {
+    const handleAvatarChange = () => setAvatarTick((t) => t + 1)
+    if (typeof window !== 'undefined') {
+      window.addEventListener('ictu_avatar_changed', handleAvatarChange)
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('ictu_avatar_changed', handleAvatarChange)
+      }
+    }
+  }, [])
+
+  // Close mobile sidebar on route change
   useEffect(() => {
     setMobileMenuOpen(false)
-    setNotifOpen(false)
   }, [location.pathname])
 
   function handleLogout() {
@@ -113,6 +127,42 @@ export default function EnterpriseAppShell({
               .filter((item) => !item.permission || hasPermission(user, item.permission))
               .map((item) => {
                 const active = isItemActive(item)
+                if (item.locked) {
+                  return (
+                    <div
+                      key={item.to}
+                      className="sidebar-nav-item is-locked"
+                      title={`${item.label} (Chức năng chưa cần đến - Đang tạm khóa để tinh gọn dữ liệu)`}
+                      onClick={() => {
+                        alert(`🔒 Chức năng "${item.label}" hiện chưa cần đến trong quy trình tiếp nhận & quản lý theo backlog. Đã được tạm khóa để tinh gọn dữ liệu.`);
+                      }}
+                      style={{
+                        opacity: 0.52,
+                        cursor: 'not-allowed',
+                        userSelect: 'none',
+                      }}
+                    >
+                      <span className="sidebar-nav-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '12px' }}>🔒</span>
+                        <span style={{ textDecoration: 'line-through' }}>{item.label}</span>
+                      </span>
+                      <span
+                        className="sidebar-nav-pill"
+                        style={{
+                          fontSize: '10.5px',
+                          background: '#f1f5f9',
+                          color: '#64748b',
+                          border: '1px solid #cbd5e1',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        Tạm khóa
+                      </span>
+                    </div>
+                  )
+                }
+
                 return (
                   <Link
                     key={item.to}
@@ -133,16 +183,42 @@ export default function EnterpriseAppShell({
 
         {/* Thẻ người dùng ở góc dưới */}
         <div className="sidebar-footer">
-          <div className={`user-profile-card ${adminUserCard ? 'user-profile-card--admin' : ''}`}>
+          <div
+            className={`user-profile-card ${adminUserCard ? 'user-profile-card--admin' : ''} ${user?.role === 'intern' ? 'user-profile-card--clickable' : ''}`}
+            onClick={() => {
+              if (user?.role === 'intern') {
+                navigate('/intern/profile');
+              }
+            }}
+            title={user?.role === 'intern' ? 'Xem và chỉnh sửa hồ sơ cá nhân' : undefined}
+          >
             <div className="user-avatar-wrap">
-              <div className={`user-avatar ${adminUserCard ? 'user-avatar--admin' : ''}`}>
-                {avatarText || (adminUserCard ? 'AD' : (user?.full_name || defaultUserName || user?.email || 'U').charAt(0).toUpperCase())}
-              </div>
+              {(() => {
+                const resolvedUserAvatar = user?.avatar || getSavedAvatar(user?.email, user?.id, user?.full_name)
+                return (
+                  <div className={`user-avatar ${adminUserCard ? 'user-avatar--admin' : ''} ${resolvedUserAvatar ? 'user-avatar--img-wrap' : ''}`}>
+                    {resolvedUserAvatar ? (
+                      <img
+                        src={resolvedUserAvatar}
+                        alt={user?.full_name || 'Avatar'}
+                        className="user-avatar-img"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                          if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'inline'
+                        }}
+                      />
+                    ) : null}
+                    <span style={{ display: resolvedUserAvatar ? 'none' : 'inline' }}>
+                      {avatarText || (adminUserCard ? 'AD' : (user?.full_name || defaultUserName || user?.email || 'U').charAt(0).toUpperCase())}
+                    </span>
+                  </div>
+                )
+              })()}
               {!adminUserCard && <span className="user-status-dot" title="Đang trực tuyến" />}
             </div>
             <div className="user-info">
-              <span className="user-name" title={user?.full_name || defaultUserName}>
-                {user?.full_name || defaultUserName || 'Người dùng ICTU'}
+              <span className="user-name" title={customUserName || user?.full_name || defaultUserName}>
+                {customUserName || user?.full_name || defaultUserName || 'Người dùng ICTU'}
               </span>
               <span className={`user-role-tag ${adminUserCard ? 'user-role-tag--blue' : ''}`} title={userCardMeta}>
                 {userCardMeta || (
@@ -211,98 +287,45 @@ export default function EnterpriseAppShell({
               </div>
             )}
 
-            {/* Chuông thông báo - Nhật ký hệ thống */}
+            {/* Chuông thông báo chuẩn hóa toàn hệ thống */}
             {showNotifications && (
-              <div className="notif-dropdown-wrapper">
-                <button
-                  type="button"
-                  className={`notif-btn ${notifOpen ? 'is-active' : ''}`}
-                  title="Thông báo nhật ký hệ thống"
-                  onClick={() => setNotifOpen(!notifOpen)}
-                >
-                  <Bell size={17} />
-                  <span className="notif-counter">2</span>
-                </button>
-
-                {notifOpen && (
-                  <div className="notif-popover" role="dialog" aria-label="Thông báo nhật ký hệ thống">
-                    <div className="notif-popover-header">
-                      <div className="notif-popover-title">
-                        <strong>Nhật ký hệ thống</strong>
-                        <span className="notif-pill-new">2 mới</span>
-                      </div>
-                      <button
-                        type="button"
-                        className="notif-close-btn"
-                        onClick={() => setNotifOpen(false)}
-                        aria-label="Đóng"
-                      >
-                        <X size={15} />
-                      </button>
-                    </div>
-
-                    <div className="notif-popover-list">
-                      <div
-                        className="notif-item notif-item--unread"
-                        onClick={() => {
-                          setNotifOpen(false)
-                          navigate(adminUserCard ? '/admin/system-logs' : '/admin/dashboard')
-                        }}
-                      >
-                        <div className="notif-dot notif-dot--info" />
-                        <div className="notif-content">
-                          <strong className="notif-title">Cấp quyền người dùng thành công</strong>
-                          <p className="notif-desc">Admin cấp quyền Mentor cho Nguyễn Văn Bình (Khoa CNTT)</p>
-                          <span className="notif-time">11:15:42 (25/08) · POST /api/v2/rbac/roles/assign</span>
-                        </div>
-                      </div>
-
-                      <div
-                        className="notif-item notif-item--unread"
-                        onClick={() => {
-                          setNotifOpen(false)
-                          navigate(adminUserCard ? '/admin/system-logs' : '/admin/dashboard')
-                        }}
-                      >
-                        <div className="notif-dot notif-dot--success" />
-                        <div className="notif-content">
-                          <strong className="notif-title">Xác thực 2FA TOTP kích hoạt</strong>
-                          <p className="notif-desc">TTS kích hoạt thành công qua Google Authenticator</p>
-                          <span className="notif-time">09:32:04 (25/08) · PUT /api/v2/auth/totp/verify-activate</span>
-                        </div>
-                      </div>
-
-                      <div
-                        className="notif-item"
-                        onClick={() => {
-                          setNotifOpen(false)
-                          navigate(adminUserCard ? '/admin/system-logs' : '/admin/dashboard')
-                        }}
-                      >
-                        <div className="notif-dot notif-dot--purple" />
-                        <div className="notif-content">
-                          <strong className="notif-title">Đồng bộ FastHRM tự động hoàn tất</strong>
-                          <p className="notif-desc">Đã đối soát 100% Khớp khóa UID (+48 hồ sơ mới)</p>
-                          <span className="notif-time">02:00:14 ICT · Webhook FastHRM Cloud</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="notif-popover-footer">
-                      <button
-                        type="button"
-                        className="notif-view-all-btn"
-                        onClick={() => {
-                          setNotifOpen(false)
-                          navigate(adminUserCard ? '/admin/system-logs' : '/admin/dashboard')
-                        }}
-                      >
-                        Xem toàn bộ nhật ký hệ thống &rarr;
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <NotificationBell
+                initialNotifications={
+                  adminUserCard
+                    ? [
+                        {
+                          id: 'log-1',
+                          title: 'Cấp quyền người dùng thành công',
+                          message: 'Admin cấp quyền Mentor cho TTS (Khoa CNTT) · POST /api/v2/rbac/roles/assign',
+                          time: '11:15:42',
+                          read: false,
+                          type: 'approval',
+                        },
+                        {
+                          id: 'log-2',
+                          title: 'Xác thực 2FA TOTP kích hoạt',
+                          message: 'TTS kích hoạt thành công qua Google Authenticator · PUT /api/v2/auth/totp/verify-activate',
+                          time: '09:32:04',
+                          read: false,
+                          type: 'ticket',
+                        },
+                        {
+                          id: 'log-3',
+                          title: 'Đồng bộ FastHRM tự động hoàn tất',
+                          message: 'Đã đối soát 100% Khớp khóa UID (+48 hồ sơ mới)',
+                          time: '02:00:14',
+                          read: true,
+                          type: 'attendance',
+                        },
+                      ]
+                    : undefined
+                }
+                onNotificationClick={() => {
+                  if (adminUserCard) {
+                    navigate('/admin/system-logs')
+                  }
+                }}
+              />
             )}
 
             {/* User Avatar */}
@@ -319,7 +342,9 @@ export default function EnterpriseAppShell({
 
         {/* ── NỘI DUNG CHÍNH (CONTENT AREA) ── */}
         <main className="enterprise-content">
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
       </div>
     </div>

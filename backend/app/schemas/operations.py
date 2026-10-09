@@ -44,7 +44,13 @@ class EvaluationSaveRequest(BaseModel):
 class ContractCreateRequest(BaseModel):
     intern_id: int
     contract_code: str
-    doc_type: str = "Thỏa thuận thực tập 3 bên & NDA"
+    doc_type: str = "Hợp đồng tiếp nhận thực tập & Cam kết bảo mật"
+    start_date: str | None = "01/10/2026"
+    end_date: str | None = "31/12/2026"
+    allowance: str | None = "3.000.000 đ/tháng"
+    department: str | None = "Trung tâm Phát triển Phần mềm ICTU"
+    notes: str | None = None
+    status: str = "active"
 
 
 # ── Intern Weekly Report Schema ──
@@ -52,4 +58,18 @@ class InternReportCreateRequest(BaseModel):
     week_title: str = Field(..., min_length=1, max_length=255)
     content: str = Field(..., min_length=1)
     file_name: str | None = None
+
+
+# ── Leave Request Schemas ──
+class LeaveRequestCreate(BaseModel):
+    type: str = Field(..., min_length=1)
+    startDate: str = Field(..., min_length=1)
+    endDate: str = Field(..., min_length=1)
+    session: str = "Cả ngày (08:15 - 17:30)"
+    duration: str = "1.0 ngày"
+    reason: str = Field(..., min_length=1)
+
+
+class LeaveRequestReview(BaseModel):
+    feedback: str | None = None
 

@@ -7,15 +7,17 @@ def fix_names():
     db = SessionLocal()
     try:
         user_updates = {
-            4: "Trần Hoàng Quân",
-            12: "Nguyễn Văn Bình",
-            17: "Nguyễn Văn An",
+            "admin@ictu.edu.vn": "Admin",
+            "hr@ictu.edu.vn": "HR",
+            "mentor@ictu.edu.vn": "Mentor",
+            "intern@ictu.edu.vn": "TTS",
+            "ungvien@ictu.edu.vn": "Ứng viên",
         }
-        for uid, name in user_updates.items():
-            u = db.query(User).filter(User.id == uid).first()
+        for email, name in user_updates.items():
+            u = db.query(User).filter(User.email == email).first()
             if u:
                 u.full_name = name
-                print(f"Updated user {uid} ({u.email}) -> {name}")
+                print(f"Updated user ({u.email}) -> {name}")
         db.commit()
         print("Commit successfully!")
         

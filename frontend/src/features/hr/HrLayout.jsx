@@ -5,39 +5,36 @@ import './HrLayout.css'
 const HR_NAV_ITEMS = [
   {
     to: '/hr/dashboard',
-    label: 'Xét duyệt hồ sơ & Tuyển dụng',
-    badge: '1',
-    permission: 'interns_view',
+    label: 'Tổng quan Dashboard',
     end: true,
   },
   {
-    to: '/hr/programs',
-    label: 'Quản lý Kỳ thực tập',
-    badge: 'Q3/2026',
-    badgeClass: 'badge--cyan',
-    permission: 'programs_manage',
+    to: '/hr/interns',
+    label: 'Quản lý hồ sơ TTS',
   },
   {
-    to: '/hr/mentors',
-    label: 'Phân công & Ghép cặp Mentor',
-    badge: '2/2',
-    permission: 'programs_assign',
+    to: '/hr/programs',
+    label: 'Kỳ thực tập tuyển dụng',
+  },
+  {
+    to: '/hr/mentor-assignment',
+    label: 'Điều phối & Gán Mentor',
   },
   {
     to: '/hr/attendance',
-    label: 'Tổng hợp công & Phụ cấp',
-    hasDot: true,
-    permission: 'attendance_hr',
+    label: 'Chấm công & Phụ cấp',
   },
   {
     to: '/hr/contracts',
-    label: 'Hợp đồng thực tập & Tiếp nhận',
-    permission: 'allowances',
+    label: 'Hợp đồng thực tập',
   },
   {
-    to: '/hr/reports',
-    label: 'Báo cáo gửi Nhà trường',
-    permission: 'stats_view',
+    to: '/hr/analytics',
+    label: 'Báo cáo & Thống kê KPI',
+  },
+  {
+    to: '/hr/tickets',
+    label: 'Yêu cầu hỗ trợ (Tickets)',
   },
 ]
 

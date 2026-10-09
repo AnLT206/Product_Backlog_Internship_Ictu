@@ -19,6 +19,7 @@ class AdminUserResponse(BaseModel):
     role: str
     status: UserStatus
     created_at: datetime | None = None
+    avatar: str | None = None
 
     model_config = {"from_attributes": True}
 

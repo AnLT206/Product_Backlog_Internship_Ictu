@@ -22,24 +22,30 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useDebounce from '../../hooks/useDebounce';
 import { getInterns, getFilterOptions } from '../../api/interns';
+import { getSavedAvatar } from '../../utils/avatarHelper';
 import InternActionButtons from './components/InternActionButtons';
+import { getRealtimeSyncState, subscribeRealtimeEvents } from '../../utils/realtimeSync';
 import './InternListPage.css';
 
 const DEFAULT_MAJORS = [
   'Công nghệ thông tin',
   'Kỹ thuật phần mềm',
-  'Hệ thống thông tin',
-  'An toàn thông tin',
   'Khoa học máy tính',
-  'Truyền thông đa phương tiện',
+  'An toàn thông tin',
+  'Hệ thống thông tin',
+  'Mạng máy tính & Truyền thông dữ liệu',
+  'Trí tuệ nhân tạo & Khoa học dữ liệu',
+  'Kỹ thuật máy tính',
 ];
 
 /* ─────────────────────────────────────────────
    Helper: avatar initials từ full_name
 ───────────────────────────────────────────── */
 function initials(full_name) {
-  const parts = (full_name ?? '').trim().split(/\s+/);
-  if (parts.length === 1) return (parts[0][0] ?? '?').toUpperCase();
+  const trimmed = (full_name ?? '').trim();
+  if (trimmed.toUpperCase() === 'TTS') return 'TTS';
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) return parts[0].length <= 3 ? parts[0].toUpperCase() : (parts[0][0] ?? '?').toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
@@ -57,10 +63,17 @@ function InternListPage() {
   /* ── Filter state ── */
   const [filterQ,     setFilterQ]     = useState('');
   const [filterMajor, setFilterMajor] = useState('');
+  const [filterUni,   setFilterUni]   = useState('');
   const [availableMajors, setAvailableMajors] = useState(DEFAULT_MAJORS);
+  const [availableUnis, setAvailableUnis] = useState([
+    'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+    'Đại học Thái Nguyên',
+    'Trường Đại học Kỹ thuật Công nghiệp',
+    'Trường Đại học Khoa học',
+  ]);
 
   /* ── Debounce chỉ trên ô tìm kiếm text (300ms) ──
-     Dropdown Ngành sẽ gọi API ngay (không qua debounce)    */
+     Dropdown Ngành & Trường sẽ gọi API ngay (không qua debounce)    */
   const debouncedQuery = useDebounce(filterQ, 300);
 
   /* ── Data state ── */
@@ -70,18 +83,23 @@ function InternListPage() {
   const [toast,    setToast]    = useState(null);
 
   /* Kiểm tra có lọc nào đang áp dụng không */
-  const hasActiveFilter = filterQ.trim() !== '' || filterMajor !== '';
+  const hasActiveFilter = filterQ.trim() !== '' || filterMajor !== '' || filterUni !== '';
 
   useEffect(() => {
     let isMounted = true;
     async function loadOptions() {
       try {
         const { ok, data } = await getFilterOptions();
-        if (isMounted && ok && Array.isArray(data?.majors) && data.majors.length > 0) {
-          setAvailableMajors(data.majors);
+        if (isMounted && ok) {
+          if (Array.isArray(data?.majors) && data.majors.length > 0) {
+            setAvailableMajors(Array.from(new Set([...DEFAULT_MAJORS, ...data.majors])));
+          }
+          if (Array.isArray(data?.universities) && data.universities.length > 0) {
+            setAvailableUnis(data.universities);
+          }
         }
       } catch {
-        // Giữ DEFAULT_MAJORS
+        // Giữ default
       }
     }
     loadOptions();
@@ -96,12 +114,84 @@ function InternListPage() {
   ───────────────────────────────────────────── */
   async function loadInterns() {
     const { ok, data } = await getInterns({
-      major: filterMajor,
-      q:     debouncedQuery.trim(),
-      page:  1,
+      major:      filterMajor,
+      university: filterUni,
+      q:          debouncedQuery.trim(),
+      page:       1,
     });
     if (ok) {
-      setInterns(data.items ?? []);
+      const syncState = getRealtimeSyncState();
+      let localCvSubmitted = false;
+      let localCvFileName = null;
+      try {
+        const cvSubRaw = localStorage.getItem('applicant_cv_submission');
+        if (cvSubRaw) {
+          const parsedCv = JSON.parse(cvSubRaw);
+          if (parsedCv?.file_name && parsedCv.file_name !== 'CV_UngVien.pdf') {
+            localCvSubmitted = true;
+            localCvFileName = parsedCv.file_name;
+          }
+        }
+      } catch {}
+
+      let hasActiveLocalReject = false;
+      try {
+        const decRaw = localStorage.getItem('applicant_decision_status');
+        if (decRaw) {
+          const dec = JSON.parse(decRaw);
+          if (dec?.status === 'rejected') {
+            hasActiveLocalReject = true;
+          }
+        }
+      } catch {}
+
+      const NON_INTERN_EMAILS = new Set([
+        'hr@ictu.edu.vn', 'hr2@ictu.edu.vn',
+        'admin@ictu.edu.vn',
+        'mentor@ictu.edu.vn', 'mentor2@ictu.edu.vn',
+      ]);
+      const isNonIntern = (item) => {
+        const email = (item?.email || '').toLowerCase().trim();
+        const role = (item?.role || '').toLowerCase().trim();
+        if (role && role !== 'intern' && role !== 'applicant') return true;
+        if (NON_INTERN_EMAILS.has(email)) return true;
+        if (email.startsWith('hr') && email.endsWith('@ictu.edu.vn') && !email.includes('student')) return true;
+        if (email.startsWith('admin') && email.endsWith('@ictu.edu.vn')) return true;
+        if (email.startsWith('mentor') && email.endsWith('@ictu.edu.vn')) return true;
+        return false;
+      };
+
+      const items = (data.items ?? []).filter((item) => !isNonIntern(item)).map((item) => {
+        const syncMatch = (syncState.applicants || []).find(
+          (a) => a.id === item.id || (item.email && a.email?.toLowerCase() === item.email?.toLowerCase())
+        );
+        const isApplicantAccount = item.email === 'ungvien@ictu.edu.vn' || item.id === 7;
+        const hasCv = Boolean(item.has_cv) ||
+          (Boolean(syncMatch?.cv_file) && syncMatch.cv_file !== 'CV_UngVien.pdf') ||
+          (isApplicantAccount && localCvSubmitted);
+
+        const activeReject = hasActiveLocalReject && syncMatch?.status !== 'pending';
+
+        let resolvedStatus = item.status;
+        if (item.status === 'active' || item.status === 'approved' || syncMatch?.status === 'approved') {
+          resolvedStatus = 'active';
+        } else if (syncMatch?.status === 'pending' || (isApplicantAccount && localCvSubmitted && !activeReject) || item.status === 'pending') {
+          resolvedStatus = 'pending';
+        } else if (activeReject || syncMatch?.status === 'rejected') {
+          resolvedStatus = 'inactive';
+        } else if (hasCv && item.status !== 'inactive' && item.status !== 'rejected') {
+          resolvedStatus = 'pending';
+        }
+
+        return {
+          ...item,
+          status: resolvedStatus,
+          has_cv: hasCv,
+          cv_file_name: item.cv_file_name || (isApplicantAccount && localCvSubmitted ? localCvFileName : syncMatch?.cv_file),
+          avatar: item.avatar || syncMatch?.avatar || getSavedAvatar(item.email, item.id, item.full_name),
+        };
+      });
+      setInterns(items);
       setLoadErr(null);
     } else {
       setLoadErr('Không thể tải danh sách thực tập sinh, vui lòng thử lại.');
@@ -111,18 +201,27 @@ function InternListPage() {
 
   /* ── useEffect:
      - Chạy lại khi debouncedQuery đổi (sau 300ms ngừng gõ)
-     - Chạy lại ngay khi filterMajor đổi (dropdown — không debounce)
+     - Chạy lại ngay khi filterMajor hoặc filterUni đổi (dropdown — không debounce)
      ESLint: "void" + setState SAU await (trong loadInterns)             */
   useEffect(() => {
     setLoading(true);
     void loadInterns();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQuery, filterMajor]);
+  }, [debouncedQuery, filterMajor, filterUni]);
+
+  useEffect(() => {
+    const unsub = subscribeRealtimeEvents(() => {
+      void loadInterns();
+    });
+    return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ── Reset bộ lọc ── */
   function handleClearFilter() {
     setFilterQ('');
     setFilterMajor('');
+    setFilterUni('');
   }
 
   /* ── Render ── */
@@ -214,6 +313,25 @@ function InternListPage() {
               <option value="">— Tất cả ngành —</option>
               {availableMajors.map((major) => (
                 <option key={major} value={major}>{major}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* ── Dropdown Trường học (university) — gọi API ngay ── */}
+          <div className="intern-filter-group">
+            <label className="intern-filter-label" htmlFor="intern-filter-uni">
+              Trường học
+            </label>
+            <select
+              id="intern-filter-uni"
+              className="intern-filter-select"
+              value={filterUni}
+              onChange={(e) => setFilterUni(e.target.value)}
+              aria-label="Lọc theo trường học"
+            >
+              <option value="">— Tất cả trường —</option>
+              {availableUnis.map((uni) => (
+                <option key={uni} value={uni}>{uni}</option>
               ))}
             </select>
           </div>
@@ -312,8 +430,22 @@ function InternListPage() {
                             className="intern-avatar"
                             aria-hidden="true"
                             title={intern.full_name}
+                            style={{ overflow: 'hidden' }}
                           >
-                            {initials(intern.full_name)}
+                            {intern.avatar ? (
+                              <img
+                                src={intern.avatar}
+                                alt={intern.full_name}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'inline';
+                                }}
+                              />
+                            ) : null}
+                            <span style={{ display: intern.avatar ? 'none' : 'inline' }}>
+                              {initials(intern.full_name)}
+                            </span>
                           </div>
                           <span className="intern-name-text">{intern.full_name}</span>
                         </div>
@@ -339,6 +471,10 @@ function InternListPage() {
                         <InternActionButtons
                           internId={intern.id}
                           status={intern.status}
+                          hasCv={Boolean(intern.has_cv)}
+                          cvFileName={intern.cv_file_name}
+                          cvId={intern.cv_id}
+                          intern={intern}
                           onSuccess={(toastPayload) => {
                             setToast(toastPayload);
                             loadInterns();

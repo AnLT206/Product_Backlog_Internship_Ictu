@@ -5,6 +5,9 @@ import { dashboardPathForRole } from '../../api/auth'
 import { useAuth } from '../../context/AuthContext'
 import './LoginPage.css'
 
+// Cấu hình hiển thị nút đăng nhập nhanh
+const SHOW_QUICK_LOGIN = true
+
 const QUICK_ACCOUNTS = [
   {
     role: 'Admin',
@@ -27,6 +30,12 @@ const QUICK_ACCOUNTS = [
   {
     role: 'TTS',
     email: 'intern@ictu.edu.vn',
+    password: 'Intern@123',
+    variant: 'intern',
+  },
+  {
+    role: 'Lê Hoàng Nam',
+    email: 'tts02@student.ictu.edu.vn',
     password: 'Intern@123',
     variant: 'intern',
   },
@@ -174,28 +183,32 @@ function LoginPage() {
               {loading && !quickLoadingRole ? 'Đang đăng nhập…' : 'Đăng nhập'}
             </button>
 
-            {/* ── Nút đăng nhập nhanh các vai trò ── */}
-            <div className="login-divider">
-              <span>Hoặc đăng nhập nhanh</span>
-            </div>
+            {SHOW_QUICK_LOGIN && (
+              <>
+                {/* ── Nút đăng nhập nhanh các vai trò ── */}
+                <div className="login-divider">
+                  <span>Hoặc đăng nhập nhanh</span>
+                </div>
 
-            <div className="login-quick-actions" aria-label="Đăng nhập nhanh các vai trò">
-              {QUICK_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.role}
-                  type="button"
-                  className={`login-quick-btn login-quick-btn--${acc.variant}`}
-                  onClick={() => handleQuickLogin(acc)}
-                  disabled={loading}
-                  title={`Đăng nhập nhanh với quyền ${acc.role}`}
-                >
-                  <span className="login-quick-btn__name">{acc.role}</span>
-                  {quickLoadingRole === acc.role && (
-                    <span className="login-quick-btn__spinner" aria-hidden="true" />
-                  )}
-                </button>
-              ))}
-            </div>
+                <div className="login-quick-actions" aria-label="Đăng nhập nhanh các vai trò">
+                  {QUICK_ACCOUNTS.map((acc) => (
+                    <button
+                      key={acc.role}
+                      type="button"
+                      className={`login-quick-btn login-quick-btn--${acc.variant}`}
+                      onClick={() => handleQuickLogin(acc)}
+                      disabled={loading}
+                      title={`Đăng nhập nhanh với quyền ${acc.role}`}
+                    >
+                      <span className="login-quick-btn__name">{acc.role}</span>
+                      {quickLoadingRole === acc.role && (
+                        <span className="login-quick-btn__spinner" aria-hidden="true" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
 
             <p className="login-switch">
               Chưa có tài khoản? <Link to="/register">Đăng ký thực tập</Link>

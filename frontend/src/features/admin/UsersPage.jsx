@@ -11,7 +11,18 @@ import {
   deleteUser,
   resetUserPassword,
 } from '../../api/admin'
+import { getSavedAvatar } from '../../utils/avatarHelper'
+import { getRealtimeSyncState, subscribeRealtimeEvents, syncAdminUserChange } from '../../utils/realtimeSync'
 import './AdminPage.css'
+
+function getUserInitials(name) {
+  const trimmed = (name || '').trim()
+  if (!trimmed) return '?'
+  if (trimmed.toUpperCase() === 'TTS') return 'TTS'
+  const parts = trimmed.split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
 
 const TABS = [
   { key: 'hr', label: 'HR', hint: 'Nhân sự' },
@@ -70,12 +81,29 @@ export default function UsersPage() {
   const [busy, setBusy] = useState(false)
   const [refreshTick, setRefreshTick] = useState(0)
 
+  const savedProfile = useMemo(() => {
+    try {
+      const p = localStorage.getItem('ictu_user_profile')
+      return p ? JSON.parse(p) : null
+    } catch {
+      return null
+    }
+  }, [refreshTick])
+
   useEffect(() => {
-    function handleUsersUpdated() {
+    function handleRefresh() {
       setRefreshTick((t) => t + 1)
     }
-    window.addEventListener('admin_users_updated', handleUsersUpdated)
-    return () => window.removeEventListener('admin_users_updated', handleUsersUpdated)
+    const unsubRealtime = subscribeRealtimeEvents(handleRefresh)
+    window.addEventListener('admin_users_updated', handleRefresh)
+    window.addEventListener('ictu_profile_updated', handleRefresh)
+    window.addEventListener('ictu_avatar_changed', handleRefresh)
+    return () => {
+      unsubRealtime()
+      window.removeEventListener('admin_users_updated', handleRefresh)
+      window.removeEventListener('ictu_profile_updated', handleRefresh)
+      window.removeEventListener('ictu_avatar_changed', handleRefresh)
+    }
   }, [])
 
   useEffect(() => {
@@ -98,8 +126,39 @@ export default function UsersPage() {
           )
           return
         }
-        setItems(Array.isArray(data?.items) ? data.items : [])
-        setTotal(typeof data?.total === 'number' ? data.total : 0)
+        const syncState = getRealtimeSyncState()
+        const rawList = Array.isArray(data?.items) ? data.items : []
+        const mergedList = rawList.map((u) => {
+          const resolvedAvatar = getSavedAvatar(u.email, u.id, u.full_name) || u.avatar
+          if (activeRole === 'intern') {
+            const match = (syncState.applicants || []).find(
+              (a) => a.id === u.id || (u.email && a.email?.toLowerCase() === u.email.toLowerCase())
+            )
+            if (match) {
+              let resolvedStatus = u.status
+              if (match.account_status === 'inactive' || match.is_frozen) {
+                resolvedStatus = 'inactive'
+              } else if (match.status === 'approved' || u.status === 'active') {
+                resolvedStatus = 'active'
+              } else if (match.status === 'rejected') {
+                resolvedStatus = 'inactive'
+              } else if (match.status === 'pending') {
+                resolvedStatus = 'pending'
+              }
+              return {
+                ...u,
+                status: resolvedStatus,
+                avatar: resolvedAvatar || match.avatar,
+              }
+            }
+          }
+          return {
+            ...u,
+            avatar: resolvedAvatar,
+          }
+        })
+        setItems(mergedList)
+        setTotal(typeof data?.total === 'number' ? data.total : mergedList.length)
       } catch {
         if (!cancelled) {
           setItems([])
@@ -155,6 +214,7 @@ export default function UsersPage() {
             return
           }
           patchUser(selected.id, { status: 'inactive' })
+          syncAdminUserChange({ action: 'freeze', user: { ...selected, status: 'inactive' } })
           showToast('Đã đóng băng tài khoản trong cơ sở dữ liệu thành công.')
           break
         }
@@ -165,6 +225,7 @@ export default function UsersPage() {
             return
           }
           patchUser(selected.id, { status: 'active' })
+          syncAdminUserChange({ action: 'unfreeze', user: { ...selected, status: 'active' } })
           showToast('Đã mở đóng băng tài khoản trong cơ sở dữ liệu thành công.')
           break
         }
@@ -184,10 +245,12 @@ export default function UsersPage() {
             showToast(res.data?.detail || 'Không thể xóa tài khoản người dùng.', 'error')
             return
           }
+          const deletedUser = selected
           const deletedId = selected.id
           setSelected(null)
           setItems((prev) => prev.filter((u) => u.id !== deletedId))
           setTotal((n) => Math.max(0, n - 1))
+          syncAdminUserChange({ action: 'delete', user: deletedUser })
           showToast('Đã xóa vĩnh viễn tài khoản khỏi cơ sở dữ liệu.', 'error')
           break
         }
@@ -201,41 +264,7 @@ export default function UsersPage() {
     }
   }
 
-  async function quickApprove(user, e) {
-    if (e) e.stopPropagation()
-    setBusy(true)
-    try {
-      const res = await updateUserStatus(user.id, 'active')
-      if (res.ok) {
-        patchUser(user.id, { status: 'active' })
-        showToast(`Đã duyệt kích hoạt tài khoản ${user.full_name || user.email} thành công!`, 'success')
-      } else {
-        showToast(res.data?.detail || 'Không thể duyệt tài khoản.', 'error')
-      }
-    } catch {
-      showToast('Lỗi khi duyệt tài khoản.', 'error')
-    } finally {
-      setBusy(false)
-    }
-  }
 
-  async function quickReject(user, e) {
-    if (e) e.stopPropagation()
-    setBusy(true)
-    try {
-      const res = await updateUserStatus(user.id, 'inactive')
-      if (res.ok) {
-        patchUser(user.id, { status: 'inactive' })
-        showToast(`Đã từ chối / khóa tài khoản ${user.full_name || user.email}.`, 'info')
-      } else {
-        showToast(res.data?.detail || 'Không thể từ chối tài khoản.', 'error')
-      }
-    } catch {
-      showToast('Lỗi khi từ chối tài khoản.', 'error')
-    } finally {
-      setBusy(false)
-    }
-  }
 
   return (
     <div className="admin-page">
@@ -259,21 +288,9 @@ export default function UsersPage() {
           <h1>Quản lý người dùng</h1>
           <p>Danh sách tài khoản theo vai trò HR, Mentor, Thực tập sinh và Quản trị viên.</p>
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <Link className="admin-page__cta" to="/admin/users/new">
-            + Tạo tài khoản
-          </Link>
-          {activeRole === 'intern' && (
-            <Link
-              className="admin-page__cta admin-page__cta--ghost"
-              to="/register"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Đăng ký TTS (công khai)
-            </Link>
-          )}
-        </div>
+        <Link className="admin-page__cta" to="/admin/users/new">
+          + Tạo tài khoản
+        </Link>
       </header>
 
       <section className="admin-page__card">
@@ -349,7 +366,36 @@ export default function UsersPage() {
                   className={selected?.id === user.id ? 'is-selected-row' : ''}
                 >
                   <td><strong className="admin-user-code">{user.code || `ID-${user.id}`}</strong></td>
-                  <td>{user.full_name || '—'}</td>
+                  <td>
+                    <div className="admin-user-cell">
+                      <div className="admin-avatar-thumb">
+                        {getSavedAvatar(user.email, user.id, user.full_name) || user.avatar ? (
+                          <img
+                            src={getSavedAvatar(user.email, user.id, user.full_name) || user.avatar}
+                            alt={user.full_name || ''}
+                            className="admin-avatar-img"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                              if (e.currentTarget.nextElementSibling) {
+                                e.currentTarget.nextElementSibling.style.display = 'flex'
+                              }
+                            }}
+                          />
+                        ) : null}
+                        <span
+                          className="admin-avatar-initials"
+                          style={{
+                            display: (getSavedAvatar(user.email, user.id, user.full_name) || user.avatar) ? 'none' : 'flex',
+                          }}
+                        >
+                          {getUserInitials(user.full_name || user.email)}
+                        </span>
+                      </div>
+                      <div className="admin-user-info">
+                        <span className="admin-user-name">{user.full_name || '—'}</span>
+                      </div>
+                    </div>
+                  </td>
                   <td>{user.email}</td>
                   <td>
                     <span
@@ -360,39 +406,13 @@ export default function UsersPage() {
                   </td>
                   <td>{formatDate(user.created_at)}</td>
                   <td className="admin-table__actions-col">
-                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
-                      {user.status === 'pending' && (
-                        <>
-                          <button
-                            type="button"
-                            className="btn-approve"
-                            style={{ padding: '4px 10px', fontSize: '12px' }}
-                            disabled={busy}
-                            onClick={(e) => quickApprove(user, e)}
-                            title="Duyệt kích hoạt tài khoản"
-                          >
-                            Duyệt
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-reject"
-                            style={{ padding: '4px 10px', fontSize: '12px' }}
-                            disabled={busy}
-                            onClick={(e) => quickReject(user, e)}
-                            title="Từ chối tài khoản"
-                          >
-                            Từ chối
-                          </button>
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        className="admin-action-btn"
-                        onClick={() => setSelected(user)}
-                      >
-                        Hành động
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      className="admin-action-btn"
+                      onClick={() => setSelected(user)}
+                    >
+                      Hành động
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -416,9 +436,34 @@ export default function UsersPage() {
             aria-labelledby="user-action-title"
           >
             <header className="admin-drawer__head">
-              <div>
-                <p className="admin-drawer__eyebrow">Thao tác tài khoản</p>
-                <h2 id="user-action-title">{selected.full_name || selected.email}</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div className="admin-avatar-thumb admin-avatar-thumb--lg">
+                  {getSavedAvatar(selected.email, selected.id, selected.full_name) || selected.avatar ? (
+                    <img
+                      src={getSavedAvatar(selected.email, selected.id, selected.full_name) || selected.avatar}
+                      alt={selected.full_name || ''}
+                      className="admin-avatar-img"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                        if (e.currentTarget.nextElementSibling) {
+                          e.currentTarget.nextElementSibling.style.display = 'flex'
+                        }
+                      }}
+                    />
+                  ) : null}
+                  <span
+                    className="admin-avatar-initials"
+                    style={{
+                      display: (getSavedAvatar(selected.email, selected.id, selected.full_name) || selected.avatar) ? 'none' : 'flex',
+                    }}
+                  >
+                    {getUserInitials(selected.full_name || selected.email)}
+                  </span>
+                </div>
+                <div>
+                  <p className="admin-drawer__eyebrow">Thao tác tài khoản</p>
+                  <h2 id="user-action-title">{selected.full_name || selected.email}</h2>
+                </div>
               </div>
               <button
                 type="button"
@@ -447,6 +492,31 @@ export default function UsersPage() {
                       <td>{selected.full_name || '—'}</td>
                     </tr>
                     <tr>
+                      <th>Ảnh đại diện</th>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div className="admin-avatar-thumb admin-avatar-thumb--sm">
+                            {getSavedAvatar(selected.email, selected.id, selected.full_name) || selected.avatar ? (
+                              <img
+                                src={getSavedAvatar(selected.email, selected.id, selected.full_name) || selected.avatar}
+                                alt={selected.full_name || ''}
+                                className="admin-avatar-img"
+                              />
+                            ) : (
+                              <span className="admin-avatar-initials">
+                                {getUserInitials(selected.full_name || selected.email)}
+                              </span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '12px', color: '#64748b' }}>
+                            {getSavedAvatar(selected.email, selected.id, selected.full_name) || selected.avatar
+                              ? 'Đã đồng bộ ảnh hồ sơ'
+                              : 'Chưa cập nhật ảnh đại diện'}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr>
                       <th>Email</th>
                       <td>{selected.email}</td>
                     </tr>
@@ -468,43 +538,50 @@ export default function UsersPage() {
                       <th>Ngày tạo</th>
                       <td>{formatDateTime(selected.created_at)}</td>
                     </tr>
+                    {selected.role === 'intern' && (
+                      <>
+                        <tr>
+                          <th>Số điện thoại</th>
+                          <td>{savedProfile?.phone || selected.phone_number || '0987654321'}</td>
+                        </tr>
+                        <tr>
+                          <th>Số CCCD</th>
+                          <td>{savedProfile?.cccd || '001203019876'}</td>
+                        </tr>
+                        <tr>
+                          <th>Địa chỉ</th>
+                          <td>{savedProfile?.address || 'Phường Quyết Thắng, TP. Thái Nguyên'}</td>
+                        </tr>
+                        <tr>
+                          <th>Tài khoản ngân hàng</th>
+                          <td>{savedProfile?.bank_account ? `${savedProfile.bank_name || 'MB Bank'} • ${savedProfile.bank_account}` : 'MB Bank • 999908123456'}</td>
+                        </tr>
+                      </>
+                    )}
                   </tbody>
                 </table>
               </div>
 
+              {selected.role === 'intern' && selected.status === 'pending' && (
+                <div
+                  style={{
+                    padding: '10px 14px',
+                    background: '#fffbeb',
+                    border: '1px solid #fde68a',
+                    borderRadius: '8px',
+                    color: '#92400e',
+                    fontSize: '13px',
+                    lineHeight: 1.5,
+                    marginBottom: '14px',
+                  }}
+                >
+                  ℹ️ <strong>Hồ sơ thực tập sinh đang chờ duyệt:</strong> Thẩm quyền xét duyệt hồ sơ ứng viên/TTS thuộc về Bộ phận Nhân sự (HR). Quản trị viên (Admin) không thực hiện duyệt hoặc từ chối hồ sơ ứng viên.
+                </div>
+              )}
+
               <h3>Hành động</h3>
               <div className="admin-drawer__actions">
-                {selected.status === 'pending' ? (
-                  <>
-                    <button
-                      type="button"
-                      className="admin-drawer__action btn-approve"
-                      style={{ backgroundColor: '#2563eb', color: '#fff', border: '1px solid #1d4ed8' }}
-                      disabled={busy}
-                      onClick={() => runAction('unfreeze')}
-                    >
-                      Duyệt tài khoản
-                    </button>
-                    <button
-                      type="button"
-                      className="admin-drawer__action btn-reject"
-                      style={{ backgroundColor: '#ef4444', color: '#fff', border: '1px solid #dc2626' }}
-                      disabled={busy}
-                      onClick={() => runAction('freeze')}
-                    >
-                      Từ chối / Khóa
-                    </button>
-                  </>
-                ) : selected.status !== 'inactive' ? (
-                  <button
-                    type="button"
-                    className="admin-drawer__action"
-                    disabled={busy}
-                    onClick={() => runAction('freeze')}
-                  >
-                    Đóng băng tài khoản
-                  </button>
-                ) : (
+                {selected.status === 'inactive' ? (
                   <button
                     type="button"
                     className="admin-drawer__action btn-approve"
@@ -513,6 +590,15 @@ export default function UsersPage() {
                     onClick={() => runAction('unfreeze')}
                   >
                     Mở đóng băng (Kích hoạt)
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="admin-drawer__action"
+                    disabled={busy}
+                    onClick={() => runAction('freeze')}
+                  >
+                    Đóng băng tài khoản
                   </button>
                 )}
 

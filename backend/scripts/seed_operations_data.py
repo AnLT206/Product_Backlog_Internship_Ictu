@@ -40,11 +40,11 @@ def seed_all():
 
         intern_data = [
             ("TTS0001", "tts01@student.ictu.edu.vn", "Hoàng Anh TTS", "pending", "Khoa CNTT", "Công nghệ thông tin", "0912345001", 3.2),
-            ("TTS0002", "binh.nv@ictu.edu.vn", "Nguyễn Văn Bình", "active", "Khoa CNTT", "Công nghệ thông tin", "0912345002", 3.6),
+            ("TTS0002", "binh.nv@ictu.edu.vn", "TTS", "active", "Khoa CNTT", "Công nghệ thông tin", "0912345002", 3.6),
             ("TTS0003", "dung.vu@ictu.edu.vn", "Dũng Vũ", "active", "Khoa KTPM", "Kỹ thuật phần mềm", "0912345003", 3.8),
             ("TTS0004", "nam.lh@ictu.edu.vn", "Lê Hoàng Nam", "active", "Khoa ATTT", "An toàn thông tin", "0912345004", 3.5),
             ("TTS0005", "trang.pm@ictu.edu.vn", "Phạm Minh Trang", "active", "Khoa HTTT", "Hệ thống thông tin", "0912345005", 3.7),
-            ("TTS0006", "an.nv@ictu.edu.vn", "Nguyễn Văn An", "pending", "Khoa KTPM", "Kỹ thuật phần mềm", "0912345006", 3.3),
+            ("TTS0006", "an.nv@ictu.edu.vn", "Ứng viên", "pending", "Khoa KTPM", "Kỹ thuật phần mềm", "0912345006", 3.3),
         ]
 
         created_interns = []
@@ -236,7 +236,7 @@ def seed_all():
                     target="Phòng Quản lý Đào tạo & Khoa CNTT - ICTU",
                     submit_date="05/08/2026",
                     total_students=15,
-                    signer="Trần Thị Mai (HR Manager)",
+                    signer="Hr",
                     cert="ICTU-CA e-Seal #99482",
                     status="sent",
                     status_label="Đã tiếp nhận & Lưu kho"
@@ -247,7 +247,7 @@ def seed_all():
                     target="Khoa Công nghệ Thông tin & Khoa KTPM - ICTU",
                     submit_date="15/09/2026",
                     total_students=15,
-                    signer="Lê Tuấn Hùng (Tech Lead / Mentor)",
+                    signer="Mentor",
                     cert="ICTU-CA e-Seal #99831",
                     status="sent",
                     status_label="Đã thẩm tra xong"
@@ -258,7 +258,7 @@ def seed_all():
                     target="Phòng Đào tạo Đại học ICTU (Cổng edusoft.ictu.edu.vn)",
                     submit_date="Chưa chốt (Dự kiến 25/10/2026)",
                     total_students=15,
-                    signer="Hội đồng Doanh nghiệp & Mentor",
+                    signer="Mentor",
                     cert="Chờ ký số cuối kỳ",
                     status="pending",
                     status_label="Đang tổng hợp tuần 8/12"
@@ -269,7 +269,7 @@ def seed_all():
                     target="Trung tâm Hợp tác Doanh nghiệp & Khởi nghiệp ICTU",
                     submit_date="20/09/2026",
                     total_students=15,
-                    signer="Ban Giám đốc & HR",
+                    signer="Hr",
                     cert="ICTU-CA e-Seal #99620",
                     status="sent",
                     status_label="Đã hoàn tất gửi"

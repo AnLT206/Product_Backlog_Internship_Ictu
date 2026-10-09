@@ -10,8 +10,9 @@
  * Theme : kế thừa RegisterPage.css (màu, font, input, button)
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createProgram } from '../../api/programs';
+import { getDepartments } from '../../api/mentors';
 import './ProgramFormPage.css';
 
 /* ─────────────────────────────────────────────
@@ -73,9 +74,24 @@ function ProgramFormPage() {
     start_date: '',
     end_date: '',
   });
+  const [departments, setDepartments] = useState([]);
   const [errors, setErrors]   = useState({});
   const [loading, setLoading] = useState(false);
   const [toast, setToast]     = useState(null); // { type: 'success'|'error', message: string }
+
+  useEffect(() => {
+    let isMounted = true;
+    getDepartments()
+      .then((res) => {
+        if (isMounted && res.ok && Array.isArray(res.data) && res.data.length > 0) {
+          setDepartments(res.data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   /* ── Handlers ── */
   function handleChange(e) {
@@ -231,16 +247,30 @@ function ProgramFormPage() {
               <label htmlFor="prog-department">
                 Phòng ban <span className="required">*</span>
               </label>
-              <input
+              <select
                 id="prog-department"
                 name="department"
-                type="text"
-                placeholder="VD: Công nghệ thông tin"
-                autoComplete="off"
                 value={form.department}
                 onChange={handleChange}
                 aria-describedby={errors.department ? 'err-prog-dept' : undefined}
-              />
+              >
+                <option value="">— Chọn phòng ban —</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.name}>
+                    {d.name}
+                  </option>
+                ))}
+                {departments.length === 0 && (
+                  <>
+                    <option value="Công nghệ thông tin">Công nghệ thông tin</option>
+                    <option value="Phát triển phần mềm">Phát triển phần mềm</option>
+                    <option value="Đảm bảo chất lượng (QA/QC)">Đảm bảo chất lượng (QA/QC)</option>
+                    <option value="Thiết kế UI/UX">Thiết kế UI/UX</option>
+                    <option value="Dữ liệu & Trí tuệ nhân tạo (AI)">Dữ liệu & Trí tuệ nhân tạo (AI)</option>
+                    <option value="An ninh mạng & Hệ thống">An ninh mạng & Hệ thống</option>
+                  </>
+                )}
+              </select>
               {errors.department && (
                 <span id="err-prog-dept" className="form-error" role="alert">
                   {errors.department}

@@ -21,6 +21,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getInternById, updateIntern, uploadInternCv, buildToast } from '../../api/interns';
+import { getDocumentDownloadUrl } from '../../api/documents';
+import CvPreviewModal from './components/CvPreviewModal';
 import './InternCreatePage.css'; // Kế thừa toàn bộ theme/CSS
 
 /* ─────────────────────────────────────────────
@@ -72,12 +74,10 @@ function validateForm(form) {
     errors.gender = 'Giới tính không hợp lệ.';
 
   const university = form.university.trim();
-  if (!university)                  errors.university = 'Vui lòng nhập tên trường.';
-  else if (university.length > 150) errors.university = 'Tên trường không được vượt quá 150 ký tự.';
+  if (university && university.length > 150) errors.university = 'Tên trường không được vượt quá 150 ký tự.';
 
   const major = form.major.trim();
-  if (!major)                  errors.major = 'Vui lòng nhập ngành học.';
-  else if (major.length > 150) errors.major = 'Ngành học không được vượt quá 150 ký tự.';
+  if (major && major.length > 150) errors.major = 'Ngành học không được vượt quá 150 ký tự.';
 
   if (form.academic_year && form.academic_year.length > 50)
     errors.academic_year = 'Năm học không được vượt quá 50 ký tự.';
@@ -152,6 +152,9 @@ function InternEditPage() {
   const [cvFile, setCvFile]       = useState(null);
   const [cvError, setCvError]     = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  const [existingCv, setExistingCv] = useState(null);
+  const [showCvModal, setShowCvModal] = useState(false);
+  const [internRaw, setInternRaw]   = useState(null);
 
   /* ── loadInternData khai báo TRƯỚC useEffect — tránh ESLint lỗi ── */
   async function loadInternData() {
@@ -159,6 +162,9 @@ function InternEditPage() {
     if (ok) {
       setForm(mapApiToForm(data));
       setInternEmail(data.email ?? '');
+      setInternRaw(data);
+      const cvDoc = data.documents?.find((d) => d.doc_type === 'cv') || null;
+      setExistingCv(cvDoc);
     } else {
       setLoadError(
         status === 404
@@ -383,24 +389,41 @@ function InternEditPage() {
                   Thông tin cơ bản
                 </legend>
 
-                {/* Họ và tên */}
-                <div className={`form-group${errors.full_name ? ' form-group--error' : ''}`}>
-                  <label htmlFor="ie-full-name">
-                    Họ và tên <span className="intern-create-required">*</span>
-                  </label>
-                  <input
-                    id="ie-full-name"
-                    name="full_name"
-                    type="text"
-                    placeholder="VD: Nguyễn Văn A"
-                    autoComplete="off"
-                    value={form.full_name}
-                    onChange={handleChange}
-                    aria-describedby={errors.full_name ? 'err-ie-name' : undefined}
-                  />
-                  {errors.full_name && (
-                    <span id="err-ie-name" className="form-error" role="alert">{errors.full_name}</span>
-                  )}
+                {/* Hàng 1: Họ và tên + Ngày sinh */}
+                <div className="intern-create-row">
+                  <div className={`form-group${errors.full_name ? ' form-group--error' : ''}`}>
+                    <label htmlFor="ie-full-name">
+                      Họ và tên <span className="intern-create-required">*</span>
+                    </label>
+                    <input
+                      id="ie-full-name"
+                      name="full_name"
+                      type="text"
+                      placeholder="VD: Nguyễn Văn A"
+                      autoComplete="off"
+                      value={form.full_name}
+                      onChange={handleChange}
+                      aria-describedby={errors.full_name ? 'err-ie-name' : undefined}
+                    />
+                    {errors.full_name && (
+                      <span id="err-ie-name" className="form-error" role="alert">{errors.full_name}</span>
+                    )}
+                  </div>
+
+                  <div className={`form-group${errors.dob ? ' form-group--error' : ''}`}>
+                    <label htmlFor="ie-dob">Ngày sinh</label>
+                    <input
+                      id="ie-dob"
+                      name="dob"
+                      type="date"
+                      value={form.dob}
+                      onChange={handleChange}
+                      aria-describedby={errors.dob ? 'err-ie-dob' : undefined}
+                    />
+                    {errors.dob && (
+                      <span id="err-ie-dob" className="form-error" role="alert">{errors.dob}</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Số điện thoại */}
@@ -421,41 +444,24 @@ function InternEditPage() {
                   )}
                 </div>
 
-                {/* Ngày sinh + Giới tính */}
-                <div className="intern-create-row">
-                  <div className={`form-group${errors.dob ? ' form-group--error' : ''}`}>
-                    <label htmlFor="ie-dob">Ngày sinh</label>
-                    <input
-                      id="ie-dob"
-                      name="dob"
-                      type="date"
-                      value={form.dob}
-                      onChange={handleChange}
-                      aria-describedby={errors.dob ? 'err-ie-dob' : undefined}
-                    />
-                    {errors.dob && (
-                      <span id="err-ie-dob" className="form-error" role="alert">{errors.dob}</span>
-                    )}
-                  </div>
-
-                  <div className={`form-group${errors.gender ? ' form-group--error' : ''}`}>
-                    <label htmlFor="ie-gender">Giới tính</label>
-                    <select
-                      id="ie-gender"
-                      name="gender"
-                      value={form.gender}
-                      onChange={handleChange}
-                      aria-describedby={errors.gender ? 'err-ie-gender' : undefined}
-                    >
-                      <option value="">— Chọn giới tính —</option>
-                      {GENDER_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                    {errors.gender && (
-                      <span id="err-ie-gender" className="form-error" role="alert">{errors.gender}</span>
-                    )}
-                  </div>
+                {/* Giới tính */}
+                <div className={`form-group${errors.gender ? ' form-group--error' : ''}`}>
+                  <label htmlFor="ie-gender">Giới tính</label>
+                  <select
+                    id="ie-gender"
+                    name="gender"
+                    value={form.gender}
+                    onChange={handleChange}
+                    aria-describedby={errors.gender ? 'err-ie-gender' : undefined}
+                  >
+                    <option value="">— Chọn giới tính —</option>
+                    {GENDER_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  {errors.gender && (
+                    <span id="err-ie-gender" className="form-error" role="alert">{errors.gender}</span>
+                  )}
                 </div>
 
                 {/* Địa chỉ */}
@@ -486,7 +492,7 @@ function InternEditPage() {
                 {/* Trường đại học */}
                 <div className={`form-group${errors.university ? ' form-group--error' : ''}`}>
                   <label htmlFor="ie-university">
-                    Trường đại học <span className="intern-create-required">*</span>
+                    Trường đại học / cao đẳng (nếu có)
                   </label>
                   <input
                     id="ie-university"
@@ -506,18 +512,29 @@ function InternEditPage() {
                 {/* Ngành học */}
                 <div className={`form-group${errors.major ? ' form-group--error' : ''}`}>
                   <label htmlFor="ie-major">
-                    Ngành học <span className="intern-create-required">*</span>
+                    Ngành học (nếu có)
                   </label>
                   <input
                     id="ie-major"
                     name="major"
                     type="text"
+                    list="it-majors-edit-list"
                     placeholder="VD: Công nghệ thông tin"
                     autoComplete="off"
                     value={form.major}
                     onChange={handleChange}
                     aria-describedby={errors.major ? 'err-ie-major' : undefined}
                   />
+                  <datalist id="it-majors-edit-list">
+                    <option value="Công nghệ thông tin" />
+                    <option value="Kỹ thuật phần mềm" />
+                    <option value="Khoa học máy tính" />
+                    <option value="An toàn thông tin" />
+                    <option value="Hệ thống thông tin" />
+                    <option value="Mạng máy tính & Truyền thông dữ liệu" />
+                    <option value="Trí tuệ nhân tạo & Khoa học dữ liệu" />
+                    <option value="Kỹ thuật máy tính" />
+                  </datalist>
                   {errors.major && (
                     <span id="err-ie-major" className="form-error" role="alert">{errors.major}</span>
                   )}
@@ -586,6 +603,96 @@ function InternEditPage() {
               <p style={{ margin: '0 0 16px', fontSize: 13.5, color: '#65676b' }}>
                 Cập nhật bản CV hoặc tài liệu đính kèm của ứng viên (PDF, DOC, DOCX - tối đa 5MB).
               </p>
+
+              {/* Hiển thị CV hiện tại của ứng viên (nếu có) */}
+              {existingCv && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: '#f0f9ff',
+                    border: '1.5px solid #bae6fd',
+                    borderRadius: '12px',
+                    padding: '14px 18px',
+                    marginBottom: '16px',
+                    gap: '12px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '8px',
+                        background: '#0284c7',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '12px',
+                      }}
+                    >
+                      {existingCv.file_name.split('.').pop().toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>
+                        {existingCv.file_name}
+                      </div>
+                      <div style={{ fontSize: '12.5px', color: '#0369a1', marginTop: '2px' }}>
+                        ✓ Đã có bản CV của ứng viên trên hệ thống
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowCvModal(true)}
+                      style={{
+                        background: '#0284c7',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span>👁️</span>
+                      <span>Xem trước CV</span>
+                    </button>
+                    <a
+                      href={getDocumentDownloadUrl(existingCv.id)}
+                      download={existingCv.file_name}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        background: '#ffffff',
+                        color: '#334155',
+                        border: '1px solid #cbd5e1',
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span>⬇️</span>
+                      <span>Tải về</span>
+                    </a>
+                  </div>
+                </div>
+              )}
 
               {!cvFile ? (
                 <div
@@ -677,6 +784,25 @@ function InternEditPage() {
           </form>
         </div>
       </div>
+
+      {/* Modal xem trước CV */}
+      {showCvModal && existingCv && (
+        <CvPreviewModal
+          isOpen={showCvModal}
+          onClose={() => setShowCvModal(false)}
+          intern={{
+            id: internId,
+            full_name: form.full_name,
+            email: internEmail,
+            university: form.university,
+            major: form.major,
+            gpa: form.gpa,
+            status: internRaw?.status || 'pending',
+            cv_id: existingCv.id,
+            cv_file_name: existingCv.file_name,
+          }}
+        />
+      )}
     </div>
   );
 }

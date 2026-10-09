@@ -211,16 +211,23 @@ export default function WeeklyReportForm({
       await new Promise((resolve) => setTimeout(resolve, 800));
 
       // Gọi API thực tế lưu trực tiếp vào CSDL MySQL của hệ thống
-      const token = localStorage.getItem("token") || "";
-      await fetch("/api/intern/weekly-reports", {
-        method: "POST",
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: formData,
-      }).catch((err) => {
+      const token = localStorage.getItem("access_token") || localStorage.getItem("token") || "";
+      let createdReportId = Date.now();
+      try {
+        const res = await fetch("/api/intern/weekly-reports", {
+          method: "POST",
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: formData,
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData?.id) createdReportId = resData.id;
+        }
+      } catch (err) {
         console.warn("API fallback simulation:", err);
-      });
+      }
 
       // Ngày nộp hiện tại định dạng DD/MM/YYYY
       const now = new Date();
@@ -228,7 +235,9 @@ export default function WeeklyReportForm({
 
       // Bản ghi mới được tạo ra đầy đủ các trường tương thích
       const newHistoryRecord = {
-        id: Date.now(),
+        id: createdReportId,
+        intern_id: 5,
+        mentor_id: 3,
         week: reportTime,
         report_time: reportTime,
         week_title: `Báo cáo (${reportTime})`,
@@ -253,6 +262,8 @@ export default function WeeklyReportForm({
         const existing = raw ? JSON.parse(raw) : [];
         if (Array.isArray(existing)) {
           localStorage.setItem("intern_report_history", JSON.stringify([newHistoryRecord, ...existing]));
+          window.dispatchEvent(new Event('storage'));
+          window.dispatchEvent(new CustomEvent('intern_data_changed'));
         }
       } catch (err) {
         console.warn("LocalStorage write error:", err);

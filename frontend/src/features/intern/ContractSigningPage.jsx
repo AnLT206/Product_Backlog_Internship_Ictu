@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { getSavedUserProfile } from './InternProfilePage';
+import { syncContractSigning, extractPartyBContractInfo } from '../../utils/realtimeSync';
 import './ContractSigningPage.css';
 
 /**
@@ -8,7 +11,17 @@ import './ContractSigningPage.css';
  * 1. Khung hiển thị nội dung hợp đồng (chiều cao cố định 500px, cuộn dọc overflow-y: auto)
  * 2. Phía dưới cùng là Checkbox đồng ý điều khoản kèm state isChecked
  */
-export default function ContractSigningPage({ internName = 'Nguyễn Văn Bình', onConfirmSign }) {
+export default function ContractSigningPage({ internName = 'TTS', onConfirmSign, internId = 1 }) {
+  const { user } = useAuth();
+  const savedProfile = getSavedUserProfile(user);
+  const partyB = extractPartyBContractInfo({
+    full_name: internName || savedProfile.full_name,
+    student_code: savedProfile.student_code,
+    university: savedProfile.university,
+    phone: savedProfile.phone,
+    email: savedProfile.email,
+  });
+
   // Khởi tạo state isChecked để bắt sự kiện thay đổi của checkbox
   const [isChecked, setIsChecked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,6 +32,9 @@ export default function ContractSigningPage({ internName = 'Nguyễn Văn Bình'
 
     try {
       setIsSubmitting(true);
+      // Đồng bộ thời gian thực đa chiều sang HR Dashboard
+      syncContractSigning(internId, partyB.fullName || internName);
+
       // Gọi callback hoặc API lưu trạng thái ký kết
       if (onConfirmSign) {
         await onConfirmSign();
@@ -52,8 +68,7 @@ export default function ContractSigningPage({ internName = 'Nguyễn Văn Bình'
             <h3>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h3>
             <p className="contract-subtitle">Độc lập - Tự do - Hạnh phúc</p>
 
-            <h3 style={{ margin: '20px 0 6px' }}>HỢP ĐỒNG THỎA THUẬN THỰC TẬP TỐT NGHIỆP</h3>
-            <p className="contract-subtitle">Số: 2026/HĐTT-ICTU</p>
+            <h3 style={{ margin: '20px 0 16px' }}>HỢP ĐỒNG THỎA THUẬN THỰC TẬP TỐT NGHIỆP</h3>
 
             <div className="contract-section">
               <h4>BÊN A: ĐƠN VỊ TIẾP NHẬN THỰC TẬP (DOANH NGHIỆP)</h4>
@@ -62,8 +77,19 @@ export default function ContractSigningPage({ internName = 'Nguyễn Văn Bình'
             </div>
 
             <div className="contract-section">
-              <h4>BÊN B: THỰC TẬP SINH (ỨNG VIÊN)</h4>
-              <p>Họ và tên: <strong>{internName}</strong></p>
+              <h4>BÊN B: {partyB.isStudent ? 'SINH VIÊN THỰC TẬP (ỨNG VIÊN)' : 'THỰC TẬP SINH TIẾP NHẬN (ỨNG VIÊN)'}</h4>
+              <p>Họ và tên: <strong>{partyB.fullName}</strong></p>
+              {partyB.isStudent ? (
+                <>
+                  <p>Mã sinh viên: <strong>{partyB.studentCode}</strong></p>
+                  <p>Cơ sở đào tạo: <strong>{partyB.university}</strong></p>
+                </>
+              ) : (
+                <>
+                  <p>Số điện thoại: <strong>{partyB.phone}</strong></p>
+                  <p>Email liên hệ: <strong>{partyB.email}</strong></p>
+                </>
+              )}
               <p>Chương trình: Đào tạo thực tập doanh nghiệp đợt 1 - 2026</p>
             </div>
 

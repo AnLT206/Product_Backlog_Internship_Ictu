@@ -1,9 +1,10 @@
-/* ── STYLES CHO LỊCH THỰC TẬP CÁ NHÂN (Story 1) ── */
 .schedule-container {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   max-width: 1400px;
+  width: 100%;
+  overflow-x: hidden;
   margin: 0 auto;
 }
 

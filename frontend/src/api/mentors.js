@@ -136,4 +136,18 @@ export async function assignMentorInterns(mentorId, internIds) {
   });
 }
 
+/**
+ * Phân công Mentor cho danh sách Thực tập sinh (Batch Assignment).
+ * Route: POST /api/hr/assign-mentor
+ *
+ * @param {{ mentor_id: number|string, intern_ids: number[] }} payload
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function assignMentor({ mentor_id, intern_ids }) {
+  return apiFetch('/api/hr/assign-mentor', {
+    method: 'POST',
+    body: JSON.stringify({ mentor_id, intern_ids }),
+  });
+}
+
 

@@ -12,7 +12,7 @@ import { DEFAULT_MATRIX, PERMISSION_MODULES, ROLES } from '../constants/permissi
 const FALLBACK_USERS = {
   hr: [
     {
-      id: 3,
+      id: 2,
       code: 'HR0001',
       email: 'hr@ictu.edu.vn',
       full_name: 'HR',
@@ -23,7 +23,7 @@ const FALLBACK_USERS = {
   ],
   mentor: [
     {
-      id: 2,
+      id: 3,
       code: 'MT0001',
       email: 'mentor@ictu.edu.vn',
       full_name: 'Mentor',
@@ -31,11 +31,20 @@ const FALLBACK_USERS = {
       status: 'active',
       created_at: '2026-09-28T12:13:11',
     },
+    {
+      id: 4,
+      code: 'MT0002',
+      email: 'mentor2@ictu.edu.vn',
+      full_name: 'Phạm Quốc Hướng',
+      role: 'mentor',
+      status: 'active',
+      created_at: '2026-09-28T12:13:11',
+    },
   ],
   intern: [
     {
-      id: 1,
-      code: 'TTS0002',
+      id: 5,
+      code: 'TTS0001',
       email: 'intern@ictu.edu.vn',
       full_name: 'TTS',
       role: 'intern',
@@ -43,12 +52,32 @@ const FALLBACK_USERS = {
       created_at: '2026-09-28T12:13:11',
     },
     {
-      id: 5,
-      code: 'TTS9999',
+      id: 6,
+      code: 'TTS0002',
+      email: 'tts02@student.ictu.edu.vn',
+      full_name: 'Lê Hoàng Nam',
+      role: 'intern',
+      status: 'active',
+      created_at: '2026-09-28T12:13:11',
+    },
+    {
+      id: 7,
+      code: 'TTS0003',
       email: 'ungvien@ictu.edu.vn',
       full_name: 'Ứng viên',
       role: 'intern',
       status: 'pending',
+      created_at: '2026-09-28T12:13:11',
+    },
+  ],
+  admin: [
+    {
+      id: 1,
+      code: 'AD0001',
+      email: 'admin@ictu.edu.vn',
+      full_name: 'Admin',
+      role: 'admin',
+      status: 'active',
       created_at: '2026-09-28T12:13:11',
     },
   ],
@@ -107,15 +136,15 @@ export async function resetUserPassword(userId) {
 
 /**
  * Danh sách người dùng theo vai trò từ DB.
- * GET /api/admin/users?role=hr|mentor|intern
+ * GET /api/admin/users?role=hr|mentor|intern|admin
  *
- * @param {{ role?: 'hr'|'mentor'|'intern' }} [params]
+ * @param {{ role?: 'hr'|'mentor'|'intern'|'admin'|'all' }} [params]
  */
 export async function fetchUsers(params = {}) {
   const role = params.role || 'hr';
-  const q = new URLSearchParams({ role });
+  const q = new URLSearchParams(role && role !== 'all' ? { role } : {});
   try {
-    const res = await apiFetch(`/api/admin/users?${q.toString()}`);
+    const res = await apiFetch(`/api/admin/users${q.toString() ? `?${q.toString()}` : ''}`);
     if (res.ok) {
       return res;
     }
@@ -123,7 +152,9 @@ export async function fetchUsers(params = {}) {
     // Network / backend error fallback
   }
 
-  const fallbackList = FALLBACK_USERS[role] || [];
+  const fallbackList = role === 'all'
+    ? Object.values(FALLBACK_USERS).flat()
+    : (FALLBACK_USERS[role] || []);
   return {
     ok: true,
     status: 200,

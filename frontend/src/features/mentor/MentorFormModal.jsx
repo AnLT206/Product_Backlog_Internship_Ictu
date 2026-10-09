@@ -35,8 +35,9 @@ import './MentorFormModal.css';
      department_id — optional, nhưng form yêu cầu chọn (UX)
    ───────────────────────────────────────────────────────────────────────── */
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^(0[0-9]{8,10}|\+84[0-9]{8,10})$/;
 
-function validateForm({ full_name, email, password, department_id }) {
+function validateForm({ full_name, email, password, department_id, phone_number }) {
   const errors = {};
   if (!full_name.trim())
     errors.full_name = 'Vui lòng nhập họ tên.';
@@ -50,6 +51,9 @@ function validateForm({ full_name, email, password, department_id }) {
     errors.password = 'Mật khẩu tối thiểu 6 ký tự.';
   if (!department_id)
     errors.department_id = 'Vui lòng chọn phòng ban.';
+  if (phone_number && phone_number.trim() && !PHONE_REGEX.test(phone_number.trim())) {
+    errors.phone_number = 'Số điện thoại không đúng định dạng (VD: 0912345678).';
+  }
   return errors;
 }
 
@@ -62,6 +66,8 @@ function MentorFormModal({ onClose, onSaved, onToast }) {
     email:         '',
     password:      '',
     department_id: '',
+    phone_number:  '',
+    position:      '',
   });
   const [errors,       setErrors]       = useState({});
   const [submitting,   setSubmitting]   = useState(false);
@@ -111,6 +117,8 @@ function MentorFormModal({ onClose, onSaved, onToast }) {
       email:         form.email.trim().toLowerCase(),
       password:      form.password,
       department_id: form.department_id ? Number(form.department_id) : null,
+      phone_number:  form.phone_number.trim() || null,
+      position:      form.position.trim() || null,
     };
 
     const { ok, status, data } = await createMentor(body);
@@ -270,6 +278,40 @@ function MentorFormModal({ onClose, onSaved, onToast }) {
                 {errors.department_id}
               </span>
             )}
+          </div>
+
+          {/* Số điện thoại */}
+          <div className={`mentor-form-group${errors.phone_number ? ' mentor-form-group--error' : ''}`}>
+            <label htmlFor="mentor-phone">Số điện thoại</label>
+            <input
+              id="mentor-phone"
+              name="phone_number"
+              type="tel"
+              placeholder="VD: 0912345678"
+              autoComplete="off"
+              value={form.phone_number}
+              onChange={handleChange}
+              aria-describedby={errors.phone_number ? 'err-mentor-phone' : undefined}
+            />
+            {errors.phone_number && (
+              <span id="err-mentor-phone" className="mentor-form-error" role="alert">
+                {errors.phone_number}
+              </span>
+            )}
+          </div>
+
+          {/* Chuyên môn / Vị trí */}
+          <div className="mentor-form-group">
+            <label htmlFor="mentor-position">Chuyên môn / Vị trí</label>
+            <input
+              id="mentor-position"
+              name="position"
+              type="text"
+              placeholder="VD: Kỹ sư Phần mềm Senior, Tech Lead..."
+              autoComplete="off"
+              value={form.position}
+              onChange={handleChange}
+            />
           </div>
         </form>
 

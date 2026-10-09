@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.document import Document
+from app.models.intern_profile import InternProfile
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.document import DocumentResponse, DocumentReviewRequest
@@ -303,6 +304,44 @@ class DocumentService:
                 status="pending",
             )
             self.db.add(doc)
+
+            # Cập nhật hồ sơ thực tập sinh sang trạng thái chờ duyệt
+            profile = self.db.query(InternProfile).filter(InternProfile.user_id == intern_id).first()
+            if profile:
+                profile.status = "pending"
+            else:
+                profile = InternProfile(user_id=intern_id, status="pending")
+                self.db.add(profile)
+
+            # Cập nhật trạng thái tài khoản User sang pending để HR xét duyệt
+            intern_account = self.db.query(User).filter(User.id == intern_id).first()
+            if intern_account and intern_account.status != "active":
+                intern_account.status = "pending"
+
+            # Gửi thông báo tới các tài khoản HR
+            try:
+                hr_users = (
+                    self.db.query(User)
+                    .join(Role, User.role_id == Role.id)
+                    .filter(Role.name == "hr", User.status == "active")
+                    .all()
+                )
+                intern_user = self.db.query(User).filter(User.id == intern_id).first()
+                intern_name = (intern_user.full_name or intern_user.email) if intern_user else f"Ứng viên #{intern_id}"
+                doc_title = "CV ứng tuyển" if doc_type == "cv" else "Đơn xin thực tập"
+                for hr in hr_users:
+                    NotificationService(self.db).create_notification(
+                        user_id=hr.id,
+                        title=f"Ứng viên mới nộp {doc_title}",
+                        body=(
+                            f"Ứng viên {intern_name} vừa nộp {doc_title} '{safe_name}'. "
+                            "Vui lòng vào Cổng Quản Trị Nhân Sự để thẩm định và xét duyệt."
+                        ),
+                        commit=False,
+                    )
+            except Exception:
+                pass
+
             self.db.commit()
             self.db.refresh(doc)
         except HTTPException:

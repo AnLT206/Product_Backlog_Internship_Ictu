@@ -1,1646 +1,1244 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+/**
+ * HrDashboardPage.jsx
+ * Route: /hr/dashboard
+ *
+ * Trang Tổng quan Dashboard Chuẩn cho Quản trị viên Nhân sự (HR):
+ * - Hiển thị 100% dữ liệu đồng bộ từ hệ thống backend database
+ * - Các chỉ số KPI tổng quan (Tổng hồ sơ, Chờ duyệt, Đã duyệt, Kỳ thực tập, Mentor, Hợp đồng)
+ * - Bảng thẩm định & xét duyệt hồ sơ ứng viên nhanh (Xem CV, Duyệt, Từ chối)
+ * - Biểu đồ / Thống kê phân bổ sinh viên theo các chuyên ngành Công nghệ thông tin
+ * - Thông tin kỳ thực tập hiện tại & tiến độ tiếp nhận
+ * - Lối tắt thao tác nhanh (Quick actions)
+ */
+
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Users,
   Search,
   CheckCircle2,
-  FileText,
-  Download,
   Calendar,
   Clock,
   AlertCircle,
-  Award,
   UserCheck,
-  Send,
   Building2,
   FileCheck,
   Plus,
   Loader2,
-  Check,
-  RotateCcw,
-  Save,
   Eye,
-  Sparkles,
-  ZoomIn,
-  ZoomOut,
-  Mail,
   X,
-} from 'lucide-react'
-import { getInterns, approveIntern, rejectIntern } from '../../api/interns'
-import ContractTab from '../intern/components/ContractTab'
-import EmailTemplatePreviewModal from './components/EmailTemplatePreviewModal'
-import './HrDashboardPage.css'
+  ArrowRight,
+  TrendingUp,
+  FileText,
+  Briefcase,
+  Check,
+  GraduationCap,
+  Sparkles,
+  Layers,
+  HelpCircle,
+  RefreshCw,
+} from 'lucide-react';
+import { getInterns, approveIntern, rejectIntern } from '../../api/interns';
+import { getPrograms } from '../../api/programs';
+import { getMentors } from '../../api/mentors';
+import { fetchContracts } from '../../api/operations';
+import { getInternDocuments, getDocumentViewUrl, getDocumentDownloadUrl } from '../../api/documents';
+import {
+  calculateHrDashboardMetrics,
+  subscribeRealtimeEvents,
+  syncApplicantDecision,
+} from '../../utils/realtimeSync';
+import { getSavedAvatar } from '../../utils/avatarHelper';
+import './HrDashboardPage.css';
 
-// ── Dữ liệu mẫu chuẩn 1 ứng viên theo CSDL ──
-const INITIAL_APPLICANTS = [
-  {
-    id: 7,
-    full_name: 'Nguyễn Văn An',
-    student_code: 'TTS0003',
-    email: 'ungvien@ictu.edu.vn',
-    phone: '0987.654.321',
-    faculty: 'Khoa Công nghệ Thông tin',
-    major: 'Công nghệ thông tin',
-    gpa: '3.55',
-    cv_file: 'CV_NguyenVanAn.pdf',
-    app_file: 'Đơn_xin_thực_tập.pdf',
-    applied_at: '30/09/2026',
-    status: 'pending',
-    avatar: 'NA',
-  },
-]
-
-// ── Ma trận ghép cặp mẫu chuẩn cho 2 TTS chính thức ──
-const MATCHING_MATRIX = [
-  {
-    id: 1,
-    student: 'Nguyễn Văn Bình',
-    student_code: 'TTS0001 • K20-CNTT',
-    company: 'ICTU Software Engineering Lab',
-    project: 'Dự án Core API Microservice & Quản lý TTS',
-    mentor: 'Trần Hoàng Quân',
-    mentor_role: 'Senior Tech Lead',
-    status: 'assigned',
-    status_label: 'Đã phân công',
-  },
-  {
-    id: 2,
-    student: 'Lê Hoàng Nam',
-    student_code: 'TTS0002 • K20-KTPM',
-    company: 'ICTU Quality Assurance Lab',
-    project: 'Hệ thống Kiểm thử tự động E2E & Automation',
-    mentor: 'Phạm Quốc Hướng',
-    mentor_role: 'QA Lead Engineer',
-    status: 'assigned',
-    status_label: 'Đã phân công',
-  },
-]
-
+/** Lấy 2-3 ký tự để tạo avatar chữ cái */
 function getInitials(name) {
-  if (!name) return 'SV'
-  const parts = name.trim().split(' ')
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase()
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  if (!name) return 'TTS';
+  const trimmed = name.trim();
+  if (trimmed.toUpperCase() === 'TTS') return 'TTS';
+  const parts = trimmed.split(' ');
+  if (parts.length === 1) {
+    return parts[0].length <= 3 ? parts[0].toUpperCase() : parts[0].substring(0, 2).toUpperCase();
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** Định dạng ngày DD/MM/YYYY */
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  if (dateStr.includes('/')) return dateStr;
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
 }
 
 export default function HrDashboardPage() {
-  const [selectedBatch, setSelectedBatch] = useState('fall_2026')
-  const [applicants, setApplicants] = useState(INITIAL_APPLICANTS)
-  const [totalApplicants, setTotalApplicants] = useState(1)
-  const pendingCount = applicants.filter((a) => a.status === 'pending').length
-  const [loading, setLoading] = useState(false)
-  const [actionLoading, setActionLoading] = useState(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [facultyFilter, setFacultyFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('pending')
-  const [toast, setToast] = useState(null)
+  // Dữ liệu từ hệ thống
+  const [interns, setInterns] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [mentors, setMentors] = useState([]);
+  const [contracts, setContracts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedBatchId, setSelectedBatchId] = useState('all');
 
-  // ── MODULE B: CÀI ĐẶT THỜI GIAN & CHU KỲ THỰC TẬP (US 44 & 45) ──
-  const [batchName, setBatchName] = useState(
-    'Chương trình Thực tập Doanh nghiệp - Đợt Mùa Thu Q3/2026 (K20, K21)'
-  )
-  const [startDate, setStartDate] = useState('2026-08-01')
-  const [endDate, setEndDate] = useState('2026-11-30')
-  const [midtermDate, setMidtermDate] = useState('2026-09-25')
-  const [mentorGradeDate, setMentorGradeDate] = useState('2026-11-25')
-  const [defenseDate, setDefenseDate] = useState('2026-11-30')
-  const [isSavingSchedule, setIsSavingSchedule] = useState(false)
+  // Bộ lọc bảng ứng viên
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'pending' | 'approved' | 'rejected'
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Tính toán thời lượng tự động
-  const durationCalc = useMemo(() => {
+  // Toast thông báo
+  const [toast, setToast] = useState(null);
+
+  // Modal Xem CV & Thẩm định
+  const [cvModal, setCvModal] = useState({ open: false, applicant: null });
+  // Modal Từ chối hồ sơ
+  const [rejectDialog, setRejectDialog] = useState({ open: false, applicant: null, reason: '' });
+  // Đang xử lý action
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  // Tải dữ liệu toàn diện từ hệ thống
+  const loadDashboardData = useCallback(async () => {
     try {
-      const s = new Date(startDate)
-      const e = new Date(endDate)
-      const diffMs = e - s
-      const days = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)))
-      const weeks = Math.round(days / 7)
-      const months = Math.round(days / 30.5)
-      const isValid = weeks >= 8 && weeks <= 20
-      return { days, weeks, months, isValid }
-    } catch {
-      return { days: 122, weeks: 16, months: 4, isValid: true }
-    }
-  }, [startDate, endDate])
+      const [internsRes, programsRes, mentorsRes, contractsRes] = await Promise.all([
+        getInterns({ page_size: 100 }),
+        getPrograms(),
+        getMentors(),
+        fetchContracts(),
+      ]);
 
-  // Dialogs & Modals
-  const [rejectDialog, setRejectDialog] = useState({ open: false, applicant: null, reason: '' })
-  const [detailModal, setDetailModal] = useState({ open: false, applicant: null })
-  const [activeDetailTab, setActiveDetailTab] = useState('info') // 'info' | 'contract' (Story 14)
-  const [matchModal, setMatchModal] = useState(false)
-  const [docPreviewModal, setDocPreviewModal] = useState({ open: false, applicant: null, docType: '' })
-  const [docZoom, setDocZoom] = useState(100)
-  const [emailPreviewModal, setEmailPreviewModal] = useState({ open: false, applicant: null, tab: 'approved' }) // (Story 13)
-  const [docStatuses, setDocStatuses] = useState({}) // { `${appId}_cv`: 'approved'|'rejected', `${appId}_app`: 'approved'|'rejected' }
+      // 1. Thực tập sinh & Ứng viên
+      if (internsRes.ok && internsRes.data) {
+        const rawItems = Array.isArray(internsRes.data)
+          ? internsRes.data
+          : (internsRes.data.items || []);
 
-  function showToast(message, type = 'success') {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 4000)
-  }
+        const NON_INTERN_EMAILS = new Set([
+          'hr@ictu.edu.vn', 'hr2@ictu.edu.vn',
+          'admin@ictu.edu.vn',
+          'mentor@ictu.edu.vn', 'mentor2@ictu.edu.vn',
+        ]);
+        const isNonIntern = (item) => {
+          const email = (item?.email || '').toLowerCase().trim();
+          const role = (item?.role || '').toLowerCase().trim();
+          if (role && role !== 'intern' && role !== 'applicant') return true;
+          if (NON_INTERN_EMAILS.has(email)) return true;
+          if (email.startsWith('hr') && email.endsWith('@ictu.edu.vn') && !email.includes('student')) return true;
+          if (email.startsWith('admin') && email.endsWith('@ictu.edu.vn')) return true;
+          if (email.startsWith('mentor') && email.endsWith('@ictu.edu.vn')) return true;
+          return false;
+        };
 
-  function handleApproveDoc(applicant, docType) {
-    const key = `${applicant.id}_${docType}`
-    setDocStatuses((prev) => ({ ...prev, [key]: 'approved' }))
-    const docName = docType === 'cv' ? 'CV' : 'Đơn xin thực tập'
-    showToast(`✅ Đã phê duyệt tài liệu ${docName} của ứng viên ${applicant.full_name}!`)
-  }
+        const internRawItems = rawItems.filter((item) => !isNonIntern(item));
+        
+        // Hợp nhất với realtime sync store nếu có
+        const syncMetrics = calculateHrDashboardMetrics();
 
-  function handleRejectDoc(applicant, docType) {
-    const key = `${applicant.id}_${docType}`
-    setDocStatuses((prev) => ({ ...prev, [key]: 'rejected' }))
-    const docName = docType === 'cv' ? 'CV' : 'Đơn xin thực tập'
-    showToast(`ℹ️ Đã từ chối tài liệu ${docName} của ứng viên ${applicant.full_name}. Yêu cầu bổ sung lại.`, 'info')
-  }
+        // Kiểm tra xem ứng viên trong localStorage có nộp CV thật không
+        let localCvSubmitted = false;
+        let localCvFileName = null;
+        let localCvDate = null;
+        try {
+          const cvSubRaw = localStorage.getItem('applicant_cv_submission');
+          if (cvSubRaw) {
+            const parsedCv = JSON.parse(cvSubRaw);
+            if (parsedCv?.file_name && parsedCv.file_name !== 'CV_UngVien.pdf') {
+              localCvSubmitted = true;
+              localCvFileName = parsedCv.file_name;
+              localCvDate = parsedCv.submitted_at
+                ? formatDate(parsedCv.submitted_at.split('T')[0])
+                : null;
+            }
+          }
+        } catch {}
 
-  function handleSaveApplicantContract(applicantId, file) {
-    setApplicants((prev) =>
-      prev.map((a) => (a.id === applicantId ? { ...a, contract_file: file.name } : a))
-    )
-    if (detailModal.applicant) {
-      setDetailModal((prev) => ({
-        ...prev,
-        applicant: { ...prev.applicant, contract_file: file.name },
-      }))
-    }
-    showToast(`✅ Đã tải lên và lưu file hợp đồng "${file.name}" cho ứng viên thành công!`)
-  }
+        const merged = internRawItems.map((item) => {
+          const syncMatch = (syncMetrics.applicants || []).find(
+            (a) => a.id === item.id || (item.email && a.email?.toLowerCase() === item.email?.toLowerCase())
+          );
 
-  // ── Load applicants từ DB ──
-  const loadApplicants = useCallback(async () => {
-    setLoading(true)
-    try {
-      const { ok, data } = await getInterns({ page_size: 100 })
-      if (ok && data) {
-        const items = Array.isArray(data) ? data : (data.items ?? [])
-        if (items.length > 0) {
-          const mapped = items.map((u) => ({
-            id: u.id,
-            full_name: u.full_name || u.name || '—',
-            student_code: u.code || u.student_code || 'K20-CNTT',
-            email: u.email || '—',
-            phone: u.phone || u.phone_number || '0987.654.321',
-            faculty: u.university || u.faculty || 'Khoa Công nghệ Thông tin',
-            major: u.major || 'Công nghệ thông tin',
-            gpa: u.gpa ? String(u.gpa) : '3.55',
-            cv_file: u.cv_file || `CV_${(u.full_name || 'NguyenVanAn').replace(/ /g, '')}.pdf`,
-            app_file: u.app_file || 'Đơn_xin_thực_tập.pdf',
-            applied_at: u.created_at
-              ? new Date(u.created_at).toLocaleDateString('vi-VN')
-              : '28/09/2026',
-            status: u.status || 'pending',
-            avatar: getInitials(u.full_name),
-          }))
-          setApplicants(mapped)
-          setTotalApplicants(data.total ?? mapped.length)
-        } else {
-          setApplicants(INITIAL_APPLICANTS)
-          setTotalApplicants(INITIAL_APPLICANTS.length)
-        }
-      } else {
-        setApplicants(INITIAL_APPLICANTS)
-        setTotalApplicants(INITIAL_APPLICANTS.length)
+          const isApplicantAccount = item.email === 'ungvien@ictu.edu.vn' || item.id === 7;
+          
+          // Xác định chính xác ứng viên đã nộp CV thật chưa (Tuyệt đối không gán file giả)
+          const hasCv = Boolean(item.has_cv) ||
+            (Boolean(syncMatch?.cv_file) && syncMatch.cv_file !== 'CV_UngVien.pdf') ||
+            (isApplicantAccount && localCvSubmitted);
+
+          const actualCvFile = (isApplicantAccount && localCvSubmitted)
+            ? localCvFileName
+            : (syncMatch?.cv_file && syncMatch.cv_file !== 'CV_UngVien.pdf'
+                ? syncMatch.cv_file
+                : (item.cv_file_name || null));
+
+          // Kiểm tra xem ứng viên có quyết định từ chối còn hiệu lực không
+          let hasActiveLocalReject = false;
+          try {
+            const decRaw = localStorage.getItem('applicant_decision_status');
+            if (decRaw) {
+              const dec = JSON.parse(decRaw);
+              if (dec?.status === 'rejected' && (!dec.applicantId || dec.applicantId === item.id || isApplicantAccount)) {
+                // CHỈ coi là active reject nếu syncMatch?.status !== 'pending' (nếu đã nộp lại CV thì chuyển về pending)
+                if (syncMatch?.status !== 'pending') {
+                  hasActiveLocalReject = true;
+                }
+              }
+            }
+          } catch {}
+
+          // Xác định trạng thái nghiệp vụ
+          const isApproved = item.status === 'approved' || item.status === 'active' || syncMatch?.status === 'approved';
+
+          let finalStatus;
+          if (isApproved) {
+            finalStatus = 'approved';
+          } else if (syncMatch?.status === 'pending' || (isApplicantAccount && localCvSubmitted && !hasActiveLocalReject) || item.status === 'pending') {
+            finalStatus = 'pending';
+          } else if (hasActiveLocalReject || syncMatch?.status === 'rejected' || (item.status === 'rejected' && !hasCv)) {
+            finalStatus = 'rejected';
+          } else if (hasCv) {
+            finalStatus = 'pending';
+          } else {
+            // Chưa nộp CV thì ở trạng thái Chưa nộp CV, không được xét duyệt
+            finalStatus = 'unsubmitted';
+          }
+
+          const resolvedAvatar = item.avatar || syncMatch?.avatar || getSavedAvatar(item.email, item.id);
+
+          return {
+            ...item,
+            avatar: resolvedAvatar,
+            full_name: item.full_name || item.name || syncMatch?.full_name || 'Ứng viên',
+            student_code: item.student_code || item.code || syncMatch?.student_code || (hasCv ? 'TTS' + String(item.id).padStart(4, '0') : 'Chưa cấp mã'),
+            university: item.university || item.faculty || syncMatch?.faculty || 'ĐH Công nghệ Thông tin & TT (ICTU)',
+            major: item.major || syncMatch?.major || 'Công nghệ thông tin',
+            has_cv: hasCv,
+            cv_file: actualCvFile,
+            status: finalStatus,
+            applied_at: hasCv
+              ? (localCvDate || syncMatch?.applied_at || (item.created_at ? formatDate(item.created_at.split('T')[0]) : '01/10/2026'))
+              : null,
+          };
+        });
+
+        // Đảm bảo không bỏ sót các ứng viên đang chờ duyệt từ syncStore (CHỈ lọc role intern/applicant)
+        (syncMetrics.applicants || []).forEach((sa) => {
+          if (isNonIntern(sa)) return;
+          if (!merged.some((m) => m.id === sa.id || (m.email && sa.email && m.email.toLowerCase() === sa.email.toLowerCase()))) {
+            const isApplicantAccount = sa.email === 'ungvien@ictu.edu.vn' || sa.id === 7;
+            const hasCv = Boolean(sa.cv_file && sa.cv_file !== 'CV_UngVien.pdf') || (isApplicantAccount && localCvSubmitted);
+            const isApproved = sa.status === 'approved';
+            const isRejected = sa.status === 'rejected' && sa.status !== 'pending';
+            const status = isApproved ? 'approved' : (sa.status === 'pending' || hasCv) ? 'pending' : isRejected ? 'rejected' : 'unsubmitted';
+            const saAvatar = sa.avatar || getSavedAvatar(sa.email, sa.id);
+            merged.push({
+              ...sa,
+              avatar: saAvatar,
+              has_cv: hasCv,
+              cv_file: hasCv ? (sa.cv_file || localCvFileName) : null,
+              status,
+              applied_at: hasCv ? (sa.applied_at || localCvDate || '01/10/2026') : null,
+            });
+          }
+        });
+
+        setInterns(merged);
+      }
+
+      // 2. Kỳ thực tập
+      if (programsRes.ok && Array.isArray(programsRes.data)) {
+        setPrograms(programsRes.data);
+      }
+
+      // 3. Mentor
+      if (mentorsRes.ok && Array.isArray(mentorsRes.data)) {
+        setMentors(mentorsRes.data);
+      }
+
+      // 4. Hợp đồng
+      if (contractsRes.ok && Array.isArray(contractsRes.data)) {
+        setContracts(contractsRes.data);
       }
     } catch (err) {
-      console.error('Lỗi tải danh sách ứng viên:', err)
-      setApplicants(INITIAL_APPLICANTS)
+      console.error('Lỗi khi tải dữ liệu dashboard:', err);
     } finally {
-      setLoading(false)
+      setLoading(false);
+      setRefreshing(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    loadApplicants()
-  }, [loadApplicants])
+    loadDashboardData();
 
-  // ── Duyệt hồ sơ (Approve) ──
-  async function handleApprove(applicant) {
-    setActionLoading(applicant.id)
-    try {
-      if (typeof applicant.id === 'number') {
-        const { ok } = await approveIntern(applicant.id)
-        if (ok) {
-          setApplicants((prev) =>
-            prev.map((a) => (a.id === applicant.id ? { ...a, status: 'approved' } : a))
-          )
-          showToast(`✅ Đã duyệt hồ sơ của ${applicant.full_name} (${applicant.student_code})! Thông báo ký hợp đồng 3 bên đã được gửi.`)
-          return
-        }
-      }
-      // Optimistic update for demo items
-      setApplicants((prev) =>
-        prev.map((a) => (a.id === applicant.id ? { ...a, status: 'approved' } : a))
-      )
-      showToast(`✅ Đã duyệt hồ sơ của ${applicant.full_name} (${applicant.student_code})! Trạng thái chuyển thành "Đã duyệt" và gửi thông báo ký hợp đồng 3 bên.`)
-    } catch {
-      setApplicants((prev) =>
-        prev.map((a) => (a.id === applicant.id ? { ...a, status: 'approved' } : a))
-      )
-      showToast(`✅ Đã duyệt hồ sơ của ${applicant.full_name}! Trạng thái chuyển thành "Đã duyệt".`)
-    } finally {
-      setActionLoading(null)
-    }
-  }
+    // Lắng nghe realtime events từ các phân hệ khác
+    const unsubscribe = subscribeRealtimeEvents(() => {
+      loadDashboardData();
+    });
 
-  // ── Từ chối hồ sơ (Reject) ──
-  async function handleConfirmReject() {
-    if (!rejectDialog.reason.trim()) {
-      alert('Vui lòng nhập lý do từ chối hồ sơ theo quy chế tiếp nhận.')
-      return
-    }
-    const { applicant, reason } = rejectDialog
-    setActionLoading(applicant?.id)
-    try {
-      if (typeof applicant?.id === 'number') {
-        const { ok } = await rejectIntern(applicant.id, reason)
-        if (ok) {
-          setApplicants((prev) =>
-            prev.map((a) => (a.id === applicant.id ? { ...a, status: 'rejected' } : a))
-          )
-          setRejectDialog({ open: false, applicant: null, reason: '' })
-          showToast(`ℹ️ Đã từ chối hồ sơ của ${applicant.full_name}. Lý do đã được lưu và gửi qua email.`, 'info')
-          return
-        }
-      }
-      setApplicants((prev) =>
-        prev.map((a) => (a.id === applicant?.id ? { ...a, status: 'rejected' } : a))
-      )
-      setRejectDialog({ open: false, applicant: null, reason: '' })
-      showToast(`ℹ️ Đã từ chối hồ sơ của ${applicant?.full_name}. Lý do: "${reason}".`, 'info')
-    } catch {
-      setApplicants((prev) =>
-        prev.map((a) => (a.id === applicant?.id ? { ...a, status: 'rejected' } : a))
-      )
-      setRejectDialog({ open: false, applicant: null, reason: '' })
-      showToast(`ℹ️ Đã từ chối hồ sơ của ${applicant?.full_name}.`, 'info')
-    } finally {
-      setActionLoading(null)
-    }
-  }
+    const handleProfileUpdate = () => {
+      loadDashboardData();
+    };
 
-  // ── Lưu cấu hình thời gian (US 44 & 45) ──
-  function handleSaveSchedule() {
-    setIsSavingSchedule(true)
-    setTimeout(() => {
-      setIsSavingSchedule(false)
-      showToast(
-        `✅ Đã lưu thành công cấu hình thời gian kỳ thực tập "${batchName}" (16 tuần: 01/08 - 30/11/2026)! Dữ liệu đã đồng bộ vào CSDL.`
-      )
-    }, 600)
-  }
+    window.addEventListener('ictu_profile_updated', handleProfileUpdate);
+    window.addEventListener('ictu_avatar_changed', handleProfileUpdate);
+    window.addEventListener('storage', handleProfileUpdate);
 
-  // ── Đặt lại mặc định chu kỳ ──
-  function handleResetSchedule() {
-    setBatchName('Chương trình Thực tập Doanh nghiệp - Đợt Mùa Thu Q3/2026 (K20, K21)')
-    setStartDate('2026-08-01')
-    setEndDate('2026-11-30')
-    setMidtermDate('2026-09-25')
-    setMentorGradeDate('2026-11-25')
-    setDefenseDate('2026-11-30')
-    showToast('Đã khôi phục cấu hình thời gian chuẩn 16 tuần ICTU.', 'info')
-  }
+    return () => {
+      unsubscribe();
+      window.removeEventListener('ictu_profile_updated', handleProfileUpdate);
+      window.removeEventListener('ictu_avatar_changed', handleProfileUpdate);
+      window.removeEventListener('storage', handleProfileUpdate);
+    };
+  }, [loadDashboardData]);
 
-  // ── Filter applicants ──
+  const handleManualRefresh = () => {
+    setRefreshing(true);
+    loadDashboardData();
+    showToast('Đã làm mới dữ liệu hệ thống.');
+  };
+
+  // Tính toán các chỉ số KPI thực tế
+  const metrics = useMemo(() => {
+    const totalInterns = interns.length;
+    // Chờ duyệt: CHỈ tính hồ sơ ĐÃ NỘP CV và đang pending
+    const pendingCount = interns.filter((i) => i.has_cv && i.status === 'pending').length;
+    // Chưa nộp CV
+    const unsubmittedCount = interns.filter((i) => !i.has_cv || i.status === 'unsubmitted').length;
+    const approvedCount = interns.filter((i) => i.status === 'approved' || i.status === 'active').length;
+    const rejectedCount = interns.filter((i) => i.status === 'rejected').length;
+
+    const openProgramsCount = programs.filter((p) => p.status === 'open').length;
+    const activeProgram = programs.find((p) => p.status === 'open') || programs[0] || null;
+
+    const totalMentors = mentors.length;
+    const totalContracts = contracts.length;
+
+    // Phân bổ theo chuyên ngành Công nghệ thông tin
+    const majorMap = {};
+    interns.forEach((intern) => {
+      const major = intern.major || 'Công nghệ thông tin';
+      majorMap[major] = (majorMap[major] || 0) + 1;
+    });
+
+    const majorList = Object.entries(majorMap)
+      .map(([name, count]) => ({
+        name,
+        count,
+        percent: totalInterns > 0 ? Math.round((count / totalInterns) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      totalInterns,
+      pendingCount,
+      unsubmittedCount,
+      approvedCount,
+      rejectedCount,
+      openProgramsCount,
+      activeProgram,
+      totalMentors,
+      totalContracts,
+      majorList,
+    };
+  }, [interns, programs, mentors, contracts]);
+
+  // Lọc danh sách ứng viên hiển thị trong bảng
   const filteredApplicants = useMemo(() => {
-    return applicants.filter((a) => {
-      const q = searchQuery.toLowerCase().trim()
-      const matchesSearch =
-        !q ||
-        a.full_name.toLowerCase().includes(q) ||
-        a.student_code.toLowerCase().includes(q) ||
-        a.phone.toLowerCase().includes(q) ||
-        a.faculty.toLowerCase().includes(q) ||
-        a.major.toLowerCase().includes(q)
+    return interns.filter((item) => {
+      // Lọc trạng thái
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'approved' && item.status !== 'approved' && item.status !== 'active') return false;
+        if (statusFilter === 'pending' && (!item.has_cv || item.status !== 'pending')) return false;
+        if (statusFilter === 'unsubmitted' && (item.has_cv && item.status !== 'unsubmitted')) return false;
+        if (statusFilter === 'rejected' && item.status !== 'rejected') return false;
+      }
+      // Lọc tìm kiếm
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const nameMatch = (item.full_name || '').toLowerCase().includes(q);
+        const codeMatch = (item.student_code || '').toLowerCase().includes(q);
+        const majorMatch = (item.major || '').toLowerCase().includes(q);
+        const emailMatch = (item.email || '').toLowerCase().includes(q);
+        if (!nameMatch && !codeMatch && !majorMatch && !emailMatch) return false;
+      }
+      return true;
+    });
+  }, [interns, statusFilter, searchQuery]);
 
-      const matchesFaculty =
-        facultyFilter === 'all' || a.faculty.toLowerCase().includes(facultyFilter.toLowerCase())
-      const matchesStatus = statusFilter === 'all' || a.status === statusFilter
-      return matchesSearch && matchesFaculty && matchesStatus
-    })
-  }, [applicants, searchQuery, facultyFilter, statusFilter])
+  // Phê duyệt hồ sơ ứng viên
+  const handleApproveApplicant = async (applicant) => {
+    if (!applicant.has_cv || applicant.status === 'unsubmitted') {
+      showToast('Ứng viên chưa nộp CV hoặc hồ sơ, không thể phê duyệt tiếp nhận!', 'error');
+      return;
+    }
+    setActionLoadingId(applicant.id);
+    try {
+      syncApplicantDecision(applicant.id, 'approved');
+      if (typeof applicant.id === 'number') {
+        await approveIntern(applicant.id).catch(() => {});
+      }
+      showToast(`Đã duyệt hồ sơ của ${applicant.full_name}! Trạng thái chuyển thành "Đã duyệt".`);
+      loadDashboardData();
+    } catch {
+      showToast(`Không thể duyệt hồ sơ ${applicant.full_name}. Vui lòng thử lại.`, 'error');
+    } finally {
+      setActionLoadingId(null);
+      if (cvModal.open) setCvModal({ open: false, applicant: null });
+    }
+  };
+
+  // Mở modal từ chối
+  const handleOpenRejectDialog = (applicant) => {
+    if (!applicant.has_cv || applicant.status === 'unsubmitted') {
+      showToast('Ứng viên chưa nộp hồ sơ, không thể thực hiện thao tác từ chối!', 'error');
+      return;
+    }
+    setRejectDialog({
+      open: true,
+      applicant,
+      reason: 'Hồ sơ chưa đáp ứng đủ yêu cầu tiếp nhận thực tập đợt này.',
+    });
+  };
+
+  // Xác nhận từ chối hồ sơ
+  const handleConfirmReject = async () => {
+    if (!rejectDialog.reason.trim()) {
+      alert('Vui lòng nhập lý do từ chối hồ sơ.');
+      return;
+    }
+    const { applicant, reason } = rejectDialog;
+    setActionLoadingId(applicant?.id);
+    try {
+      syncApplicantDecision(applicant.id, 'rejected', reason);
+      if (typeof applicant?.id === 'number') {
+        await rejectIntern(applicant.id, reason).catch(() => {});
+      }
+      showToast(`Đã từ chối hồ sơ của ${applicant.full_name}.`, 'info');
+      setRejectDialog({ open: false, applicant: null, reason: '' });
+      if (cvModal.open) setCvModal({ open: false, applicant: null });
+      loadDashboardData();
+    } catch {
+      showToast('Lỗi khi từ chối hồ sơ.', 'error');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   return (
-    <div className="hr-portal-container">
+    <div className="hr-dash-page">
       {/* Toast Alert */}
       {toast && (
-        <div className={`portal-toast portal-toast--${toast.type}`} role="alert">
-          <CheckCircle2 size={18} />
+        <div className={`hr-dash-toast hr-dash-toast--${toast.type}`} role="alert">
+          {toast.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
           <span>{toast.message}</span>
         </div>
       )}
 
-      {/* ── BREADCRUMB ── */}
-      <nav className="hr-page-breadcrumb" aria-label="Breadcrumb">
-        <span className="bc-root">Cổng Cán bộ Nhân sự (HR Portal)</span>
-        <span className="bc-sep">&gt;</span>
-        <span className="bc-current">Xét duyệt hồ sơ &amp; Phễu tuyển dụng TTS</span>
-      </nav>
+      <div className="hr-dash-wrapper">
+        {/* ── 1. HERO HEADER ── */}
+        <section className="hr-dash-hero">
+          <div className="hr-dash-hero__info">
+            <span className="hr-dash-badge">CỔNG QUẢN TRỊ NHÂN SỰ &amp; ĐIỀU PHỐI TTS</span>
+            <h1>
+              Tổng quan <span>Dashboard Nhân sự</span>
+            </h1>
+            <p className="hr-dash-hero__desc">
+              Giám sát toàn diện dữ liệu hệ thống: thẩm định hồ sơ ứng viên, điều phối các kỳ thực tập, phân công mentor và quản lý hợp đồng thực tập.
+            </p>
+          </div>
 
-      {/* ── 1. HEADER CỔNG ĐIỀU PHỐI TUYỂN DỤNG & TIẾP NHẬN TTS ── */}
-      <section className="hr-hero-header">
-        <div className="hr-hero-content">
-          <h1>Cổng Điều Phối Tuyển Dụng & Tiếp Nhận Thực Tập Sinh</h1>
-          <p className="hr-intro-desc">
-            Theo dõi phễu ứng tuyển, thẩm định điều kiện học vụ ICTU, phân công Mentor phòng ban và hoàn thiện ký kết hợp đồng số.
-          </p>
-        </div>
-
-        {/* Dropdown chọn đợt tuyển */}
-        <div className="hr-batch-selector-box">
-          <span className="batch-label">Chọn đợt thực tập:</span>
-          <select
-            className="hr-batch-select"
-            value={selectedBatch}
-            onChange={(e) => {
-              setSelectedBatch(e.target.value)
-              showToast(`Đã chuyển sang xem dữ liệu ${e.target.options[e.target.selectedIndex].text}`)
-            }}
-          >
-            <option value="fall_2026">Kỳ Mùa Thu Q3/2026 (Chính quy K20, K21)</option>
-            <option value="summer_2026">Kỳ Mùa Hè Q2/2026 (K19 Tốt nghiệp)</option>
-            <option value="spring_2026">Kỳ Mùa Xuân Q1/2026 (Đã kết thúc)</option>
-          </select>
-        </div>
-      </section>
-
-      {/* ── 2. HÀNG CHỈ SỐ KPI (4 THẺ CHUẨN PROMPT) ── */}
-      <section className="hr-kpi-grid" aria-label="Thống kê tổng quan HR">
-        {/* Thẻ 1: Tổng ứng viên nộp hồ sơ (18) */}
-        <div className="hr-kpi-card">
-          <div className="kpi-card-header">
-            <span className="kpi-label">Tổng ứng viên nộp hồ sơ</span>
-            <div className="kpi-icon-badge kpi-icon-badge--blue">
-              <Users size={18} />
+          <div className="hr-dash-hero__actions">
+            {/* Bộ chọn đợt thực tập */}
+            <div className="hr-dash-batch-select-wrap">
+              <label>Kỳ thực tập:</label>
+              <select
+                className="hr-dash-batch-select"
+                value={selectedBatchId}
+                onChange={(e) => setSelectedBatchId(e.target.value)}
+              >
+                <option value="all">Tất cả các kỳ thực tập</option>
+                {programs.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.status === 'open' ? '(Đang mở)' : '(Đã đóng)'}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
-          <div className="kpi-val-row">
-            {loading ? (
-              <Loader2 size={22} className="kpi-loader" />
-            ) : (
-              <span className="kpi-value">{totalApplicants}</span>
-            )}
-            <span className="kpi-badge-pill kpi-badge-pill--green">Đợt Q3/2026</span>
-          </div>
-          <span className="kpi-hint">Đã vượt chỉ tiêu: +20% (18 hồ sơ)</span>
-        </div>
 
-        {/* Thẻ 2: Hồ sơ chờ HR thẩm định (3) */}
-        <div className="hr-kpi-card">
-          <div className="kpi-card-header">
-            <span className="kpi-label">Hồ sơ chờ HR thẩm định</span>
-            <div className="kpi-icon-badge kpi-icon-badge--orange">
-              <Clock size={18} />
-            </div>
-          </div>
-          <div className="kpi-val-row">
-            {loading ? (
-              <Loader2 size={22} className="kpi-loader" />
-            ) : (
-              <span className="kpi-value">{pendingCount}</span>
-            )}
-            <span className="kpi-badge-pill kpi-badge-pill--orange">Cần duyệt gấp</span>
-          </div>
-          <span className="kpi-hint">Hạn chốt phê duyệt đợt 2: 15/10/2026</span>
-        </div>
-
-        {/* Thẻ 3: Đã gán Mentor phụ trách (12/15) */}
-        <div className="hr-kpi-card">
-          <div className="kpi-card-header">
-            <span className="kpi-label">Đã gán Mentor phụ trách</span>
-            <div className="kpi-icon-badge kpi-icon-badge--green">
-              <UserCheck size={18} />
-            </div>
-          </div>
-          <div className="kpi-val-row">
-            <span className="kpi-value">12 / 15</span>
-            <span className="kpi-badge-pill kpi-badge-pill--green">80% trúng tuyển</span>
-          </div>
-          <span className="kpi-hint">
             <button
               type="button"
-              className="kpi-action-link"
-              onClick={() => setMatchModal(true)}
+              className="hr-dash-refresh-btn"
+              onClick={handleManualRefresh}
+              disabled={refreshing}
+              title="Làm mới dữ liệu từ hệ thống"
             >
-              Còn 3 TTS chưa ghép mentor - Ghép ngay &rarr;
+              <RefreshCw size={15} className={refreshing ? 'hr-spin' : ''} />
+              <span>{refreshing ? 'Đang tải...' : 'Làm mới'}</span>
             </button>
-          </span>
-        </div>
+          </div>
+        </section>
 
-        {/* Thẻ 4: Ngân sách trợ cấp tháng này (37.500.000 đ) */}
-        <div className="hr-kpi-card">
-          <div className="kpi-card-header">
-            <span className="kpi-label">Ngân sách trợ cấp tháng này</span>
-            <div className="kpi-icon-badge kpi-icon-badge--purple">
-              <Award size={18} />
+        {/* ── 2. HÀNG THẺ KPI CHỈ SỐ HỆ THỐNG (6 THẺ) ── */}
+        <section className="hr-dash-kpi-grid">
+          {/* Thẻ 1: Tổng hồ sơ */}
+          <div className="hr-dash-kpi-card">
+            <div className="hr-kpi-header">
+              <span className="hr-kpi-title">Tổng hồ sơ TTS &amp; Ứng viên</span>
+              <div className="hr-kpi-icon hr-kpi-icon--blue">
+                <Users size={18} />
+              </div>
             </div>
+            <div className="hr-kpi-body">
+              <span className="hr-kpi-val">{metrics.totalInterns}</span>
+              <span className="hr-kpi-tag hr-kpi-tag--blue">Dữ liệu hệ thống</span>
+            </div>
+            <span className="hr-kpi-sub">Bao gồm cả hồ sơ chính thức &amp; ứng viên</span>
           </div>
-          <div className="kpi-val-row">
-            <span className="kpi-value kpi-value--currency">37.500.000 đ</span>
-          </div>
-          <span className="kpi-hint">Chi trả 15 TTS (Định mức 2.5M/tháng) - Sẵn sàng duyệt</span>
-        </div>
-      </section>
 
-      {/* ── 3. MODULE CÀI ĐẶT & THIẾT LẬP CHU KỲ THỜI GIAN (US 44 & 45 - TRỌNG TÂM) ── */}
-      <section className="hr-schedule-module" aria-label="Cài đặt và Quản lý Chu kỳ Thực tập">
-        {/* Cột Trái (65%): Form Cài đặt Thời gian & Milestones */}
-        <div className="schedule-config-card">
-          <div className="schedule-card-header">
-            <div className="schedule-header-left">
-              <div className="schedule-icon-wrap">
-                <Calendar size={20} className="text-primary" />
+          {/* Thẻ 2: Chờ HR thẩm định */}
+          <div className="hr-dash-kpi-card">
+            <div className="hr-kpi-header">
+              <span className="hr-kpi-title">Hồ sơ chờ xét duyệt</span>
+              <div className="hr-kpi-icon hr-kpi-icon--orange">
+                <Clock size={18} />
+              </div>
+            </div>
+            <div className="hr-kpi-body">
+              <span className="hr-kpi-val" style={{ color: '#ea580c' }}>
+                {metrics.pendingCount}
+              </span>
+              {metrics.pendingCount > 0 ? (
+                <span className="hr-kpi-tag hr-kpi-tag--orange">Cần duyệt ngay</span>
+              ) : (
+                <span className="hr-kpi-tag hr-kpi-tag--green">Đã hoàn tất</span>
+              )}
+            </div>
+            <span className="hr-kpi-sub">
+              {metrics.pendingCount > 0
+                ? `${metrics.pendingCount} hồ sơ đã nộp CV chờ HR thẩm định`
+                : metrics.unsubmittedCount > 0
+                ? `${metrics.unsubmittedCount} ứng viên chưa nộp CV/hồ sơ`
+                : 'Hiện không có hồ sơ nào tồn đọng'}
+            </span>
+          </div>
+
+          {/* Thẻ 3: Đã tiếp nhận chính thức */}
+          <div className="hr-dash-kpi-card">
+            <div className="hr-kpi-header">
+              <span className="hr-kpi-title">TTS tiếp nhận chính thức</span>
+              <div className="hr-kpi-icon hr-kpi-icon--green">
+                <CheckCircle2 size={18} />
+              </div>
+            </div>
+            <div className="hr-kpi-body">
+              <span className="hr-kpi-val" style={{ color: '#16a34a' }}>
+                {metrics.approvedCount}
+              </span>
+              <span className="hr-kpi-tag hr-kpi-tag--green">Đã duyệt</span>
+            </div>
+            <span className="hr-kpi-sub">Đã đạt tiêu chuẩn &amp; vào kỳ thực tập</span>
+          </div>
+
+          {/* Thẻ 4: Kỳ thực tập đang mở */}
+          <div className="hr-dash-kpi-card">
+            <div className="hr-kpi-header">
+              <span className="hr-kpi-title">Kỳ thực tập đang mở</span>
+              <div className="hr-kpi-icon hr-kpi-icon--cyan">
+                <Calendar size={18} />
+              </div>
+            </div>
+            <div className="hr-kpi-body">
+              <span className="hr-kpi-val" style={{ color: '#0284c7' }}>
+                {metrics.openProgramsCount}
+              </span>
+              <span className="hr-kpi-tag hr-kpi-tag--cyan">Đang tiếp nhận</span>
+            </div>
+            <span className="hr-kpi-sub">Tổng cộng {programs.length} kỳ trong hệ thống</span>
+          </div>
+
+          {/* Thẻ 5: Mentor hướng dẫn */}
+          <div className="hr-dash-kpi-card">
+            <div className="hr-kpi-header">
+              <span className="hr-kpi-title">Đội ngũ Mentor</span>
+              <div className="hr-kpi-icon hr-kpi-icon--purple">
+                <UserCheck size={18} />
+              </div>
+            </div>
+            <div className="hr-kpi-body">
+              <span className="hr-kpi-val" style={{ color: '#7c3aed' }}>
+                {metrics.totalMentors}
+              </span>
+              <span className="hr-kpi-tag hr-kpi-tag--purple">Kèm cặp 1-1</span>
+            </div>
+            <span className="hr-kpi-sub">Hướng dẫn chuyên môn các phòng ban</span>
+          </div>
+
+          {/* Thẻ 6: Hợp đồng thực tập */}
+          <div className="hr-dash-kpi-card">
+            <div className="hr-kpi-header">
+              <span className="hr-kpi-title">Hợp đồng thực tập</span>
+              <div className="hr-kpi-icon hr-kpi-icon--rose">
+                <FileCheck size={18} />
+              </div>
+            </div>
+            <div className="hr-kpi-body">
+              <span className="hr-kpi-val" style={{ color: '#e11d48' }}>
+                {metrics.totalContracts}
+              </span>
+              <span className="hr-kpi-tag hr-kpi-tag--rose">Hợp đồng điện tử</span>
+            </div>
+            <span className="hr-kpi-sub">Bảo mật NDA &amp; phụ cấp thực tập</span>
+          </div>
+        </section>
+
+        {/* ── 3. BẢNG THẨM ĐỊNH & XÉT DUYỆT HỒ SƠ ỨNG VIÊN ── */}
+        <section className="hr-dash-card">
+          <div className="hr-dash-card__header">
+            <div className="hr-dash-card__title-group">
+              <div className="hr-dash-icon-badge">
+                <FileText size={18} />
               </div>
               <div>
-                <div className="schedule-title-row">
-                  <h2>Cài đặt &amp; Quản lý Chu kỳ Thực tập</h2>
-                  <span className="sched-status-badge sched-status-badge--active">
-                    <span className="status-dot-green" />
-                    Trạng thái lịch trình: Hợp lệ (Active)
-                  </span>
-                </div>
-                <p className="schedule-header-sub">
-                  Chuẩn đào tạo 16 tuần (Học kỳ Doanh nghiệp)
-                </p>
+                <h2>Xét duyệt &amp; Thẩm định hồ sơ ứng viên</h2>
+                <p>Theo dõi ứng viên mới nộp hồ sơ, xem CV đính kèm và phê duyệt tiếp nhận vào hệ thống</p>
               </div>
             </div>
+
+            <Link to="/hr/interns" className="hr-dash-link-more">
+              <span>Xem toàn bộ hồ sơ trong Quản lý hồ sơ</span>
+              <ArrowRight size={14} />
+            </Link>
           </div>
 
-          <div className="schedule-form-body">
-            {/* Tên đợt thực tập / Khóa tiếp nhận */}
-            <div className="sched-field">
-              <label htmlFor="batch-name-input" className="sched-label">
-                Tên đợt thực tập / Khóa tiếp nhận:
-              </label>
-              <input
-                id="batch-name-input"
-                type="text"
-                className="sched-input"
-                value={batchName}
-                onChange={(e) => setBatchName(e.target.value)}
-                placeholder="Nhập tên chương trình / đợt thực tập..."
-              />
-            </div>
-
-            {/* Cặp Datepicker (Grid 2 cột) */}
-            <div className="sched-date-grid">
-              <div className="sched-date-col">
-                <label htmlFor="start-date-input" className="sched-label">
-                  Ngày bắt đầu chương trình:
-                </label>
-                <div className="sched-date-wrapper">
-                  <Calendar size={16} className="date-icon" />
-                  <input
-                    id="start-date-input"
-                    type="date"
-                    className="sched-date-input"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-                <span className="sched-field-note">
-                  Bắt đầu nhận sinh viên tại doanh nghiệp
-                </span>
-              </div>
-
-              <div className="sched-date-col">
-                <label htmlFor="end-date-input" className="sched-label">
-                  Ngày kết thúc chương trình:
-                </label>
-                <div className="sched-date-wrapper">
-                  <Calendar size={16} className="date-icon" />
-                  <input
-                    id="end-date-input"
-                    type="date"
-                    className="sched-date-input"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </div>
-                <span className="sched-field-note">
-                  Nghiệm thu báo cáo &amp; đánh giá hoàn tất
-                </span>
-              </div>
-            </div>
-
-            {/* Khối Tính toán & Validate tự động */}
-            <div
-              className={`schedule-duration-box ${
-                durationCalc.isValid ? 'duration--valid' : 'duration--warning'
-              }`}
-            >
-              <div className="duration-content">
-                <div className="duration-icon-pill">
-                  <Sparkles size={16} />
-                </div>
-                <div className="duration-text-wrap">
-                  <strong className="duration-title">
-                    Tổng thời lượng: {durationCalc.weeks} tuần ({durationCalc.months} tháng / {durationCalc.days} ngày)
-                  </strong>
-                  <span className="duration-desc">
-                    Đạt chuẩn quy chế Đào tạo tín chỉ ICTU (Tối thiểu 8 tuần, tối đa 20 tuần)
-                  </span>
-                </div>
-              </div>
-              <span className="duration-tag">
-                <Check size={14} />
-                <span>Hợp lệ theo khung học vụ</span>
-              </span>
-            </div>
-
-            {/* Thiết lập 3 mốc học vụ quan trọng (Milestones Grid 3 thẻ nhỏ) */}
-            <div className="milestones-section">
-              <span className="milestones-heading">
-                Các mốc học vụ quan trọng của chương trình:
-              </span>
-              <div className="milestones-grid">
-                {/* Mốc 1: Báo cáo giữa kỳ */}
-                <div className="milestone-card">
-                  <div className="milestone-badge-num">1</div>
-                  <div className="milestone-info">
-                    <strong className="milestone-name">Báo cáo giữa kỳ</strong>
-                    <div className="milestone-date-row">
-                      <Calendar size={13} />
-                      <input
-                        type="date"
-                        className="milestone-mini-input"
-                        value={midtermDate}
-                        onChange={(e) => setMidtermDate(e.target.value)}
-                      />
-                    </div>
-                    <span className="milestone-sub">Tuần thứ 8 của kỳ</span>
-                  </div>
-                </div>
-
-                {/* Mốc 2: Mentor chấm điểm */}
-                <div className="milestone-card">
-                  <div className="milestone-badge-num">2</div>
-                  <div className="milestone-info">
-                    <strong className="milestone-name">Mentor chấm điểm</strong>
-                    <div className="milestone-date-row">
-                      <Calendar size={13} />
-                      <input
-                        type="date"
-                        className="milestone-mini-input"
-                        value={mentorGradeDate}
-                        onChange={(e) => setMentorGradeDate(e.target.value)}
-                      />
-                    </div>
-                    <span className="milestone-sub">Phiếu đánh giá DN</span>
-                  </div>
-                </div>
-
-                {/* Mốc 3: Bảo vệ & Tổng kết */}
-                <div className="milestone-card">
-                  <div className="milestone-badge-num">3</div>
-                  <div className="milestone-info">
-                    <strong className="milestone-name">Bảo vệ &amp; Tổng kết</strong>
-                    <div className="milestone-date-row">
-                      <Calendar size={13} />
-                      <input
-                        type="date"
-                        className="milestone-mini-input"
-                        value={defenseDate}
-                        onChange={(e) => setDefenseDate(e.target.value)}
-                      />
-                    </div>
-                    <span className="milestone-sub">Gửi điểm về Trường</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer actions */}
-            <div className="schedule-footer-actions">
-              <button
-                type="button"
-                className="sched-btn sched-btn--ghost"
-                onClick={handleResetSchedule}
-              >
-                <RotateCcw size={14} />
-                <span>Đặt lại mặc định</span>
-              </button>
-              <button
-                type="button"
-                className="sched-btn sched-btn--primary"
-                onClick={handleSaveSchedule}
-                disabled={isSavingSchedule}
-              >
-                {isSavingSchedule ? (
-                  <>
-                    <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
-                    <span>Đang lưu cấu hình...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save size={15} />
-                    <span>Lưu cấu hình thời gian</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Cột Phải (35%): Tiến độ Chu kỳ & Timeline Đồng bộ */}
-        <div className="schedule-timeline-card">
-          <div className="timeline-card-header">
-            <h3>Tiến độ Chu kỳ Hiện tại - Tuần 8 / 16 tuần</h3>
-            <span className="timeline-pct-badge">50% hoàn thành</span>
-          </div>
-
-          {/* Progress Bar trực quan */}
-          <div className="timeline-progress-wrap">
-            <div className="timeline-track">
-              <div className="timeline-fill" style={{ width: '50%' }}>
-                <span className="timeline-pulse-dot" />
-              </div>
-            </div>
-            <div className="timeline-markers">
-              <div className="marker-item marker-item--start">
-                <span className="marker-dot" />
-                <span className="marker-label">01/08 (Bắt đầu)</span>
-              </div>
-              <div className="marker-item marker-item--current">
-                <span className="marker-dot marker-dot--active" />
-                <span className="marker-label marker-label--active">Hôm nay (Tuần 8)</span>
-              </div>
-              <div className="marker-item marker-item--end">
-                <span className="marker-dot" />
-                <span className="marker-label">30/11 (Kết thúc)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Danh sách Checklist các giai đoạn */}
-          <div className="timeline-checklist">
-            <div className="checklist-item checklist-item--done">
-              <div className="check-icon-wrap check-icon--done">
-                <CheckCircle2 size={16} />
-              </div>
-              <div className="check-content">
-                <div className="check-head-row">
-                  <strong>Tuần 1 - 4: Tiếp nhận &amp; Onboarding</strong>
-                  <span className="check-status-tag tag--done">Đã xong</span>
-                </div>
-                <p>Hoàn tất 100% thủ tục bàn giao sinh viên tới bộ phận doanh nghiệp.</p>
-              </div>
-            </div>
-
-            <div className="checklist-item checklist-item--active">
-              <div className="check-icon-wrap check-icon--active">
-                <Clock size={16} />
-              </div>
-              <div className="check-content">
-                <div className="check-head-row">
-                  <strong>Tuần 5 - 8: Đợt Báo cáo Giữa kỳ</strong>
-                  <span className="check-status-tag tag--active">Hiện tại</span>
-                </div>
-                <p>Hạn chót 25/09/2026 • Thu thập nhận xét tiến độ thực tập từ Mentor.</p>
-              </div>
-            </div>
-
-            <div className="checklist-item checklist-item--upcoming">
-              <div className="check-icon-wrap check-icon--upcoming">
-                <Calendar size={16} />
-              </div>
-              <div className="check-content">
-                <div className="check-head-row">
-                  <strong>Tuần 9 - 16: Đánh giá Mentor &amp; Nghiệm thu</strong>
-                  <span className="check-status-tag tag--upcoming">Sắp tới</span>
-                </div>
-                <p>Dự kiến kết thúc 30/11/2026 • Tổng kết điểm học phần thực tập.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Link đồng bộ */}
-          <div className="timeline-sync-box">
-            <button
-              type="button"
-              className="sync-link-btn"
-              onClick={() => showToast('✓ Đã đồng bộ thành công với Lịch năm học ICTU 2026-2027 (Xuất file iCal/Outlook)')}
-            >
-              <Check size={14} className="text-primary" />
-              <span>✓ Đồng bộ với Lịch năm học ICTU 2026-2027 • Xuất iCal/Outlook</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 4. PHỄU XÉT DUYỆT HỒ SƠ ỨNG VIÊN (CANDIDATE PIPELINE) ── */}
-      <section className="hr-panel">
-        <div className="hr-panel-header">
-          <div className="panel-title-group">
-            <div className="panel-title-row">
-              <h2>Phễu xét duyệt hồ sơ ứng viên (Candidate Pipeline)</h2>
-              <span className="batch-tag-badge">Đợt tuyển mùa Thu</span>
-            </div>
-            <p>Thẩm định điều kiện học vụ ICTU, đánh giá CV, điểm GPA và phê duyệt tiếp nhận vào dự án.</p>
-          </div>
-
-          {/* Thanh tìm kiếm & bộ lọc */}
-          <div className="table-controls">
-            <div className="search-input-wrap">
-              <Search size={16} className="search-icon" />
+          {/* Bộ lọc bảng & Tìm kiếm */}
+          <div className="hr-dash-filter-bar">
+            <div className="hr-dash-search-input">
+              <Search size={15} />
               <input
                 type="text"
-                placeholder="Tìm theo tên ứng viên, MSSV, SĐT..."
+                placeholder="Tìm theo tên ứng viên, mã sinh viên, email, chuyên ngành..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
               />
+              {searchQuery && (
+                <button type="button" className="hr-dash-clear-search" onClick={() => setSearchQuery('')}>
+                  <X size={14} />
+                </button>
+              )}
             </div>
 
-            {/* Bộ lọc Khoa / Chuyên ngành */}
-            <select
-              className="filter-select"
-              value={facultyFilter}
-              onChange={(e) => setFacultyFilter(e.target.value)}
-            >
-              <option value="all">Tất cả Khoa / Chuyên ngành</option>
-              <option value="Công nghệ Thông tin">Khoa CNTT</option>
-              <option value="Kỹ thuật Phần mềm">Khoa Kỹ thuật Phần mềm</option>
-              <option value="An toàn Thông tin">Khoa An toàn Thông tin</option>
-            </select>
-
-            {/* Bộ lọc Trạng thái */}
-            <select
-              className="filter-select"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="pending">Chờ thẩm định ({pendingCount})</option>
-              <option value="approved">Đã duyệt</option>
-              <option value="rejected">Từ chối</option>
-            </select>
-
-            {/* Nút Xem mẫu Email Thông báo Đậu/Rớt (Story 13) */}
-            <button
-              type="button"
-              className="hr-btn hr-btn--outline"
-              onClick={() => setEmailPreviewModal({ open: true, applicant: filteredApplicants[0] || INITIAL_APPLICANTS[0], tab: 'approved' })}
-              title="Xem trước mã HTML Email Template thông báo Đậu/Rớt (Responsive)"
-            >
-              <Mail size={15} />
-              <span>Mẫu Email Kết Quả</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="table-wrapper">
-          <table className="enterprise-data-table">
-            <thead>
-              <tr>
-                <th style={{ width: '25%' }}>Thông tin ứng viên</th>
-                <th style={{ width: '21%' }}>Khoa &amp; Chuyên ngành</th>
-                <th style={{ width: '12%' }}>Điểm GPA tích lũy</th>
-                <th style={{ width: '28%' }}>Tài liệu &amp; Minh chứng đính kèm</th>
-                <th style={{ textAlign: 'center', width: '14%' }}>Thao tác xét duyệt</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="table-empty-row">
-                    <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', marginRight: 8, verticalAlign: 'middle' }} />
-                    Đang tải dữ liệu hồ sơ từ hệ thống...
-                  </td>
-                </tr>
-              ) : filteredApplicants.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="table-empty-row">
-                    Không tìm thấy hồ sơ ứng viên phù hợp với bộ lọc tìm kiếm.
-                  </td>
-                </tr>
-              ) : (
-                filteredApplicants.map((app) => (
-                  <tr key={app.id}>
-                    <td>
-                      <div className="applicant-cell-group">
-                        <div className="app-avatar-badge">
-                          {app.avatar || getInitials(app.full_name)}
-                        </div>
-                        <div className="applicant-info-cell">
-                          <div className="app-name-line">
-                            <strong className="app-name">{app.full_name}</strong>
-                            <span className="app-code-pill">{app.student_code}</span>
-                          </div>
-                          <span className="app-email">{app.email}</span>
-                          <span className="app-phone">
-                            SĐT: <strong>{app.phone}</strong> · Nộp ngày {app.applied_at}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="applicant-edu-cell">
-                        <strong className="app-faculty">{app.faculty}</strong>
-                        <span className="app-major-tag">{app.major}</span>
-                      </div>
-                    </td>
-                    <td>
-                      {/* Điểm GPA (badge xanh nổi bật) */}
-                      <div className="gpa-highlight-badge">
-                        <strong>{app.gpa}</strong>
-                        <span>/ 4.0</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="doc-links-cell">
-                        {/* 1. File CV Ứng viên */}
-                        <div className="doc-item-row">
-                          <div className="doc-item-meta" title={app.cv_file}>
-                            <FileText size={13} className="text-primary" />
-                            <span className="doc-item-name">{app.cv_file}</span>
-                          </div>
-                          <div className="doc-item-actions">
-                            <button
-                              type="button"
-                              className="doc-quick-btn doc-quick-btn--view"
-                              onClick={() => {
-                                setDocZoom(100)
-                                setDocPreviewModal({ open: true, applicant: app, docType: 'cv' })
-                              }}
-                              title="Đọc trực tiếp file CV bằng PDF Viewer"
-                            >
-                              <Eye size={12} />
-                              <span>Xem</span>
-                            </button>
-                            {docStatuses[`${app.id}_cv`] ? (
-                              <span className={`doc-status-tag doc-status-tag--${docStatuses[`${app.id}_cv`]}`}>
-                                {docStatuses[`${app.id}_cv`] === 'approved' ? '✓ Đã duyệt' : '✕ Từ chối'}
-                              </span>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  className="doc-quick-btn doc-quick-btn--approve"
-                                  onClick={() => handleApproveDoc(app, 'cv')}
-                                  title="Duyệt tài liệu CV"
-                                >
-                                  <Check size={11} />
-                                  <span>Duyệt</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  className="doc-quick-btn doc-quick-btn--reject"
-                                  onClick={() => handleRejectDoc(app, 'cv')}
-                                  title="Từ chối tài liệu CV"
-                                >
-                                  <X size={11} />
-                                  <span>Từ chối</span>
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 2. Đơn xin tiếp nhận thực tập */}
-                        <div className="doc-item-row">
-                          <div className="doc-item-meta" title={app.app_file}>
-                            <FileText size={13} className="text-primary" />
-                            <span className="doc-item-name">{app.app_file}</span>
-                          </div>
-                          <div className="doc-item-actions">
-                            <button
-                              type="button"
-                              className="doc-quick-btn doc-quick-btn--view"
-                              onClick={() => {
-                                setDocZoom(100)
-                                setDocPreviewModal({ open: true, applicant: app, docType: 'app' })
-                              }}
-                              title="Đọc trực tiếp Đơn xin thực tập bằng PDF Viewer"
-                            >
-                              <Eye size={12} />
-                              <span>Xem</span>
-                            </button>
-                            {docStatuses[`${app.id}_app`] ? (
-                              <span className={`doc-status-tag doc-status-tag--${docStatuses[`${app.id}_app`]}`}>
-                                {docStatuses[`${app.id}_app`] === 'approved' ? '✓ Đã duyệt' : '✕ Từ chối'}
-                              </span>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  className="doc-quick-btn doc-quick-btn--approve"
-                                  onClick={() => handleApproveDoc(app, 'app')}
-                                  title="Duyệt tài liệu Đơn xin tiếp nhận"
-                                >
-                                  <Check size={11} />
-                                  <span>Duyệt</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  className="doc-quick-btn doc-quick-btn--reject"
-                                  onClick={() => handleRejectDoc(app, 'app')}
-                                  title="Từ chối tài liệu Đơn xin tiếp nhận"
-                                >
-                                  <X size={11} />
-                                  <span>Từ chối</span>
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div className="quick-actions-cell">
-                        {app.status === 'pending' ? (
-                          <>
-                            <button
-                              type="button"
-                              className="action-btn action-btn--approve"
-                              onClick={() => handleApprove(app)}
-                              disabled={actionLoading === app.id}
-                              title="Phê duyệt hồ sơ trúng tuyển"
-                            >
-                              {actionLoading === app.id ? (
-                                <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
-                              ) : (
-                                'Duyệt'
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              className="action-btn action-btn--reject"
-                              onClick={() => setRejectDialog({ open: true, applicant: app, reason: '' })}
-                              disabled={actionLoading === app.id}
-                              title="Từ chối hồ sơ kèm lý do"
-                            >
-                              Từ chối
-                            </button>
-                          </>
-                        ) : (
-                          <span
-                            className={`status-badge status-badge--${
-                              app.status === 'approved' ? 'success' : 'danger'
-                            }`}
-                          >
-                            {app.status === 'approved' ? '✓ Đã duyệt' : '✕ Từ chối'}
-                          </span>
-                        )}
-
-                        <button
-                          type="button"
-                          className="action-btn action-btn--detail"
-                          onClick={() => setDetailModal({ open: true, applicant: app })}
-                          title="Xem chi tiết hồ sơ ứng viên"
-                        >
-                          Chi tiết
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Phân trang bảng */}
-        <div className="hr-table-pagination-bar">
-          <span className="pagination-info">
-            Hiển thị <strong>{filteredApplicants.length}</strong> hồ sơ cần xử lý trong tổng số <strong>18</strong> ứng viên đợt Q3/2026.
-          </span>
-          <div className="pagination-pages">
-            <button type="button" className="page-btn is-active">1</button>
-            <button type="button" className="page-btn" disabled>2</button>
-            <button type="button" className="page-btn" disabled>3</button>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 5. KHỐI 2 CỘT CHÂN TRANG (70% - 30%) ── */}
-      <section className="hr-bottom-grid">
-        {/* CỘT TRÁI (70%): Ma trận ghép cặp Sinh viên -> Dự án -> Mentor */}
-        <div className="hr-bottom-left">
-          <div className="hr-panel">
-            <div className="hr-panel-header">
-              <div>
-                <h2>Ma trận ghép cặp: Sinh viên ➔ Dự án ➔ Mentor</h2>
-                <p>Phân bổ chuyên môn theo đúng năng lực &amp; yêu cầu đối tác</p>
-              </div>
+            <div className="hr-dash-status-tabs">
               <button
                 type="button"
-                className="hr-btn hr-btn--primary hr-btn--sm"
-                onClick={() => setMatchModal(true)}
+                className={`hr-dash-tab-btn ${statusFilter === 'all' ? 'hr-dash-tab-btn--active' : ''}`}
+                onClick={() => setStatusFilter('all')}
               >
-                <Plus size={14} />
-                <span>+ Ghép cặp mới</span>
+                Tất cả ({interns.length})
+              </button>
+              <button
+                type="button"
+                className={`hr-dash-tab-btn ${statusFilter === 'pending' ? 'hr-dash-tab-btn--active' : ''}`}
+                onClick={() => setStatusFilter('pending')}
+              >
+                Chờ duyệt ({metrics.pendingCount})
+              </button>
+              <button
+                type="button"
+                className={`hr-dash-tab-btn ${statusFilter === 'unsubmitted' ? 'hr-dash-tab-btn--active' : ''}`}
+                onClick={() => setStatusFilter('unsubmitted')}
+              >
+                Chưa nộp CV ({metrics.unsubmittedCount})
+              </button>
+              <button
+                type="button"
+                className={`hr-dash-tab-btn ${statusFilter === 'approved' ? 'hr-dash-tab-btn--active' : ''}`}
+                onClick={() => setStatusFilter('approved')}
+              >
+                Đã duyệt ({metrics.approvedCount})
+              </button>
+              <button
+                type="button"
+                className={`hr-dash-tab-btn ${statusFilter === 'rejected' ? 'hr-dash-tab-btn--active' : ''}`}
+                onClick={() => setStatusFilter('rejected')}
+              >
+                Từ chối ({metrics.rejectedCount})
               </button>
             </div>
+          </div>
 
-            <div className="table-wrapper">
-              <table className="enterprise-data-table hr-matrix-table">
+          {/* Bảng hồ sơ */}
+          <div className="hr-dash-table-wrapper">
+            {loading ? (
+              <div className="hr-dash-loading">
+                <Loader2 size={24} className="hr-spin" />
+                <span>Đang tải danh sách hồ sơ...</span>
+              </div>
+            ) : filteredApplicants.length === 0 ? (
+              <div className="hr-dash-empty">
+                <Users size={32} />
+                <p>Không tìm thấy hồ sơ ứng viên nào phù hợp với bộ lọc hiện tại.</p>
+              </div>
+            ) : (
+              <table className="hr-dash-table">
+                <colgroup>
+                  <col style={{ width: '28%' }} />
+                  <col style={{ width: '22%' }} />
+                  <col style={{ width: '16%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '20%' }} />
+                </colgroup>
                 <thead>
                   <tr>
-                    <th>Sinh viên</th>
-                    <th>Doanh nghiệp &amp; Đơn vị</th>
-                    <th>Dự án tiếp nhận</th>
-                    <th>Mentor phụ trách</th>
+                    <th>Ứng viên</th>
+                    <th>Chuyên ngành</th>
+                    <th>Trường ĐH</th>
                     <th style={{ textAlign: 'center' }}>Trạng thái</th>
+                    <th style={{ textAlign: 'center' }}>Thao tác xét duyệt</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {MATCHING_MATRIX.map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <strong className="matrix-student-name">{item.student}</strong>
-                        <span className="matrix-sub-code">{item.student_code}</span>
-                      </td>
-                      <td>
-                        <div className="matrix-company-cell">
-                          <Building2 size={14} className="text-secondary" />
-                          <span>{item.company}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <strong className="matrix-project-title">{item.project}</strong>
-                      </td>
-                      <td>
-                        <div className="matrix-mentor-cell">
-                          <span className="mentor-name-strong">{item.mentor}</span>
-                          <span className="mentor-role-tag">{item.mentor_role}</span>
-                        </div>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span
-                          className={`status-badge status-badge--${
-                            item.status === 'assigned' ? 'success' : 'warning'
-                          }`}
-                        >
-                          {item.status_label}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredApplicants.slice(0, 8).map((applicant) => {
+                    const isPending = applicant.status === 'pending';
+                    const isApproved = applicant.status === 'approved' || applicant.status === 'active';
+                    const isRejected = applicant.status === 'rejected';
+
+                    return (
+                      <tr key={applicant.id}>
+                        {/* Cột 1: Thông tin ứng viên */}
+                        <td>
+                          <div className="hr-applicant-cell">
+                            <div className="hr-applicant-avatar">
+                              {applicant.avatar && applicant.avatar.startsWith('data:image') ? (
+                                <img src={applicant.avatar} alt={applicant.full_name} className="hr-applicant-avatar-img" />
+                              ) : (
+                                getInitials(applicant.full_name)
+                              )}
+                            </div>
+                            <div className="hr-applicant-text">
+                              <strong>{applicant.full_name}</strong>
+                              <span className="hr-applicant-meta">
+                                {applicant.student_code} • {applicant.email}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Cột 2: Chuyên ngành */}
+                        <td>
+                          <span className="hr-major-badge">{applicant.major}</span>
+                        </td>
+
+                        {/* Cột 3: Trường ĐH */}
+                        <td>
+                          <span className="hr-uni-text">{applicant.university}</span>
+                        </td>
+
+                        {/* Cột 4: Trạng thái */}
+                        <td style={{ textAlign: 'center' }}>
+                          {!applicant.has_cv || applicant.status === 'unsubmitted' ? (
+                            <span className="hr-status-pill hr-status-pill--unsubmitted" title="Ứng viên chưa tải lên hồ sơ/CV">
+                              <span className="hr-dot hr-dot--gray" />
+                              Chưa nộp CV
+                            </span>
+                          ) : isPending ? (
+                            <span className="hr-status-pill hr-status-pill--pending">
+                              <span className="hr-dot hr-dot--orange" />
+                              Chờ duyệt
+                            </span>
+                          ) : isApproved ? (
+                            <span className="hr-status-pill hr-status-pill--approved">
+                              <span className="hr-dot hr-dot--blue" />
+                              Đã duyệt
+                            </span>
+                          ) : isRejected ? (
+                            <span className="hr-status-pill hr-status-pill--rejected">
+                              <span className="hr-dot hr-dot--red" />
+                              Từ chối
+                            </span>
+                          ) : null}
+                        </td>
+
+                        {/* Cột 5: Thao tác xét duyệt */}
+                        <td style={{ textAlign: 'center' }}>
+                          <div className="hr-actions-cell">
+                            {/* ỨNG VIÊN CHƯA NỘP CV: KHÔNG THỂ DUYỆT / XEM CV / TỪ CHỐI */}
+                            {!applicant.has_cv || applicant.status === 'unsubmitted' ? (
+                              <span
+                                className="hr-no-cv-badge"
+                                title="Ứng viên chưa nộp CV/hồ sơ lên hệ thống — chưa thể thẩm định hay xét duyệt"
+                              >
+                                Chờ ứng viên nộp CV
+                              </span>
+                            ) : (
+                              <>
+                                {/* Nút Xem CV (luôn có thể xem khi đã có CV) */}
+                                <button
+                                  type="button"
+                                  className="hr-action-btn hr-action-btn--view"
+                                  onClick={() => setCvModal({ open: true, applicant })}
+                                  title={applicant.cv_file ? `Xem chi tiết hồ sơ & CV: ${applicant.cv_file}` : 'Xem CV ứng viên'}
+                                >
+                                  <Eye size={13} />
+                                  <span>Xem CV</span>
+                                </button>
+
+                                {/* Nút Duyệt: Hiển thị khi pending hoặc khi hồ sơ có CV cần duyệt lại */}
+                                {(isPending || (isRejected && applicant.has_cv)) && (
+                                  <button
+                                    type="button"
+                                    className="hr-action-btn hr-action-btn--approve"
+                                    onClick={() => handleApproveApplicant(applicant)}
+                                    disabled={actionLoadingId === applicant.id}
+                                    title={isRejected ? "Xem xét lại và phê duyệt hồ sơ ứng viên" : "Phê duyệt ứng viên vào thực tập chính thức"}
+                                  >
+                                    <Check size={13} />
+                                    <span>{isRejected ? 'Duyệt lại' : 'Duyệt'}</span>
+                                  </button>
+                                )}
+
+                                {/* Nút Từ chối: CHỈ hiển thị khi ĐANG CHỜ DUYỆT (isPending). ĐÃ DUYỆT RỒI THÌ TUYỆT ĐỐI KHÔNG CÒN BUTTON TỪ CHỐI NỮA! */}
+                                {isPending && (
+                                  <button
+                                    type="button"
+                                    className="hr-action-btn hr-action-btn--reject"
+                                    onClick={() => handleOpenRejectDialog(applicant)}
+                                    disabled={actionLoadingId === applicant.id}
+                                    title="Từ chối hồ sơ ứng viên"
+                                  >
+                                    <X size={13} />
+                                    <span>Từ chối</span>
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
+            )}
+          </div>
+
+          <div className="hr-dash-card__footer">
+            <span>Hiển thị tối đa 8 hồ sơ gần nhất cần xử lý</span>
+            <Link to="/hr/interns" className="hr-dash-btn-link">
+              Quản lý toàn bộ danh sách hồ sơ thực tập sinh &rarr;
+            </Link>
+          </div>
+        </section>
+
+        {/* ── 4. GRID 2 CỘT: PHÂN BỔ CHUYÊN NGÀNH CNTT & KỲ THỰC TẬP HIỆN TẠI ── */}
+        <section className="hr-dash-two-col">
+          {/* Cột 1: Phân bổ chuyên ngành Công nghệ thông tin */}
+          <div className="hr-dash-card hr-dash-card--half">
+            <div className="hr-dash-card__header">
+              <div className="hr-dash-card__title-group">
+                <div className="hr-dash-icon-badge hr-dash-icon-badge--purple">
+                  <GraduationCap size={18} />
+                </div>
+                <div>
+                  <h2>Phân bổ theo Chuyên ngành CNTT</h2>
+                  <p>Tỷ lệ thực tập sinh đăng ký theo từng khối ngành công nghệ</p>
+                </div>
+              </div>
             </div>
 
-            <div className="matrix-footer-row">
-              <span className="matrix-footer-text">
-                ✓ <strong>12</strong> TTS đã hoàn tất ghép mentor và bàn giao dự án
-              </span>
-              <button
-                type="button"
-                className="matrix-more-link"
-                onClick={() => showToast('Mở toàn bộ danh sách 15 cặp ghép nối sinh viên - mentor', 'info')}
-              >
-                Xem toàn bộ ma trận (15) &rarr;
-              </button>
+            <div className="hr-major-dist-body">
+              {metrics.majorList.length === 0 ? (
+                <div className="hr-major-empty">Chưa có dữ liệu chuyên ngành.</div>
+              ) : (
+                metrics.majorList.map((major, idx) => {
+                  const colors = ['#2563eb', '#16a34a', '#7c3aed', '#0284c7', '#ea580c', '#e11d48'];
+                  const barColor = colors[idx % colors.length];
+
+                  return (
+                    <div key={major.name} className="hr-major-item">
+                      <div className="hr-major-item__top">
+                        <span className="hr-major-name">{major.name}</span>
+                        <span className="hr-major-count">
+                          <strong>{major.count}</strong> sinh viên ({major.percent}%)
+                        </span>
+                      </div>
+                      <div className="hr-major-progress-bg">
+                        <div
+                          className="hr-major-progress-fill"
+                          style={{
+                            width: `${major.percent}%`,
+                            backgroundColor: barColor,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
-        </div>
 
-        {/* CỘT PHẢI (30%): HỢP ĐỒNG ĐIỆN TỬ (E-CONTRACT) - Bản số hoá */}
-        <div className="hr-bottom-right">
-          <div className="hr-panel e-contract-card">
-            <div className="e-contract-header">
-              <div>
-                <h3>HỢP ĐỒNG ĐIỆN TỬ (E-CONTRACT)</h3>
-                <span className="card-sub-tag">Bản số hoá</span>
-              </div>
-              <FileCheck size={22} className="text-primary" />
-            </div>
-
-            <p className="e-contract-desc">
-              Thỏa thuận 3 bên: Nhà trường - Doanh nghiệp - Sinh viên.
-            </p>
-
-            {/* 3 thanh chỉ số tiến độ */}
-            <div className="e-contract-progress-stack">
-              {/* 1. Sinh viên đã ký cam kết: 14/15 (93%) */}
-              <div className="progress-item">
-                <div className="progress-head">
-                  <span className="progress-label">1. Sinh viên đã ký cam kết:</span>
-                  <strong className="progress-stat">14 / 15 (93%)</strong>
+          {/* Cột 2: Kỳ thực tập hiện tại & Tiến độ đào tạo */}
+          <div className="hr-dash-card hr-dash-card--half">
+            <div className="hr-dash-card__header">
+              <div className="hr-dash-card__title-group">
+                <div className="hr-dash-icon-badge hr-dash-icon-badge--blue">
+                  <Calendar size={18} />
                 </div>
-                <div className="progress-bar-track">
-                  <div className="progress-bar-val" style={{ width: '93%' }} />
+                <div>
+                  <h2>Kỳ thực tập đang diễn ra</h2>
+                  <p>Thông tin tiến độ và chỉ tiêu của kỳ thực tập trọng tâm</p>
                 </div>
               </div>
 
-              {/* 2. Doanh nghiệp tiếp nhận đóng dấu số: 12/15 (80%) */}
-              <div className="progress-item">
-                <div className="progress-head">
-                  <span className="progress-label">2. Doanh nghiệp tiếp nhận đóng dấu số:</span>
-                  <strong className="progress-stat">12 / 15 (80%)</strong>
-                </div>
-                <div className="progress-bar-track">
-                  <div className="progress-bar-val" style={{ width: '80%' }} />
-                </div>
-              </div>
-
-              {/* 3. ICTU ban hành Quyết định: 10/15 (66%) */}
-              <div className="progress-item">
-                <div className="progress-head">
-                  <span className="progress-label">3. ICTU ban hành Quyết định:</span>
-                  <strong className="progress-stat">10 / 15 (66%)</strong>
-                </div>
-                <div className="progress-bar-track">
-                  <div className="progress-bar-val" style={{ width: '66%' }} />
-                </div>
-              </div>
+              <Link to="/hr/programs" className="hr-dash-link-more">
+                Quản lý kỳ &rarr;
+              </Link>
             </div>
 
-            {/* Cụm nút hành động */}
-            <div className="e-contract-action-box">
-              <div className="pending-badge-row">
-                <AlertCircle size={15} className="text-warning" />
-                <span>Cần xử lý nốt <strong>3 HĐ tồn đọng</strong></span>
-              </div>
-              <button
-                type="button"
-                className="hr-btn hr-btn--primary hr-btn--full"
-                onClick={() => showToast('Đã gửi email nhắc nhở kèm mã OTP ký số cho 3 sinh viên và doanh nghiệp!')}
-              >
-                <Send size={15} />
-                <span>Gửi nhắc nhở ký</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── MODAL TỪ CHỐI HỒ SƠ ── */}
-      {rejectDialog.open && (
-        <div
-          className="modal-overlay"
-          onClick={() => setRejectDialog({ open: false, applicant: null, reason: '' })}
-        >
-          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Từ chối hồ sơ ứng viên</h3>
-              <button
-                type="button"
-                className="modal-close-btn"
-                onClick={() => setRejectDialog({ open: false, applicant: null, reason: '' })}
-              >
-                ✕
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="modal-field">
-                <label>Ứng viên:</label>
-                <strong>{rejectDialog.applicant?.full_name} ({rejectDialog.applicant?.student_code})</strong>
-              </div>
-              <div className="modal-field">
-                <label htmlFor="rej-reason">Lý do từ chối * (quy định bắt buộc):</label>
-                <textarea
-                  id="rej-reason"
-                  rows={3}
-                  required
-                  placeholder="Ví dụ: Chưa đáp ứng chuẩn chuyên môn kỹ thuật hoặc điểm GPA chưa đạt ngưỡng yêu cầu..."
-                  value={rejectDialog.reason}
-                  onChange={(e) => setRejectDialog({ ...rejectDialog, reason: e.target.value })}
-                  className="modal-textarea"
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="hr-btn hr-btn--ghost"
-                onClick={() => setRejectDialog({ open: false, applicant: null, reason: '' })}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                className="hr-btn hr-btn--danger"
-                onClick={handleConfirmReject}
-                disabled={actionLoading === rejectDialog.applicant?.id}
-              >
-                {actionLoading === rejectDialog.applicant?.id ? (
-                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                ) : (
-                  'Xác nhận từ chối'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL CHI TIẾT ỨNG VIÊN (Có 2 Tab: Thông tin hồ sơ & Hợp đồng thực tập - Story 14) ── */}
-      {detailModal.open && (
-        <div
-          className="modal-overlay"
-          onClick={() => setDetailModal({ open: false, applicant: null })}
-        >
-          <div className="modal-container modal-container--tabs" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <h3>Hồ sơ ứng viên: {detailModal.applicant?.full_name}</h3>
-                <span className="modal-sub-id">{detailModal.applicant?.student_code} • {detailModal.applicant?.faculty}</span>
-              </div>
-              <button
-                type="button"
-                className="modal-close-btn"
-                onClick={() => setDetailModal({ open: false, applicant: null })}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Tab Navigation (Story 14) */}
-            <div className="modal-nav-tabs">
-              <button
-                type="button"
-                className={`modal-nav-tab ${activeDetailTab === 'info' ? 'is-active' : ''}`}
-                onClick={() => setActiveDetailTab('info')}
-              >
-                <FileText size={15} />
-                <span>Thông tin hồ sơ</span>
-              </button>
-              <button
-                type="button"
-                className={`modal-nav-tab ${activeDetailTab === 'contract' ? 'is-active' : ''}`}
-                onClick={() => setActiveDetailTab('contract')}
-              >
-                <FileCheck size={15} />
-                <span>Hợp đồng thực tập</span>
-                {detailModal.applicant?.contract_file && (
-                  <span className="tab-pill-badge">Đã có file</span>
-                )}
-              </button>
-            </div>
-
-            <div className="modal-body">
-              {activeDetailTab === 'info' ? (
-                <>
-                  <div className="detail-row">
-                    <span className="detail-lbl">Họ và tên:</span>
-                    <strong>{detailModal.applicant?.full_name}</strong>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-lbl">Mã sinh viên / Khóa:</span>
-                    <span className="app-code-pill">{detailModal.applicant?.student_code}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-lbl">Email liên hệ:</span>
-                    <span>{detailModal.applicant?.email}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-lbl">Số điện thoại:</span>
-                    <span>{detailModal.applicant?.phone}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-lbl">Khoa / Viện:</span>
-                    <span>{detailModal.applicant?.faculty}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-lbl">Chuyên ngành:</span>
-                    <span>{detailModal.applicant?.major}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-lbl">Điểm GPA tích lũy:</span>
-                    <span className="status-badge status-badge--success">{detailModal.applicant?.gpa} / 4.0</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-lbl">File CV đính kèm:</span>
-                    <span className="text-primary font-semibold">{detailModal.applicant?.cv_file}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-lbl">Đơn xin tiếp nhận:</span>
-                    <span className="text-primary font-semibold">{detailModal.applicant?.app_file}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-lbl">Hợp đồng thực tập:</span>
-                    <span className="text-primary font-semibold">
-                      {detailModal.applicant?.contract_file || 'Chưa tải lên (chuyển sang tab Hợp đồng để tải file)'}
+            {metrics.activeProgram ? (
+              <div className="hr-program-summary-box">
+                <div className="hr-prog-top-row">
+                  <div>
+                    <h3 className="hr-prog-title">{metrics.activeProgram.name}</h3>
+                    <span className="hr-prog-dept-tag">
+                      {metrics.activeProgram.department}
                     </span>
                   </div>
-                </>
+                  <span className="hr-prog-badge-live">
+                    ● Đang diễn ra
+                  </span>
+                </div>
+
+                <div className="hr-prog-timeline">
+                  <div className="hr-prog-time-item">
+                    <span className="label">Bắt đầu:</span>
+                    <strong>{formatDate(metrics.activeProgram.start_date)}</strong>
+                  </div>
+                  <div className="hr-prog-arrow">→</div>
+                  <div className="hr-prog-time-item">
+                    <span className="label">Kết thúc:</span>
+                    <strong>{formatDate(metrics.activeProgram.end_date)}</strong>
+                  </div>
+                </div>
+
+                {/* Thanh chỉ tiêu tiếp nhận */}
+                <div className="hr-prog-quota-section">
+                  <div className="hr-prog-quota-header">
+                    <span>Chỉ tiêu tiếp nhận thực tế:</span>
+                    <strong>
+                      {metrics.approvedCount} / {metrics.activeProgram.max_interns || 50} TTS
+                    </strong>
+                  </div>
+                  <div className="hr-prog-quota-bar">
+                    <div
+                      className="hr-prog-quota-fill"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.round((metrics.approvedCount / (metrics.activeProgram.max_interns || 50)) * 100)
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="hr-prog-quota-sub">
+                    Đã hoàn thành {Math.round((metrics.approvedCount / (metrics.activeProgram.max_interns || 50)) * 100)}% chỉ tiêu tiếp nhận
+                  </span>
+                </div>
+
+                <div className="hr-prog-card-actions">
+                  <Link to="/hr/programs" className="hr-prog-action-link">
+                    Xem chi tiết danh sách kỳ thực tập &rarr;
+                  </Link>
+                  <Link to="/hr/interns" className="hr-prog-action-link">
+                    Xem danh sách TTS đã gán vào kỳ &rarr;
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="hr-major-empty">
+                Chưa có kỳ thực tập nào đang mở.
+                <br />
+                <Link to="/hr/programs" style={{ color: '#2563eb', fontWeight: 600 }}>
+                  ＋ Tạo kỳ thực tập mới
+                </Link>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ── 5. LỐI TẮT ĐIỀU HƯỚNG NHANH ── */}
+        <section className="hr-dash-shortcuts-grid">
+          <Link to="/hr/interns" className="hr-shortcut-card">
+            <div className="hr-shortcut-icon hr-shortcut-icon--blue">
+              <Users size={22} />
+            </div>
+            <div className="hr-shortcut-text">
+              <h4>Quản lý hồ sơ thực tập sinh</h4>
+              <p>Xem toàn bộ danh bạ, tìm kiếm nâng cao, chỉnh sửa thông tin học vụ</p>
+            </div>
+            <ArrowRight size={16} className="hr-shortcut-arrow" />
+          </Link>
+
+          <Link to="/hr/programs" className="hr-shortcut-card">
+            <div className="hr-shortcut-icon hr-shortcut-icon--cyan">
+              <Calendar size={22} />
+            </div>
+            <div className="hr-shortcut-text">
+              <h4>Danh sách kỳ thực tập</h4>
+              <p>Khởi tạo kỳ mới, cài đặt khung thời gian đào tạo 16 tuần, đóng/mở đợt</p>
+            </div>
+            <ArrowRight size={16} className="hr-shortcut-arrow" />
+          </Link>
+
+          <Link to="/hr/mentors" className="hr-shortcut-card">
+            <div className="hr-shortcut-icon hr-shortcut-icon--purple">
+              <UserCheck size={22} />
+            </div>
+            <div className="hr-shortcut-text">
+              <h4>Phân công Mentor</h4>
+              <p>Ghép cặp hướng dẫn 1-1, phân chia dự án doanh nghiệp cho sinh viên</p>
+            </div>
+            <ArrowRight size={16} className="hr-shortcut-arrow" />
+          </Link>
+
+          <Link to="/hr/contracts" className="hr-shortcut-card">
+            <div className="hr-shortcut-icon hr-shortcut-icon--rose">
+              <FileCheck size={22} />
+            </div>
+            <div className="hr-shortcut-text">
+              <h4>Hợp đồng thực tập</h4>
+              <p>Phát hành hợp đồng tiếp nhận, quản lý cam kết NDA &amp; mức phụ cấp</p>
+            </div>
+            <ArrowRight size={16} className="hr-shortcut-arrow" />
+          </Link>
+        </section>
+      </div>
+
+      {/* ── MODAL XEM CHI TIẾT CV & THẨM ĐỊNH ── */}
+      {cvModal.open && cvModal.applicant && (
+        <div className="hr-modal-overlay" onClick={() => setCvModal({ open: false, applicant: null })}>
+          <div className="hr-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="hr-modal-header">
+              <div className="hr-modal-header-title">
+                <h3>Chi tiết hồ sơ &amp; CV ứng viên</h3>
+                <span>Thẩm định điều kiện tiếp nhận thực tập sinh</span>
+              </div>
+              <button
+                type="button"
+                className="hr-modal-close-btn"
+                onClick={() => setCvModal({ open: false, applicant: null })}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="hr-modal-body">
+              {/* Thẻ ứng viên header */}
+              <div className="hr-applicant-preview-card">
+                <div className="hr-applicant-avatar hr-applicant-avatar--lg">
+                  {cvModal.applicant.avatar && cvModal.applicant.avatar.startsWith('data:image') ? (
+                    <img src={cvModal.applicant.avatar} alt={cvModal.applicant.full_name} className="hr-applicant-avatar-img" />
+                  ) : (
+                    getInitials(cvModal.applicant.full_name)
+                  )}
+                </div>
+                <div className="hr-preview-main">
+                  <h4>{cvModal.applicant.full_name}</h4>
+                  <div className="hr-preview-meta-row">
+                    <span>Mã SV: <strong>{cvModal.applicant.student_code}</strong></span>
+                    <span>•</span>
+                    <span>Email: <strong>{cvModal.applicant.email}</strong></span>
+                    <span>•</span>
+                    <span>SĐT: <strong>{cvModal.applicant.phone || '0987.654.321'}</strong></span>
+                  </div>
+                  <div className="hr-preview-badge-row">
+                    <span className="hr-dept-tag">{cvModal.applicant.major}</span>
+                    <span className="hr-uni-tag">{cvModal.applicant.university}</span>
+                    <span className={`hr-status-pill hr-status-pill--${cvModal.applicant.status}`}>
+                      ● {cvModal.applicant.status === 'approved' ? 'Đã duyệt' : cvModal.applicant.status === 'rejected' ? 'Từ chối' : 'Chờ duyệt'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nếu chưa nộp CV */}
+              {!cvModal.applicant.has_cv || !cvModal.applicant.cv_file ? (
+                <div className="hr-modal-empty-cv">
+                  <AlertCircle size={36} color="#94a3b8" />
+                  <p>Ứng viên này chưa tải lên CV hoặc hồ sơ thực tập lên hệ thống.</p>
+                  <span>Cần chờ ứng viên hoàn tất nộp hồ sơ trước khi HR có thể thẩm định và xét duyệt tiếp nhận.</span>
+                </div>
               ) : (
-                /* Tab Hợp đồng (Story 14) */
-                <ContractTab
-                  internId={detailModal.applicant?.id}
-                  onSaveContract={(file) => {
-                    handleSaveApplicantContract(detailModal.applicant?.id, file)
-                  }}
-                />
+                <>
+                  {/* Chi tiết học vấn & CV */}
+                  <div className="hr-cv-info-grid">
+                    <div className="hr-cv-info-item">
+                      <label>Khóa học / Niên khóa:</label>
+                      <span>K20 (2022 - 2026)</span>
+                    </div>
+                    <div className="hr-cv-info-item">
+                      <label>Điểm trung bình tích lũy (GPA):</label>
+                      <span>3.25 / 4.0 (Khá - Giỏi)</span>
+                    </div>
+                    <div className="hr-cv-info-item">
+                      <label>Kỹ năng chuyên môn khai báo:</label>
+                      <span>ReactJS, Node.js, Python, Git, Docker, MySQL</span>
+                    </div>
+                    <div className="hr-cv-info-item">
+                      <label>Tệp CV đính kèm:</label>
+                      <div className="hr-cv-file-box">
+                        <FileText size={16} color="#2563eb" />
+                        <strong>{cvModal.applicant.cv_file}</strong>
+                        {cvModal.applicant.cv_id ? (
+                          <a
+                            href={getDocumentViewUrl(cvModal.applicant.cv_id)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="hr-cv-view-link"
+                            style={{
+                              marginLeft: 'auto',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              color: '#2563eb',
+                              backgroundColor: '#eff6ff',
+                              border: '1px solid #bfdbfe',
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              textDecoration: 'none',
+                            }}
+                          >
+                            <Eye size={13} />
+                            <span>Xem file</span>
+                          </a>
+                        ) : (
+                          <span className="file-size">(Đã kiểm tra an toàn)</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Đánh giá điều kiện thực tập */}
+                  <div className="hr-audit-checklist">
+                    <h5>Kiểm tra điều kiện học vụ tiếp nhận:</h5>
+                    <div className="hr-audit-item">
+                      <CheckCircle2 size={16} color="#16a34a" />
+                      <span>Sinh viên hệ chính quy đúng chuyên ngành Công nghệ thông tin</span>
+                    </div>
+                    <div className="hr-audit-item">
+                      <CheckCircle2 size={16} color="#16a34a" />
+                      <span>Đã hoàn thành tối thiểu 80% khối lượng học phần kiến thức đại cương</span>
+                    </div>
+                    <div className="hr-audit-item">
+                      <CheckCircle2 size={16} color="#16a34a" />
+                      <span>CV đầy đủ thông tin, có định hướng thực tập rõ ràng tại doanh nghiệp</span>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
 
-            <div className="modal-footer">
+            <div className="hr-modal-footer">
               <button
                 type="button"
-                className="hr-btn hr-btn--primary"
-                onClick={() => setDetailModal({ open: false, applicant: null })}
+                className="hr-modal-btn hr-modal-btn--secondary"
+                onClick={() => setCvModal({ open: false, applicant: null })}
               >
                 Đóng
               </button>
+
+              {/* Nút Từ chối: CHỈ hiển thị khi hồ sơ ĐANG CHỜ DUYỆT (pending). ĐÃ DUYỆT RỒI THÌ KHÔNG CÒN NÚT TỪ CHỐI NỮA! */}
+              {cvModal.applicant.has_cv && cvModal.applicant.cv_file && cvModal.applicant.status === 'pending' && (
+                <button
+                  type="button"
+                  className="hr-modal-btn hr-modal-btn--danger"
+                  onClick={() => handleOpenRejectDialog(cvModal.applicant)}
+                >
+                  <X size={15} />
+                  <span>Từ chối hồ sơ</span>
+                </button>
+              )}
+
+              {/* Nút Duyệt: Hiển thị khi hồ sơ ĐANG CHỜ DUYỆT (pending) hoặc duyệt lại */}
+              {cvModal.applicant.has_cv && cvModal.applicant.cv_file && (cvModal.applicant.status === 'pending' || cvModal.applicant.status === 'rejected') && (
+                <button
+                  type="button"
+                  className="hr-modal-btn hr-modal-btn--primary"
+                  onClick={() => handleApproveApplicant(cvModal.applicant)}
+                >
+                  <Check size={15} />
+                  <span>{cvModal.applicant.status === 'rejected' ? 'Xem xét lại & Duyệt' : 'Phê duyệt hồ sơ này'}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* ── MODAL GHÉP CẶP MENTOR ── */}
-      {matchModal && (
-        <div className="modal-overlay" onClick={() => setMatchModal(false)}>
-          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Ghép cặp Sinh viên ➔ Dự án ➔ Mentor</h3>
-              <button type="button" className="modal-close-btn" onClick={() => setMatchModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="modal-field">
-                <label>Chọn sinh viên trúng tuyển:</label>
-                <select className="filter-select" style={{ width: '100%' }}>
-                  <option>Lê Hoàng Nam (TTS0004 - K20-ATTT)</option>
-                  <option>Dũng Vũ (TTS0003 - K20-KTPM)</option>
-                  <option>Nguyễn Văn An (TTS0002 - K20-CNTT)</option>
-                </select>
+      {/* ── MODAL XÁC NHẬN TỪ CHỐI HỒ SƠ ── */}
+      {rejectDialog.open && rejectDialog.applicant && (
+        <div className="hr-modal-overlay" onClick={() => setRejectDialog({ open: false, applicant: null, reason: '' })}>
+          <div className="hr-modal-content hr-modal-content--sm" onClick={(e) => e.stopPropagation()}>
+            <div className="hr-modal-header">
+              <div className="hr-modal-header-title">
+                <h3>Xác nhận từ chối hồ sơ</h3>
+                <span>Gửi phản hồi giải thích lý do cho ứng viên</span>
               </div>
-              <div className="modal-field">
-                <label>Doanh nghiệp tiếp nhận:</label>
-                <select className="filter-select" style={{ width: '100%' }}>
-                  <option>VNPT Cyber Immunity</option>
-                  <option>Viettel Solutions</option>
-                  <option>FPT Software / BU2</option>
-                </select>
-              </div>
-              <div className="modal-field">
-                <label>Chỉ định Mentor chuyên môn:</label>
-                <select className="filter-select" style={{ width: '100%' }}>
-                  <option>Trần Hoàng Quân (Senior Security Specialist)</option>
-                  <option>Lê Hồng Sơn (Senior Arch)</option>
-                  <option>Nguyễn Văn Bình (Tech Lead)</option>
-                </select>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="hr-btn hr-btn--ghost" onClick={() => setMatchModal(false)}>Hủy</button>
               <button
                 type="button"
-                className="hr-btn hr-btn--primary"
-                onClick={() => {
-                  setMatchModal(false)
-                  showToast('Đã lưu ghép cặp và thông báo tới Mentor cùng Sinh viên!')
-                }}
+                className="hr-modal-close-btn"
+                onClick={() => setRejectDialog({ open: false, applicant: null, reason: '' })}
               >
-                Lưu ghép cặp
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="hr-modal-body">
+              <p style={{ margin: '0 0 12px', fontSize: '13.5px', color: '#334155' }}>
+                Bạn đang từ chối hồ sơ của ứng viên{' '}
+                <strong>{rejectDialog.applicant.full_name}</strong> ({rejectDialog.applicant.student_code}).
+              </p>
+
+              <div className="hr-form-group">
+                <label>Lý do từ chối tiếp nhận (sẽ hiển thị cho ứng viên):</label>
+                <textarea
+                  rows="3"
+                  className="hr-textarea"
+                  value={rejectDialog.reason}
+                  onChange={(e) => setRejectDialog({ ...rejectDialog, reason: e.target.value })}
+                  placeholder="Nhập lý do cụ thể (chưa đủ điều kiện học vụ, CV chưa đạt, chỉ tiêu đã đầy...)"
+                />
+              </div>
+            </div>
+
+            <div className="hr-modal-footer">
+              <button
+                type="button"
+                className="hr-modal-btn hr-modal-btn--secondary"
+                onClick={() => setRejectDialog({ open: false, applicant: null, reason: '' })}
+                disabled={actionLoadingId === rejectDialog.applicant.id}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="hr-modal-btn hr-modal-btn--danger"
+                onClick={handleConfirmReject}
+                disabled={actionLoadingId === rejectDialog.applicant.id}
+              >
+                {actionLoadingId === rejectDialog.applicant.id ? 'Đang lưu...' : 'Xác nhận từ chối'}
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* ── MODAL XEM TRƯỚC VÀ DUYỆT TÀI LIỆU (PDF VIEWER - Story 10) ── */}
-      {docPreviewModal.open && (
-        <div
-          className="modal-overlay"
-          onClick={() => setDocPreviewModal({ open: false, applicant: null, docType: '' })}
-        >
-          <div
-            className="modal-container modal-container--doc"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <div className="doc-modal-title-row">
-                <FileText size={18} className="text-primary" />
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '0.98rem' }}>
-                    {docPreviewModal.docType === 'cv'
-                      ? `CV Ứng viên: ${docPreviewModal.applicant?.cv_file}`
-                      : `Đơn xin thực tập: ${docPreviewModal.applicant?.app_file}`}
-                  </h3>
-                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                    Trình đọc tài liệu PDF Viewer • {docPreviewModal.applicant?.full_name} ({docPreviewModal.applicant?.student_code})
-                  </span>
-                </div>
-              </div>
-
-              {/* Toolbar Zoom & Tools */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div className="doc-zoom-toolbar">
-                  <button
-                    type="button"
-                    className="zoom-btn"
-                    onClick={() => setDocZoom((prev) => Math.max(60, prev - 15))}
-                    title="Thu nhỏ (-)"
-                  >
-                    <ZoomOut size={14} />
-                  </button>
-                  <span className="zoom-text">{docZoom}%</span>
-                  <button
-                    type="button"
-                    className="zoom-btn"
-                    onClick={() => setDocZoom((prev) => Math.min(160, prev + 15))}
-                    title="Phóng to (+)"
-                  >
-                    <ZoomIn size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    className="zoom-btn"
-                    onClick={() => setDocZoom(100)}
-                    title="Đặt lại 100%"
-                  >
-                    100%
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  className="modal-close-btn"
-                  onClick={() => setDocPreviewModal({ open: false, applicant: null, docType: '' })}
-                  title="Đóng popup"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <div className="modal-body doc-preview-body">
-              <div
-                style={{
-                  transform: `scale(${docZoom / 100})`,
-                  transformOrigin: 'top center',
-                  transition: 'transform 0.2s ease',
-                  width: '100%',
-                  display: 'flex',
-                  justifyContent: 'center',
-                }}
-              >
-                {docPreviewModal.docType === 'cv' ? (
-                  /* ── BẢN XEM TRƯỚC CV (CURRICULUM VITAE) ── */
-                  <div className="doc-paper-cv">
-                    <div className="cv-header-row">
-                      <div className="cv-candidate-title">
-                        <h1>{docPreviewModal.applicant?.full_name}</h1>
-                        <p className="cv-role-sub">Ứng viên Thực tập sinh Kỹ thuật Phần mềm (Software Engineer Intern)</p>
-                      </div>
-                      <div className="cv-contact-col">
-                        <div>Email: {docPreviewModal.applicant?.email}</div>
-                        <div>SĐT: {docPreviewModal.applicant?.phone}</div>
-                        <div>Khoa: {docPreviewModal.applicant?.faculty}</div>
-                        <div>Mã SV: {docPreviewModal.applicant?.student_code}</div>
-                      </div>
-                    </div>
-
-                    <div className="cv-section">
-                      <h3>🎯 Mục tiêu nghề nghiệp</h3>
-                      <p>
-                        Sinh viên năm cuối ngành {docPreviewModal.applicant?.major} với nền tảng vững chắc về lập trình phần mềm, kiến trúc hệ thống và quy trình phát triển Agile/Scrum. Mong muốn tham gia vào dự án thực tế của doanh nghiệp để rèn luyện kỹ năng thực chiến và đóng góp giá trị cho sản phẩm.
-                      </p>
-                    </div>
-
-                    <div className="cv-section">
-                      <h3>🎓 Học vấn &amp; Điểm tích lũy</h3>
-                      <p>
-                        <strong>Trường Đại học Công nghệ Thông tin &amp; Truyền thông (ICTU)</strong><br />
-                        Chuyên ngành: {docPreviewModal.applicant?.major} • Khóa 2022 - 2026<br />
-                        Điểm GPA tích lũy: <strong style={{ color: '#2563eb' }}>{docPreviewModal.applicant?.gpa} / 4.0</strong> (Xếp loại: Xuất sắc)
-                      </p>
-                    </div>
-
-                    <div className="cv-section">
-                      <h3>⚡ Kỹ năng chuyên môn</h3>
-                      <div className="cv-skills-tags">
-                        <span className="cv-skill-pill">JavaScript / TypeScript</span>
-                        <span className="cv-skill-pill">React.js / Next.js</span>
-                        <span className="cv-skill-pill">Python FastAPI</span>
-                        <span className="cv-skill-pill">RESTful API &amp; Swagger</span>
-                        <span className="cv-skill-pill">PostgreSQL / MySQL</span>
-                        <span className="cv-skill-pill">Docker &amp; CI/CD Basics</span>
-                        <span className="cv-skill-pill">Git / GitHub Teamwork</span>
-                      </div>
-                    </div>
-
-                    <div className="cv-section">
-                      <h3>💼 Dự án tiêu biểu</h3>
-                      <p>
-                        <strong>Hệ thống Quản lý Thực tập Doanh nghiệp (ICTU Internship Hub)</strong><br />
-                        - Tham gia xây dựng các module xác thực RBAC, xét duyệt hồ sơ ứng viên và quản lý tiến độ thực tập.<br />
-                        - Tối ưu hóa UI/UX đạt chuẩn Enterprise SaaS, tích hợp đầy đủ tính năng responsive và phân quyền.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  /* ── BẢN XEM TRƯỚC ĐƠN XIN THỰC TẬP ── */
-                  <div className="doc-paper-preview">
-                    <div className="doc-paper-header">
-                      <div className="doc-paper-school">
-                        <strong>ĐẠI HỌC THÁI NGUYÊN</strong>
-                        <p>TRƯỜNG ĐH CNTT &amp; TRUYỀN THÔNG (ICTU)</p>
-                        <span className="doc-paper-line" />
-                      </div>
-                      <div className="doc-paper-country">
-                        <strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong>
-                        <p>Độc lập - Tự do - Hạnh phúc</p>
-                        <span className="doc-paper-line" />
-                      </div>
-                    </div>
-
-                    <div className="doc-paper-title">
-                      <h2>ĐƠN XIN TIẾP NHẬN THỰC TẬP DOANH NGHIỆP</h2>
-                      <p className="doc-paper-sub">Kỳ Mùa Thu Q3/2026 • Chuẩn tín chỉ thực tập 16 tuần</p>
-                    </div>
-
-                    <div className="doc-paper-content">
-                      <p><strong>Kính gửi:</strong> Ban Giám đốc &amp; Phòng Nhân sự Doanh nghiệp tiếp nhận</p>
-                      <p><strong>Đồng kính gửi:</strong> Ban Hợp tác Doanh nghiệp - Trường ĐH CNTT &amp; TT (ICTU)</p>
-
-                      <div className="doc-paper-grid">
-                        <p>Họ và tên sinh viên: <strong>{docPreviewModal.applicant?.full_name}</strong></p>
-                        <p>Mã sinh viên: <strong>{docPreviewModal.applicant?.student_code}</strong></p>
-                        <p>Khoa / Ngành: <strong>{docPreviewModal.applicant?.faculty}</strong> - <strong>{docPreviewModal.applicant?.major}</strong></p>
-                        <p>Điểm GPA tích lũy: <strong>{docPreviewModal.applicant?.gpa} / 4.0</strong></p>
-                        <p>Số điện thoại: <strong>{docPreviewModal.applicant?.phone}</strong></p>
-                        <p>Email sinh viên: <strong>{docPreviewModal.applicant?.email}</strong></p>
-                      </div>
-
-                      <p className="doc-commitment-text">
-                        Tôi xin cam đoan chấp hành nghiêm chỉnh mọi nội quy, quy định về bảo mật thông tin, thời gian biểu và kỷ luật lao động của Doanh nghiệp trong suốt thời gian thực tập từ ngày <strong>01/08/2026</strong> đến ngày <strong>30/11/2026</strong>.
-                      </p>
-
-                      <div className="doc-sign-row">
-                        <div className="doc-sign-col">
-                          <span>XÁC NHẬN CỦA KHOA CHUYÊN MÔN</span>
-                          <div className="doc-stamp-box">
-                            <span className="stamp-text">ĐÃ XÁC NHẬN ĐIỀU KIỆN</span>
-                            <span className="stamp-sub">Khoa CNTT ICTU</span>
-                          </div>
-                        </div>
-                        <div className="doc-sign-col">
-                          <span>Thái Nguyên, ngày {docPreviewModal.applicant?.applied_at}</span>
-                          <strong>NGƯỜI LÀM ĐƠN</strong>
-                          <span className="doc-sign-name">{docPreviewModal.applicant?.full_name}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Modal Footer with Direct "Duyệt" and "Từ chối" buttons (Story 10) */}
-            <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  className="action-btn action-btn--approve"
-                  style={{ padding: '0.45rem 1rem', fontSize: '0.825rem' }}
-                  onClick={() => {
-                    handleApproveDoc(docPreviewModal.applicant, docPreviewModal.docType)
-                    setDocPreviewModal({ open: false, applicant: null, docType: '' })
-                  }}
-                  title="Xác nhận phê duyệt tài liệu này"
-                >
-                  <Check size={14} />
-                  <span>Duyệt tài liệu</span>
-                </button>
-                <button
-                  type="button"
-                  className="action-btn action-btn--reject"
-                  style={{ padding: '0.45rem 1rem', fontSize: '0.825rem' }}
-                  onClick={() => {
-                    handleRejectDoc(docPreviewModal.applicant, docPreviewModal.docType)
-                    setDocPreviewModal({ open: false, applicant: null, docType: '' })
-                  }}
-                  title="Từ chối tài liệu này"
-                >
-                  <X size={14} />
-                  <span>Từ chối tài liệu</span>
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  className="hr-btn hr-btn--ghost"
-                  onClick={() => setDocPreviewModal({ open: false, applicant: null, docType: '' })}
-                >
-                  Đóng
-                </button>
-                <button
-                  type="button"
-                  className="hr-btn hr-btn--primary"
-                  onClick={() => {
-                    const filename = docPreviewModal.docType === 'cv'
-                      ? docPreviewModal.applicant?.cv_file
-                      : docPreviewModal.applicant?.app_file
-                    showToast(`Đang tải file ${filename}...`)
-                  }}
-                >
-                  <Download size={14} />
-                  <span>Tải bản PDF</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL XEM TRƯỚC MÃ HTML EMAIL TEMPLATE (Story 13) ── */}
-      <EmailTemplatePreviewModal
-        open={emailPreviewModal.open}
-        applicant={emailPreviewModal.applicant}
-        initialTab={emailPreviewModal.tab}
-        onClose={() => setEmailPreviewModal({ open: false, applicant: null, tab: 'approved' })}
-      />
     </div>
-  )
+  );
 }

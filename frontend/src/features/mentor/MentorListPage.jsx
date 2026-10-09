@@ -15,9 +15,11 @@
  *   - Xóa mock setTimeout trong MentorFormModal, nối POST /api/hr/mentors thật.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { UserCheck, Users, Plus } from 'lucide-react';
 import MentorFormModal from './MentorFormModal';
 import MentorAssignModal from './MentorAssignModal';
+import MentorAssignmentView from './MentorAssignmentView';
 import { getMentors, getDepartments } from '../../api/mentors';
 import './MentorListPage.css';
 
@@ -30,14 +32,10 @@ function initials(full_name) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Component
-   ───────────────────────────────────────────────────────────────────────── */
-
 /**
  * MentorListPage
  *
- * Trang danh sách mentor dành cho HR.
+ * Trang danh sách mentor & phân công TTS dành cho HR.
  * Route: /hr/mentors
  */
 function MentorListPage() {
@@ -45,45 +43,41 @@ function MentorListPage() {
   const [showModal,          setShowModal]          = useState(false);
   const [assignModalMentor,  setAssignModalMentor]  = useState(null);
   const [toast,              setToast]              = useState(null);
+  const [activeTab,          setActiveTab]          = useState('assign'); // 'assign' | 'list'
+  const [selectedMentorId,   setSelectedMentorId]   = useState(null);
+
+  const loadData = useCallback(async () => {
+    try {
+      const [mentorRes, deptRes] = await Promise.all([
+        getMentors(),
+        getDepartments(),
+      ]);
+
+      const deptMap = {};
+      if (deptRes.ok && Array.isArray(deptRes.data)) {
+        deptRes.data.forEach((d) => {
+          deptMap[d.id] = d.name;
+        });
+      }
+
+      if (mentorRes.ok && Array.isArray(mentorRes.data)) {
+        const mapped = mentorRes.data.map((m) => ({
+          ...m,
+          department: deptMap[m.department_id] || m.department || 'Chưa phân bổ',
+          intern_count: m.intern_count ?? 0,
+        }));
+        setMentors(mapped);
+      } else {
+        setMentors([]);
+      }
+    } catch {
+      setMentors([]);
+    }
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
-    async function loadData() {
-      try {
-        const [mentorRes, deptRes] = await Promise.all([
-          getMentors(),
-          getDepartments(),
-        ]);
-
-        if (!isMounted) return;
-
-        const deptMap = {};
-        if (deptRes.ok && Array.isArray(deptRes.data)) {
-          deptRes.data.forEach((d) => {
-            deptMap[d.id] = d.name;
-          });
-        }
-
-        if (mentorRes.ok && Array.isArray(mentorRes.data)) {
-          const mapped = mentorRes.data.map((m) => ({
-            ...m,
-            department: deptMap[m.department_id] || m.department || 'Chưa phân bổ',
-            intern_count: m.intern_count ?? 0,
-          }));
-          setMentors(mapped);
-        } else {
-          setMentors([]);
-        }
-      } catch {
-        if (isMounted) setMentors([]);
-      }
-    }
-
     loadData();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  }, [loadData]);
 
   /* ── Mở modal ── */
   function handleOpenModal() {
@@ -108,14 +102,18 @@ function MentorListPage() {
   }
 
   /* ── Cập nhật sau khi phân bổ thực tập sinh ── */
-  function handleAssignSuccess(updatedMentor) {
-    setMentors((prev) =>
-      prev.map((m) =>
-        m.id === updatedMentor.id
-          ? { ...m, intern_count: updatedMentor.intern_count }
-          : m
-      )
-    );
+  function handleAssignSuccess(updatedMentor, count) {
+    if (updatedMentor?.id) {
+      setMentors((prev) =>
+        prev.map((m) =>
+          m.id === updatedMentor.id
+            ? { ...m, intern_count: count ?? updatedMentor.intern_count }
+            : m
+        )
+      );
+    } else {
+      loadData();
+    }
   }
 
   return (
@@ -140,10 +138,10 @@ function MentorListPage() {
         {/* ── Page header ── */}
         <div className="mentor-list-header">
           <div className="mentor-list-header__left">
-            <span className="mentor-list-badge">HR</span>
-            <h1>Danh sách <span>Mentor</span></h1>
+            <span className="mentor-list-badge">HR Quản trị Phân công</span>
+            <h1>Phân công &amp; Ghép cặp <span>Mentor</span></h1>
             <p className="mentor-list-subtitle">
-              Quản lý danh sách mentor và phân công cho thực tập sinh.
+              Quản lý danh sách Mentor và phân công hướng dẫn cho thực tập sinh theo chuyên môn.
             </p>
           </div>
 
@@ -153,18 +151,47 @@ function MentorListPage() {
             className="mentor-add-btn"
             onClick={handleOpenModal}
           >
-            + Thêm mentor mới
+            <Plus size={16} />
+            <span>Thêm mentor mới</span>
           </button>
         </div>
 
-        {/* ── Data Table card ── */}
-        <div className="mentor-list-card">
-          <div className="mentor-list-scroll">
-            <table
-              className="mentor-list-table"
-              id="mentor-list-data-table"
-              aria-label="Bảng danh sách mentor"
-            >
+        {/* ── Navigation Tabs ── */}
+        <div className="mentor-tabs-nav">
+          <button
+            type="button"
+            className={`mentor-tab-btn ${activeTab === 'assign' ? 'mentor-tab-btn--active' : ''}`}
+            onClick={() => setActiveTab('assign')}
+          >
+            <UserCheck size={16} />
+            <span>Phân công Thực tập sinh</span>
+          </button>
+          <button
+            type="button"
+            className={`mentor-tab-btn ${activeTab === 'list' ? 'mentor-tab-btn--active' : ''}`}
+            onClick={() => setActiveTab('list')}
+          >
+            <Users size={16} />
+            <span>Danh sách Mentor ({mentors.length})</span>
+          </button>
+        </div>
+
+        {/* ── Tab Content ── */}
+        {activeTab === 'assign' ? (
+          <div className="mentor-assignment-tab-container">
+            <MentorAssignmentView
+              initialMentorId={selectedMentorId}
+              onAssignmentSuccess={handleAssignSuccess}
+            />
+          </div>
+        ) : (
+          <div className="mentor-list-card">
+            <div className="mentor-list-scroll">
+              <table
+                className="mentor-list-table"
+                id="mentor-list-data-table"
+                aria-label="Bảng danh sách mentor"
+              >
               <thead>
                 <tr>
                   <th className="col-no"    scope="col">#</th>
@@ -225,7 +252,10 @@ function MentorListPage() {
                         <button
                           type="button"
                           className="mentor-action-assign-btn"
-                          onClick={() => setAssignModalMentor(mentor)}
+                          onClick={() => {
+                            setSelectedMentorId(mentor.id);
+                            setActiveTab('assign');
+                          }}
                           title={`Phân bổ thực tập sinh cho mentor ${mentor.full_name}`}
                         >
                           Phân công TTS
@@ -243,6 +273,7 @@ function MentorListPage() {
             {mentors.length} mentor
           </div>
         </div>
+        )}
 
       </div>
 

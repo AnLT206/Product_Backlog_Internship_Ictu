@@ -134,7 +134,7 @@ export default function EmailTemplatePreviewModal({
           <div className="email-meta-left">
             <Sparkles size={14} className="text-primary" />
             <span>
-              Người nhận mẫu: <strong>{applicant?.full_name || 'Nguyễn Văn An'}</strong> ({applicant?.student_code || 'TTS0003'} - {applicant?.email || 'ungvien@ictu.edu.vn'})
+              Người nhận mẫu: <strong>{applicant?.full_name || 'Ứng viên'}</strong> ({applicant?.student_code || 'TTS0003'} - {applicant?.email || 'ungvien@ictu.edu.vn'})
             </span>
           </div>
           <div className="email-meta-badge">

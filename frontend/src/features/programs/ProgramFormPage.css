@@ -157,9 +157,10 @@
   line-height: 1;
 }
 
-/* ── input / date ── */
+/* ── input / date / select ── */
 .program-form-body .form-group input[type="text"],
-.program-form-body .form-group input[type="date"] {
+.program-form-body .form-group input[type="date"],
+.program-form-body .form-group select {
   width: 100%;
   height: 46px;
   padding: 0 14px;
@@ -178,7 +179,8 @@
 }
 
 .program-form-body .form-group input[type="text"]:focus,
-.program-form-body .form-group input[type="date"]:focus {
+.program-form-body .form-group input[type="date"]:focus,
+.program-form-body .form-group select:focus {
   border-color: var(--fb-blue);
   box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
 }

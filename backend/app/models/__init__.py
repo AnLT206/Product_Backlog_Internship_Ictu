@@ -17,6 +17,8 @@ from app.models.intern_contract_record import InternContractRecord
 from app.models.university_report import UniversityReport
 from app.models.system_setting import SystemSetting
 from app.models.backup_record import BackupRecord
+from app.models.support_ticket import SupportTicket
+from app.models.leave_request import LeaveRequest
 
 __all__ = [
     "Department",
@@ -39,6 +41,8 @@ __all__ = [
     "UniversityReport",
     "SystemSetting",
     "BackupRecord",
+    "SupportTicket",
+    "LeaveRequest",
 ]
 
 

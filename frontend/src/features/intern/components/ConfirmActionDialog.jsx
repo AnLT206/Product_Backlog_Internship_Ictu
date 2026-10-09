@@ -34,7 +34,7 @@ import './ConfirmActionDialog.css';
  *   onSuccess: () => void,
  * }} props
  */
-function ConfirmActionDialog({ internId, action, onClose, onSuccess }) {
+function ConfirmActionDialog({ internId, action, cvFileName, onViewCv, onClose, onSuccess }) {
   const isApprove = action === 'approve';
 
   /* ── State ── */
@@ -109,6 +109,46 @@ function ConfirmActionDialog({ internId, action, onClose, onSuccess }) {
             ? 'Bạn có chắc muốn DUYỆT hồ sơ này? Hành động này sẽ kích hoạt tài khoản thực tập sinh.'
             : 'Bạn có chắc muốn TỪ CHỐI hồ sơ này? Vui lòng ghi rõ lý do bên dưới.'}
         </p>
+
+        {/* Thông tin CV đính kèm */}
+        {cvFileName && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              margin: '0 0 16px',
+              fontSize: '12.5px',
+            }}
+          >
+            <span style={{ color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>📄</span>
+              <strong>{cvFileName}</strong>
+            </span>
+            {onViewCv && (
+              <button
+                type="button"
+                onClick={onViewCv}
+                style={{
+                  background: '#f0f9ff',
+                  border: '1px solid #7dd3fc',
+                  color: '#0369a1',
+                  borderRadius: '6px',
+                  padding: '3px 8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Xem lại CV
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Textarea ghi chú — chỉ hiện khi action=reject (spec §5.4) */}
         {!isApprove && (

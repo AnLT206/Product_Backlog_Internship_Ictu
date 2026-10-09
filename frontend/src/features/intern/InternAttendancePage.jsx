@@ -1,4 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import { useInternMetrics, notifyInternDataChanged, formatVND, getStoredAttendanceHistory } from './utils/internMetrics'
+import { emitRealtimeEvent, subscribeRealtimeEvents, SYNC_EVENTS } from '../../utils/realtimeSync'
+import { fetchInternLeaveRequests, createLeaveRequest } from '../../api/operations'
+import { getSavedAvatar } from '../../utils/avatarHelper'
 import './InternDashboardPage.css'
 import './InternAttendancePage.css'
 
@@ -8,10 +13,6 @@ function getTodayDateOnly() {
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const yyyy = d.getFullYear()
   return `${dd}/${mm}/${yyyy}`
-}
-
-function getTodayString() {
-  return `${getTodayDateOnly()} (Hôm nay)`
 }
 
 const INITIAL_LEAVE_REQUESTS = [
@@ -25,7 +26,7 @@ const INITIAL_LEAVE_REQUESTS = [
     reason: 'Thi kết thúc học phần Cơ sở dữ liệu nâng cao tại trường Đại học CNTT & TT (ICTU).',
     createdDate: '24/09/2026',
     status: 'approved',
-    approver: 'HR Trần Thị Mai',
+    approver: 'Hr',
     feedback: 'Đã duyệt nghỉ phép. Chúc sinh viên thi tốt.',
   },
   {
@@ -38,8 +39,8 @@ const INITIAL_LEAVE_REQUESTS = [
     reason: 'Có việc gia đình đột xuất tại quê Hải Dương.',
     createdDate: '10/09/2026',
     status: 'approved',
-    approver: 'Mentor Trần Hoàng Quân',
-    feedback: 'Đã duyệt. Sau khi lên trung tâm nhớ cập nhật báo cáo tiến độ tuần.',
+    approver: 'Hr',
+    feedback: 'Đã duyệt đơn nghỉ phép. Sau khi trở lại trung tâm tiếp tục theo dõi tiến độ công việc.',
   },
   {
     id: 'NP-003',
@@ -52,9 +53,17 @@ const INITIAL_LEAVE_REQUESTS = [
     createdDate: '01/10/2026',
     status: 'pending',
     approver: 'Chờ duyệt',
-    feedback: 'Đang chuyển đơn tới HR và Mentor phụ trách xem xét.',
+    feedback: 'Đang chuyển đơn tới Phòng Nhân sự (Hr) xem xét & phê duyệt.',
   },
 ]
+
+export function formatApproverName(approver) {
+  if (!approver || approver === 'Chờ duyệt' || approver.includes('Chờ')) return 'Chờ duyệt'
+  const lower = String(approver).toLowerCase()
+  if (lower.includes('hr') || approver.includes('Mai') || lower.includes('nhân sự') || lower.includes('mentor')) return 'Hr'
+  if (lower.includes('admin')) return 'Admin'
+  return 'Hr'
+}
 
 function calculateWorkDuration(checkInStr, checkOutStr, checkInTs, checkOutTs) {
   if (!checkInStr || checkInStr === '--:--') return '--'
@@ -98,97 +107,6 @@ function renderDateCell(dateString) {
   return <span className="att-date-num">{cleanDate}</span>
 }
 
-const ATTENDANCE_HISTORY = [
-  {
-    id: 1,
-    date: '28/09/2026 (Thứ Hai)',
-    check_in: '08:15',
-    check_out: '17:30',
-    total_hours: '8 giờ 15 phút',
-    method: 'AI Camera P.301',
-    status: 'on_time',
-    status_label: 'Đúng giờ',
-    note: 'Làm việc tại Trung tâm AI & IoT ICTU',
-  },
-  {
-    id: 2,
-    date: '25/09/2026 (Thứ Sáu)',
-    check_in: '08:22',
-    check_out: '17:35',
-    total_hours: '8 giờ 13 phút',
-    method: 'AI Camera P.301',
-    status: 'on_time',
-    status_label: 'Đúng giờ',
-    note: 'Họp nghiệm thu Sprint 1 tuần 7',
-  },
-  {
-    id: 3,
-    date: '24/09/2026 (Thứ Năm)',
-    check_in: '08:28',
-    check_out: '17:30',
-    total_hours: '8 giờ 02 phút',
-    method: 'AI Camera P.301',
-    status: 'on_time',
-    status_label: 'Đúng giờ',
-    note: 'Lập trình API phân quyền RBAC',
-  },
-  {
-    id: 4,
-    date: '23/09/2026 (Thứ Tư)',
-    check_in: '08:50',
-    check_out: '17:40',
-    total_hours: '7 giờ 50 phút',
-    method: 'Vân tay P.302',
-    status: 'late',
-    status_label: 'Đi muộn (20p)',
-    note: 'Có đơn xin phép đến muộn do thời tiết mưa lớn',
-  },
-  {
-    id: 5,
-    date: '22/09/2026 (Thứ Ba)',
-    check_in: '08:10',
-    check_out: '17:32',
-    total_hours: '8 giờ 22 phút',
-    method: 'AI Camera P.301',
-    status: 'on_time',
-    status_label: 'Đúng giờ',
-    note: 'Thiết kế database migration Alembic',
-  },
-  {
-    id: 6,
-    date: '21/09/2026 (Thứ Hai)',
-    check_in: '08:15',
-    check_out: '17:30',
-    total_hours: '8 giờ 15 phút',
-    method: 'AI Camera P.301',
-    status: 'on_time',
-    status_label: 'Đúng giờ',
-    note: 'Họp khởi động tuần mới cùng Mentor Quân',
-  },
-  {
-    id: 7,
-    date: '18/09/2026 (Thứ Sáu)',
-    check_in: '08:18',
-    check_out: '17:35',
-    total_hours: '8 giờ 17 phút',
-    method: 'AI Camera P.301',
-    status: 'on_time',
-    status_label: 'Đúng giờ',
-    note: 'Nộp báo cáo tuần 06 và review code',
-  },
-  {
-    id: 8,
-    date: '17/09/2026 (Thứ Năm)',
-    check_in: '--:--',
-    check_out: '--:--',
-    total_hours: '0 giờ',
-    method: 'Không có',
-    status: 'absent',
-    status_label: 'Không check-in',
-    note: 'Vắng mặt không có dữ liệu check-in tại cổng',
-  },
-]
-
 function getStatusBadgeClass(item) {
   const status = item?.status?.toLowerCase() || ''
   const label = item?.status_label?.toLowerCase() || ''
@@ -216,46 +134,55 @@ function getStatusBadgeClass(item) {
 }
 
 export default function InternAttendancePage() {
+  const { user } = useAuth()
+  const { metrics, refreshMetrics } = useInternMetrics()
   const [toast, setToast] = useState(null)
   const [leaveModal, setLeaveModal] = useState(false)
   const [rulesModal, setRulesModal] = useState(false)
-  const [attendance, setAttendance] = useState(() => {
-    try {
-      const saved = localStorage.getItem('intern_attendance_today_v2')
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (parsed.savedDate && parsed.savedDate !== getTodayDateOnly()) {
-          return {
-            checkedIn: false,
-            checkInTime: null,
-            checkInTs: null,
-            checkedOut: false,
-            checkOutTime: null,
-            checkOutTs: null,
-            savedDate: getTodayDateOnly(),
-          }
+  const [isSubmittingLeave, setIsSubmittingLeave] = useState(false)
+
+  // Khóa scroll body và bắt sự kiện phím ESC khi mở modal
+  useEffect(() => {
+    const isAnyModalOpen = rulesModal || leaveModal || Boolean(selectedLeaveDetail)
+    if (isAnyModalOpen) {
+      const prevOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          if (rulesModal) setRulesModal(false)
+          if (leaveModal) setLeaveModal(false)
+          if (selectedLeaveDetail) setSelectedLeaveDetail(null)
         }
-        return parsed
       }
-    } catch {
-      // fallback
+      window.addEventListener('keydown', handleKeyDown)
+      return () => {
+        document.body.style.overflow = prevOverflow
+        window.removeEventListener('keydown', handleKeyDown)
+      }
     }
-    return {
-      checkedIn: false,
-      checkInTime: null,
-      checkInTs: null,
-      checkedOut: false,
-      checkOutTime: null,
-      checkOutTs: null,
-      savedDate: getTodayDateOnly(),
-    }
-  })
+  }, [rulesModal, leaveModal, selectedLeaveDetail])
   const [history, setHistory] = useState(() => {
-    try {
-      const saved = localStorage.getItem('intern_attendance_history_v2')
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        return parsed.map((item) => {
+    const list = getStoredAttendanceHistory()
+    return list.map((item) => {
+      if (item.total_hours === 'Đã hoàn thành ca' || !item.total_hours) {
+        const calculated = calculateWorkDuration(
+          item.check_in,
+          item.check_out,
+          item.checkInTs,
+          item.checkOutTs
+        )
+        return { ...item, total_hours: calculated }
+      }
+      return item
+    })
+  })
+
+  // Đồng bộ danh sách chấm công khi có cập nhật mới
+  useEffect(() => {
+    const updateList = () => {
+      const list = getStoredAttendanceHistory()
+      setHistory(
+        list.map((item) => {
           if (item.total_hours === 'Đã hoàn thành ca' || !item.total_hours) {
             const calculated = calculateWorkDuration(
               item.check_in,
@@ -267,21 +194,73 @@ export default function InternAttendancePage() {
           }
           return item
         })
-      }
-    } catch {
-      // fallback
+      )
     }
-    return ATTENDANCE_HISTORY
-  })
-  const [currentTime, setCurrentTime] = useState(() =>
-    new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-  )
+    const unsubscribe = subscribeRealtimeEvents((event) => {
+      if (
+        event?.type === SYNC_EVENTS.ATTENDANCE_APPROVED ||
+        event?.type === SYNC_EVENTS.ATTENDANCE_CHECKED_IN ||
+        event?.type === SYNC_EVENTS.LEAVE_REQUEST_SUBMITTED
+      ) {
+        updateList()
+      }
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }))
-    }, 1000)
-    return () => clearInterval(timer)
+      if (
+        event?.type === 'SYNC_LEAVE_STATUS_CHANGED' ||
+        event?.type === SYNC_EVENTS.LEAVE_REQUEST_SUBMITTED ||
+        event?.type === 'SYNC_LEAVE_REQUEST_SUBMITTED'
+      ) {
+        if (event?.payload?.id && event?.payload?.status) {
+          const targetId = event.payload.id
+          const newStatus = event.payload.status
+          const newFeedback = event.payload.feedback || ''
+
+          setLeaveRequests((prev) => {
+            const next = prev.map((item) =>
+              (item.id === targetId || item.requestCode === targetId)
+                ? {
+                    ...item,
+                    status: newStatus,
+                    statusLabel: newStatus === 'approved' ? 'Đã duyệt' : 'Từ chối',
+                    approver: 'Hr',
+                    feedback: newFeedback || item.feedback,
+                  }
+                : item
+            )
+            try {
+              localStorage.setItem('intern_leave_requests_v1', JSON.stringify(next))
+            } catch {}
+            return next
+          })
+
+          setSelectedLeaveDetail((prev) => {
+            if (prev && (prev.id === targetId || prev.requestCode === targetId)) {
+              return {
+                ...prev,
+                status: newStatus,
+                statusLabel: newStatus === 'approved' ? 'Đã duyệt' : 'Từ chối',
+                approver: 'Hr',
+                feedback: newFeedback || prev.feedback,
+              }
+            }
+            return prev
+          })
+
+          if (newStatus === 'approved') {
+            showToast(`🎉 Phòng Nhân sự (Hr) đã DUYỆT đơn xin nghỉ phép [${targetId}] của bạn!`)
+          } else if (newStatus === 'rejected') {
+            showToast(`⚠️ Phòng Nhân sự (Hr) đã TỪ CHỐI đơn xin nghỉ phép [${targetId}]. Hãy xem phản hồi của HR.`, 'error')
+          }
+        }
+      }
+    })
+    window.addEventListener('intern_data_sync_event', updateList)
+    window.addEventListener('storage', updateList)
+    return () => {
+      unsubscribe()
+      window.removeEventListener('intern_data_sync_event', updateList)
+      window.removeEventListener('storage', updateList)
+    }
   }, [])
 
   function showToast(message, type = 'success') {
@@ -297,14 +276,25 @@ export default function InternAttendancePage() {
       if (saved) {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((item) => ({
-            ...item,
-            id: item.id ? item.id.replace('2026-', '') : item.id,
-            approver:
-              item.approver && (item.approver.includes('Cán bộ HR') || item.approver.includes('Nguyễn Thị Mai'))
-                ? 'HR Trần Thị Mai'
-                : item.approver,
-          }))
+          const sanitized = parsed.map((item) => {
+            const approver = item.status === 'approved' ? 'Hr' : formatApproverName(item.approver)
+            const feedback = (item.feedback && item.feedback.includes('Mentor'))
+              ? item.feedback.replace(/và Mentor phụ trách/g, '').replace(/Mentor phụ trách/g, 'Phòng Nhân sự (Hr)').replace(/Mentor/g, 'Hr')
+              : item.feedback
+            return {
+              ...item,
+              id: item.id ? item.id.replace('2026-', '') : item.id,
+              targetApprover: 'hr',
+              approver,
+              feedback,
+            }
+          })
+          try {
+            localStorage.setItem('intern_leave_requests_v1', JSON.stringify(sanitized))
+          } catch {
+            // ignore
+          }
+          return sanitized
         }
       }
     } catch {
@@ -312,6 +302,59 @@ export default function InternAttendancePage() {
     }
     return INITIAL_LEAVE_REQUESTS
   })
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('intern_leave_requests_v1')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const sanitized = parsed.map((item) => {
+            const approver = item.status === 'approved' ? 'Hr' : formatApproverName(item.approver)
+            const feedback = (item.feedback && item.feedback.includes('Mentor'))
+              ? item.feedback.replace(/và Mentor phụ trách/g, '').replace(/Mentor phụ trách/g, 'Phòng Nhân sự (Hr)').replace(/Mentor/g, 'Hr')
+              : item.feedback
+            return {
+              ...item,
+              id: item.requestCode || (item.id ? item.id.replace('2026-', '') : item.id),
+              targetApprover: 'hr',
+              approver,
+              feedback,
+            }
+          })
+          localStorage.setItem('intern_leave_requests_v1', JSON.stringify(sanitized))
+          setLeaveRequests(sanitized)
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    async function loadApiLeaves() {
+      try {
+        const res = await fetchInternLeaveRequests()
+        if (res.ok && Array.isArray(res.data) && res.data.length > 0) {
+          const formatted = res.data.map((item) => {
+            const approver = item.status === 'approved' ? 'Hr' : formatApproverName(item.approver)
+            return {
+              ...item,
+              id: item.requestCode || item.id,
+              targetApprover: 'hr',
+              approver,
+              feedback: item.feedback || '',
+            }
+          })
+          setLeaveRequests(formatted)
+          try {
+            localStorage.setItem('intern_leave_requests_v1', JSON.stringify(formatted))
+          } catch {}
+        }
+      } catch {
+        // fallback to localStorage/mock
+      }
+    }
+    loadApiLeaves()
+  }, [])
   const [selectedLeaveDetail, setSelectedLeaveDetail] = useState(null)
   const [leaveForm, setLeaveForm] = useState({
     type: 'Nghỉ thi học phần',
@@ -322,7 +365,7 @@ export default function InternAttendancePage() {
   })
   const [leaveError, setLeaveError] = useState('')
 
-  function handleCreateLeaveRequest(e) {
+  async function handleCreateLeaveRequest(e) {
     e.preventDefault()
     setLeaveError('')
 
@@ -345,8 +388,20 @@ export default function InternAttendancePage() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
     const durationLabel = leaveForm.session.includes('Buổi') ? '0.5 ngày' : `${diffDays}.0 ngày`
 
+    const senderFullName = user?.role === 'intern' ? (user?.full_name || 'TTS') : 'TTS'
+    const senderCode = user?.role === 'intern' ? (user?.code || 'TTS0001') : 'TTS0001'
+    const senderEmail = user?.email || 'intern@ictu.edu.vn'
+    const senderId = user?.id || 5
+    const senderAvatar = user?.avatar || getSavedAvatar(senderEmail, senderId, senderFullName)
+
     const newReq = {
       id: `NP-${String(leaveRequests.length + 1).padStart(3, '0')}`,
+      requestCode: `NP-${String(leaveRequests.length + 1).padStart(3, '0')}`,
+      internName: senderFullName,
+      internCode: senderCode,
+      internEmail: senderEmail,
+      internId: senderId,
+      avatar: senderAvatar,
       type: leaveForm.type,
       startDate: leaveForm.startDate,
       endDate: leaveForm.endDate,
@@ -355,10 +410,13 @@ export default function InternAttendancePage() {
       reason: leaveForm.reason.trim(),
       createdDate: getTodayDateOnly(),
       status: 'pending',
+      statusLabel: 'Chờ duyệt',
+      targetApprover: 'hr',
       approver: 'Chờ duyệt',
-      feedback: 'Đang chuyển đơn tới HR và Mentor phụ trách xem xét.',
+      feedback: 'Đang chuyển đơn tới Phòng Nhân sự (Hr) xem xét & phê duyệt.',
     }
 
+    setIsSubmittingLeave(true)
     const updated = [newReq, ...leaveRequests]
     setLeaveRequests(updated)
     try {
@@ -366,6 +424,32 @@ export default function InternAttendancePage() {
     } catch {
       // fallback
     }
+    notifyInternDataChanged()
+    refreshMetrics()
+
+    // Gửi lên Backend API để lưu vào CSDL
+    try {
+      await createLeaveRequest({
+        request_code: newReq.id,
+        intern_name: senderFullName,
+        intern_code: senderCode,
+        intern_email: senderEmail,
+        intern_id: senderId,
+        type: newReq.type,
+        start_date: newReq.startDate,
+        end_date: newReq.endDate,
+        session: newReq.session,
+        duration: newReq.duration,
+        reason: newReq.reason,
+      }).catch(() => {})
+    } catch {
+      // ignore
+    } finally {
+      setIsSubmittingLeave(false)
+    }
+
+    // Phát sự kiện Realtime Sync báo cho HR Portal
+    emitRealtimeEvent(SYNC_EVENTS.LEAVE_REQUEST_SUBMITTED, { leaveRequest: newReq })
 
     setLeaveModal(false)
     setLeaveForm({
@@ -379,133 +463,35 @@ export default function InternAttendancePage() {
     showToast(`✓ Đã gửi đơn xin nghỉ phép ${newReq.id} thành công!`)
   }
 
-  function handleCheckIn() {
-    const now = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-    const nowTs = Date.now()
-    const todayFull = getTodayString()
-    const todayDateOnly = getTodayDateOnly()
+  // Hủy/xóa đơn xin nghỉ phép khi chưa được duyệt
+  const handleDeleteLeave = (id, e) => {
+    if (e) e.stopPropagation()
+    const req = leaveRequests.find((r) => r.id === id)
+    if (!req) return
 
-    const updated = {
-      checkedIn: true,
-      checkInTime: now,
-      checkInTs: nowTs,
-      checkedOut: false,
-      checkOutTime: null,
-      checkOutTs: null,
-      savedDate: todayDateOnly,
-    }
-    setAttendance(updated)
-    try {
-      localStorage.setItem('intern_attendance_today_v2', JSON.stringify(updated))
-    } catch {
-      // fallback
-    }
-
-    setHistory((prev) => {
-      const todayExists = prev.some((item) => item.date.includes(todayDateOnly) || item.date.includes('Hôm nay'))
-      let newHistory
-      if (todayExists) {
-        newHistory = prev.map((item) =>
-          item.date.includes(todayDateOnly) || item.date.includes('Hôm nay')
-            ? {
-                ...item,
-                date: todayFull,
-                check_in: now,
-                checkInTs: nowTs,
-                check_out: '--:--',
-                checkOutTs: null,
-                total_hours: 'Đang làm việc',
-                status: 'on_time',
-                status_label: 'Đúng giờ',
-              }
-            : item
-        )
-      } else {
-        newHistory = [
-          {
-            id: Date.now(),
-            date: todayFull,
-            check_in: now,
-            checkInTs: nowTs,
-            check_out: '--:--',
-            checkOutTs: null,
-            total_hours: 'Đang làm việc',
-            method: 'AI Camera P.301',
-            status: 'on_time',
-            status_label: 'Đúng giờ',
-            note: 'Ghi nhận check-in qua cổng hệ thống TTS',
-          },
-          ...prev,
-        ]
-      }
-      try {
-        localStorage.setItem('intern_attendance_history_v2', JSON.stringify(newHistory))
-      } catch {
-        // fallback
-      }
-      return newHistory
-    })
-
-    showToast(`Check-in thành công lúc ${now}! Chúc bạn ngày làm việc hiệu quả.`, 'success')
-  }
-
-  function handleCheckOut() {
-    if (!attendance.checkedIn) {
-      showToast('Bạn chưa Check-in hôm nay! Vui lòng bấm Check-in trước khi Check-out.', 'warning')
+    if (req.status === 'approved') {
+      showToast('Đơn xin nghỉ phép đã được phê duyệt, không thể xóa.', 'error')
       return
     }
 
-    if (!attendance.checkedOut) {
-      const now = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-      const nowTs = Date.now()
-      const todayDateOnly = getTodayDateOnly()
-
-      const duration = calculateWorkDuration(
-        attendance.checkInTime || now,
-        now,
-        attendance.checkInTs,
-        nowTs
-      )
-
-      const updated = {
-        ...attendance,
-        checkedOut: true,
-        checkOutTime: now,
-        checkOutTs: nowTs,
-        total_hours: duration,
-      }
-      setAttendance(updated)
+    if (window.confirm(`Bạn có chắc chắn muốn hủy / xóa đơn xin nghỉ phép [${req.id}] (${req.type}) không?`)) {
+      const next = leaveRequests.filter((r) => r.id !== id)
+      setLeaveRequests(next)
       try {
-        localStorage.setItem('intern_attendance_today_v2', JSON.stringify(updated))
+        localStorage.setItem('intern_leave_requests_v1', JSON.stringify(next))
       } catch {
-        // fallback
+        // ignore
       }
-
-      setHistory((prev) => {
-        const newHistory = prev.map((item) => {
-          if (item.date.includes(todayDateOnly) || item.date.includes('Hôm nay')) {
-            return {
-              ...item,
-              check_out: now,
-              checkOutTs: nowTs,
-              total_hours: duration,
-            }
-          }
-          return item
-        })
-        try {
-          localStorage.setItem('intern_attendance_history_v2', JSON.stringify(newHistory))
-        } catch {
-          // fallback
-        }
-        return newHistory
-      })
-
-      showToast(`Check-out thành công lúc ${now}! Tổng thời gian làm việc: ${duration}.`, 'success')
-    } else {
-      showToast(`Bạn đã check-out hôm nay lúc ${attendance.checkOutTime}.`, 'info')
+      notifyInternDataChanged()
+      refreshMetrics()
+      emitRealtimeEvent(SYNC_EVENTS.LEAVE_REQUEST_SUBMITTED, { leaveRequestId: id, deleted: true })
+      if (selectedLeaveDetail?.id === id) {
+        setSelectedLeaveDetail(null)
+      }
+      showToast(`✓ Đã xóa đơn xin nghỉ phép [${req.id}] thành công!`)
     }
   }
+
 
 
   return (
@@ -590,6 +576,75 @@ export default function InternAttendancePage() {
         </div>
       </header>
 
+      {/* ── CÁC THẺ CHỈ SỐ TỔNG HỢP CHẤM CÔNG THÁNG 10/2026 (TỰ ĐỘNG LIÊN KẾT) ── */}
+      <section className="att-kpi-summary-grid" aria-label="Chỉ số chấm công tháng 10">
+        <div className="att-kpi-card">
+          <div className="att-kpi-icon att-kpi-icon--blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          </div>
+          <div className="att-kpi-info">
+            <span className="att-kpi-label">Ngày công thực tế (T10/2026)</span>
+            <div className="att-kpi-value">
+              {metrics.actualWorkDays} <span className="att-kpi-unit">/ {metrics.standardWorkDays} ngày</span>
+            </div>
+            <span className="att-kpi-sub">Tỷ lệ chuyên cần đạt {metrics.attendanceRate}% chuẩn ICTU</span>
+          </div>
+        </div>
+
+        <div className="att-kpi-card">
+          <div className="att-kpi-icon att-kpi-icon--amber">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
+          <div className="att-kpi-info">
+            <span className="att-kpi-label">Đi muộn / Trễ giờ</span>
+            <div className="att-kpi-value">
+              {metrics.lateDays} <span className="att-kpi-unit">lần</span>
+            </div>
+            <span className="att-kpi-sub">
+              {metrics.lateDays > 0 ? `Khấu trừ ${formatVND(metrics.deductionAmount)} vào phiếu lương` : 'Không có vi phạm giờ giấc'}
+            </span>
+          </div>
+        </div>
+
+        <div className="att-kpi-card">
+          <div className="att-kpi-icon att-kpi-icon--purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+          </div>
+          <div className="att-kpi-info">
+            <span className="att-kpi-label">Nghỉ phép đã duyệt</span>
+            <div className="att-kpi-value">
+              {metrics.approvedLeaveDays} <span className="att-kpi-unit">ngày</span>
+            </div>
+            <span className="att-kpi-sub">Phòng Nhân sự (HR) phê duyệt</span>
+          </div>
+        </div>
+
+        <div className="att-kpi-card">
+          <div className="att-kpi-icon att-kpi-icon--green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </div>
+          <div className="att-kpi-info">
+            <span className="att-kpi-label">Trợ cấp ăn trưa tích lũy</span>
+            <div className="att-kpi-value">{formatVND(metrics.lunchAllowance)}</div>
+            <span className="att-kpi-sub">{metrics.actualWorkDays} ngày công x 30.000 ₫/ngày</span>
+          </div>
+        </div>
+      </section>
 
       {/* ── THANH CHUYỂN TAB: CHẤM CÔNG & NGHỈ PHÉP (Story 5) ── */}
       <div className="att-tab-switcher">
@@ -752,12 +807,13 @@ export default function InternAttendancePage() {
                   <th className="th-leave-created">Ngày gửi</th>
                   <th className="th-leave-status" style={{ textAlign: 'center' }}>Trạng thái</th>
                   <th className="th-leave-approver">Người duyệt</th>
+                  <th style={{ width: '130px', textAlign: 'center' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {leaveRequests.length === 0 ? (
                   <tr>
-                    <td colSpan="8" style={{ textAlign: 'center', padding: '36px', color: '#64748B' }}>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '36px', color: '#64748B' }}>
                       Chưa có đơn xin nghỉ phép nào được tạo.
                     </td>
                   </tr>
@@ -770,7 +826,7 @@ export default function InternAttendancePage() {
                     return (
                       <tr
                         key={req.id}
-                        className="leave-table-row"
+                        className={`leave-table-row ${req.status === 'rejected' ? 'leave-table-row--rejected' : ''}`}
                         onClick={() => setSelectedLeaveDetail(req)}
                         title="Nhấp để xem chi tiết đơn xin nghỉ phép"
                       >
@@ -826,7 +882,7 @@ export default function InternAttendancePage() {
                           ) : (
                             <span className="att-status-badge att-status-badge--late">
                               <span className="att-status-badge__dot" />
-                              Chờ HR duyệt
+                              Chờ Hr duyệt
                             </span>
                           )}
                         </td>
@@ -834,7 +890,67 @@ export default function InternAttendancePage() {
                         {/* Cột 8: Người duyệt */}
                         <td className="td-leave-approver">
                           <div className="leave-approver-box">
-                            <strong className="leave-approver-name">{req.approver}</strong>
+                            <strong className="leave-approver-name">{formatApproverName(req.approver)}</strong>
+                          </div>
+                        </td>
+
+                        {/* Cột 9: Thao tác (Xem lại / Xóa khi chưa duyệt) */}
+                        <td className="td-leave-actions" style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedLeaveDetail(req)}
+                              style={{
+                                padding: '4px 8px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                color: '#2563EB',
+                                backgroundColor: '#EFF6FF',
+                                border: '1px solid #BFDBFE',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                              }}
+                              title="Xem lại chi tiết đơn"
+                            >
+                              Xem
+                            </button>
+                            {req.status === 'pending' ? (
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteLeave(req.id, e)}
+                                style={{
+                                  padding: '4px 8px',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                  color: '#DC2626',
+                                  backgroundColor: '#FEF2F2',
+                                  border: '1px solid #FECACA',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                }}
+                                title="Hủy / Xóa đơn xin nghỉ phép khi chưa được duyệt"
+                              >
+                                Xóa
+                              </button>
+                            ) : (
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '24px',
+                                  height: '24px',
+                                  borderRadius: '6px',
+                                  backgroundColor: '#F1F5F9',
+                                  color: '#94A3B8',
+                                  cursor: 'not-allowed',
+                                  fontSize: '11px',
+                                }}
+                                title="Đã có kết quả duyệt — không thể xóa"
+                              >
+                                🔒
+                              </span>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -925,7 +1041,7 @@ export default function InternAttendancePage() {
                   <br />
                   - <strong style={{ color: '#0F172A', fontWeight: 600 }}>Buổi chiều:</strong> 13:30 – 17:30 (Check-out sau 17:30 để hoàn thành ca làm việc).
                   <br />
-                  - Trường hợp có lịch thi kết thúc học phần hoặc việc đột xuất tại Trường, sinh viên cần gửi đơn xin nghỉ phép trực tuyến trước tối thiểu 24 giờ để Mentor và HR phê duyệt.
+                  - Trường hợp có lịch thi kết thúc học phần hoặc việc đột xuất tại Trường, sinh viên cần gửi đơn xin nghỉ phép trực tuyến trước tối thiểu 24 giờ để Mentor và Hr phê duyệt.
                 </p>
               </div>
             </div>
@@ -957,7 +1073,7 @@ export default function InternAttendancePage() {
             <div className="modal-header">
               <div>
                 <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: 700 }}>Đơn xin nghỉ phép trực tuyến</h3>
-                <span style={{ fontSize: '12px', color: '#64748B' }}>Đơn sẽ được chuyển tới Cán bộ Nhân sự và Mentor phụ trách duyệt</span>
+                <span style={{ fontSize: '12px', color: '#64748B' }}>Đơn sẽ được chuyển thẳng tới Phòng Nhân sự (Hr) xem xét & phê duyệt (chỉ Hr có thẩm quyền duyệt)</span>
               </div>
               <button
                 type="button"
@@ -1075,8 +1191,9 @@ export default function InternAttendancePage() {
                 <button
                   type="submit"
                   className="intern-btn intern-btn--primary"
+                  disabled={isSubmittingLeave}
                 >
-                  Gửi đơn xin nghỉ phép
+                  {isSubmittingLeave ? 'Đang gửi...' : 'Gửi đơn xin nghỉ phép'}
                 </button>
               </div>
             </form>
@@ -1142,7 +1259,7 @@ export default function InternAttendancePage() {
                   ) : (
                     <span className="att-status-badge att-status-badge--late" style={{ fontSize: '13px' }}>
                       <span className="att-status-badge__dot" />
-                      Chờ HR duyệt
+                      Chờ Hr duyệt
                     </span>
                   )}
                 </div>
@@ -1228,7 +1345,7 @@ export default function InternAttendancePage() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>Người duyệt</span>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#2563EB' }}>{selectedLeaveDetail.approver}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#2563EB' }}>{formatApproverName(selectedLeaveDetail.approver)}</span>
                 </div>
                 <div
                   style={{
@@ -1255,7 +1372,28 @@ export default function InternAttendancePage() {
               </div>
             </div>
 
-            <div className="modal-footer" style={{ borderTop: '1px solid #F1F5F9', padding: '14px 20px', display: 'flex', justifyContent: 'flex-end' }}>
+            <div className="modal-footer" style={{ borderTop: '1px solid #F1F5F9', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {selectedLeaveDetail.status === 'pending' ? (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteLeave(selectedLeaveDetail.id)}
+                  style={{
+                    padding: '8px 14px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#DC2626',
+                    backgroundColor: '#FEF2F2',
+                    border: '1px solid #FECACA',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                  }}
+                  title="Hủy / Xóa đơn xin nghỉ phép khi chưa được duyệt"
+                >
+                  Hủy / Xóa đơn này
+                </button>
+              ) : (
+                <div />
+              )}
               <button
                 type="button"
                 className="intern-btn intern-btn--primary"

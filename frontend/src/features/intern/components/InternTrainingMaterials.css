@@ -738,12 +738,12 @@
   background-color: #f8fafc;
   border-color: #94a3b8;
   color: #1e293b;
-  transform: translateY(-1px) scale(1.02);
+  transform: none !important;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
 }
 
 .training-check-btn:active {
-  transform: translateY(0) scale(1);
+  transform: none !important;
 }
 
 .training-check-btn.is-done {
@@ -1162,13 +1162,16 @@
   cursor: pointer;
   padding: 6px 8px;
   border-radius: 6px;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  transform: none !important;
+  animation: none !important;
 }
 
 .training-modal-close-btn:hover {
   color: #0f172a;
   background-color: #e2e8f0;
-  transform: rotate(90deg);
+  transform: none !important;
+  animation: none !important;
 }
 
 .training-modal-body {

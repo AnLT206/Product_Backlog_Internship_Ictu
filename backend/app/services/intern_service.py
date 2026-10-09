@@ -5,6 +5,7 @@ from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.models.document import Document
 from app.models.intern_profile import InternProfile
 from app.models.role import Role
 from app.models.user import User
@@ -96,6 +97,10 @@ class InternService:
         try:
             profile.status = "approved"
             user.status = "active"
+            from app.models.document import Document
+            self.db.query(Document).filter(
+                Document.user_id == intern_id, Document.doc_type == "cv"
+            ).update({"status": "approved"}, synchronize_session=False)
             self.db.commit()
             self.db.refresh(user)
             EmailService.enqueue_email(
@@ -172,6 +177,19 @@ class InternService:
             .all()
         )
 
+        user_ids = [u.id for u in users]
+        cv_map: dict[int, Document] = {}
+        if user_ids:
+            cv_docs = (
+                self.db.query(Document)
+                .filter(Document.user_id.in_(user_ids), Document.doc_type == "cv")
+                .order_by(Document.id.desc())
+                .all()
+            )
+            for d in cv_docs:
+                if d.user_id not in cv_map:
+                    cv_map[d.user_id] = d
+
         items = [
             InternListItem(
                 id=u.id,
@@ -179,7 +197,15 @@ class InternService:
                 email=u.email,
                 full_name=u.full_name,
                 role="intern",
-                status=u.status,
+                status=(
+                    "pending"
+                    if (u.intern_profile and u.intern_profile.status == "pending")
+                    or (u.id in cv_map and cv_map[u.id].status == "pending" and u.status != "active")
+                    else u.status
+                ),
+                has_cv=(u.id in cv_map),
+                cv_file_name=cv_map[u.id].file_name if u.id in cv_map else None,
+                cv_id=cv_map[u.id].id if u.id in cv_map else None,
                 phone_number=u.intern_profile.phone_number if u.intern_profile else None,
                 dob=u.intern_profile.dob if u.intern_profile else None,
                 gender=u.intern_profile.gender if u.intern_profile else None,
@@ -188,6 +214,7 @@ class InternService:
                 academic_year=u.intern_profile.academic_year if u.intern_profile else None,
                 gpa=u.intern_profile.gpa if u.intern_profile else None,
                 address=u.intern_profile.address if u.intern_profile else None,
+                avatar=u.intern_profile.avatar if u.intern_profile else None,
                 created_at=u.created_at,
                 updated_at=u.updated_at,
             )
@@ -225,9 +252,26 @@ class InternService:
             .all()
         )
 
+        db_unis = [u[0] for u in unis if u[0]]
+        db_majors = [m[0] for m in majors if m[0]]
+
+        standard_it_majors = [
+            "Công nghệ thông tin",
+            "Kỹ thuật phần mềm",
+            "Khoa học máy tính",
+            "An toàn thông tin",
+            "Hệ thống thông tin",
+            "Mạng máy tính & Truyền thông dữ liệu",
+            "Trí tuệ nhân tạo & Khoa học dữ liệu",
+            "Kỹ thuật máy tính",
+        ]
+
+        # Kết hợp các ngành từ database với danh mục ngành CNTT chuẩn
+        combined_majors = list(dict.fromkeys(db_majors + standard_it_majors))
+
         return InternFilterOptionsResponse(
-            universities=[u[0] for u in unis if u[0]],
-            majors=[m[0] for m in majors if m[0]],
+            universities=db_unis,
+            majors=combined_majors,
             statuses=["pending", "active", "inactive"],
         )
 
@@ -318,11 +362,24 @@ class InternService:
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Không tìm thấy hồ sơ thực tập sinh.",
                 )
-            if user.intern_profile.status != "pending":
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Chỉ hồ sơ đang chờ duyệt mới được cập nhật.",
-                )
+            from app.models.document import Document
+            has_pending_cv = (
+                self.db.query(Document)
+                .filter(Document.user_id == intern_id, Document.doc_type == "cv")
+                .first()
+                is not None
+            )
+            if (
+                user.intern_profile.status in ("pending", "rejected")
+                or user.status in ("pending", "inactive")
+                or has_pending_cv
+            ):
+                user.intern_profile.status = "pending"
+            elif user.intern_profile.status == "approved" and user.status == "active":
+                # Cho phép HR cập nhật hoặc duyệt lại hồ sơ
+                user.intern_profile.status = "pending"
+            else:
+                user.intern_profile.status = "pending"
             return user, user.intern_profile
         except HTTPException:
             raise
@@ -414,7 +471,11 @@ class InternService:
         user, profile = self._get_pending_intern(intern_id)
         try:
             profile.status = "rejected"
-            user.status = "inactive"
+            user.status = "pending"
+            from app.models.document import Document
+            self.db.query(Document).filter(
+                Document.user_id == intern_id, Document.doc_type == "cv"
+            ).update({"status": "rejected"}, synchronize_session=False)
             self.db.commit()
             self.db.refresh(user)
             EmailService.enqueue_email(

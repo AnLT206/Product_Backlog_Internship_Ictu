@@ -1,0 +1,97 @@
+/* frontend/src/components/common/Navbar.css */
+.ui-navbar {
+  height: var(--topbar-height);
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--border-main);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.75rem;
+  font-family: var(--fb-font);
+}
+
+.ui-navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ui-navbar-mobile-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.ui-navbar-mobile-toggle:hover {
+  background-color: var(--gray-100);
+  color: var(--primary);
+}
+
+/* Breadcrumbs */
+.ui-navbar-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+}
+
+.ui-crumb-item {
+  color: var(--text-muted);
+}
+
+.ui-crumb-sep {
+  color: var(--border-strong);
+  font-size: 0.8rem;
+}
+
+.ui-crumb-portal {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.ui-crumb-current {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Navbar Right Controls */
+.ui-navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.ui-navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .ui-navbar-mobile-toggle {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 768px) {
+  .ui-navbar {
+    padding: 0 1rem;
+  }
+
+  .ui-navbar-breadcrumbs {
+    font-size: var(--font-xs);
+  }
+}
+

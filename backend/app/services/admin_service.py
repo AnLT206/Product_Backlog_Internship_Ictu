@@ -56,7 +56,8 @@ class AdminService:
 
             # 4. Khởi tạo profile tương ứng để quan hệ 1-1 luôn sẵn sàng
             if payload.role == "intern":
-                profile = InternProfile(user_id=user.id)
+                prof_status = "approved" if payload.status == "active" else payload.status
+                profile = InternProfile(user_id=user.id, status=prof_status)
                 self.db.add(profile)
             else:
                 user_prof = UserProfile(user_id=user.id)

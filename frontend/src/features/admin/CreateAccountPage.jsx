@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createAccount } from '../../api/admin';
+import { syncAdminUserChange } from '../../utils/realtimeSync';
 import './CreateAccountPage.css';
 
 const ROLE_OPTIONS = [
@@ -93,7 +94,17 @@ function CreateAccountPage() {
 
       if (ok) {
         showToast('success', `Tạo tài khoản ${form.full_name} (${form.role.toUpperCase()}) thành công!`);
-        window.dispatchEvent(new CustomEvent('admin_users_updated', { detail: { role: form.role, data } }));
+        syncAdminUserChange({
+          action: 'create',
+          user: {
+            id: data?.id,
+            code: data?.code,
+            email: form.email.trim().toLowerCase(),
+            full_name: form.full_name.trim(),
+            role: form.role,
+            status: data?.status || 'active',
+          },
+        });
         setForm({ full_name: '', email: '', role: '', password: '' });
       } else if (status === 409) {
         const msg = data?.detail ?? 'Email đã được sử dụng.';

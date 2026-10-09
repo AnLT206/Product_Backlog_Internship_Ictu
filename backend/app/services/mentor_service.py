@@ -119,6 +119,7 @@ class MentorService:
                     current_mentor_id=curr_mentor_id,
                     current_mentor_name=curr_mentor_name,
                     is_assigned=(curr_mentor_id == mentor_id),
+                    avatar=intern.intern_profile.avatar if intern.intern_profile else None,
                 )
             )
         return results
@@ -154,6 +155,13 @@ class MentorService:
                 ProgramMember.intern_user_id == i_id,
             ).first()
             if member:
+                if member.mentor_user_id and member.mentor_user_id != mentor_id:
+                    intern_user = self.db.query(User).filter(User.id == i_id).first()
+                    intern_name = intern_user.full_name if intern_user else f"ID {i_id}"
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Thực tập sinh '{intern_name}' đã được phân công cho Mentor khác. Vui lòng chọn Mentor đó để hủy phân công trước.",
+                    )
                 member.mentor_user_id = mentor_id
             else:
                 new_member = ProgramMember(

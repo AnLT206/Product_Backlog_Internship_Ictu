@@ -770,7 +770,7 @@
 .intern-panel {
   background-color: #ffffff;
   border: 1px solid var(--border-main);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  border-radius: var(--radius-lg, 14px);
   box-shadow: var(--shadow-xs);
   padding: 1.5rem;
 }

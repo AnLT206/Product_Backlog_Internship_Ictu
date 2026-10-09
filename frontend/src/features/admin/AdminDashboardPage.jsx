@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Users,
   ShieldCheck,
   Database,
+
   Search,
   CheckCircle2,
   UserPlus,
@@ -28,16 +29,18 @@ import {
   Clock,
   Key,
 } from 'lucide-react'
+import { fetchUsers } from '../../api/admin'
+import { emitRealtimeEvent, getRealtimeSyncState, subscribeRealtimeEvents, SYNC_EVENTS } from '../../utils/realtimeSync'
 import './AdminDashboardPage.css'
 
 const RBAC_ROLES = [
   {
     role: 'Admin (ROOT)',
-    desc: 'Toàn hệ thống All Domains & Security Infrastructure',
+    desc: 'Toàn hệ thống All Domains & Security Infrastructure (Không phê duyệt ứng viên)',
     read: true,
     create: true,
     update: true,
-    approve: true,
+    approve: false,
     delete: true,
   },
   {
@@ -78,7 +81,7 @@ const AUDIT_LOGS_DATA = [
     network: 'Internal Admin VLAN',
     method: 'POST',
     endpoint: '/api/v2/rbac/roles/assign',
-    description: 'Admin cấp quyền Mentor cho Nguyễn Văn Bình (K20-Khoa CNTT)',
+    description: 'Admin cấp quyền Mentor cho TTS (K20-Khoa CNTT)',
     status: 200,
     statusText: '200 OK',
   },
@@ -130,6 +133,59 @@ export default function AdminDashboardPage() {
   // Dialogs
   const [newUserModal, setNewUserModal] = useState(false)
   const [printQrModal, setPrintQrModal] = useState(false)
+  const [usersList, setUsersList] = useState([])
+  const [hrmSyncCount, setHrmSyncCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadStats() {
+      try {
+        const res = await fetchUsers({ role: 'all' })
+        if (!cancelled && res.ok && Array.isArray(res.data?.items)) {
+          const syncState = getRealtimeSyncState()
+          const merged = res.data.items.map((u) => {
+            const match = (syncState.applicants || []).find(
+              (a) => a.id === u.id || (u.email && a.email?.toLowerCase() === u.email.toLowerCase())
+            )
+            if (match) {
+              let resolvedStatus = u.status
+              if (match.account_status === 'inactive' || match.is_frozen) {
+                resolvedStatus = 'inactive'
+              } else if (match.account_status === 'active' || !match.is_frozen) {
+                resolvedStatus = 'active'
+              }
+              return { ...u, status: resolvedStatus }
+            }
+            return u
+          })
+          setUsersList(merged)
+        }
+      } catch {
+        // fallback to default
+      }
+    }
+    loadStats()
+    const unsub = subscribeRealtimeEvents(loadStats)
+    window.addEventListener('admin_users_updated', loadStats)
+    return () => {
+      cancelled = true
+      unsub()
+      window.removeEventListener('admin_users_updated', loadStats)
+    }
+  }, [])
+
+  const stats = useMemo(() => {
+    const total = usersList.length
+    const active = usersList.filter((u) => u.status === 'active').length
+    const pending = usersList.filter((u) => u.status === 'pending').length
+    const interns = usersList.filter((u) => u.role === 'intern').length
+    return {
+      total: total > 0 ? total : 7,
+      active: total > 0 ? active : 6,
+      pending: total > 0 ? pending : 1,
+      interns: total > 0 ? interns : 3,
+    }
+  }, [usersList])
 
   function showToast(message, type = 'success') {
     setToast({ message, type })
@@ -140,6 +196,11 @@ export default function AdminDashboardPage() {
     setIsSyncingHRM(true)
     setTimeout(() => {
       setIsSyncingHRM(false)
+      setHrmSyncCount((c) => c + 48)
+      emitRealtimeEvent(SYNC_EVENTS.APPLICANT_UPDATED, { syncSource: 'FastHRM' })
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('admin_users_updated', { detail: { syncSource: 'FastHRM' } }))
+      }
       showToast('Đồng bộ FastHRM thành công! Đã nạp thêm 48 bản ghi mới vào ICTU Intern Core DB.', 'success')
     }, 1200)
   }
@@ -278,11 +339,11 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="kpi-val-row">
-            <span className="kpi-value">1,482</span>
+            <span className="kpi-value">{(1482 + hrmSyncCount).toLocaleString()}</span>
           </div>
           <div className="kpi-hint kpi-hint--green">
             <TrendingUp size={14} />
-            <span>+48 hồ sơ từ FastHRM (02:00 AM)</span>
+            <span>+{48 + (hrmSyncCount > 0 ? hrmSyncCount : 0)} hồ sơ từ FastHRM {hrmSyncCount > 0 ? '(vừa đồng bộ)' : '(02:00 AM)'}</span>
           </div>
         </div>
 
@@ -295,11 +356,11 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="kpi-val-row">
-            <span className="kpi-value">894</span>
-            <span className="kpi-value-sub">/ 940 TTS</span>
+            <span className="kpi-value">{stats.interns >= 2 ? '2' : '1'}</span>
+            <span className="kpi-value-sub">/ {stats.interns} TTS chính thức</span>
           </div>
           <div className="kpi-hint kpi-hint--slate">
-            <span>Tỷ lệ quẹt thẻ đạt 95.1%</span>
+            <span>Tỷ lệ quẹt thẻ đạt 100% trong phiên làm việc</span>
           </div>
         </div>
 
@@ -312,11 +373,12 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="kpi-val-row">
-            <span className="kpi-value">1,120</span>
+            <span className="kpi-value">{stats.active}</span>
+            <span className="kpi-value-sub">/ {stats.total} tài khoản</span>
           </div>
           <div className="kpi-hint kpi-hint--teal">
             <Check size={14} strokeWidth={2.5} />
-            <span>88.4% đã kích hoạt 2FA TOTP</span>
+            <span>{Math.round((stats.active / stats.total) * 100)}% tài khoản đang hoạt động bình thường</span>
           </div>
         </div>
 

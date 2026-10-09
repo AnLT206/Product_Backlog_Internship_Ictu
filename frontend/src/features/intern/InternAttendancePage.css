@@ -8,6 +8,9 @@
   color: #1E293B;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* ── Panel bọc bảng chấm công ── */
@@ -122,19 +125,44 @@
 
 /* ── Định dạng Khung & Cột Bảng Lịch sử đơn nghỉ phép ── */
 .leave-history-table {
-  min-width: 1080px; /* Đảm bảo đủ rộng cho 9 cột, không bao giờ bị cắt chữ hay ép méo khung */
+  width: 100%;
+  min-width: 940px; /* Vừa vặn hoàn hảo trên màn hình chuẩn, không bị ép vỡ cột */
 }
 
 .leave-history-table th,
 .leave-history-table td {
-  padding: 13px 14px;
+  padding: 11px 12px;
 }
 
-/* Cột 1: Mã đơn */
-.th-leave-code,
-.td-leave-code {
-  width: 125px;
+/* Cột 1: Mã đơn (Ghim cố định bên trái - Không bao giờ bị cắt chữ khi cuộn) */
+.leave-history-table .th-leave-code,
+.leave-history-table .td-leave-code {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background-color: #FFFFFF;
+  box-shadow: 4px 0 8px -2px rgba(15, 23, 42, 0.06);
+  border-right: 1px solid #E2E8F0;
+  width: 95px;
   white-space: nowrap;
+  text-align: center;
+}
+
+.leave-history-table thead .th-leave-code {
+  background-color: #F8FAFC;
+  z-index: 4;
+}
+
+.leave-history-table tbody tr:hover .td-leave-code {
+  background-color: #F8FAFC;
+}
+
+.leave-history-table tbody tr.leave-table-row--rejected .td-leave-code {
+  background-color: #FEF2F2 !important;
+}
+
+.leave-history-table tbody tr.leave-table-row--rejected:hover .td-leave-code {
+  background-color: #FEE2E2 !important;
 }
 
 .leave-code-badge {
@@ -154,7 +182,7 @@
 /* Cột 2: Loại nghỉ phép */
 .th-leave-type,
 .td-leave-type {
-  width: 145px;
+  width: 135px;
   white-space: nowrap;
 }
 
@@ -167,7 +195,7 @@
 /* Cột 3: Thời gian nghỉ */
 .th-leave-dates,
 .td-leave-dates {
-  width: 120px;
+  width: 110px;
   white-space: nowrap;
 }
 
@@ -208,7 +236,7 @@
 /* Cột 5: Số ngày */
 .th-leave-duration,
 .td-leave-duration {
-  width: 90px;
+  width: 75px;
   white-space: nowrap;
   text-align: center;
 }
@@ -228,7 +256,7 @@
 /* Cột 6: Ngày gửi */
 .th-leave-created,
 .td-leave-created {
-  width: 115px;
+  width: 90px;
   white-space: nowrap;
 }
 
@@ -242,7 +270,7 @@
 /* Cột 7: Trạng thái */
 .th-leave-status,
 .td-leave-status {
-  width: 140px;
+  width: 115px;
   white-space: nowrap;
   text-align: center;
 }
@@ -250,7 +278,7 @@
 /* Cột 8: Người duyệt */
 .th-leave-approver,
 .td-leave-approver {
-  min-width: 180px;
+  width: 95px;
   white-space: nowrap;
 }
 
@@ -280,6 +308,20 @@
   background-color: #DBEAFE;
   border-color: #93C5FD;
   box-shadow: 0 1px 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Đơn bị từ chối: viền mềm đỏ nhạt và màu nền dịu mắt */
+.leave-table-row--rejected {
+  background-color: #FEF2F2 !important;
+}
+
+.leave-table-row--rejected:hover {
+  background-color: #FEE2E2 !important;
+}
+
+.leave-table-row--rejected td {
+  border-top: 1px solid #FECACA;
+  border-bottom: 1px solid #FECACA;
 }
 
 .att-table tbody tr {
@@ -560,6 +602,117 @@
 .intern-btn--cancel:active {
   background-color: #F1F5F9;
   transform: translateY(0);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ATTENDANCE KPI SUMMARY GRID (Tự động liên kết số liệu)
+   ══════════════════════════════════════════════════════════════ */
+.att-kpi-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 1024px) {
+  .att-kpi-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .att-kpi-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.att-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+}
+
+.att-kpi-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+
+.att-kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.att-kpi-icon--blue {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.att-kpi-icon--amber {
+  background-color: #fffbeb;
+  color: #d97706;
+}
+
+.att-kpi-icon--purple {
+  background-color: #f5f3ff;
+  color: #7c3aed;
+}
+
+.att-kpi-icon--green {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.att-kpi-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.att-kpi-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.att-kpi-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.att-kpi-unit {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.att-kpi-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 

@@ -1,4 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { getMyDocuments } from '../../api/documents';
 import {
   UploadCloud,
   CheckCircle2,
@@ -7,38 +10,98 @@ import {
   AlertCircle,
   FileCheck,
   ShieldCheck,
-  ChevronRight,
   X,
-  Eye,
-  Trash2,
-  Briefcase,
+  User,
+  FileX,
   CheckSquare,
-  Sparkles,
 } from 'lucide-react';
+import {
+  syncContractSigning,
+  subscribeRealtimeEvents,
+  getRealtimeSyncState,
+  SYNC_EVENTS,
+  extractPartyBContractInfo,
+} from '../../utils/realtimeSync';
+import { getSavedUserProfile } from './InternProfilePage';
 import './InternApplicantDashboard.css';
+
+// 6 Giai đoạn trong Lộ trình thực tập chuẩn mực doanh nghiệp ICTU
+const getInternshipRoadmap = (hasSubmitted) => [
+  {
+    step: '01',
+    title: 'Ứng tuyển & Sàng lọc CV',
+    desc: 'Tải lên CV & hồ sơ sinh viên trực tuyến. Doanh nghiệp tiếp nhận, sàng lọc chuyên ngành và thẩm định GPA nền tảng.',
+    duration: 'Tuần 0',
+    badge: 'Giai đoạn 1',
+    status: hasSubmitted ? 'completed' : 'active',
+  },
+  {
+    step: '02',
+    title: 'Phỏng vấn & Đánh giá năng lực',
+    desc: 'Phỏng vấn chuyên môn 1-1 với Tech Lead / Mentor và HR đánh giá thái độ, định hướng kỹ thuật phù hợp dự án.',
+    duration: 'Tuần 1',
+    badge: 'Giai đoạn 2',
+    status: hasSubmitted ? 'active' : 'upcoming',
+  },
+  {
+    step: '03',
+    title: 'Tiếp nhận & Onboarding',
+    desc: 'Nhận Offer tiếp nhận, ký thỏa thuận thực tập số, cấp mã định danh TTS, tài khoản hệ thống và ghép cặp Mentor 1-1.',
+    duration: 'Tuần 1 - 2',
+    badge: 'Giai đoạn 3',
+    status: 'upcoming',
+  },
+  {
+    step: '04',
+    title: 'Đào tạo công nghệ & Agile',
+    desc: 'Nghiên cứu tài liệu kỹ thuật chuẩn (GitFlow, FastAPI, MySQL 8.0, PyTest), văn hóa Scrum và hoàn thành mini-project.',
+    duration: 'Tuần 3 - 4',
+    badge: 'Giai đoạn 4',
+    status: 'upcoming',
+  },
+  {
+    step: '05',
+    title: 'Thực chiến dự án & Mentor 1-1',
+    desc: 'Trực tiếp nhận Task trên Sprint, tham gia Daily standup, code review cùng Mentor, chấm công & nộp báo cáo tuần.',
+    duration: 'Tuần 5 - 10',
+    badge: 'Giai đoạn 5',
+    status: 'upcoming',
+  },
+  {
+    step: '06',
+    title: 'Nghiệm thu & Chuyển tiếp Junior',
+    desc: 'Đánh giá năng lực cuối kỳ, bảo vệ sản phẩm, đồng bộ điểm về Cổng Đào tạo ICTU và xét duyệt lên nhân viên chính thức.',
+    duration: 'Tuần 11 - 12',
+    badge: 'Giai đoạn 6',
+    status: 'upcoming',
+  },
+];
 
 /**
  * Trang Dashboard dành cho Thực tập sinh (Intern) đang trong quá trình ứng tuyển.
- * - Trạng thái 1: Chưa được HR duyệt -> Chỉ xem giới thiệu tính năng (Read-only + Lock), thanh tiến trình, nộp CV.
- * - Trạng thái 2: Được HR duyệt -> Bật Modal Hợp đồng lao động yêu cầu xác nhận.
- * - Trạng thái 3: Sau khi ký hợp đồng -> Mở khóa toàn quyền, chuyển vào Dashboard TTS chính thức.
+ * - Trạng thái 1: Chưa được HR duyệt -> Xem lộ trình thực tập 6 giai đoạn, liên kết nhanh tới Upload CV và Hồ sơ cá nhân.
+ * - Trạng thái 2: Được HR duyệt & gửi hợp đồng -> Hiển thị Banner và Modal Hợp đồng tiếp nhận thực tập để ký xác nhận.
+ * - Trạng thái 3: Sau khi ký hợp đồng -> Tự động chuyển quyền sang Thực tập sinh chính thức.
  */
 export default function InternApplicantDashboard({ user, onContractConfirmed }) {
-  // Trạng thái hồ sơ: 'applied' | 'reviewing' | 'interview' | 'approved' | 'onboarded'
-  const [currentStep, setCurrentStep] = useState('reviewing');
+  const { updateUser } = useAuth();
 
-  // Trạng thái file CV
-  const [cvFile, setCvFile] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadError, setUploadError] = useState('');
-  const fileInputRef = useRef(null);
+  // Trạng thái hồ sơ: 'unsubmitted' | 'applied' | 'reviewing' | 'interview' | 'approved' | 'rejected' | 'onboarded'
+  const [currentStep, setCurrentStep] = useState('unsubmitted');
 
-  // Trạng thái Modal Hợp đồng lao động khi HR duyệt
+  // File CV đã được gửi lên hệ thống thành công
+  const [, setCvFile] = useState(null);
+  const [cvSubmissionDate, setCvSubmissionDate] = useState(null);
+
+  // Trạng thái Modal Hợp đồng lao động khi HR duyệt & gửi hợp đồng
   const [showContractModal, setShowContractModal] = useState(false);
   const [contractAgreed, setContractAgreed] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const [isContractConfirmed, setIsContractConfirmed] = useState(false);
+  const [pendingContract, setPendingContract] = useState(null);
+
+  // Trạng thái Modal Thông báo khi HR từ chối
+  const [showRejectModal, setShowRejectModal] = useState(false);
 
   // Thông báo Toast nhanh
   const [toastMessage, setToastMessage] = useState(null);
@@ -48,62 +111,280 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Xử lý chọn file CV
-  const handleFileSelect = (file) => {
-    if (!file) return;
-    setUploadError('');
+  // Tự động đồng bộ thông tin CV và thời gian thực ứng viên nộp CV
+  useEffect(() => {
+    let isMounted = true;
 
-    const validExtensions = ['pdf', 'doc', 'docx'];
-    const fileExt = file.name.split('.').pop().toLowerCase();
+    async function loadCvData() {
+      let hasCvOnServer = false;
+      const syncState = getRealtimeSyncState();
+      const syncMatch = (syncState.applicants || []).find(
+        (a) => a.id === user?.id || (user?.email && a.email?.toLowerCase() === user.email.toLowerCase())
+      );
 
-    if (!validExtensions.includes(fileExt)) {
-      setUploadError('Định dạng file không hợp lệ! Vui lòng chỉ tải file .PDF, .DOC hoặc .DOCX.');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('Dung lượng file vượt quá giới hạn 5 MB!');
-      return;
-    }
-
-    // Giả lập tiến trình upload
-    setUploadProgress(20);
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setCvFile(file);
-          showToast(`Đã tải lên thành công: ${file.name}`, 'success');
-          return 100;
+      // 1. Kiểm tra tài liệu thực tế từ backend API
+      let serverDocStatus = null;
+      let serverDocReason = null;
+      try {
+        const res = await getMyDocuments({ doc_type: 'cv' });
+        if (res?.ok && Array.isArray(res.data) && res.data.length > 0) {
+          hasCvOnServer = true;
+          const latestDoc = res.data[0];
+          serverDocStatus = latestDoc.status;
+          serverDocReason = latestDoc.review_note || null;
+          if (isMounted) {
+            const dateObj = latestDoc.created_at ? new Date(latestDoc.created_at) : new Date();
+            setCvSubmissionDate(dateObj);
+            setCurrentStep('applied');
+            setCvFile({
+              id: latestDoc.id,
+              name: latestDoc.file_name,
+              size: 1024 * 1024 * 1.5,
+              uploadedAt: latestDoc.created_at,
+            });
+            localStorage.setItem(
+              'applicant_cv_submission',
+              JSON.stringify({
+                id: latestDoc.id,
+                file_name: latestDoc.file_name,
+                file_size: 1024 * 1024 * 1.5,
+                submitted_at: latestDoc.created_at,
+              })
+            );
+          }
+        } else if (res?.ok && Array.isArray(res.data) && res.data.length === 0) {
+          if (syncMatch?.cv_file && syncMatch.cv_file !== 'CV_UngVien.pdf') {
+            hasCvOnServer = true;
+            if (isMounted) {
+              setCvSubmissionDate(new Date());
+              setCurrentStep('applied');
+              setCvFile({
+                id: syncMatch.id || Date.now(),
+                name: syncMatch.cv_file,
+                size: 1024 * 1024 * 1.5,
+                uploadedAt: syncMatch.applied_at || new Date().toISOString(),
+              });
+            }
+          } else {
+            localStorage.removeItem('applicant_cv_submission');
+            if (isMounted) {
+              setCvFile(null);
+              setCvSubmissionDate(null);
+              setCurrentStep('unsubmitted');
+            }
+          }
         }
-        return prev + 30;
-      });
-    }, 150);
-  };
+      } catch (e) {
+        console.error('Error fetching documents from server:', e);
+      }
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFileSelect(e.dataTransfer.files[0]);
+      // Fallback từ LocalStorage hoặc syncStore nếu chưa lấy được từ backend
+      if (!hasCvOnServer) {
+        const cached = localStorage.getItem('applicant_cv_submission');
+        if (cached && isMounted) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (parsed?.file_name && parsed.file_name !== 'CV_UngVien.pdf') {
+              setCvSubmissionDate(new Date(parsed.submitted_at || Date.now()));
+              setCurrentStep('applied');
+              setCvFile({
+                id: parsed.id,
+                name: parsed.file_name,
+                size: parsed.file_size || 1024 * 1024 * 1.5,
+                uploadedAt: parsed.submitted_at,
+              });
+            }
+          } catch {}
+        } else if (syncMatch?.cv_file && syncMatch.cv_file !== 'CV_UngVien.pdf' && isMounted) {
+          setCvSubmissionDate(new Date());
+          setCurrentStep('applied');
+          setCvFile({
+            id: syncMatch.id || Date.now(),
+            name: syncMatch.cv_file,
+            size: 1024 * 1024 * 1.5,
+            uploadedAt: syncMatch.applied_at || new Date().toISOString(),
+          });
+        }
+      }
+
+      // 2. Kiểm tra quyết định duyệt của HR
+      let resolvedDecision = null;
+      if (serverDocStatus === 'rejected') {
+        resolvedDecision = {
+          status: 'rejected',
+          reason: serverDocReason || 'CV của bạn không đạt đủ yêu cầu, bạn hãy dành thêm thời gian để chuẩn bị lại CV cho lần tiếp theo nhé!',
+        };
+      } else if (serverDocStatus === 'approved') {
+        resolvedDecision = { status: 'approved', reason: '' };
+      }
+
+      if (!resolvedDecision) {
+        try {
+          const decRaw = localStorage.getItem('applicant_decision_status');
+          if (decRaw && isMounted) {
+            const dec = JSON.parse(decRaw);
+            const isTargetApplicant =
+              !dec?.applicantId ||
+              dec.applicantId === user?.id ||
+              String(dec.applicantId) === String(user?.id) ||
+              (user?.email && user.email.toLowerCase().includes('ungvien')) ||
+              user?.role === 'applicant';
+            if (dec && dec.status && isTargetApplicant) {
+              resolvedDecision = dec;
+            }
+          }
+        } catch {}
+      }
+
+      if (!resolvedDecision && syncMatch) {
+        if (syncMatch.status === 'rejected') {
+          resolvedDecision = { status: 'rejected', reason: syncMatch.reject_reason || '' };
+        } else if (syncMatch.status === 'approved') {
+          resolvedDecision = { status: 'approved', reason: '' };
+        }
+      }
+
+      if (!resolvedDecision) {
+        if (user?.profile_status === 'rejected' || user?.status === 'rejected') {
+          resolvedDecision = { status: 'rejected', reason: user?.reject_reason || '' };
+        } else if (user?.profile_status === 'approved' || user?.status === 'approved') {
+          resolvedDecision = { status: 'approved', reason: '' };
+        }
+      }
+
+      if (isMounted) {
+        if (resolvedDecision?.status === 'approved') {
+          setCurrentStep('approved');
+          setShowRejectModal(false);
+        } else if (resolvedDecision?.status === 'rejected') {
+          setCurrentStep('rejected');
+          const isDismissed = sessionStorage.getItem('applicant_reject_modal_dismissed') === 'true';
+          setShowRejectModal(!isDismissed);
+        }
+      }
+
+      // 3. Kiểm tra xem HR đã phát hành & gửi hợp đồng tiếp nhận chưa
+      try {
+        const isAlreadyOnboarded = localStorage.getItem('applicant_onboarded') === 'true';
+        if (isAlreadyOnboarded) {
+          setIsContractConfirmed(true);
+          setCurrentStep('onboarded');
+        } else {
+          const pendingRaw = localStorage.getItem('applicant_pending_contract');
+          if (pendingRaw && isMounted) {
+            const parsed = JSON.parse(pendingRaw);
+            if (parsed && parsed.contract) {
+              setPendingContract(parsed.contract);
+            }
+          } else if (isMounted) {
+            const targetId = user?.id || 7;
+            const myContract = syncState.contracts?.find(
+              (c) =>
+                (c.intern_id === targetId ||
+                  String(c.intern_id) === String(targetId) ||
+                  c.student_name === user?.full_name) &&
+                !c.signed_intern
+            );
+            if (myContract) {
+              setPendingContract(myContract);
+            }
+          }
+        }
+      } catch {}
     }
-  };
 
-  const handleRemoveCv = () => {
-    setCvFile(null);
-    setUploadProgress(0);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    showToast('Đã hủy file CV hiện tại', 'info');
-  };
+    loadCvData();
 
-  // Giả lập sự kiện HR duyệt hồ sơ trên hệ thống
-  const triggerHrApproval = () => {
-    setCurrentStep('approved');
-    setShowContractModal(true);
-    showToast('Hồ sơ đã được HR phê duyệt! Vui lòng đọc & ký hợp đồng.', 'success');
-  };
+    // Lắng nghe sự kiện nộp CV từ trang khác (như InternUploadPage)
+    const handleCvUpdated = (e) => {
+      sessionStorage.removeItem('applicant_reject_modal_dismissed');
+      if (e.detail?.submitted_at) {
+        setCvSubmissionDate(new Date(e.detail.submitted_at));
+        setCurrentStep('applied');
+        setCvFile({
+          id: e.detail.id,
+          name: e.detail.file_name,
+          size: e.detail.file_size || 1024 * 1024 * 1.5,
+          uploadedAt: e.detail.submitted_at,
+          previewUrl: e.detail.previewUrl,
+        });
+      } else {
+        setCvSubmissionDate(null);
+        setCvFile(null);
+        setCurrentStep('unsubmitted');
+        setShowContractModal(false);
+        setShowRejectModal(false);
+        setPendingContract(null);
+      }
+    };
 
-  // Xác nhận ký hợp đồng
+    // Lắng nghe quyết định duyệt / từ chối của HR
+    const handleDecisionUpdated = (e) => {
+      if (e.detail?.status === 'approved') {
+        setCurrentStep('approved');
+        setShowRejectModal(false);
+      } else if (e.detail?.status === 'rejected') {
+        sessionStorage.removeItem('applicant_reject_modal_dismissed');
+        setShowRejectModal(true);
+        setShowContractModal(false);
+        setCurrentStep('rejected');
+      }
+    };
+
+    window.addEventListener('applicant_cv_updated', handleCvUpdated);
+    window.addEventListener('applicant_decision_updated', handleDecisionUpdated);
+
+    // Đồng bộ thời gian thực từ HR Dashboard (Duyệt hồ sơ, từ chối, gửi hợp đồng đã chọn)
+    const unsubscribeSync = subscribeRealtimeEvents((event) => {
+      if (event.type === SYNC_EVENTS.APPLICANT_DECISION) {
+        const { applicantId, status, reason } = event.payload || {};
+        const matchesUser =
+          !applicantId ||
+          applicantId === user?.id ||
+          String(applicantId) === String(user?.id) ||
+          user?.role === 'applicant' ||
+          user?.role === 'intern';
+        if (matchesUser) {
+          if (status === 'approved') {
+            setCurrentStep('approved');
+            setShowRejectModal(false);
+            showToast(
+              'Chúc mừng! Hồ sơ của bạn đã được HR phê duyệt tiếp nhận. Vui lòng chờ thông báo hợp đồng tiếp nhận.',
+              'success'
+            );
+          } else if (status === 'rejected') {
+            sessionStorage.removeItem('applicant_reject_modal_dismissed');
+            setShowRejectModal(true);
+            setShowContractModal(false);
+            setCurrentStep('rejected');
+            showToast(`Hồ sơ chưa phù hợp đợt này${reason ? ': ' + reason : '.'}`, 'info');
+          }
+        }
+      } else if (event.type === SYNC_EVENTS.CONTRACT_SENT) {
+        const { applicantId, contract } = event.payload || {};
+        const matchesUser =
+          !applicantId ||
+          applicantId === user?.id ||
+          String(applicantId) === String(user?.id) ||
+          user?.role === 'applicant' ||
+          user?.role === 'intern';
+        if (matchesUser && contract) {
+          setPendingContract(contract);
+          setShowContractModal(true);
+          showToast(`🔔 Bạn vừa nhận được văn bản "${contract.doc_type}" từ HR! Vui lòng xem và ký xác nhận.`, 'success');
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('applicant_cv_updated', handleCvUpdated);
+      window.removeEventListener('applicant_decision_updated', handleDecisionUpdated);
+      unsubscribeSync();
+    };
+  }, [user]);
+
+  // Xác nhận ký hợp đồng khi HR duyệt
   const handleConfirmContract = () => {
     if (!contractAgreed) return;
     setIsSigning(true);
@@ -112,70 +393,39 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
       setShowContractModal(false);
       setIsContractConfirmed(true);
       setCurrentStep('onboarded');
-      showToast('Ký hợp đồng thành công! Đang chuyển hướng vào hệ thống…', 'success');
+      localStorage.setItem('applicant_onboarded', 'true');
+      localStorage.removeItem('applicant_decision_status');
+      localStorage.removeItem('applicant_pending_contract');
+      setPendingContract(null);
+
+      // Đồng bộ thời gian thực ký kết hợp đồng số sang HR Portal
+      syncContractSigning(user?.id || 7, user?.full_name || user?.name || 'Ứng viên');
+
+      // Cấp quyền chính thức Thực tập sinh
+      if (updateUser) {
+        updateUser({
+          role: 'intern',
+          status: 'active',
+          status_label: 'Đang thực tập',
+        });
+      }
+
+      showToast('Xác nhận thành công! Bạn đã chính thức được cấp quyền Thực tập sinh.', 'success');
       setTimeout(() => {
         onContractConfirmed?.();
-      }, 1000);
-    }, 1200);
+      }, 800);
+    }, 1000);
   };
 
-  // Các bước trong Stepper tiến trình ứng tuyển
-  const STEPS = [
-    { id: 'applied', label: 'Đã nộp hồ sơ', desc: 'Nhận thông tin ứng viên', date: '25/09/2026' },
-    { id: 'reviewing', label: 'Đang xem xét', desc: 'HR đánh giá CV & chuyên ngành', date: '28/09/2026' },
-    { id: 'interview', label: 'Phỏng vấn', desc: 'Trao đổi chuyên môn với Mentor', date: '02/10/2026' },
-    { id: 'approved', label: 'Kết quả duyệt', desc: 'Ký hợp đồng & tiếp nhận', date: 'Dự kiến 05/10/2026' },
-  ];
-
-  const getStepStatus = (stepId) => {
-    const order = ['applied', 'reviewing', 'interview', 'approved', 'onboarded'];
-    const currentIndex = order.indexOf(currentStep);
-    const stepIndex = order.indexOf(stepId);
-
-    if (stepIndex < currentIndex) return 'completed';
-    if (stepIndex === currentIndex) return 'active';
-    return 'pending';
+  // Đóng thông báo khi HR từ chối
+  const handleCloseRejectModal = () => {
+    setShowRejectModal(false);
+    sessionStorage.setItem('applicant_reject_modal_dismissed', 'true');
+    showToast('Đã đóng thông báo. Bạn có thể chuẩn bị lại CV và nộp lại bất kỳ lúc nào.', 'info');
   };
 
-  // Danh sách các phân hệ nội bộ (Read-only khi chưa ký HĐ)
-  const SYSTEM_MODULES = [
-    {
-      title: 'Chấm công & Điểm danh',
-      desc: 'Check-in/out hằng ngày, theo dõi giờ thực tập và thống kê ngày công minh bạch.',
-      badge: 'Chuyên cần',
-      action: 'Vào chấm công',
-    },
-    {
-      title: 'Quản lý Công việc & Sprint',
-      desc: 'Tiếp nhận đầu việc từ Mentor, cập nhật tiến độ Kanban và nhận bàn giao dự án.',
-      badge: 'Công việc',
-      action: 'Xem bảng Task',
-    },
-    {
-      title: 'Báo cáo Tuần & Nhận xét',
-      desc: 'Nộp báo cáo định kỳ mỗi thứ Sáu, nhận phản hồi và đánh giá năng lực từ người hướng dẫn.',
-      badge: 'Báo cáo',
-      action: 'Nộp báo cáo',
-    },
-    {
-      title: 'Đơn xin Nghỉ phép',
-      desc: 'Đăng ký nghỉ ốm, bận việc học tại trường và gửi quy trình phê duyệt tới HR & Mentor.',
-      badge: 'Hành chính',
-      action: 'Gửi đơn nghỉ',
-    },
-    {
-      title: 'Đánh giá & Cấp Chứng chỉ',
-      desc: 'Bảng điểm đánh giá kỹ năng cuối kỳ và cấp chứng chỉ hoàn thành khóa thực tập doanh nghiệp.',
-      badge: 'Đánh giá',
-      action: 'Xem kết quả',
-    },
-    {
-      title: 'Phụ cấp & Thỏa thuận thực tập',
-      desc: 'Tra cứu thông tin chính sách hỗ trợ kinh phí, hợp đồng thực tập và các phúc lợi thực tập sinh.',
-      badge: 'Chính sách',
-      action: 'Chi tiết hợp đồng',
-    },
-  ];
+  // Lộ trình 6 giai đoạn: chỉ chuyển sang hoàn thành giai đoạn 1 khi đã nộp CV
+  const roadmapStages = getInternshipRoadmap(Boolean(cvSubmissionDate));
 
   return (
     <div className="iad-container">
@@ -191,50 +441,92 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
         </div>
       )}
 
-      {/* Topbar điều khiển & trạng thái */}
-      <div className="iad-topbar">
-        <div className="iad-topbar__brand">
-          <div className="iad-topbar__icon">
-            <Briefcase size={20} />
+      {/* BANNER THÔNG BÁO HỢP ĐỒNG TIẾP NHẬN ĐƯỢC GỬI TỪ HR */}
+      {pendingContract && !isContractConfirmed && (
+        <div className="iad-alert-contract-banner">
+          <div className="iad-alert-contract-left">
+            <div className="iad-alert-contract-icon">
+              <ShieldCheck size={28} />
+            </div>
+            <div>
+              <h4 className="iad-alert-contract-title">
+                🔔 THÔNG BÁO: BẠN NHẬN ĐƯỢC HỢP ĐỒNG TIẾP NHẬN THỰC TẬP TỪ PHÒNG NHÂN SỰ
+              </h4>
+              <p className="iad-alert-contract-desc">
+                Loại văn bản: <strong>{pendingContract.doc_type}</strong>
+              </p>
+              <div className="iad-alert-contract-meta">
+                <span>Thời hạn: <strong>{pendingContract.start_date} – {pendingContract.end_date}</strong></span>
+                <span>• Phụ cấp: <strong>{pendingContract.allowance}</strong></span>
+                <span>• Lab tiếp nhận: <strong>{pendingContract.department}</strong></span>
+              </div>
+            </div>
           </div>
-          <div className="iad-topbar__title-group">
-            <span>ICTU Internship Portal</span>
-            <h1>Cổng Tuyển Dụng & Thực Tập Doanh Nghiệp</h1>
-          </div>
-        </div>
-
-        <div className="iad-topbar__actions">
-          {!isContractConfirmed && (
+          <div className="iad-alert-contract-right">
             <button
               type="button"
-              onClick={triggerHrApproval}
-              className="iad-btn-simulate"
-              title="Bấm để kích hoạt thông báo hợp đồng khi HR phê duyệt"
+              className="iad-btn-sign-contract-highlight"
+              onClick={() => setShowContractModal(true)}
             >
-              <Sparkles size={16} />
-              Mô phỏng: HR Duyệt Hồ Sơ
+              <FileCheck size={18} />
+              <span>Xem &amp; Ký hợp đồng ngay</span>
             </button>
-          )}
-
-          <div className="iad-status-pill">
-            <span className="iad-status-dot" />
-            <span>{isContractConfirmed ? 'TTS Chính Thức' : 'Ứng Viên Chờ Duyệt'}</span>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Hero Banner */}
       <section className="iad-hero">
         <div className="iad-hero__content">
           <div className="iad-hero__text">
-            <div className="iad-hero__badge">
-              <Clock size={14} />
-              <span>{isContractConfirmed ? 'Đã hoàn tất thủ tục tiếp nhận' : 'Đang trong quá trình xét duyệt'}</span>
-            </div>
             <h2>Xin chào, {user?.full_name || 'Ứng viên'}</h2>
             <p>
-              Hồ sơ ứng tuyển vị trí <strong>Frontend Developer Intern</strong> của bạn đang được Bộ phận Tuyển dụng & Đào tạo xem xét. Vui lòng theo dõi tiến trình và cập nhật thông tin bên dưới.
+              {cvSubmissionDate
+                ? (currentStep === 'rejected'
+                    ? 'Hồ sơ ứng tuyển hiện tại của bạn chưa đạt yêu cầu đợt này. Bạn có thể chuẩn bị lại CV và nộp lại để ứng tuyển đợt tiếp theo.'
+                    : 'Hồ sơ ứng tuyển vị trí Frontend Developer Intern của bạn đang được Bộ phận Tuyển dụng & Đào tạo xem xét. Vui lòng theo dõi lộ trình và cập nhật thông tin bên dưới.')
+                : 'Chào mừng bạn đến với Cổng tuyển dụng ICTU. Vui lòng tải lên CV cá nhân để bắt đầu quy trình xét tuyển thực tập.'}
             </p>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
+              <Link
+                to="/intern/upload"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#2563EB',
+                  color: '#FFFFFF',
+                  padding: '9px 18px',
+                  borderRadius: '10px',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                }}
+              >
+                <UploadCloud size={16} />
+                <span>{cvSubmissionDate ? 'Xem hồ sơ & Tiến trình' : 'Upload CV mới'}</span>
+              </Link>
+              <Link
+                to="/intern/profile"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#1E293B',
+                  border: '1px solid #CBD5E1',
+                  padding: '9px 18px',
+                  borderRadius: '10px',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                <User size={16} />
+                <span>Xem hồ sơ cá nhân</span>
+              </Link>
+            </div>
           </div>
 
           <div className="iad-hero__cards">
@@ -244,7 +536,7 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
               <div className="iad-hero__info-card-sub">Khoa Công nghệ Thông tin - ICTU</div>
             </div>
 
-            {!isContractConfirmed && currentStep === 'approved' && (
+            {!isContractConfirmed && (pendingContract || currentStep === 'approved') && (
               <button
                 type="button"
                 onClick={() => setShowContractModal(true)}
@@ -258,192 +550,106 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
         </div>
       </section>
 
-      {/* 1. THANH TIẾN TRÌNH ỨNG TUYỂN (APPLICATION TRACKER) */}
+      {/* 1. LỘ TRÌNH THỰC TẬP CHUẨN MỰC (INTERNSHIP ROADMAP) */}
       <section className="iad-card">
         <div className="iad-card__head">
           <div>
-            <h3 className="iad-card__title">Tiến Trình Ứng Tuyển</h3>
-            <p className="iad-card__desc">Cập nhật thời gian thực theo từng bước đánh giá của doanh nghiệp</p>
-          </div>
-          <div className="iad-badge-step">
-            {currentStep === 'approved' || currentStep === 'onboarded'
-              ? 'Đã có kết quả phê duyệt chính thức'
-              : 'Bước 2: Phòng Nhân sự đang xem xét CV'}
-          </div>
-        </div>
-
-        <div className="iad-stepper">
-          <div className="iad-stepper__connector" />
-
-          {STEPS.map((step, idx) => {
-            const status = getStepStatus(step.id);
-            return (
-              <div key={step.id} className={`iad-step ${status === 'completed' ? 'iad-step--completed' : status === 'active' ? 'iad-step--active' : ''}`}>
-                <div className="iad-step__circle">
-                  {status === 'completed' ? <CheckCircle2 size={20} /> : <span>{idx + 1}</span>}
-                </div>
-                <div className="iad-step__title">{step.label}</div>
-                <div className="iad-step__desc">{step.desc}</div>
-                <div className="iad-step__date">{step.date}</div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 2. KHU VỰC TẢI LÊN CV / HỒ SƠ ỨNG TUYỂN */}
-      <section className="iad-card">
-        <div className="iad-card__head">
-          <div>
-            <h3 className="iad-card__title">Tài Liệu & CV Ứng Tuyển</h3>
+            <h3 className="iad-card__title">Lộ Trình Thực Tập Doanh Nghiệp ICTU</h3>
             <p className="iad-card__desc">
-              Tải lên bản cập nhật mới nhất của CV / Portfolio cá nhân để Hội đồng tuyển dụng đánh giá.
+              Toàn bộ lộ trình từ tuyển chọn, đào tạo công nghệ, thực chiến dự án có Mentor đến nghiệm thu và chuyển tiếp Junior.
             </p>
           </div>
-          <span style={{ fontSize: 12.5, color: '#64748b' }}>Tối đa 1 file (5 MB)</span>
         </div>
 
-        {!cvFile ? (
-          <div
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`iad-dropzone ${isDragging ? 'iad-dropzone--active' : ''}`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.doc,.docx"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  handleFileSelect(e.target.files[0]);
-                }
+        <div className="iad-roadmap-grid">
+          {roadmapStages.map((item, idx) => (
+            <div
+              key={idx}
+              style={{
+                borderRadius: '14px',
+                border: item.status === 'completed' ? '1.5px solid #BBF7D0' : item.status === 'active' ? '1.5px solid #BFDBFE' : '1px solid #E2E8F0',
+                backgroundColor: item.status === 'completed' ? '#F0FDF4' : item.status === 'active' ? '#EFF6FF' : '#FFFFFF',
+                padding: '18px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                boxShadow: item.status === 'active' ? '0 4px 14px rgba(37, 99, 235, 0.08)' : '0 1px 3px rgba(0,0,0,0.02)',
+                position: 'relative',
               }}
-            />
-
-            <div className="iad-dropzone__icon-box">
-              <UploadCloud size={28} />
-            </div>
-
-            <p className="iad-dropzone__prompt">
-              <strong>Nhấn để chọn file</strong> hoặc kéo thả tài liệu vào đây
-            </p>
-            <p className="iad-dropzone__hint">Hỗ trợ định dạng tài liệu PDF, DOC, DOCX</p>
-
-            {uploadProgress > 0 && uploadProgress < 100 && (
-              <div className="iad-upload-progress">
-                <div className="iad-upload-progress__header">
-                  <span>Đang tải lên…</span>
-                  <span>{uploadProgress}%</span>
-                </div>
-                <div className="iad-upload-progress__bar">
-                  <div className="iad-upload-progress__fill" style={{ width: `${uploadProgress}%` }} />
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="iad-file-card">
-            <div className="iad-file-card__left">
-              <div className="iad-file-badge">
-                {cvFile.name.split('.').pop()}
-              </div>
-              <div className="iad-file-meta">
-                <p>{cvFile.name}</p>
-                <span>
-                  {(cvFile.size / 1024 / 1024).toFixed(2)} MB · Sẵn sàng xét duyệt
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  color: item.status === 'completed' ? '#166534' : item.status === 'active' ? '#1D4ED8' : '#64748B',
+                  backgroundColor: item.status === 'completed' ? '#DCFCE7' : item.status === 'active' ? '#DBEAFE' : '#F1F5F9',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  textTransform: 'uppercase',
+                }}>
+                  {item.badge}
                 </span>
-              </div>
-            </div>
-
-            <div className="iad-file-card__right">
-              <button
-                type="button"
-                onClick={() => showToast(`Đang xem trước ${cvFile.name}`, 'info')}
-                className="iad-btn-sm"
-              >
-                <Eye size={14} />
-                Xem trước
-              </button>
-              <button
-                type="button"
-                onClick={handleRemoveCv}
-                className="iad-btn-sm iad-btn-sm--danger"
-              >
-                <Trash2 size={14} />
-                Xóa file
-              </button>
-            </div>
-          </div>
-        )}
-
-        {uploadError && (
-          <p style={{ marginTop: 10, fontSize: 12.5, color: '#dc2626', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <AlertCircle size={16} />
-            {uploadError}
-          </p>
-        )}
-      </section>
-
-      {/* 3. GIỚI THIỆU CHỨC NĂNG HỆ THỐNG NỘI BỘ (READ-ONLY CHẾ ĐỘ CHỈ XEM) */}
-      <section className="iad-card">
-        <div className="iad-card__head">
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h3 className="iad-card__title">Phân Hệ Làm Việc Thực Tập Sinh</h3>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: '#fef3c7', color: '#92400e', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
-                <Lock size={13} />
-                Chế độ Chỉ xem (Read-only)
-              </span>
-            </div>
-            <p className="iad-card__desc">
-              Toàn bộ tính năng nghiệp vụ sẽ tự động mở khóa sau khi bạn được HR phê duyệt và ký kết hợp đồng.
-            </p>
-          </div>
-        </div>
-
-        <div className="iad-modules-grid">
-          {SYSTEM_MODULES.map((mod, i) => (
-            <div key={i} className="iad-module-card">
-              <div className="iad-module-card__top">
-                <span className="iad-module-badge">{mod.badge}</span>
-                <span className="iad-module-lock">
-                  <Lock size={14} />
-                  Khóa
+                <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748B' }}>
+                  {item.duration}
                 </span>
               </div>
 
-              <div>
-                <h4>{mod.title}</h4>
-                <p>{mod.desc}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                <div style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '8px',
+                  backgroundColor: item.status === 'completed' ? '#16A34A' : item.status === 'active' ? '#2563EB' : '#94A3B8',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}>
+                  {item.step}
+                </div>
+                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0F172A', lineHeight: 1.3 }}>
+                  {item.title}
+                </h4>
               </div>
 
-              <div className="iad-module-card__bottom">
-                <span className="iad-module-note">Cần duyệt HĐ để sử dụng</span>
-                <button type="button" disabled className="iad-btn-disabled">
-                  <span>{mod.action}</span>
-                  <ChevronRight size={13} />
-                </button>
+              <p style={{ margin: 0, fontSize: '12.5px', color: '#475569', lineHeight: 1.5, flex: 1 }}>
+                {item.desc}
+              </p>
+
+              <div style={{ marginTop: '6px', paddingTop: '8px', borderTop: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: 600 }}>
+                {item.status === 'completed' ? (
+                  <span style={{ color: '#16A34A', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <CheckCircle2 size={13} /> Đã hoàn thành
+                  </span>
+                ) : item.status === 'active' ? (
+                  <span style={{ color: '#2563EB', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Clock size={13} /> Đang diễn ra
+                  </span>
+                ) : (
+                  <span style={{ color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Lock size={13} /> Dự kiến
+                  </span>
+                )}
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 4. MODAL THÔNG BÁO & KÝ HỢP ĐỒNG LAO ĐỘNG */}
+      {/* 2. MODAL THÔNG BÁO & KÝ HỢP ĐỒNG LAO ĐỘNG (KHI HR GỬI HỢP ĐỒNG) */}
       {showContractModal && (
         <div className="iad-modal-overlay">
-          <div className="iad-modal-content">
+          <div className="iad-modal-content" style={{ maxWidth: '780px' }}>
             <div className="iad-modal-header">
               <div className="iad-modal-header__left">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, borderRadius: 10, background: 'rgba(255, 255, 255, 0.2)' }}>
                   <ShieldCheck size={22} />
                 </div>
                 <div>
-                  <h3>Thông Báo Hợp Đồng Thực Tập</h3>
-                  <p>Mã hợp đồng: HĐTT-2026/09/TTS-089</p>
+                  <h3>{pendingContract?.doc_type || 'Hợp Đồng Tiếp Nhận Thực Tập'}</h3>
                 </div>
               </div>
               <button
@@ -457,32 +663,102 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
 
             <div className="iad-modal-body">
               <div className="iad-modal-callout">
-                <strong>Chúc mừng! Hồ sơ của bạn đã được Giám đốc Đào tạo & Nhân sự phê duyệt chính thức.</strong>
+                <strong>Chúc mừng! Hồ sơ ứng tuyển của bạn đã được Bộ phận Tuyển dụng &amp; Đào tạo phê duyệt và gửi Hợp đồng tiếp nhận chính thức.</strong>
                 <p>
-                  Để đảm bảo quyền lợi, trách nhiệm và bảo mật thông tin nội bộ của công ty trong suốt quá trình thực tập, bạn vui lòng đọc kỹ các điều khoản dưới đây trước khi bấm xác nhận.
+                  Văn bản hợp đồng được ban hành riêng cho bạn theo biểu mẫu chuẩn của Doanh nghiệp. Vui lòng kiểm tra thông tin tiếp nhận, thời hạn, phụ cấp và các cam kết trước khi bấm xác nhận ký số trực tuyến.
                 </p>
               </div>
 
-              <div className="iad-modal-terms">
-                <h4>Điều khoản chính trong hợp đồng thực tập:</h4>
-                <ul>
-                  <li><strong>Thời gian thực tập:</strong> 03 tháng (Từ 01/10/2026 đến 31/12/2026).</li>
-                  <li><strong>Vị trí thực tập:</strong> Thực tập sinh Lập trình Frontend (ReactJS).</li>
-                  <li><strong>Cán bộ hướng dẫn (Mentor):</strong> Được chỉ định 01 Senior Engineer hỗ trợ trực tiếp 1-1.</li>
-                  <li><strong>Mức hỗ trợ phụ cấp:</strong> 3.500.000 VNĐ / tháng + Phụ cấp chuyên cần & ăn trưa.</li>
-                  <li><strong>Bảo mật thông tin (NDA):</strong> Nghiêm cấm sao chép hoặc phát tán mã nguồn dự án ra bên ngoài.</li>
-                  <li><strong>Kỷ luật lao động:</strong> Tuân thủ chấm công đúng giờ và nộp báo cáo tuần đúng hạn vào thứ Sáu.</li>
-                </ul>
+              {/* Thông tin cụ thể hợp đồng HR đã gửi */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 18px', marginBottom: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', fontSize: '13px' }}>
+                  <div>
+                    <span style={{ color: '#64748b', display: 'block', fontSize: '11.5px', textTransform: 'uppercase', fontWeight: 600 }}>Bộ phận tiếp nhận</span>
+                    <strong style={{ color: '#0f172a' }}>{pendingContract?.department || 'Trung tâm Phát triển Phần mềm ICTU'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b', display: 'block', fontSize: '11.5px', textTransform: 'uppercase', fontWeight: 600 }}>Thời gian thực tập</span>
+                    <strong style={{ color: '#0f172a' }}>{pendingContract?.start_date || '01/08/2026'} – {pendingContract?.end_date || '30/11/2026'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b', display: 'block', fontSize: '11.5px', textTransform: 'uppercase', fontWeight: 600 }}>Mức phụ cấp hàng tháng</span>
+                    <strong style={{ color: '#16a34a', fontSize: '14px' }}>{pendingContract?.allowance || '3.000.000 đ/tháng'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b', display: 'block', fontSize: '11.5px', textTransform: 'uppercase', fontWeight: 600 }}>Xác thực chữ ký</span>
+                    <strong style={{ color: '#2563eb' }}>✓ VNPT-CA Doanh nghiệp</strong>
+                  </div>
+                </div>
               </div>
 
-              <label className="iad-modal-checkbox">
+              {/* Thông tin Bên B: Trích xuất tự động từ hồ sơ cá nhân */}
+              {(() => {
+                const partyB = extractPartyBContractInfo({
+                  ...pendingContract,
+                  ...getSavedUserProfile(user),
+                  student_code: pendingContract?.student_code || getSavedUserProfile(user)?.student_code,
+                  university: pendingContract?.university || getSavedUserProfile(user)?.university,
+                  phone: pendingContract?.phone || getSavedUserProfile(user)?.phone,
+                  email: pendingContract?.email || getSavedUserProfile(user)?.email,
+                });
+                return (
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 18px', marginBottom: '16px', fontSize: '13px' }}>
+                    <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+                      BÊN B: {partyB.isStudent ? 'SINH VIÊN THỰC TẬP (TIẾP NHẬN)' : 'THỰC TẬP SINH TIẾP NHẬN'}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+                      <div>
+                        <span style={{ color: '#64748b' }}>Họ và tên: </span>
+                        <strong style={{ color: '#0f172a' }}>{partyB.fullName}</strong>
+                      </div>
+                      {partyB.isStudent ? (
+                        <>
+                          <div>
+                            <span style={{ color: '#64748b' }}>Mã sinh viên: </span>
+                            <strong style={{ color: '#0f172a' }}>{partyB.studentCode || '---'}</strong>
+                          </div>
+                          <div>
+                            <span style={{ color: '#64748b' }}>Cơ sở đào tạo: </span>
+                            <strong style={{ color: '#0f172a' }}>{partyB.university || '---'}</strong>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <span style={{ color: '#64748b' }}>Số điện thoại: </span>
+                            <strong style={{ color: '#0f172a' }}>{partyB.phone || '---'}</strong>
+                          </div>
+                          <div>
+                            <span style={{ color: '#64748b' }}>Email: </span>
+                            <strong style={{ color: '#0f172a' }}>{partyB.email || '---'}</strong>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="iad-modal-terms">
+                <h4>Điều khoản &amp; Cam kết trong hợp đồng:</h4>
+                <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#334155', whiteSpace: 'pre-line', maxHeight: '180px', overflowY: 'auto', padding: '10px 14px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px' }}>
+                  {pendingContract?.notes || (
+                    `1. Thời gian làm việc: Tối thiểu 20 giờ/tuần theo lịch phân công dự án của Mentor.
+2. Cam kết bảo mật thông tin (NDA): Tuyệt đối không sao chép, chia sẻ mã nguồn hoặc tài liệu nội bộ của Doanh nghiệp.
+3. Kỷ luật lao động: Thực hiện điểm danh chấm công đầy đủ, tham gia các buổi Daily Standup và báo cáo tiến độ tuần đúng hạn vào thứ Sáu.
+4. Đánh giá kết quả: Mentor chấm điểm định kỳ, doanh nghiệp cấp Giấy chứng nhận và bảng điểm thực tập chính thức đồng bộ về Nhà trường.`
+                  )}
+                </div>
+              </div>
+
+              <label className="iad-modal-checkbox" style={{ marginTop: '16px' }}>
                 <input
                   type="checkbox"
                   checked={contractAgreed}
                   onChange={(e) => setContractAgreed(e.target.checked)}
                 />
-                <span>
-                  Tôi xác nhận đã đọc, hiểu rõ và tự nguyện cam kết tuân thủ 100% các điều khoản trong hợp đồng đào tạo thực tập của công ty.
+                <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                  Tôi đã đọc kỹ, hiểu rõ và đồng ý với toàn bộ điều khoản trong hợp đồng thực tập này
                 </span>
               </label>
             </div>
@@ -510,9 +786,55 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
                 ) : (
                   <>
                     <CheckSquare size={16} />
-                    Xác Nhận Đã Đọc & Ký Hợp Đồng
+                    Ký &amp; Xác nhận hợp đồng
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. MODAL THÔNG BÁO TỪ CHỐI CV (KHI HR KHÔNG DUYỆT) */}
+      {showRejectModal && (
+        <div className="iad-modal-overlay">
+          <div className="iad-modal-content iad-modal-content--reject">
+            <div className="iad-modal-header" style={{ background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' }}>
+              <div className="iad-modal-header__left">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, borderRadius: 10, background: 'rgba(255, 255, 255, 0.2)' }}>
+                  <AlertCircle size={22} color="#ffffff" />
+                </div>
+                <div>
+                  <h3 style={{ color: '#ffffff', margin: 0, fontSize: 16 }}>Thông Báo Kết Quả Tuyển Dụng</h3>
+                  <p style={{ color: 'rgba(255, 255, 255, 0.85)', margin: 0, fontSize: 12 }}>Phòng Nhân sự & Tuyển dụng ICTU</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseRejectModal}
+                className="iad-modal-close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="iad-modal-body" style={{ padding: '26px 20px', textAlign: 'center' }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <FileX size={32} />
+              </div>
+              <p style={{ fontSize: 15, color: '#1e293b', lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+                CV của bạn không đạt đủ yêu cầu, bạn hãy dành thêm thời gian để chuẩn bị lại CV cho lần tiếp theo nhé!
+              </p>
+            </div>
+
+            <div className="iad-modal-footer" style={{ justifyContent: 'center', padding: '16px 20px' }}>
+              <button
+                type="button"
+                onClick={handleCloseRejectModal}
+                className="iad-btn iad-btn--secondary"
+                style={{ minWidth: 120, justifyContent: 'center', padding: '10px 24px', fontSize: 14, fontWeight: 600 }}
+              >
+                Đóng
               </button>
             </div>
           </div>

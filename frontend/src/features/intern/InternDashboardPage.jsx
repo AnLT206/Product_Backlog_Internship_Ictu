@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth, isApplicantUser } from '../../context/AuthContext'
 import InternApplicantDashboard from './InternApplicantDashboard'
 import TaskProgressModal from './components/TaskProgressModal'
+import { useInternMetrics, notifyInternDataChanged, formatVND } from './utils/internMetrics'
+import { emitRealtimeEvent, SYNC_EVENTS } from '../../utils/realtimeSync'
 import './InternDashboardPage.css'
 
 function generateTagsFromTitle(title) {
@@ -70,6 +72,22 @@ function getTagClass(tag) {
 
 const INITIAL_SPRINT1_TASKS = [
   {
+    id: 100,
+    title: 'Thiết kế giao diện',
+    description: 'Thiết kế giao diện Dashboard theo chuẩn thiết kế Enterprise và tương thích người dùng.',
+    due_at: '2026-09-20',
+    priority: 'medium',
+    status: 'done',
+    progress: 100,
+    tags: generateTagsFromTitle('Thiết kế giao diện'),
+    prLink: 'https://github.com/ictu-interns/core-api/pull/102',
+    note: 'Đã hoàn thành thiết kế giao diện và nghiệm thu.',
+    subtasks: [
+      { id: 'st-01', text: 'Thiết kế bố cục layout chuẩn Enterprise', completed: true },
+      { id: 'st-02', text: 'Tối ưu CSS & responsive trên các thiết bị', completed: true },
+    ],
+  },
+  {
     id: 1,
     title: 'Phát triển REST API Quản lý Hồ sơ Thực tập sinh',
     description: 'Thiết kế endpoint POST /api/hr/interns và GET /api/hr/interns có filter trường, ngành.',
@@ -125,14 +143,21 @@ export default function InternDashboardPage() {
   const { user, updateUser } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
-  const [isContractSignedLocally, setIsContractSignedLocally] = useState(false)
+  const [isContractSignedLocally, setIsContractSignedLocally] = useState(
+    () => typeof window !== 'undefined' && localStorage.getItem('applicant_onboarded') === 'true'
+  )
+  const { metrics, refreshMetrics } = useInternMetrics()
 
   const [tasks, setTasks] = useState(() => {
     try {
       const stored = localStorage.getItem('intern_sprint1_tasks_v1')
       if (stored) {
-        const parsed = JSON.parse(stored)
+        let parsed = JSON.parse(stored)
         if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasDesign = parsed.some((t) => (t.title || '').toLowerCase().includes('thiết kế giao diện'))
+          if (!hasDesign) {
+            parsed = [INITIAL_SPRINT1_TASKS[0], ...parsed]
+          }
           // Chuẩn hóa dữ liệu cũ và luôn tự động sinh tags mới theo tiêu đề nhiệm vụ
           const normalized = parsed.map((t) => {
             let taskItem = { ...t }
@@ -351,6 +376,18 @@ export default function InternDashboardPage() {
     } catch {
       // fallback
     }
+    notifyInternDataChanged()
+    refreshMetrics()
+
+    // Đồng bộ thời gian thực tới Báo cáo chuyên cần HR
+    emitRealtimeEvent(SYNC_EVENTS.ATTENDANCE_CHECKED_IN, {
+      type: 'checkin',
+      date: todayFull,
+      time: nowStr,
+      internCode: user?.code || 'TTS0001',
+      internName: user?.full_name || 'TTS',
+    })
+
     showToast(`✓ Check-in thành công lúc ${nowStr}! Chúc bạn ngày làm việc hiệu quả.`, 'success')
   }
 
@@ -416,6 +453,19 @@ export default function InternDashboardPage() {
     } catch {
       // fallback
     }
+    notifyInternDataChanged()
+    refreshMetrics()
+
+    // Đồng bộ thời gian thực tới Báo cáo chuyên cần HR
+    emitRealtimeEvent(SYNC_EVENTS.ATTENDANCE_CHECKED_IN, {
+      type: 'checkout',
+      date: todayFull,
+      time: nowStr,
+      duration,
+      internCode: user?.code || 'TTS0001',
+      internName: user?.full_name || 'TTS',
+    })
+
     showToast(`✓ Check-out thành công lúc ${nowStr}! Bạn đã hoàn thành ca làm việc.`, 'success')
   }
 
@@ -446,15 +496,10 @@ export default function InternDashboardPage() {
   const tasksWithPR = tasks.filter((t) => Boolean(t.prLink && t.prLink.trim()))
   // Baseline 1 PR khởi tạo sprint + các task có PR đã hoàn thành (done)
   const mergedPRs = 1 + tasksWithPR.filter((t) => t.status === 'done').length
-  const openPRs = tasksWithPR.filter((t) => t.status !== 'done').length
   const prMergeRate = Math.min(100, Math.round((mergedPRs / (tasksWithPR.length + 1)) * 100))
 
   // Nếu là ứng viên chưa duyệt
-  const isApplicant =
-    (user?.status === 'pending' ||
-      (user?.email === 'ungvien@ictu.edu.vn' && user?.status !== 'active') ||
-      (user?.code === 'TTS9999' && user?.status !== 'active')) &&
-    !isContractSignedLocally
+  const isApplicant = isApplicantUser(user) && !isContractSignedLocally
 
   if (isApplicant) {
     return (
@@ -495,6 +540,8 @@ export default function InternDashboardPage() {
     } catch {
       // fallback
     }
+    notifyInternDataChanged()
+    refreshMetrics()
     setTaskModal({ open: false, task: null })
     showToast(`Đã cập nhật tiến độ "${taskModal.task.title}" lên ${updatedData.progress}%!`)
   }
@@ -606,6 +653,8 @@ export default function InternDashboardPage() {
     } catch {
       // fallback
     }
+    notifyInternDataChanged()
+    refreshMetrics()
     setCreateTaskModal(false)
     setNewTaskForm({ title: '', description: '', priority: 'medium' })
     handleClearImport()
