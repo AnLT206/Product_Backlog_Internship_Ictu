@@ -81,6 +81,23 @@
   flex-shrink: 0;
 }
 
+.intern-dash__header-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.intern-dash__bell-desktop {
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .intern-dash__bell-desktop {
+    display: none;
+  }
+}
+
 /* Breadcrumb */
 .intern-dash__crumb {
   display: flex;
