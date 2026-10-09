@@ -294,6 +294,13 @@
     text-overflow: ellipsis;
   }
 
+  .intern-topbar__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
   .intern-topbar__logout {
     flex-shrink: 0;
     height: 34px;

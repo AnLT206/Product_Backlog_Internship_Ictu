@@ -1,4 +1,5 @@
 import { useAuth } from '../../context/AuthContext'
+import NotificationBell from '../../components/common/NotificationBell.jsx'
 import './InternDashboardPage.css'
 
 const STATS = [
@@ -38,11 +39,16 @@ export default function InternDashboardPage() {
             </p>
           </div>
           <div className="intern-dash__header-actions">
-            <nav className="intern-dash__crumb" aria-label="Breadcrumb">
-              <span>Thực tập sinh</span>
-              <span aria-hidden="true">/</span>
-              <span>Tổng quan</span>
-            </nav>
+            <div className="intern-dash__header-actions-row">
+              <nav className="intern-dash__crumb" aria-label="Breadcrumb">
+                <span>Thực tập sinh</span>
+                <span aria-hidden="true">/</span>
+                <span>Tổng quan</span>
+              </nav>
+              <div className="intern-dash__bell-desktop">
+                <NotificationBell />
+              </div>
+            </div>
           </div>
         </div>
       </header>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import logoApp from '../../assets/logo_app.png'
 import { useAuth } from '../../context/AuthContext'
+import NotificationBell from '../../components/common/NotificationBell.jsx'
 import './InternLayout.css'
 
 /**
@@ -67,13 +68,16 @@ export default function InternLayout() {
           <img src={logoApp} alt="" width={28} height={28} />
           <strong>ICTU Intern</strong>
         </div>
-        <button
-          type="button"
-          className="intern-topbar__logout"
-          onClick={handleLogout}
-        >
-          Thoát
-        </button>
+        <div className="intern-topbar__actions">
+          <NotificationBell />
+          <button
+            type="button"
+            className="intern-topbar__logout"
+            onClick={handleLogout}
+          >
+            Thoát
+          </button>
+        </div>
       </header>
 
       {/* Backdrop mobile */}
