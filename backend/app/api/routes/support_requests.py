@@ -10,6 +10,7 @@ from app.models.user import User
 from app.schemas.support_request import (
     SupportRequestCreate,
     SupportRequestResponse,
+    SupportRequestStatus,
     SupportRequestUpdateStatus,
 )
 from app.services.support_request_service import SupportRequestService
@@ -54,8 +55,18 @@ def list_my_support_requests(
     summary="HR / Admin xem toàn bộ danh sách yêu cầu hỗ trợ",
     dependencies=[Depends(require_roles("hr", "admin"))],
 )
+@router.get(
+    "/hr/support-requests",
+    response_model=list[SupportRequestResponse],
+    summary="HR / Admin xem toàn bộ danh sách yêu cầu hỗ trợ",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
 def list_all_support_requests(
-    status_filter: str | None = Query(None, alias="status", description="Lọc theo trạng thái: pending, in_progress, resolved, rejected"),
+    status_filter: SupportRequestStatus | None = Query(
+        None,
+        alias="status",
+        description="Lọc theo trạng thái: pending, in_progress, resolved, rejected",
+    ),
     category_filter: str | None = Query(None, alias="category", description="Lọc theo danh mục"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
