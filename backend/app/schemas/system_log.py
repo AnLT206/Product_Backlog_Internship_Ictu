@@ -18,6 +18,7 @@ class SystemLogResponse(BaseModel):
     ip_address: str | None = None
     user_agent: str | None = None
     status_code: int
+    description: str | None = None
     created_at: datetime | None = None
 
     model_config = {"from_attributes": True}

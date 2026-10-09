@@ -29,7 +29,7 @@ import {
   Clock,
   Key,
 } from 'lucide-react'
-import { fetchUsers } from '../../api/admin'
+import { fetchUsers, getSystemLogs } from '../../api/admin'
 import { emitRealtimeEvent, getRealtimeSyncState, subscribeRealtimeEvents, SYNC_EVENTS } from '../../utils/realtimeSync'
 import './AdminDashboardPage.css'
 
@@ -72,57 +72,6 @@ const RBAC_ROLES = [
   },
 ]
 
-const AUDIT_LOGS_DATA = [
-  {
-    id: 1,
-    time: '11:15:42 (25/08)',
-    actor: 'admin@ictu.edu.vn',
-    ip: '10.20.1.1',
-    network: 'Internal Admin VLAN',
-    method: 'POST',
-    endpoint: '/api/v2/rbac/roles/assign',
-    description: 'Admin cấp quyền Mentor cho TTS (K20-Khoa CNTT)',
-    status: 200,
-    statusText: '200 OK',
-  },
-  {
-    id: 2,
-    time: '10:48:19 (25/08)',
-    actor: 'hr_director@ictu.edu.vn',
-    ip: '192.168.10.45',
-    network: 'HR Subnet',
-    method: 'GET',
-    endpoint: '/api/v2/finance/intern-stipend/export',
-    description: 'HR xuất bảng phụ cấp thực tập sinh tháng 08/2026 (.xlsx)',
-    status: 200,
-    statusText: '200 OK',
-  },
-  {
-    id: 3,
-    time: '09:32:04 (25/08)',
-    actor: 'intern.k20@ictu.edu.vn',
-    ip: '14.162.24.112',
-    network: 'Viettel Mobile',
-    method: 'PUT',
-    endpoint: '/api/v2/auth/totp/verify-activate',
-    description: 'TTS kích hoạt xác thực 2FA thành công qua Google Authenticator',
-    status: 200,
-    statusText: '200 OK',
-  },
-  {
-    id: 4,
-    time: '08:05:11 (25/08)',
-    actor: 'gateway.daemon@ictu.edu.vn',
-    ip: '127.0.0.1',
-    network: 'Loopback API Gateway',
-    method: 'POST',
-    endpoint: '/api/v2/auth/jwt/refresh-token',
-    description: 'Token refresh định kỳ: Gia hạn 14 phiên làm việc hợp lệ',
-    status: 200,
-    statusText: '200 OK',
-  },
-]
-
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'hrm' | 'rbac' | 'logs'
   const [isSyncingHRM, setIsSyncingHRM] = useState(false)
@@ -134,43 +83,51 @@ export default function AdminDashboardPage() {
   const [newUserModal, setNewUserModal] = useState(false)
   const [printQrModal, setPrintQrModal] = useState(false)
   const [usersList, setUsersList] = useState([])
-  const [hrmSyncCount, setHrmSyncCount] = useState(0)
+  const [systemLogs, setSystemLogs] = useState([])
 
   useEffect(() => {
     let cancelled = false
-    async function loadStats() {
+    async function loadData() {
       try {
-        const res = await fetchUsers({ role: 'all' })
-        if (!cancelled && res.ok && Array.isArray(res.data?.items)) {
-          const syncState = getRealtimeSyncState()
-          const merged = res.data.items.map((u) => {
-            const match = (syncState.applicants || []).find(
-              (a) => a.id === u.id || (u.email && a.email?.toLowerCase() === u.email.toLowerCase())
-            )
-            if (match) {
-              let resolvedStatus = u.status
-              if (match.account_status === 'inactive' || match.is_frozen) {
-                resolvedStatus = 'inactive'
-              } else if (match.account_status === 'active' || !match.is_frozen) {
-                resolvedStatus = 'active'
+        const [usersRes, logsRes] = await Promise.all([
+          fetchUsers({ role: 'all' }),
+          getSystemLogs({ limit: 100 }),
+        ])
+        if (!cancelled) {
+          if (usersRes.ok && Array.isArray(usersRes.data?.items)) {
+            const syncState = getRealtimeSyncState()
+            const merged = usersRes.data.items.map((u) => {
+              const match = (syncState.applicants || []).find(
+                (a) => a.id === u.id || (u.email && a.email?.toLowerCase() === u.email.toLowerCase())
+              )
+              if (match) {
+                let resolvedStatus = u.status
+                if (match.account_status === 'inactive' || match.is_frozen) {
+                  resolvedStatus = 'inactive'
+                } else if (match.account_status === 'active' || !match.is_frozen) {
+                  resolvedStatus = 'active'
+                }
+                return { ...u, status: resolvedStatus }
               }
-              return { ...u, status: resolvedStatus }
-            }
-            return u
-          })
-          setUsersList(merged)
+              return u
+            })
+            setUsersList(merged)
+          }
+          if (logsRes.ok && Array.isArray(logsRes.data?.items)) {
+            setSystemLogs(logsRes.data.items)
+          }
         }
       } catch {
-        // fallback to default
+        // Giữ state hiện tại
       }
     }
-    loadStats()
-    const unsub = subscribeRealtimeEvents(loadStats)
-    window.addEventListener('admin_users_updated', loadStats)
+    loadData()
+    const unsub = subscribeRealtimeEvents(loadData)
+    window.addEventListener('admin_users_updated', loadData)
     return () => {
       cancelled = true
       unsub()
-      window.removeEventListener('admin_users_updated', loadStats)
+      window.removeEventListener('admin_users_updated', loadData)
     }
   }, [])
 
@@ -179,11 +136,15 @@ export default function AdminDashboardPage() {
     const active = usersList.filter((u) => u.status === 'active').length
     const pending = usersList.filter((u) => u.status === 'pending').length
     const interns = usersList.filter((u) => u.role === 'intern').length
+    const mentors = usersList.filter((u) => u.role === 'mentor').length
+    const hr = usersList.filter((u) => u.role === 'hr').length
     return {
-      total: total > 0 ? total : 7,
-      active: total > 0 ? active : 6,
-      pending: total > 0 ? pending : 1,
-      interns: total > 0 ? interns : 3,
+      total,
+      active,
+      pending,
+      interns,
+      mentors,
+      hr,
     }
   }, [usersList])
 
@@ -192,22 +153,62 @@ export default function AdminDashboardPage() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  function handleSyncHRM() {
+  async function handleSyncHRM() {
     setIsSyncingHRM(true)
-    setTimeout(() => {
-      setIsSyncingHRM(false)
-      setHrmSyncCount((c) => c + 48)
-      emitRealtimeEvent(SYNC_EVENTS.APPLICANT_UPDATED, { syncSource: 'FastHRM' })
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('admin_users_updated', { detail: { syncSource: 'FastHRM' } }))
+    try {
+      const [usersRes, logsRes] = await Promise.all([
+        fetchUsers({ role: 'all' }),
+        getSystemLogs({ limit: 100 }),
+      ])
+      if (usersRes.ok && Array.isArray(usersRes.data?.items)) {
+        setUsersList(usersRes.data.items)
       }
-      showToast('Đồng bộ FastHRM thành công! Đã nạp thêm 48 bản ghi mới vào ICTU Intern Core DB.', 'success')
-    }, 1200)
+      if (logsRes.ok && Array.isArray(logsRes.data?.items)) {
+        setSystemLogs(logsRes.data.items)
+      }
+      emitRealtimeEvent(SYNC_EVENTS.APPLICANT_UPDATED, { syncSource: 'SystemSync' })
+      showToast('Đồng bộ dữ liệu thành công! Dữ liệu mới nhất đã được cập nhật từ toàn bộ hệ thống.', 'success')
+    } catch {
+      showToast('Lỗi khi đồng bộ dữ liệu hệ thống.', 'error')
+    } finally {
+      setIsSyncingHRM(false)
+    }
   }
+
+  // Format real system logs
+  const formattedLogs = useMemo(() => {
+    return systemLogs.map((log) => {
+      const userMatch = usersList.find((u) => u.id === log.user_id)
+      const actorName = userMatch
+        ? `${userMatch.full_name} (${userMatch.email})`
+        : (log.role ? `${log.role.toUpperCase()} (ID: ${log.user_id || 'sys'})` : 'Hệ thống')
+
+      let timeStr = '—'
+      if (log.created_at) {
+        const d = new Date(log.created_at)
+        const date = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+        timeStr = `${time} (${date})`
+      }
+
+      return {
+        id: log.id,
+        time: timeStr,
+        actor: actorName,
+        ip: log.ip_address || '192.168.1.10',
+        network: log.role === 'admin' ? 'Admin Gateway' : (log.role === 'hr' ? 'HR Portal' : (log.role === 'mentor' ? 'Mentor Portal' : 'Intern Portal')),
+        method: log.method || 'POST',
+        endpoint: log.path,
+        description: log.description || `${log.action} trên ${log.resource || log.path}`,
+        status: log.status_code || 200,
+        statusText: `${log.status_code || 200} ${log.status_code >= 400 ? 'Error' : 'OK'}`,
+      }
+    })
+  }, [systemLogs, usersList])
 
   // Filter logs
   const filteredLogs = useMemo(() => {
-    return AUDIT_LOGS_DATA.filter((log) => {
+    return formattedLogs.filter((log) => {
       const q = searchQuery.toLowerCase()
       const matchesSearch =
         log.actor.toLowerCase().includes(q) ||
@@ -219,7 +220,7 @@ export default function AdminDashboardPage() {
         httpStatusFilter === 'all' || String(log.status) === httpStatusFilter
       return matchesSearch && matchesStatus
     })
-  }, [searchQuery, httpStatusFilter])
+  }, [formattedLogs, searchQuery, httpStatusFilter])
 
   return (
     <div className="admin-portal-container">

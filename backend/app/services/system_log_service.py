@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
+from app.api.activity_log_filter import derive_action_description
 from app.models.system_log import SystemLog
 from app.schemas.system_log import SystemLogListResponse, SystemLogResponse
 
@@ -39,8 +40,17 @@ class SystemLogService:
             .all()
         )
 
+        items = []
+        for row in rows:
+            item = SystemLogResponse.model_validate(row)
+            if not item.description:
+                item.description = getattr(row, "description", None) or derive_action_description(
+                    row.method, row.path, row.role, row.created_at
+                )
+            items.append(item)
+
         return SystemLogListResponse(
-            items=[SystemLogResponse.model_validate(row) for row in rows],
+            items=items,
             total=total,
             limit=limit,
             offset=offset,

@@ -97,6 +97,9 @@ class InternService:
         try:
             profile.status = "approved"
             user.status = "active"
+            intern_role = self.db.query(Role).filter(Role.name == TTS_ROLE_NAME).first()
+            if intern_role:
+                user.role_id = intern_role.id
             from app.models.document import Document
             self.db.query(Document).filter(
                 Document.user_id == intern_id, Document.doc_type == "cv"

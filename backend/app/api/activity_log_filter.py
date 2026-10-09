@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from datetime import datetime
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -92,6 +93,83 @@ def should_log(request: Request, status_code: int) -> bool:
     return not any(path == prefix or path.startswith(f"{prefix}/") for prefix in SKIP_PATH_PREFIXES)
 
 
+def derive_action_description(method: str, path: str, role: str | None, timestamp: datetime | None = None) -> str:
+    m = method.upper()
+    ts = timestamp or datetime.now()
+    ts_str = ts.strftime("%Y-%m-%d %H:%M:%S")
+    desc = "Thao tác hệ thống"
+
+    p = path.lower()
+    if "/api/hr/interns" in p:
+        if "approve" in p:
+            desc = "HR phê duyệt tiếp nhận hồ sơ thực tập sinh"
+        elif "reject" in p:
+            desc = "HR từ chối hồ sơ ứng viên"
+        elif m == "POST":
+            desc = "HR tạo mới hồ sơ thực tập sinh"
+        elif m in ("PUT", "PATCH"):
+            desc = "HR cập nhật hồ sơ thực tập sinh"
+        elif m == "DELETE":
+            desc = "HR xóa hồ sơ thực tập sinh"
+    elif "/api/hr/assign-mentor" in p:
+        desc = "HR phân công Mentor phụ trách thực tập sinh"
+    elif "/api/hr/programs" in p:
+        if m == "POST":
+            desc = "HR tạo mới kỳ thực tập"
+        elif m in ("PUT", "PATCH"):
+            desc = "HR cập nhật thông tin kỳ thực tập"
+    elif "/api/hr/contracts" in p:
+        desc = "HR tạo / phát hành hợp đồng tiếp nhận thực tập"
+    elif "/api/mentor/tasks" in p:
+        if "status" in p:
+            desc = "Cập nhật trạng thái nhiệm vụ Sprint"
+        elif m == "POST":
+            desc = "Mentor giao nhiệm vụ Sprint cho thực tập sinh"
+        elif m == "DELETE":
+            desc = "Mentor xóa nhiệm vụ Sprint"
+    elif "/api/mentor/reports" in p:
+        if "grade" in p:
+            desc = "Mentor chấm điểm và phản hồi báo cáo tuần"
+        elif m == "POST":
+            desc = "Mentor đánh giá báo cáo tuần"
+    elif "/api/mentor/evaluations" in p:
+        desc = "Mentor lưu bảng điểm và đánh giá năng lực của TTS"
+    elif "/api/intern/reports" in p or "/api/intern/weekly-reports" in p:
+        if m == "POST":
+            desc = "Thực tập sinh nộp báo cáo tuần"
+        elif m == "DELETE":
+            desc = "Thực tập sinh xóa báo cáo tuần"
+    elif "/api/intern/attendance" in p or "/api/attendance" in p:
+        desc = "Thực tập sinh điểm danh / chấm công ngày"
+    elif "/api/documents" in p:
+        desc = "Tải lên / cập nhật tài liệu hồ sơ"
+    elif "/api/contracts/sign" in p or "sign" in p:
+        desc = "Thực tập sinh ký hợp đồng thực tập số"
+    elif "/api/admin/users" in p:
+        if "status" in p:
+            desc = "Admin cập nhật trạng thái tài khoản người dùng"
+        elif "reset-password" in p:
+            desc = "Admin đặt lại mật khẩu cho người dùng"
+        elif m == "POST":
+            desc = "Admin tạo mới tài khoản người dùng"
+        elif m == "DELETE":
+            desc = "Admin xóa tài khoản người dùng"
+    elif "/api/admin/roles" in p or "/api/roles" in p:
+        desc = "Admin cập nhật ma trận phân quyền RBAC"
+    elif "/api/admin/settings" in p:
+        desc = "Admin cập nhật cấu hình hệ thống"
+    elif "/api/leaves" in p:
+        desc = "Nộp / duyệt đơn xin nghỉ phép"
+    elif "/api/tickets" in p:
+        desc = "Gửi / xử lý yêu cầu hỗ trợ (Support Ticket)"
+    else:
+        role_label = role.upper() if role else "User"
+        action_map = {"POST": "Tạo mới", "PUT": "Cập nhật", "PATCH": "Chỉnh sửa", "DELETE": "Xóa"}
+        desc = f"{role_label} {action_map.get(m, m)} dữ liệu tại {derive_resource(path)}"
+
+    return f"{desc} [{ts_str}]"
+
+
 def write_activity_log(
     *,
     user_id: int | None,
@@ -106,6 +184,8 @@ def write_activity_log(
 ) -> None:
     """Ghi log bằng session riêng — không phá transaction của request hiện tại."""
     db = SessionLocal()
+    now = datetime.now()
+    desc = derive_action_description(method, path, role, now)
     try:
         db.add(
             SystemLog(
@@ -118,6 +198,8 @@ def write_activity_log(
                 ip_address=ip_address,
                 user_agent=(user_agent[:500] if user_agent else None),
                 status_code=status_code,
+                description=desc[:500],
+                created_at=now,
             )
         )
         db.commit()

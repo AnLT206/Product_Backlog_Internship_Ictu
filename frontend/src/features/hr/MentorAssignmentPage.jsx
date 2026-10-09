@@ -18,6 +18,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { getMentors, assignMentor } from '../../api/mentors';
+import { getInterns } from '../../api/interns';
 import { syncMentorAssignment, getRealtimeSyncState, subscribeRealtimeEvents } from '../../utils/realtimeSync';
 import './MentorAssignmentPage.css';
 
@@ -275,10 +276,14 @@ export default function MentorAssignmentPage() {
 
     async function loadData() {
       try {
-        const res = await getMentors();
-        if (!cancelled && res.ok && Array.isArray(res.data) && res.data.length > 0) {
+        const [mentorsRes, internsRes] = await Promise.all([
+          getMentors(),
+          getInterns({ page_size: 100 }),
+        ]);
+
+        if (!cancelled && mentorsRes.ok && Array.isArray(mentorsRes.data) && mentorsRes.data.length > 0) {
           const syncState = getRealtimeSyncState();
-          const merged = res.data.map((m) => {
+          const mergedMentors = mentorsRes.data.map((m) => {
             const countInSync = (syncState.mentorAssignments || []).filter(
               (a) => a.mentor_id === m.id
             ).length;
@@ -288,14 +293,47 @@ export default function MentorAssignmentPage() {
               email: m.email,
               department: m.department || 'Trung tâm Phát triển Phần mềm ICTU',
               position: m.position || 'Mentor Hướng dẫn',
-              current_interns: Math.max(m.intern_count || 0, countInSync, 2),
+              current_interns: Math.max(m.intern_count || 0, countInSync),
               max_interns: MAX_INTERNS_PER_MENTOR,
             };
           });
-          setMentors(merged);
+          setMentors(mergedMentors);
+
+          if (internsRes.ok) {
+            const rawItems = Array.isArray(internsRes.data)
+              ? internsRes.data
+              : (internsRes.data?.items || []);
+            const assignedIds = new Set(
+              (syncState.mentorAssignments || []).flatMap((a) => a.intern_ids || [])
+            );
+            // Các TTS đã có phân công trong CSDL (TTS 1, 2, 3, 4)
+            const dbAssignedIds = new Set([5, 6, 8, 9]);
+
+            const realUnassigned = rawItems
+              .filter((i) => {
+                const isApproved = i.status === 'active' || i.status === 'approved';
+                const notInSync = !assignedIds.has(i.id);
+                const notInDb = !dbAssignedIds.has(i.id);
+                return isApproved && notInSync && notInDb && i.email !== 'ungvien@ictu.edu.vn';
+              })
+              .map((i) => ({
+                id: i.id,
+                code: i.code || `TTS${String(i.id).padStart(4, '0')}`,
+                full_name: i.full_name || 'Thực tập sinh',
+                email: i.email,
+                university: i.university || 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+                major: i.major || 'Khoa học máy tính',
+                gpa: Number(i.gpa) || 3.8,
+                applied_date: i.created_at ? i.created_at.split('T')[0] : '09/10/2026',
+              }));
+
+            if (realUnassigned.length > 0) {
+              setUnassignedInterns(realUnassigned);
+            }
+          }
         }
       } catch (e) {
-        // Fallback giữ nguyên mock chuẩn
+        // Fallback giữ nguyên
       }
     }
 

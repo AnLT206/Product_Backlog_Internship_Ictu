@@ -114,6 +114,8 @@ def get_tasks(
         ]
         if assigned_intern_ids:
             query = query.filter(InternTask.intern_id.in_(assigned_intern_ids))
+        else:
+            query = query.filter(InternTask.id == -1)
     tasks = query.all()
     return [
         {
@@ -237,6 +239,8 @@ def get_reports(
         ]
         if assigned_intern_ids:
             query = query.filter(InternReport.intern_id.in_(assigned_intern_ids))
+        else:
+            query = query.filter(InternReport.id == -1)
     reports = query.all()
     return [
         {
@@ -393,7 +397,7 @@ async def submit_intern_weekly_reports_form(
             payload = verify_access_token(token)
             if payload and payload.get("sub"):
                 sub_id = int(payload["sub"])
-                if sub_id in (5, 6, 7):
+                if sub_id > 0:
                     intern_id = sub_id
         except Exception:
             pass
@@ -457,9 +461,22 @@ def delete_intern_report(
 # 4. MENTOR EVALUATIONS (FINAL SCORING)
 # ─────────────────────────────────────────────────────────────────────────────
 @router.get("/mentor/evaluations", dependencies=[Depends(require_roles("mentor", "hr", "admin"))])
-def get_evaluations(db: Session = Depends(get_db)) -> list[dict[str, Any]]:
-    """Lấy danh sách bảng điểm đánh giá của TTS từ DB."""
-    evals = db.query(InternEvaluation).options(joinedload(InternEvaluation.intern).joinedload(User.intern_profile)).all()
+def get_evaluations(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[dict[str, Any]]:
+    """Lấy danh sách bảng điểm đánh giá của TTS từ DB theo phân công."""
+    query = db.query(InternEvaluation).options(joinedload(InternEvaluation.intern).joinedload(User.intern_profile))
+    if current_user.role and current_user.role.name == "mentor":
+        assigned_intern_ids = [
+            pm.intern_user_id
+            for pm in db.query(ProgramMember).filter(ProgramMember.mentor_user_id == current_user.id).all()
+        ]
+        if assigned_intern_ids:
+            query = query.filter(InternEvaluation.intern_id.in_(assigned_intern_ids))
+        else:
+            query = query.filter(InternEvaluation.id == -1)
+    evals = query.all()
     return [
         {
             "id": e.id,
