@@ -3,11 +3,13 @@ from sqlalchemy.orm import Session
 
 from app.models.notification import Notification
 from app.schemas.notification import NotificationListResponse, NotificationResponse
+from app.services.notification_connection_manager import notification_connection_manager
 
 
 class NotificationService:
     def __init__(self, db: Session) -> None:
         self.db = db
+        self._pending_payloads: list[dict] = []
 
     def create_notification(
         self,
@@ -24,12 +26,20 @@ class NotificationService:
             is_read=False,
         )
         self.db.add(row)
+        self.db.flush()
+        self.db.refresh(row)
+        payload = NotificationResponse.model_validate(row).model_dump(mode="json")
         if commit:
             self.db.commit()
-            self.db.refresh(row)
+            notification_connection_manager.publish(user_id, payload)
         else:
-            self.db.flush()
+            self._pending_payloads.append(payload)
         return row
+
+    def publish_pending(self) -> None:
+        payloads, self._pending_payloads = self._pending_payloads, []
+        for payload in payloads:
+            notification_connection_manager.publish(payload["user_id"], payload)
 
     def list_for_user(self, user_id: int) -> NotificationListResponse:
         rows = (

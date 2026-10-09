@@ -20,6 +20,26 @@ def _unauthorized() -> HTTPException:
     )
 
 
+def get_active_user_from_token(token: str, db: Session) -> User | None:
+    payload = verify_access_token(token)
+    if payload is None:
+        return None
+
+    subject = payload.get("sub")
+    try:
+        user_id = int(subject)
+    except (TypeError, ValueError):
+        return None
+
+    if user_id <= 0:
+        return None
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None or user.status != "active":
+        return None
+    return user
+
+
 def get_current_user(
 	credentials: Annotated[
 		HTTPAuthorizationCredentials | None,
@@ -30,23 +50,9 @@ def get_current_user(
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise _unauthorized()
 
-    payload = verify_access_token(credentials.credentials)
-    if payload is None:
+    user = get_active_user_from_token(credentials.credentials, db)
+    if user is None:
         raise _unauthorized()
-
-    subject = payload.get("sub")
-    try:
-        user_id = int(subject)
-    except (TypeError, ValueError):
-        raise _unauthorized() from None
-
-    if user_id <= 0:
-        raise _unauthorized()
-
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None or user.status != "active":
-        raise _unauthorized()
-
     return user
 
 
@@ -86,5 +92,11 @@ def require_permission(permission_key: str) -> Callable:
 	return permission_dependency
 
 
-__all__ = ["get_db", "get_current_user", "require_roles", "require_permission"]
+__all__ = [
+    "get_active_user_from_token",
+    "get_db",
+    "get_current_user",
+    "require_roles",
+    "require_permission",
+]
 

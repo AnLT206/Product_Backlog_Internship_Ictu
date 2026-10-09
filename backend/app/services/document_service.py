@@ -64,7 +64,8 @@ class DocumentService:
             self.db.add(doc)
             self.db.flush()
 
-            NotificationService(self.db).create_notification(
+            notification_service = NotificationService(self.db)
+            notification_service.create_notification(
                 user_id=intern_id,
                 title="Hợp đồng mới cần xác nhận",
                 body=(
@@ -74,6 +75,7 @@ class DocumentService:
                 commit=False,
             )
             self.db.commit()
+            notification_service.publish_pending()
             self.db.refresh(doc)
         except HTTPException:
             self.db.rollback()
@@ -122,6 +124,7 @@ class DocumentService:
         doc.status = "approved"
         doc.confirmed_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
+        notification_service = NotificationService(self.db)
         try:
             hr_users = (
                 self.db.query(User)
@@ -131,7 +134,7 @@ class DocumentService:
             )
             intern_name = current_user.full_name or current_user.email
             for hr in hr_users:
-                NotificationService(self.db).create_notification(
+                notification_service.create_notification(
                     user_id=hr.id,
                     title="TTS đã xác nhận hợp đồng",
                     body=(
@@ -140,6 +143,7 @@ class DocumentService:
                     commit=False,
                 )
             self.db.commit()
+            notification_service.publish_pending()
             self.db.refresh(doc)
         except SQLAlchemyError:
             self.db.rollback()
@@ -172,9 +176,10 @@ class DocumentService:
         doc.status = payload.status
         doc.review_note = note
 
+        notification_service = NotificationService(self.db)
         try:
             if payload.status == "rejected":
-                NotificationService(self.db).create_notification(
+                notification_service.create_notification(
                     user_id=doc.user_id,
                     title="Tài liệu bị từ chối",
                     body=(
@@ -184,6 +189,7 @@ class DocumentService:
                     commit=False,
                 )
             self.db.commit()
+            notification_service.publish_pending()
             self.db.refresh(doc)
         except SQLAlchemyError:
             self.db.rollback()

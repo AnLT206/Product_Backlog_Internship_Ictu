@@ -39,6 +39,12 @@ Sau khi chạy:
 | MySQL | `localhost:3306` — DB `ictu_internship` / user `ictu` / pass `ictu` |
 | Admin (dev, seed tự động) | `admin@ictu.edu.vn` / `Admin@123` — tắt bằng `ADMIN_SEED_ON_STARTUP=false` |
 
+### Thông báo realtime
+
+Kết nối `ws://localhost:8000/api/notifications/ws` (dùng `wss://` khi triển khai HTTPS). Ngay sau khi mở kết nối, client gửi frame JSON đầu tiên `{"type":"authenticate","token":"<access_token>"}`. Server xác thực JWT và trạng thái user; khi hợp lệ sẽ trả `{"type":"authenticated"}`. JWT không nằm trong URL/query string. Token sai, hết hạn hoặc user không còn active bị đóng với mã `4401`.
+
+Các notification được gửi dưới dạng JSON theo `NotificationResponse`: `id`, `user_id`, `title`, `body`, `is_read`, `created_at`. Connection manager lưu trong bộ nhớ, do đó chỉ chia sẻ kết nối trong cùng một tiến trình backend; nhiều worker cần broker dùng chung để fan-out.
+
 **Tài khoản admin cố định cho cả team:**
 
 | Lần chạy | Hành vi |
