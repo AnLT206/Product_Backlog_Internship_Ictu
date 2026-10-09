@@ -1,0 +1,500 @@
+/* ============================================================
+   MeetingCreateModal.css
+   Modal tạo lịch họp dùng chung cho HR và Mentor (SCRUM-179).
+   Tất cả class dùng tiền tố "mc-" để tránh xung đột css.
+   Đồng bộ với thiết kế của MentorFormModal và TaskCreateModal.
+   ============================================================ */
+
+/* ── Backdrop ── */
+.mc-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: mc-backdrop-fade 0.18s ease;
+}
+
+@keyframes mc-backdrop-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Dialog ── */
+.mc-modal-dialog {
+  --mc-blue:        #1877f2;
+  --mc-blue-hover:  #166fe5;
+  --mc-blue-soft:   #e7f3ff;
+  --mc-green:       #15803d;
+  --mc-green-hover: #166534;
+  --mc-green-soft:  #f0fdf4;
+  --mc-ink:         #0f172a;
+  --mc-body:        #1c1e21;
+  --mc-muted:       #64748b;
+  --mc-line:        #e2e8f0;
+  --mc-bg-soft:     #f8fafc;
+  --mc-red:         #dc2626;
+  --mc-red-soft:    #fef2f2;
+  --mc-font:        'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+
+  /* Mặc định màu HR (Blue) */
+  --mc-primary:       var(--mc-blue);
+  --mc-primary-hover: var(--mc-blue-hover);
+  --mc-primary-soft:  var(--mc-blue-soft);
+
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid var(--mc-line);
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.04),
+    0 24px 60px rgba(15, 23, 42, 0.16);
+  width: 100%;
+  max-width: 580px;
+  font-family: var(--mc-font);
+  color: var(--mc-body);
+  -webkit-font-smoothing: antialiased;
+  animation: mc-dialog-zoom 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Role Mentor theme override */
+.mc-role-mentor .mc-modal-dialog {
+  --mc-primary:       var(--mc-green);
+  --mc-primary-hover: var(--mc-green-hover);
+  --mc-primary-soft:  var(--mc-green-soft);
+}
+
+@keyframes mc-dialog-zoom {
+  from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.mc-modal-dialog *,
+.mc-modal-dialog *::before,
+.mc-modal-dialog *::after {
+  box-sizing: border-box;
+}
+
+/* ── Header ── */
+.mc-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 0;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.mc-modal-badge {
+  display: inline-flex;
+  margin: 0 0 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--mc-primary-soft);
+  color: var(--mc-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid rgba(24, 119, 242, 0.2);
+}
+
+.mc-role-mentor .mc-modal-badge {
+  border-color: rgba(21, 128, 61, 0.2);
+}
+
+.mc-modal-header h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 750;
+  color: var(--mc-ink);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.mc-modal-header h2 span {
+  color: var(--mc-primary);
+}
+
+.mc-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--mc-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.mc-modal-close:hover {
+  color: var(--mc-ink);
+  background: #f1f5f9;
+}
+
+.mc-modal-divider {
+  margin: 14px 24px 0;
+  border: none;
+  border-top: 1px solid var(--mc-line);
+  flex-shrink: 0;
+}
+
+/* ── Form Body ── */
+.mc-modal-body {
+  padding: 16px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.mc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mc-form-group label {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--mc-ink);
+}
+
+.mc-required {
+  color: var(--mc-red);
+  margin-left: 2px;
+}
+
+.mc-form-group input[type="text"],
+.mc-form-group input[type="date"],
+.mc-form-group input[type="time"],
+.mc-form-group textarea {
+  width: 100%;
+  padding: 9px 13px;
+  border: 1px solid var(--mc-line);
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: var(--mc-body);
+  background: #ffffff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.mc-form-group input:focus,
+.mc-form-group textarea:focus {
+  outline: none;
+  border-color: var(--mc-primary);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.12);
+}
+
+.mc-role-mentor .mc-form-group input:focus,
+.mc-role-mentor .mc-form-group textarea:focus {
+  box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.12);
+}
+
+.mc-form-group textarea {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.5;
+}
+
+.mc-form-group--error input,
+.mc-form-group--error textarea {
+  border-color: var(--mc-red) !important;
+  background-color: #fffbfa;
+}
+
+.mc-form-error {
+  font-size: 12px;
+  color: var(--mc-red);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.mc-form-hint {
+  font-size: 11.5px;
+  color: var(--mc-muted);
+  line-height: 1.4;
+}
+
+/* Grid 3 cột cho ngày & giờ */
+.mc-form-grid-3 {
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr 0.9fr;
+  gap: 12px;
+}
+
+/* ── Attendees Selection Box ── */
+.mc-attendee-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mc-btn-select-all {
+  background: none;
+  border: none;
+  color: var(--mc-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.mc-attendees-box {
+  border: 1px solid var(--mc-line);
+  border-radius: 8px;
+  max-height: 140px;
+  overflow-y: auto;
+  background: #fafbfc;
+}
+
+.mc-attendees-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mc-attendee-item + .mc-attendee-item {
+  border-top: 1px solid var(--mc-line);
+}
+
+.mc-attendee-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-size: 13px;
+}
+
+.mc-attendee-check:hover {
+  background: #f1f5f9;
+}
+
+.mc-attendee-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--mc-primary);
+  cursor: pointer;
+}
+
+.mc-attendee-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.mc-attendee-name {
+  font-weight: 600;
+  color: var(--mc-ink);
+}
+
+.mc-attendee-code {
+  color: var(--mc-muted);
+  font-size: 11.5px;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.mc-attendee-email {
+  font-size: 11.5px;
+  color: var(--mc-muted);
+}
+
+.mc-attendees-loading,
+.mc-attendees-empty {
+  padding: 18px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--mc-muted);
+}
+
+.mc-attendees-summary {
+  font-size: 11.5px;
+  color: var(--mc-muted);
+  margin-top: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   CHECKBOX BẮT BUỘC: Gửi email thông báo tự động
+   ══════════════════════════════════════════════════════════ */
+.mc-checkbox-group {
+  margin-top: 4px;
+}
+
+.mc-checkbox-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--mc-line);
+  background: var(--mc-bg-soft);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.mc-checkbox-card:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.mc-checkbox-card.is-checked {
+  background: var(--mc-primary-soft);
+  border-color: rgba(24, 119, 242, 0.35);
+  box-shadow: 0 1px 3px rgba(24, 119, 242, 0.06);
+}
+
+.mc-role-mentor .mc-checkbox-card.is-checked {
+  border-color: rgba(21, 128, 61, 0.35);
+  box-shadow: 0 1px 3px rgba(21, 128, 61, 0.06);
+}
+
+.mc-checkbox-input-wrap {
+  display: flex;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.mc-checkbox-input-wrap input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--mc-primary);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.mc-checkbox-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mc-checkbox-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--mc-ink);
+  line-height: 1.35;
+}
+
+.mc-checkbox-desc {
+  font-size: 12px;
+  color: var(--mc-muted);
+  line-height: 1.45;
+}
+
+/* ── Footer ── */
+.mc-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 24px;
+  background: #f8fafc;
+  border-top: 1px solid var(--mc-line);
+  border-radius: 0 0 16px 16px;
+  flex-shrink: 0;
+}
+
+.mc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 650;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  border: 1px solid transparent;
+}
+
+.mc-btn--cancel {
+  background: #ffffff;
+  border-color: var(--mc-line);
+  color: var(--mc-ink);
+}
+
+.mc-btn--cancel:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.mc-btn--submit {
+  background: var(--mc-primary);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(24, 119, 242, 0.25);
+}
+
+.mc-role-mentor .mc-btn--submit {
+  box-shadow: 0 2px 6px rgba(21, 128, 61, 0.25);
+}
+
+.mc-btn--submit:hover {
+  background: var(--mc-primary-hover);
+  box-shadow: 0 4px 10px rgba(24, 119, 242, 0.35);
+  transform: translateY(-1px);
+}
+
+.mc-role-mentor .mc-btn--submit:hover {
+  box-shadow: 0 4px 10px rgba(21, 128, 61, 0.35);
+}
+
+.mc-btn--submit:active {
+  transform: translateY(0);
+}
+
+/* ── Responsive Mobile ── */
+@media (max-width: 600px) {
+  .mc-modal-backdrop {
+    padding: 10px;
+  }
+
+  .mc-modal-dialog {
+    border-radius: 12px;
+    max-height: calc(100vh - 20px);
+  }
+
+  .mc-modal-header {
+    padding: 16px 18px 0;
+  }
+
+  .mc-modal-divider {
+    margin: 12px 18px 0;
+  }
+
+  .mc-modal-body {
+    padding: 14px 18px;
+    gap: 14px;
+  }
+
+  .mc-form-grid-3 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .mc-modal-footer {
+    padding: 12px 18px;
+  }
+
+  .mc-btn {
+    flex: 1;
+    text-align: center;
+  }
+}

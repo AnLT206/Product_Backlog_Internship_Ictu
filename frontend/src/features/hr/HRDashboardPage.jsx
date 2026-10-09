@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import MeetingCreateModal from '../../components/common/MeetingCreateModal'
 import './HRDashboardPage.css'
 
 const STATS = [
@@ -13,6 +15,7 @@ const ACTIVITY_COLUMNS = ['Thời gian', 'Người thực hiện', 'Hành độn
 
 export default function HRDashboardPage() {
   const { user } = useAuth()
+  const [showMeetingModal, setShowMeetingModal] = useState(false)
 
   return (
     <div className="hr-dash-page">
@@ -39,6 +42,14 @@ export default function HRDashboardPage() {
             <Link className="hr-dash__btn hr-dash__btn--ghost" to="/hr/mentors">
               Mentor
             </Link>
+            <button
+              id="hr-dash-create-meeting-btn"
+              type="button"
+              className="hr-dash__btn hr-dash__btn--primary"
+              onClick={() => setShowMeetingModal(true)}
+            >
+              + Tạo lịch họp
+            </button>
           </div>
         </header>
 
@@ -96,6 +107,14 @@ export default function HRDashboardPage() {
           </div>
         </section>
       </div>
+
+      {showMeetingModal && (
+        <MeetingCreateModal
+          isOpen={showMeetingModal}
+          onClose={() => setShowMeetingModal(false)}
+          role="hr"
+        />
+      )}
     </div>
   )
 }
