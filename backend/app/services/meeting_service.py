@@ -152,5 +152,6 @@ class MeetingService:
             )
 
         self.db.commit()
+        notification_service.publish_pending()
         self.db.refresh(meeting)
         return self._to_response(meeting)

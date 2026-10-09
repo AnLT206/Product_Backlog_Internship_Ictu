@@ -1,12 +1,13 @@
 from collections.abc import Generator
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
+import jwt
 from fastapi.testclient import TestClient
+from fastapi import WebSocketDisconnect
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
 
 from app.api.deps import get_db
 from app.core.config import Settings
@@ -16,16 +17,16 @@ from app.models.notification import Notification
 from app.models.role import Role
 from app.models.user import User
 from app.services.email_service import EmailService
+from app.core.config import get_settings
 from app.utils.authenticate_login import create_access_token
 import app.models as _models  # noqa: F401
 
 
 @pytest.fixture
-def meeting_client() -> Generator[tuple[TestClient, sessionmaker], None, None]:
+def meeting_client(tmp_path) -> Generator[tuple[TestClient, sessionmaker], None, None]:
     engine = create_engine(
-        "sqlite://",
+        f"sqlite:///{tmp_path / 'meeting-notifications.db'}",
         connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
     )
     session_factory = sessionmaker(bind=engine, autoflush=False)
     Base.metadata.create_all(engine)
@@ -294,6 +295,160 @@ def test_notifications_are_scoped_to_current_user(meeting_client):
     assert update_response.status_code == 404
     with session_factory() as db:
         assert db.get(Notification, notification_id).is_read is False
+
+
+def test_notification_websocket_rejects_invalid_expired_and_inactive_users(
+    meeting_client,
+):
+    client, session_factory = meeting_client
+    settings = get_settings()
+    expired_token = jwt.encode(
+        {
+            "sub": "10",
+            "role": "intern",
+            "exp": datetime.now(timezone.utc) - timedelta(seconds=1),
+        },
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+
+    for token in ("not-a-jwt", expired_token):
+        with pytest.raises(WebSocketDisconnect) as disconnect:
+            with client.websocket_connect("/api/notifications/ws") as websocket:
+                websocket.send_json({"type": "authenticate", "token": token})
+                websocket.receive_json()
+        assert disconnect.value.code == 4401
+
+    with session_factory() as db:
+        intern = db.get(User, 10)
+        intern.status = "inactive"
+        db.commit()
+
+    with pytest.raises(WebSocketDisconnect) as disconnect:
+        with client.websocket_connect("/api/notifications/ws") as websocket:
+            websocket.send_json(
+                {
+                    "type": "authenticate",
+                    "token": create_access_token(user_id=10, role="intern"),
+                }
+            )
+            websocket.receive_json()
+    assert disconnect.value.code == 4401
+
+
+def test_notification_websocket_sends_only_to_the_notification_user(
+    meeting_client,
+):
+    client, _ = meeting_client
+    intern10_token = create_access_token(user_id=10, role="intern")
+    intern11_token = create_access_token(user_id=11, role="intern")
+
+    with (
+        client.websocket_connect("/api/notifications/ws") as intern10_socket,
+        client.websocket_connect("/api/notifications/ws") as intern11_socket,
+    ):
+        intern10_socket.send_json(
+            {"type": "authenticate", "token": intern10_token}
+        )
+        intern11_socket.send_json(
+            {"type": "authenticate", "token": intern11_token}
+        )
+        assert intern10_socket.receive_json() == {"type": "authenticated"}
+        assert intern11_socket.receive_json() == {"type": "authenticated"}
+
+        with patch.object(EmailService, "send_email", return_value=True):
+            client.post(
+                "/api/hr/meetings",
+                json={
+                    "title": "Chi gui cho TTS 10",
+                    "start_time": "2026-10-15T09:00:00",
+                    "end_time": "2026-10-15T10:00:00",
+                    "intern_ids": [10],
+                },
+                headers={
+                    "Authorization": f"Bearer {create_access_token(user_id=1, role='hr')}"
+                },
+            )
+            intern10_notification = intern10_socket.receive_json()
+
+            client.post(
+                "/api/hr/meetings",
+                json={
+                    "title": "Chi gui cho TTS 11",
+                    "start_time": "2026-10-16T09:00:00",
+                    "end_time": "2026-10-16T10:00:00",
+                    "intern_ids": [11],
+                },
+                headers={
+                    "Authorization": f"Bearer {create_access_token(user_id=1, role='hr')}"
+                },
+            )
+            intern11_notification = intern11_socket.receive_json()
+
+    assert intern10_notification["user_id"] == 10
+    assert intern10_notification["title"] == "Lịch họp: Chi gui cho TTS 10"
+    assert set(intern10_notification) == {
+        "id", "user_id", "title", "body", "is_read", "created_at"
+    }
+    assert intern11_notification["user_id"] == 11
+    assert intern11_notification["title"] == "Lịch họp: Chi gui cho TTS 11"
+
+
+def test_notification_websocket_supports_multiple_connections_and_disconnect(
+    meeting_client,
+):
+    from app.services.notification_connection_manager import notification_connection_manager
+
+    client, _ = meeting_client
+    token = create_access_token(user_id=10, role="intern")
+
+    with (
+        client.websocket_connect("/api/notifications/ws") as first_socket,
+        client.websocket_connect("/api/notifications/ws") as second_socket,
+    ):
+        auth_message = {"type": "authenticate", "token": token}
+        first_socket.send_json(auth_message)
+        assert first_socket.receive_json() == {"type": "authenticated"}
+        second_socket.send_json(auth_message)
+        assert second_socket.receive_json() == {"type": "authenticated"}
+        assert notification_connection_manager.connection_count(10) == 2
+
+        with patch.object(EmailService, "send_email", return_value=True):
+            client.post(
+                "/api/hr/meetings",
+                json={
+                    "title": "Ca hai ket noi",
+                    "start_time": "2026-10-15T09:00:00",
+                    "end_time": "2026-10-15T10:00:00",
+                    "intern_ids": [10],
+                },
+                headers={
+                    "Authorization": f"Bearer {create_access_token(user_id=1, role='hr')}"
+                },
+            )
+            assert first_socket.receive_json()["title"] == "Lịch họp: Ca hai ket noi"
+            assert second_socket.receive_json()["title"] == "Lịch họp: Ca hai ket noi"
+
+            first_socket.close()
+
+            client.post(
+                "/api/hr/meetings",
+                json={
+                    "title": "Chi con ket noi thu hai",
+                    "start_time": "2026-10-16T09:00:00",
+                    "end_time": "2026-10-16T10:00:00",
+                    "intern_ids": [10],
+                },
+                headers={
+                    "Authorization": f"Bearer {create_access_token(user_id=1, role='hr')}"
+                },
+            )
+            assert second_socket.receive_json()["title"] == (
+                "Lịch họp: Chi con ket noi thu hai"
+            )
+            assert notification_connection_manager.connection_count(10) == 1
+
+    assert notification_connection_manager.connection_count(10) == 0
 
 
 def test_create_meeting_invalid_time(meeting_client):
