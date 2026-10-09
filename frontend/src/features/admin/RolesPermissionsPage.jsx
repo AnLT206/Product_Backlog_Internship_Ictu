@@ -29,14 +29,14 @@ const PERMISSIONS = [
       { name: 'Thêm / sửa hồ sơ TTS', admin: true, hr: true, mentor: false, intern: false },
       { name: 'Tìm kiếm / lọc TTS', admin: true, hr: true, mentor: false, intern: false },
       { name: 'Upload CV / đơn (của mình)', admin: false, hr: false, mentor: false, intern: true },
-      { name: 'Duyệt tài liệu hồ sơ', admin: true, hr: true, mentor: false, intern: false },
+      { name: 'Duyệt tài liệu hồ sơ', admin: false, hr: true, mentor: false, intern: false },
     ],
   },
   {
     module: 'Tiếp nhận & hợp đồng',
     items: [
       { name: 'Đăng ký tài khoản TTS', admin: false, hr: false, mentor: false, intern: true },
-      { name: 'Duyệt / từ chối hồ sơ', admin: true, hr: true, mentor: false, intern: false },
+      { name: 'Duyệt / từ chối hồ sơ', admin: false, hr: true, mentor: false, intern: false },
       { name: 'Tải lên hợp đồng', admin: true, hr: true, mentor: false, intern: false },
       { name: 'Xác nhận hợp đồng', admin: false, hr: false, mentor: false, intern: true },
     ],

@@ -90,3 +90,28 @@ export async function registerIntern(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+/**
+ * PATCH /api/auth/me
+ * Cập nhật thông tin cá nhân.
+ * @param {object} payload
+ */
+export async function updateMyProfile(payload) {
+  return apiFetch('/api/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * POST /api/auth/change-password
+ * Đổi mật khẩu tài khoản.
+ * @param {{ current_password: string, new_password: string, confirm_password: string }} payload
+ */
+export async function changePassword(payload) {
+  return apiFetch('/api/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+

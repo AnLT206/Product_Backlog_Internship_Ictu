@@ -10,7 +10,7 @@
   --admin-line: #e2e8f0;
   --admin-bg: #f1f4f8;
   --admin-surface: #ffffff;
-  --admin-font: 'Plus Jakarta Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+  --admin-font: var(--fb-font, 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
 
   position: relative;
   isolation: isolate;

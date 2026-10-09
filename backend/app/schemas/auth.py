@@ -100,10 +100,13 @@ class LoginRequest(BaseModel):
 
 class LoginUserResponse(BaseModel):
     id: int
+    code: str | None = None
     email: str
     full_name: str | None
     role: str
     status: str
+    profile_status: str | None = None
+    avatar: str | None = None
 
 
 class LoginResponse(BaseModel):
@@ -126,6 +129,9 @@ class UserProfileResponse(LoginUserResponse):
 class UserProfileUpdateRequest(BaseModel):
     full_name: str | None = Field(default=None, min_length=1, max_length=100)
     phone_number: str | None = Field(default=None, max_length=20)
+    phone: str | None = Field(default=None, max_length=20)
+    student_code: str | None = Field(default=None, max_length=50)
+    code: str | None = Field(default=None, max_length=50)
     dob: date | None = None
     gender: Literal["male", "female", "other"] | None = None
     university: str | None = Field(default=None, max_length=150)
@@ -133,3 +139,7 @@ class UserProfileUpdateRequest(BaseModel):
     academic_year: str | None = Field(default=None, max_length=50)
     gpa: Decimal | None = Field(default=None, ge=0, le=4)
     address: str | None = Field(default=None, max_length=255)
+    cccd: str | None = Field(default=None, max_length=20)
+    bank_account: str | None = Field(default=None, max_length=50)
+    bank_name: str | None = Field(default=None, max_length=100)
+    avatar: str | None = None

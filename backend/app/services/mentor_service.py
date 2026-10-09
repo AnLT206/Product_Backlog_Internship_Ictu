@@ -1,16 +1,19 @@
 from fastapi import HTTPException, status
 from sqlalchemy import and_, case, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session, aliased, joinedload
 
 from app.models.department import Department
+from app.models.intern_profile import InternProfile
 from app.models.internship_program import InternshipProgram
 from app.models.program_member import ProgramMember
 from app.models.role import Role
 from app.models.user import User
 from app.models.user_profile import UserProfile
 from app.schemas.mentor import (
+    MentorAssignInternsRequest,
     MentorCreateRequest,
+    MentorInternItemResponse,
     MentorResponse,
     MentorUpdateRequest,
     MentorWorkloadResponse,
@@ -35,10 +38,19 @@ class MentorService:
 
     def list_mentors(self) -> list[MentorResponse]:
         mentor_rows = (
-            self.db.query(User, UserProfile)
+            self.db.query(User, UserProfile, Department.name)
             .join(Role, User.role_id == Role.id)
             .outerjoin(UserProfile, UserProfile.user_id == User.id)
+            .outerjoin(Department, Department.id == UserProfile.department_id)
             .filter(Role.name == MENTOR_ROLE_NAME)
+            .order_by(User.id.asc())
+            .all()
+        )
+
+        counts = dict(
+            self.db.query(ProgramMember.mentor_user_id, func.count(ProgramMember.id))
+            .filter(ProgramMember.mentor_user_id.isnot(None))
+            .group_by(ProgramMember.mentor_user_id)
             .all()
         )
 
@@ -52,8 +64,10 @@ class MentorService:
                 dob=profile.dob if profile else None,
                 position=profile.position if profile else None,
                 department_id=profile.department_id if profile else None,
+                department=dept_name or "Chưa phân bổ",
+                intern_count=counts.get(user.id, 0),
             )
-            for user, profile in mentor_rows
+            for user, profile, dept_name in mentor_rows
         ]
 
     def get_workload(self) -> list[MentorWorkloadResponse]:
@@ -141,6 +155,130 @@ class MentorService:
             )
             for row in rows
         ]
+
+    def get_mentor_interns(self, mentor_id: int) -> list[MentorInternItemResponse]:
+        mentor = (
+            self.db.query(User)
+            .join(Role, User.role_id == Role.id)
+            .filter(User.id == mentor_id, Role.name == MENTOR_ROLE_NAME)
+            .first()
+        )
+        if not mentor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Mentor không tồn tại.",
+            )
+
+        interns = (
+            self.db.query(User)
+            .join(Role, User.role_id == Role.id)
+            .outerjoin(InternProfile, InternProfile.user_id == User.id)
+            .filter(Role.name == "intern", User.status == "active")
+            .order_by(User.id.asc())
+            .all()
+        )
+
+        members = (
+            self.db.query(ProgramMember)
+            .options(joinedload(ProgramMember.mentor))
+            .all()
+        )
+        assignment_map = {}
+        for m in members:
+            if m.mentor_user_id:
+                assignment_map[m.intern_user_id] = (
+                    m.mentor_user_id,
+                    m.mentor.full_name if m.mentor else None,
+                )
+
+        results = []
+        for intern in interns:
+            curr_mentor_id, curr_mentor_name = assignment_map.get(intern.id, (None, None))
+            results.append(
+                MentorInternItemResponse(
+                    id=intern.id,
+                    code=intern.code,
+                    full_name=intern.full_name,
+                    email=intern.email,
+                    university=intern.intern_profile.university if intern.intern_profile else "ĐH CNTT & TT (ICTU)",
+                    major=intern.intern_profile.major if intern.intern_profile else "Công nghệ thông tin",
+                    status=intern.status,
+                    current_mentor_id=curr_mentor_id,
+                    current_mentor_name=curr_mentor_name,
+                    is_assigned=(curr_mentor_id == mentor_id),
+                    avatar=intern.intern_profile.avatar if intern.intern_profile else None,
+                )
+            )
+        return results
+
+    def assign_interns(self, mentor_id: int, intern_ids: list[int]) -> MentorResponse:
+        mentor = (
+            self.db.query(User)
+            .join(Role, User.role_id == Role.id)
+            .filter(User.id == mentor_id, Role.name == MENTOR_ROLE_NAME)
+            .first()
+        )
+        if not mentor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Mentor không tồn tại.",
+            )
+
+        program = self.db.query(InternshipProgram).filter(InternshipProgram.status == "open").first()
+        if not program:
+            program = self.db.query(InternshipProgram).first()
+        program_id = program.id if program else 1
+
+        # Unassign previous mentees of this mentor if not in intern_ids
+        prev_members = self.db.query(ProgramMember).filter(ProgramMember.mentor_user_id == mentor_id).all()
+        for pm in prev_members:
+            if pm.intern_user_id not in intern_ids:
+                pm.mentor_user_id = None
+
+        # Assign selected interns
+        for i_id in intern_ids:
+            member = self.db.query(ProgramMember).filter(
+                ProgramMember.program_id == program_id,
+                ProgramMember.intern_user_id == i_id,
+            ).first()
+            if member:
+                if member.mentor_user_id and member.mentor_user_id != mentor_id:
+                    intern_user = self.db.query(User).filter(User.id == i_id).first()
+                    intern_name = intern_user.full_name if intern_user else f"ID {i_id}"
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Thực tập sinh '{intern_name}' đã được phân công cho Mentor khác. Vui lòng chọn Mentor đó để hủy phân công trước.",
+                    )
+                member.mentor_user_id = mentor_id
+            else:
+                new_member = ProgramMember(
+                    program_id=program_id,
+                    intern_user_id=i_id,
+                    mentor_user_id=mentor_id,
+                )
+                self.db.add(new_member)
+
+        self.db.commit()
+
+        profile = self.db.query(UserProfile).filter(UserProfile.user_id == mentor_id).first()
+        new_count = self.db.query(ProgramMember).filter(ProgramMember.mentor_user_id == mentor_id).count()
+        dept = (
+            self.db.query(Department).filter(Department.id == profile.department_id).first()
+            if profile and profile.department_id
+            else None
+        )
+        return MentorResponse(
+            id=mentor.id,
+            email=mentor.email,
+            full_name=mentor.full_name,
+            status=mentor.status,
+            phone_number=profile.phone_number if profile else None,
+            dob=profile.dob if profile else None,
+            position=profile.position if profile else None,
+            department_id=profile.department_id if profile else None,
+            department=dept.name if dept else "Chưa phân bổ",
+            intern_count=new_count,
+        )
 
     def create_mentor(self, payload: MentorCreateRequest) -> MentorResponse:
         existing = self.db.query(User).filter(User.email == payload.email).first()

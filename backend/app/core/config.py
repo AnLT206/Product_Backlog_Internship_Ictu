@@ -41,7 +41,7 @@ class Settings(BaseSettings):
 
     jwt_secret_key: str = "dev-secret-change-me"
     jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 60
+    jwt_expire_minutes: int = 43200
 
     smtp_host: str = ""
     smtp_port: int = 587

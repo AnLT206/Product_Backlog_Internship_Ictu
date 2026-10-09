@@ -1,10 +1,13 @@
 import { AuthProvider } from './context/AuthContext'
+import { SystemSettingsProvider } from './context/SystemSettingsContext'
 import AppRoutes from './routes/index.jsx'
 
 function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <SystemSettingsProvider>
+        <AppRoutes />
+      </SystemSettingsProvider>
     </AuthProvider>
   )
 }

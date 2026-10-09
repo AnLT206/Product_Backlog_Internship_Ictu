@@ -12,8 +12,8 @@ class AdminUserCreateRequest(BaseModel):
     email: EmailStr = Field(..., description="Email đăng nhập của người dùng")
     password: str = Field(..., min_length=6, max_length=128, description="Mật khẩu khởi tạo")
     full_name: str = Field(..., min_length=1, max_length=100, description="Họ và tên")
-    role: Literal["admin", "hr", "mentor", "intern"] = Field(
-        ..., description="Vai trò trong hệ thống: admin, hr, mentor, intern"
+    role: Literal["hr", "mentor", "intern"] = Field(
+        ..., description="Vai trò trong hệ thống: hr, mentor, intern"
     )
     status: Literal["active", "inactive", "pending"] = Field(
         default="active", description="Trạng thái tài khoản ban đầu"
@@ -54,5 +54,6 @@ class AdminUserResponse(BaseModel):
     role: str
     status: str
     created_at: datetime | None = None
+    avatar: str | None = None
 
     model_config = {"from_attributes": True}

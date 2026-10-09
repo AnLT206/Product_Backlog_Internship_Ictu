@@ -1,0 +1,112 @@
+/* ==========================================================================
+   HR LAYOUT STYLES - TOPBAR QUICK TOOLS & SHELL EXTENSIONS
+   Clean Enterprise Matrix - Royal Blue (#2563eb)
+   ========================================================================== */
+
+.hr-topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.hr-topbar-select {
+  padding: 0.38rem 0.75rem;
+  font-size: 0.775rem;
+  font-weight: 500;
+  color: #1e293b;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.hr-topbar-select:hover,
+.hr-topbar-select:focus {
+  border-color: #2563eb;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.hr-topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.38rem 0.75rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.hr-topbar-btn--secondary {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  color: #334155;
+}
+
+.hr-topbar-btn--secondary:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.hr-topbar-btn--primary {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(29, 78, 216, 0.3);
+}
+
+.hr-topbar-btn--primary:hover {
+  background-color: #1e40af;
+  border-color: #1e40af;
+  transform: translateY(-1px);
+}
+
+/* Toast notification in Layout */
+.hr-layout-toast {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.5rem;
+  z-index: 9999;
+  background-color: #0f172a;
+  color: #f8fafc;
+  padding: 0.65rem 1.15rem;
+  border-radius: 10px;
+  font-size: 0.825rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+  animation: hrToastIn 0.25s ease-out forwards;
+}
+
+@keyframes hrToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1200px) {
+  .hr-topbar-btn span {
+    display: none;
+  }
+  .hr-topbar-btn {
+    padding: 0.38rem 0.55rem;
+  }
+}

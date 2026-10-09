@@ -1,0 +1,1249 @@
+/* ==========================================================================
+   InternAllowancePage.css — Modern Enterprise UI for Allowance & Income History
+   Design System: Be Vietnam Pro / Inter, Slate & Indigo/Emerald Palette
+   ========================================================================== */
+
+.intern-allowance-page {
+  padding-bottom: 3rem;
+  font-family: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Page Header Banner Card ── */
+.idp-page-header {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.4rem 1.75rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .idp-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.25rem;
+    padding: 1.25rem;
+  }
+}
+
+.idp-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.idp-header-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.idp-header-sub {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.55;
+}
+
+.idp-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+/* ── Page Header Sync Button ── */
+.intern-allowance-page .idp-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.15rem;
+  border-radius: 10px;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  white-space: nowrap;
+}
+
+.intern-allowance-page .idp-btn-secondary:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(15, 23, 42, 0.08);
+}
+
+.intern-allowance-page .idp-btn-secondary svg {
+  color: #64748b;
+  transition: transform 0.4s ease;
+}
+
+.intern-allowance-page .idp-btn-secondary:active svg {
+  transform: rotate(180deg);
+}
+
+/* ── KPI Summary Cards ── */
+.alw-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .alw-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .alw-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.alw-kpi-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.25rem 1.4rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  overflow: hidden;
+}
+
+.alw-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.alw-kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+}
+
+.alw-kpi-card:hover::before {
+  opacity: 1;
+}
+
+/* Card Accent variations */
+.alw-card-paid::before {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+.alw-card-paid:hover {
+  border-color: #a7f3d0;
+}
+
+.alw-card-pending::before {
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+.alw-card-pending:hover {
+  border-color: #bfdbfe;
+}
+
+.alw-card-workdays::before {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+.alw-card-workdays:hover {
+  border-color: #fde68a;
+}
+
+.alw-card-bank::before {
+  background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+}
+.alw-card-bank:hover {
+  border-color: #ddd6fe;
+}
+
+/* Icon Wrappers */
+.alw-kpi-icon-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.alw-kpi-icon-wrap.green {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.alw-kpi-icon-wrap.blue {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.alw-kpi-icon-wrap.amber {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.alw-kpi-icon-wrap.purple {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  color: #7c3aed;
+  border: 1px solid #ddd6fe;
+}
+
+.alw-kpi-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.alw-kpi-label {
+  font-size: 0.8125rem;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  letter-spacing: 0;
+  font-family: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.alw-kpi-value {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  font-family: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.alw-kpi-value .unit {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 0.15rem;
+}
+
+.alw-kpi-value-bank {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  font-family: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  margin-top: 0.15rem;
+  letter-spacing: -0.01em;
+}
+
+.alw-bank-account-no {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.02em;
+  font-family: ui-monospace, 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alw-kpi-bank-name {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #5b21b6;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border: 1px solid #c4b5fd;
+  border-radius: 999px;
+  padding: 0.18rem 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
+  font-family: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: 0.01em;
+  width: fit-content;
+}
+
+.alw-kpi-bank-name::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #7c3aed;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1.5px rgba(124, 58, 237, 0.25);
+}
+
+.alw-kpi-sub {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.3rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ── Main Data Card ── */
+.alw-main-card {
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+/* ── Filter Bar ── */
+.alw-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 1.25rem;
+}
+
+.alw-filter-controls {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.alw-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.alw-filter-item label {
+  font-size: 0.725rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.alw-select {
+  height: 40px;
+  padding: 0 2.25rem 0 0.875rem;
+  border-radius: 9px;
+  border: 1px solid #cbd5e1;
+  background-color: #f8fafc;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748B'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 14px;
+  color: #1e293b;
+  font-size: 0.85rem;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.2s ease;
+  min-width: 145px;
+  appearance: none;
+  cursor: pointer;
+}
+
+.alw-select:hover {
+  background-color: #ffffff;
+  border-color: #94a3b8;
+}
+
+.alw-select:focus {
+  border-color: #2563eb;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.alw-search-wrap {
+  min-width: 250px;
+}
+
+.alw-search-input-box {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  padding: 0 0.875rem;
+  height: 40px;
+  transition: all 0.2s ease;
+}
+
+.alw-search-input-box:hover {
+  background: #ffffff;
+  border-color: #94a3b8;
+}
+
+.alw-search-input-box:focus-within {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.alw-search-input-box svg {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.alw-search-input-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #1e293b;
+  width: 100%;
+}
+
+.alw-search-input-box input::placeholder {
+  color: #94a3b8;
+}
+
+.alw-count-badge {
+  font-size: 0.8125rem;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 0.45rem 0.875rem;
+  border-radius: 8px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.alw-count-badge strong {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+/* ── Table Styling ── */
+.alw-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  margin: 0.5rem 0 1.25rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.alw-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  color: #1e293b;
+  text-align: left;
+}
+
+.alw-table th {
+  background: #f8fafc;
+  padding: 0.875rem 1rem;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.alw-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  font-size: 0.85rem;
+}
+
+.alw-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.alw-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.alw-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.text-muted {
+  color: #94a3b8;
+}
+
+/* Period Cell */
+.alw-period-title {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.875rem;
+  letter-spacing: -0.01em;
+}
+
+.alw-period-code {
+  display: inline-block;
+  font-size: 0.725rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  margin-top: 0.25rem;
+}
+
+/* Workdays Badge */
+.alw-workdays-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.3rem 0.65rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #475569;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.alw-workdays-badge strong {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* Bonus & Net Total */
+.alw-bonus-text {
+  color: #0284c7;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: #e0f2fe;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.alw-net-amount {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.alw-date-text {
+  font-size: 0.825rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.alw-tx-code {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  margin-top: 0.15rem;
+}
+
+/* Status Badges */
+.alw-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.badge-paid {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.08);
+}
+.dot-paid {
+  background: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+.badge-processing {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  box-shadow: 0 1px 2px rgba(245, 158, 11, 0.08);
+}
+.dot-processing {
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+.badge-pending {
+  background: #fefce8;
+  color: #854d0e;
+  border: 1px solid #fef08a;
+}
+.dot-pending {
+  background: #eab308;
+  box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.2);
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
+/* Action Button */
+.alw-btn-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.alw-btn-view:hover {
+  background: #eff6ff;
+  border-color: #2563eb;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(37, 99, 235, 0.12);
+}
+
+.alw-btn-view svg {
+  color: #64748b;
+  transition: color 0.2s;
+}
+
+.alw-btn-view:hover svg {
+  color: #2563eb;
+}
+
+/* ── Pagination ── */
+.alw-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.alw-page-info {
+  font-size: 0.8125rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.alw-page-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.alw-page-btn {
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.alw-page-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.alw-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.alw-page-number {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.alw-page-number:hover:not(.active) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.alw-page-number.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+}
+
+/* ── Payslip Modal ── */
+.alw-slip-modal {
+  max-width: 740px;
+  width: 95%;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.alw-slip-header {
+  padding: 1.5rem 1.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.idp-modal-close {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+  transform: none !important;
+  animation: none !important;
+}
+
+.idp-modal-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: none !important;
+  animation: none !important;
+}
+
+.alw-slip-org-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.alw-slip-org h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+}
+
+.alw-slip-org p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.alw-slip-org p strong {
+  color: #1e293b;
+}
+
+.alw-slip-body {
+  padding: 1.5rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.alw-slip-body > * {
+  flex-shrink: 0 !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Intern Info Box */
+.alw-slip-intern-box {
+  flex-shrink: 0 !important;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.15rem 1.25rem;
+  font-size: 0.8125rem;
+  color: #334155;
+  line-height: 1.65;
+}
+
+.alw-slip-info-col div {
+  margin-bottom: 0.35rem;
+}
+
+.alw-slip-info-col strong {
+  color: #475569;
+}
+
+/* ── Financial Breakdown Table ── */
+.alw-slip-breakdown {
+  flex-shrink: 0 !important;
+  display: block !important;
+  min-height: 250px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  overflow: visible;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+}
+
+.alw-slip-breakdown-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.alw-slip-breakdown-head h4 {
+  margin: 0 0 0.2rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.alw-slip-breakdown-sub {
+  margin: 0;
+  font-size: 0.775rem;
+  color: #64748b;
+}
+
+.alw-slip-unit-badge {
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.alw-slip-table-container {
+  overflow-x: auto;
+}
+
+.alw-slip-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  color: #1e293b;
+}
+
+.alw-slip-detail-table th {
+  background: #ffffff;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.alw-slip-detail-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px dashed #e2e8f0;
+  vertical-align: middle;
+}
+
+.alw-calc-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.alw-item-idx {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.alw-item-idx.bonus-idx,
+.alw-item-idx.deduct-idx {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border: none !important;
+}
+
+.alw-calc-title strong {
+  display: block;
+  font-size: 0.85rem;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.alw-item-desc {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+  line-height: 1.35;
+}
+
+.text-bonus-note {
+  color: #64748b !important;
+  font-weight: 400 !important;
+}
+
+.alw-calc-badge {
+  display: inline-block;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+}
+
+.alw-sub-rate {
+  display: block;
+  font-size: 0.725rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+.alw-kpi-pill,
+.alw-late-pill {
+  display: inline-block;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  border: none;
+}
+
+.alw-cell-amount {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+}
+
+.alw-row-bonus,
+.alw-row-deduct {
+  background: transparent !important;
+}
+
+/* ── Net Total Summary ── */
+.alw-slip-net-box {
+  padding: 1.15rem 1.25rem;
+  background: #f8fafc;
+  border-top: 2px solid #e2e8f0;
+}
+
+.alw-net-formula-text {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+  font-style: italic;
+}
+
+.alw-slip-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.alw-slip-total-label-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.alw-slip-total-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.02em;
+}
+
+.alw-slip-total-words {
+  font-size: 0.8rem;
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.alw-slip-total-words em {
+  font-style: normal;
+  font-weight: 600;
+}
+
+.alw-slip-total-amount {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Bank info box */
+.alw-slip-bank-info {
+  flex-shrink: 0 !important;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  font-size: 0.8125rem;
+  color: #475569;
+  line-height: 1.7;
+}
+
+.alw-bank-info-line strong {
+  color: #1e293b;
+}
+
+/* Signatures */
+.alw-slip-signatures {
+  flex-shrink: 0 !important;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  text-align: center;
+  margin-top: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.alw-sig-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.alw-sig-title {
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.alw-sig-space {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.digital-stamp {
+  font-size: 0.725rem;
+  font-weight: 800;
+  color: #dc2626;
+  border: 2px dashed #ef4444;
+  background: #fef2f2;
+  padding: 0.3rem 0.85rem;
+  border-radius: 6px;
+  transform: rotate(-4deg);
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.1);
+}
+
+.alw-sig-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.alw-sig-role {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+/* Modal Footer */
+.alw-slip-footer {
+  padding: 1rem 1.75rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* Loading & Empty States */
+.alw-loading-state,
+.alw-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3.5rem 1.5rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.alw-loading-state .idp-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: alwSpin 0.7s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes alwSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.alw-empty-state svg {
+  color: #cbd5e1;
+  margin-bottom: 1rem;
+}
+
+.alw-empty-state h3 {
+  color: #1e293b;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.alw-empty-state p {
+  font-size: 0.875rem;
+  max-width: 440px;
+  margin: 0 0 1.25rem;
+  line-height: 1.6;
+}
+
+/* Print Styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .alw-slip-modal,
+  .alw-slip-modal * {
+    visibility: visible;
+  }
+  .alw-slip-modal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .alw-slip-footer,
+  .idp-modal-close,
+  .alw-filter-bar,
+  .alw-summary-grid {
+    display: none !important;
+  }
+}

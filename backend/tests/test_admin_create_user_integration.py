@@ -211,6 +211,24 @@ def test_admin_create_user_invalid_role(admin_client):
     assert res.status_code == 422
 
 
+def test_admin_cannot_create_admin_user(admin_client):
+    """Admin không thể tạo tài khoản admin -> 422 Unprocessable Entity."""
+    admin_token = create_access_token(user_id=1, role="admin")
+    payload = {
+        "email": "another_admin@ictu.edu.vn",
+        "password": "Password@123",
+        "full_name": "Another Admin",
+        "role": "admin",
+    }
+
+    res = admin_client.post(
+        "/api/admin/users",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert res.status_code == 422
+
+
 def test_admin_create_user_short_password(admin_client):
     """Mật khẩu dưới 6 ký tự -> 422."""
     admin_token = create_access_token(user_id=1, role="admin")

@@ -20,6 +20,15 @@ from app.models.task import Task
 from app.models.user import User
 from app.models.user_profile import UserProfile
 from app.models.weekly_report import ReportFeedback, WeeklyReport
+from app.models.intern_task import InternTask
+from app.models.intern_report import InternReport
+from app.models.intern_evaluation import InternEvaluation
+from app.models.intern_attendance import InternAttendance
+from app.models.intern_contract_record import InternContractRecord
+from app.models.university_report import UniversityReport
+from app.models.system_setting import SystemSetting
+from app.models.backup_record import BackupRecord
+from app.models.support_ticket import SupportTicket
 
 __all__ = [
     "Allowance",
@@ -47,6 +56,13 @@ __all__ = [
     "UserProfile",
     "WeeklyReport",
     "WorkShift",
+    "InternTask",
+    "InternReport",
+    "InternEvaluation",
+    "InternAttendance",
+    "InternContractRecord",
+    "UniversityReport",
+    "SystemSetting",
+    "BackupRecord",
+    "SupportTicket",
 ]
-
-

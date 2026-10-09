@@ -1,0 +1,712 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   ATTENDANCE REPORT PAGE — ENTERPRISE HR ATTENDANCE MONITORING
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.attendance-report-page {
+  padding: 0;
+  background-color: transparent;
+  min-height: auto;
+  width: 100%;
+  max-width: 100%;
+  font-family: var(--fb-font);
+  color: #1e293b;
+  box-sizing: border-box;
+}
+
+/* ── HEADER SECTION ── */
+.arp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.arp-title-group {
+  max-width: 720px;
+}
+
+.arp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  margin-bottom: 8px;
+}
+
+.arp-main-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.arp-desc {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.arp-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.arp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.arp-btn--outline {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.arp-btn--outline:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.arp-btn--success {
+  background-color: #10b981;
+  color: #ffffff;
+}
+
+.arp-btn--success:hover {
+  background-color: #059669;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.arp-btn--primary {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.arp-btn--primary:hover {
+  background-color: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+/* ── KPI METRICS CARDS ── */
+.arp-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.arp-kpi-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.arp-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.07);
+}
+
+.arp-kpi-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.arp-kpi-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.arp-kpi-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arp-kpi-icon-wrap--blue {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.arp-kpi-icon-wrap--green {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.arp-kpi-icon-wrap--amber {
+  background-color: #fffbeb;
+  color: #d97706;
+}
+
+.arp-kpi-icon-wrap--red {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.arp-kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.arp-kpi-footer {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ── TOOLBAR SECTION ── */
+.arp-toolbar-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.arp-toolbar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.arp-toolbar-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.arp-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.arp-filter-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.arp-select {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #1e293b;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 160px;
+}
+
+.arp-select:focus {
+  border-color: #2563eb;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.arp-search-wrapper {
+  position: relative;
+  min-width: 280px;
+  flex: 1;
+  max-width: 380px;
+}
+
+.arp-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.arp-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 34px 8px 36px;
+  font-size: 13px;
+  color: #1e293b;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.arp-search-input:focus {
+  border-color: #2563eb;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.arp-search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 2px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arp-search-clear:hover {
+  color: #475569;
+  background-color: #e2e8f0;
+}
+
+.arp-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── COLOR LEGEND / CHÚ THÍCH CẢNH BÁO ── */
+.arp-legend-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  background-color: #f1f5f9;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: #475569;
+  border-left: 3px solid #64748b;
+}
+
+.arp-legend-title {
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.arp-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.arp-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.arp-legend-dot--red {
+  background-color: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.arp-legend-dot--amber {
+  background-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.arp-legend-dot--green {
+  background-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+/* ── TABLE CARD SECTION ── */
+.arp-table-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.arp-table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.arp-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+  font-size: 13px;
+}
+
+.arp-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.arp-table td {
+  padding: 14px 18px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.15s ease;
+}
+
+/* ── CONDITIONAL ROW HIGHLIGHTS (CHUẨN YÊU CẦU ĐỀ BÀI) ── */
+/* 1. NGHỈ KHÔNG PHÉP >= 2 BUỔI: BÔI ĐỎ TOÀN BỘ DÒNG */
+.arp-row--danger {
+  background-color: #fef2f2 !important;
+  color: #991b1b !important;
+}
+
+.arp-row--danger td {
+  border-bottom-color: #fee2e2 !important;
+}
+
+.arp-row--danger:first-child td:first-child,
+.arp-row--danger td:first-child {
+  border-left: 4px solid #ef4444 !important;
+}
+
+.arp-row--danger:hover {
+  background-color: #fee2e2 !important;
+}
+
+/* 2. ĐI MUỘN >= 3 LẦN: BÔI VÀNG CẢNH BÁO TOÀN BỘ DÒNG */
+.arp-row--warning {
+  background-color: #fffbeb !important;
+  color: #92400e !important;
+}
+
+.arp-row--warning td {
+  border-bottom-color: #fef3c7 !important;
+}
+
+.arp-row--warning:first-child td:first-child,
+.arp-row--warning td:first-child {
+  border-left: 4px solid #f59e0b !important;
+}
+
+.arp-row--warning:hover {
+  background-color: #fef3c7 !important;
+}
+
+/* 3. DÒNG BÌNH THƯỜNG */
+.arp-row--normal {
+  background-color: #ffffff;
+}
+
+.arp-row--normal:hover {
+  background-color: #f8fafc;
+}
+
+/* ── CELL CONTENT FORMATS ── */
+.arp-intern-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.arp-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.arp-avatar--normal {
+  background-color: #e0e7ff;
+  color: #4338ca;
+}
+
+.arp-avatar--warning {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.arp-avatar--danger {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.arp-intern-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.arp-intern-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: inherit;
+}
+
+.arp-intern-sub {
+  font-size: 11px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.arp-code-badge {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 5px;
+  background-color: #f1f5f9;
+  border-radius: 4px;
+  color: #475569;
+}
+
+.arp-cell-center {
+  text-align: center;
+}
+
+.arp-metric-val {
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-block;
+  min-width: 24px;
+}
+
+.arp-metric-highlight--red {
+  color: #dc2626;
+  font-weight: 700;
+  background-color: #fee2e2;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.arp-metric-highlight--amber {
+  color: #d97706;
+  font-weight: 700;
+  background-color: #fef3c7;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* ── STATUS BADGES ── */
+.arp-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.arp-status-badge--success {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.arp-status-badge--warning {
+  background-color: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.arp-status-badge--danger {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  animation: pulse-danger 2s infinite ease-in-out;
+}
+
+@keyframes pulse-danger {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+/* ── TABLE STATES: LOADING & EMPTY ── */
+.arp-empty-state,
+.arp-loading-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.arp-spinner {
+  animation: spin 1s linear infinite;
+  color: #2563eb;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── TABLE FOOTER & PAGINATION ── */
+.arp-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 20px;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.arp-footer-counter {
+  font-weight: 500;
+}
+
+.arp-footer-counter b {
+  color: #0f172a;
+}
+
+/* ── TOAST NOTIFICATION ── */
+.arp-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background-color: #0f172a;
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.arp-toast--success {
+  border-left: 4px solid #10b981;
+}
+
+.arp-toast--error {
+  border-left: 4px solid #ef4444;
+}
+
+.arp-toast--info {
+  border-left: 4px solid #3b82f6;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ── RESPONSIVE DESIGN ── */
+@media (max-width: 992px) {
+  .arp-toolbar-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .arp-search-wrapper {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .arp-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .arp-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .arp-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .arp-toolbar-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .arp-select {
+    width: 100%;
+  }
+}
+

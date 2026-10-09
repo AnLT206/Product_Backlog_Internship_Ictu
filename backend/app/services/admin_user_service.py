@@ -15,29 +15,29 @@ from app.schemas.admin_user import (
 from app.utils.hash_password import hash_password
 from app.utils.user_code import next_user_code
 
-MANAGED_ROLES = frozenset({"hr", "mentor", "intern"})
-CREATE_ROLES = frozenset({"hr", "mentor"})
+MANAGED_ROLES = frozenset({"hr", "mentor", "intern", "admin"})
+CREATE_ROLES = frozenset({"hr", "mentor", "intern"})
 
 
 class AdminUserService:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def list_users(self, role: AdminManagedRole) -> AdminUserListResponse:
-        if role not in MANAGED_ROLES:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="role phải là hr, mentor hoặc intern.",
-            )
-
-        rows = (
+    def list_users(self, role: str | None = None) -> AdminUserListResponse:
+        query = (
             self.db.query(User)
-            .options(joinedload(User.role))
+            .options(joinedload(User.role), joinedload(User.intern_profile))
             .join(Role, User.role_id == Role.id)
-            .filter(Role.name == role)
-            .order_by(User.code.asc(), User.id.asc())
-            .all()
         )
+        if role and role != "all":
+            if role not in MANAGED_ROLES:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="role phải là hr, mentor, intern hoặc admin.",
+                )
+            query = query.filter(Role.name == role)
+
+        rows = query.order_by(User.code.asc(), User.id.asc()).all()
 
         items = [
             AdminUserResponse(
@@ -45,9 +45,10 @@ class AdminUserService:
                 code=user.code,
                 email=user.email,
                 full_name=user.full_name,
-                role=user.role.name if user.role else role,
+                role=user.role.name if user.role else (role or "unknown"),
                 status=user.status,  # type: ignore[arg-type]
                 created_at=user.created_at,
+                avatar=user.intern_profile.avatar if user.intern_profile and user.intern_profile.avatar else None,
             )
             for user in rows
         ]
@@ -57,7 +58,7 @@ class AdminUserService:
         if payload.role not in CREATE_ROLES:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Không tạo TTS tại đây. Dùng trang đăng ký công khai.",
+                detail=f"Vai trò '{payload.role}' không hợp lệ.",
             )
 
         existing = self.db.query(User).filter(User.email == payload.email).first()
@@ -84,6 +85,15 @@ class AdminUserService:
                 status="active",
             )
             self.db.add(user)
+            self.db.flush()
+            if payload.role == "intern":
+                from app.models.intern_profile import InternProfile
+                prof = InternProfile(user_id=user.id, status="approved")
+                self.db.add(prof)
+            else:
+                from app.models.user_profile import UserProfile
+                user_prof = UserProfile(user_id=user.id)
+                self.db.add(user_prof)
             self.db.commit()
             self.db.refresh(user)
         except SQLAlchemyError:
@@ -101,4 +111,106 @@ class AdminUserService:
             role=payload.role,
             status=user.status,  # type: ignore[arg-type]
             created_at=user.created_at,
+            avatar=None,
         )
+
+    def update_user_status(self, user_id: int, new_status: str) -> AdminUserResponse:
+        user = (
+            self.db.query(User)
+            .options(joinedload(User.role), joinedload(User.intern_profile))
+            .filter(User.id == user_id)
+            .first()
+        )
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Không tìm thấy người dùng với ID {user_id}.",
+            )
+
+        user.status = new_status
+        if user.intern_profile:
+            if new_status == "active":
+                user.intern_profile.status = "approved"
+            elif new_status == "inactive":
+                user.intern_profile.status = "rejected"
+            elif new_status == "pending":
+                user.intern_profile.status = "pending"
+
+        try:
+            self.db.commit()
+            self.db.refresh(user)
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể cập nhật trạng thái người dùng.",
+            ) from None
+
+        return AdminUserResponse(
+            id=user.id,
+            code=user.code,
+            email=user.email,
+            full_name=user.full_name,
+            role=user.role.name if user.role else "intern",
+            status=user.status,  # type: ignore[arg-type]
+            created_at=user.created_at,
+            avatar=user.intern_profile.avatar if user.intern_profile and user.intern_profile.avatar else None,
+        )
+
+    def delete_user(self, user_id: int) -> dict[str, str]:
+        user = self.db.query(User).options(joinedload(User.role)).filter(User.id == user_id).first()
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Không tìm thấy người dùng với ID {user_id}.",
+            )
+
+        if user.role and user.role.name == "admin":
+            admin_count = (
+                self.db.query(User)
+                .join(Role, User.role_id == Role.id)
+                .filter(Role.name == "admin")
+                .count()
+            )
+            if admin_count <= 1:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Không thể xóa tài khoản Quản trị viên duy nhất của hệ thống.",
+                )
+
+        try:
+            self.db.query(User).filter(User.id == user_id).delete(synchronize_session=False)
+            self.db.commit()
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể xóa tài khoản người dùng khỏi cơ sở dữ liệu.",
+            ) from None
+
+        return {"detail": "Đã xóa tài khoản người dùng thành công."}
+
+    def reset_password(self, user_id: int) -> dict[str, str]:
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Không tìm thấy người dùng với ID {user_id}.",
+            )
+
+        temp_pass = "Ictu@2026"
+        user.password_hash = hash_password(temp_pass)
+        try:
+            self.db.commit()
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể đặt lại mật khẩu.",
+            ) from None
+
+        return {
+            "detail": f"Đã đặt lại mật khẩu tạm thành công: {temp_pass}",
+            "temporary_password": temp_pass,
+        }
+

@@ -6,8 +6,8 @@ from typing import Literal
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
-AdminManagedRole = Literal["hr", "mentor", "intern"]
-AdminCreateRole = Literal["hr", "mentor"]
+AdminManagedRole = Literal["hr", "mentor", "intern", "admin"]
+AdminCreateRole = Literal["hr", "mentor", "intern"]
 UserStatus = Literal["active", "inactive", "pending"]
 
 
@@ -19,6 +19,7 @@ class AdminUserResponse(BaseModel):
     role: str
     status: UserStatus
     created_at: datetime | None = None
+    avatar: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -26,7 +27,7 @@ class AdminUserResponse(BaseModel):
 class AdminUserListResponse(BaseModel):
     items: list[AdminUserResponse]
     total: int
-    role: AdminManagedRole
+    role: str | None = None
 
 
 class AdminUserCreateRequest(BaseModel):
@@ -56,3 +57,8 @@ class AdminUserCreateRequest(BaseModel):
         if value.strip() != value:
             raise ValueError("Mật khẩu không được bắt đầu/kết thúc bằng khoảng trắng.")
         return value
+
+
+class AdminUserUpdateRequest(BaseModel):
+    status: UserStatus
+

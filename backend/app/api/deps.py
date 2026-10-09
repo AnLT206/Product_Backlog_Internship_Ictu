@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Security, status
+from fastapi import Depends, HTTPException, Query, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -56,6 +56,30 @@ def get_current_user(
     return user
 
 
+def get_current_user_flexible(
+	credentials: Annotated[
+		HTTPAuthorizationCredentials | None,
+		Security(bearer_scheme),
+	] = None,
+	token: str | None = Query(default=None),
+	db: Session = Depends(get_db),
+) -> User:
+    raw_token = None
+    if credentials is not None and credentials.scheme.lower() == "bearer":
+        raw_token = credentials.credentials
+    elif token:
+        raw_token = token
+
+    if not raw_token:
+        raise _unauthorized()
+
+    user = get_active_user_from_token(raw_token, db)
+    if user is None:
+        raise _unauthorized()
+
+    return user
+
+
 def require_roles(*allowed_roles: str) -> Callable:
 	def role_dependency(
 		current_user: User = Depends(get_current_user),
@@ -96,6 +120,7 @@ __all__ = [
     "get_active_user_from_token",
     "get_db",
     "get_current_user",
+    "get_current_user_flexible",
     "require_roles",
     "require_permission",
 ]

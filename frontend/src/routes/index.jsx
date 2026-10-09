@@ -9,26 +9,43 @@ import CreateAccountPage from '../features/admin/CreateAccountPage.jsx'
 import UsersPage from '../features/admin/UsersPage.jsx'
 import PermissionMatrixPage from '../features/admin/PermissionMatrixPage.jsx'
 import SystemLogsPage from '../features/admin/SystemLogsPage.jsx'
+import AdminSettingsPage from '../features/admin/AdminSettingsPage.jsx'
+import AdminBackupPage from '../features/admin/AdminBackupPage.jsx'
 import RequireAuth from './RequireAuth.jsx'
-import InternListPage from '../features/interns/InternListPage.jsx'
-import InternEditPage from '../features/interns/InternEditPage.jsx'
-import InternCreatePage from '../features/interns/InternCreatePage.jsx'
-import InternDashboardPage from '../features/interns/InternDashboardPage.jsx'
-import InternLayout from '../features/interns/InternLayout.jsx'
-import InternUploadPage from '../features/interns/InternUploadPage.jsx'
-import TaskListPage from '../features/interns/TaskListPage.jsx'
-import TaskDetailPage from '../features/interns/TaskDetailPage.jsx'
-import HRDashboardPage from '../features/hr/HRDashboardPage.jsx'
-import HRLayout from '../features/hr/HRLayout.jsx'
-import CompletionRatePage from '../features/hr/CompletionRatePage.jsx'
+
+import InternListPage from '../features/intern/InternListPage.jsx'
+import InternCreatePage from '../features/intern/InternCreatePage.jsx'
+import InternEditPage from '../features/intern/InternEditPage.jsx'
 import ProgramListPage from '../features/programs/ProgramListPage.jsx'
 import ProgramFormPage from '../features/programs/ProgramFormPage.jsx'
-import MentorListPage from '../features/mentors/MentorListPage.jsx'
-import MentorAssignPage from '../features/mentors/MentorAssignPage.jsx'
-import MentorLayout from '../features/mentors/MentorLayout.jsx'
-import MentorDashboardPage from '../features/mentors/MentorDashboardPage.jsx'
-import MentorInternsPage from '../features/mentors/MentorInternsPage.jsx'
-import MentorTasksPage from '../features/mentors/MentorTasksPage.jsx'
+import MentorAssignmentPage from '../features/hr/MentorAssignmentPage.jsx'
+import CompletionRatePage from '../features/hr/CompletionRatePage.jsx'
+import HrLayout from '../features/hr/HrLayout.jsx'
+import HrDashboardPage from '../features/hr/HrDashboardPage.jsx'
+import HrAttendancePage from '../features/hr/HrAttendancePage.jsx'
+import HrContractsPage from '../features/hr/HrContractsPage.jsx'
+import HrReportsPage from '../features/hr/HrReportsPage.jsx'
+import HRAnalyticsDashboard from '../features/hr/HRAnalyticsDashboard.jsx'
+import SupportTicketManager from '../features/hr/SupportTicketManager.jsx'
+
+import MentorLayout from '../features/mentor/MentorLayout.jsx'
+import MentorDashboardPage from '../features/mentor/MentorDashboardPage.jsx'
+import MentorInternsPage from '../features/mentor/MentorInternsPage.jsx'
+import MentorTasksPage from '../features/mentor/MentorTasksPage.jsx'
+
+import InternLayout from '../features/intern/InternLayout.jsx'
+import InternDashboardPage from '../features/intern/InternDashboardPage.jsx'
+import InternAttendancePage from '../features/intern/InternAttendancePage.jsx'
+import InternReportsPage from '../features/intern/InternReportsPage.jsx'
+import InternTrainingPage from '../features/intern/InternTrainingPage.jsx'
+import InternUploadPage from '../features/intern/InternUploadPage.jsx'
+import WeeklyReportForm from '../features/intern/WeeklyReportForm.jsx'
+import InternSchedulePage from '../features/intern/InternSchedulePage.jsx'
+import InternAllowancePage from '../features/intern/InternAllowancePage.jsx'
+import InternSupportPage from '../features/intern/InternSupportPage.jsx'
+import InternProfilePage from '../features/intern/InternProfilePage.jsx'
+import TaskListPage from '../features/intern/TaskListPage.jsx'
+import TaskDetailPage from '../features/intern/TaskDetailPage.jsx'
 
 export default function AppRoutes() {
   return (
@@ -39,6 +56,7 @@ export default function AppRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
+        {/* ── Phân hệ Quản trị viên (Admin Portal) ── */}
         <Route
           path="/admin"
           element={
@@ -52,33 +70,46 @@ export default function AppRoutes() {
           <Route path="users" element={<UsersPage />} />
           <Route path="users/new" element={<CreateAccountPage />} />
           <Route path="roles" element={<PermissionMatrixPage />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
           <Route path="system-logs" element={<SystemLogsPage />} />
+          <Route path="backup" element={<AdminBackupPage />} />
         </Route>
 
+        {/* ── Phân hệ Nhân sự (HR Portal) ── */}
         <Route
           path="/hr"
           element={
-            <RequireAuth roles={['hr']}>
-              <HRLayout />
+            <RequireAuth roles={['hr', 'admin']}>
+              <HrLayout />
             </RequireAuth>
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<HRDashboardPage />} />
+          <Route path="dashboard" element={<HrDashboardPage />} />
           <Route path="interns" element={<InternListPage />} />
           <Route path="interns/new" element={<InternCreatePage />} />
           <Route path="interns/:id/edit" element={<InternEditPage />} />
           <Route path="programs" element={<ProgramListPage />} />
           <Route path="programs/new" element={<ProgramFormPage />} />
-          <Route path="mentors" element={<MentorListPage />} />
-          <Route path="mentors/assign" element={<MentorAssignPage />} />
+          <Route path="mentors" element={<Navigate to="/hr/mentor-assignment" replace />} />
+          <Route path="mentors/assign" element={<Navigate to="/hr/mentor-assignment" replace />} />
+          <Route path="mentor-assignment" element={<MentorAssignmentPage />} />
           <Route path="completion-rate" element={<CompletionRatePage />} />
+          <Route path="attendance" element={<HrAttendancePage />} />
+          <Route path="attendance-report" element={<Navigate to="/hr/attendance?tab=report" replace />} />
+          <Route path="work-schedule" element={<Navigate to="/hr/attendance?tab=schedule" replace />} />
+          <Route path="allowances" element={<Navigate to="/hr/attendance?tab=allowance" replace />} />
+          <Route path="contracts" element={<HrContractsPage />} />
+          <Route path="reports" element={<Navigate to="/hr/analytics" replace />} />
+          <Route path="analytics" element={<HRAnalyticsDashboard />} />
+          <Route path="tickets" element={<SupportTicketManager />} />
         </Route>
 
+        {/* ── Phân hệ Mentor (Mentor Portal) ── */}
         <Route
           path="/mentor"
           element={
-            <RequireAuth roles={['mentor', 'admin']}>
+            <RequireAuth roles={['mentor', 'admin', 'hr']}>
               <MentorLayout />
             </RequireAuth>
           }
@@ -87,20 +118,35 @@ export default function AppRoutes() {
           <Route path="dashboard" element={<MentorDashboardPage />} />
           <Route path="interns" element={<MentorInternsPage />} />
           <Route path="tasks" element={<MentorTasksPage />} />
+          <Route path="attendance" element={<HrAttendancePage />} />
+          <Route path="contracts" element={<HrContractsPage />} />
+          <Route path="reports" element={<HrReportsPage />} />
         </Route>
+
+        {/* ── Phân hệ Thực tập sinh (Intern Portal) ── */}
         <Route
           path="/intern"
           element={
-            <RequireAuth roles={['intern']}>
+            <RequireAuth roles={['intern', 'hr', 'admin']}>
               <InternLayout />
             </RequireAuth>
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<InternDashboardPage />} />
-          <Route path="documents/upload" element={<InternUploadPage />} />
+          <Route path="roadmap" element={<Navigate to="/intern/dashboard" replace />} />
           <Route path="tasks" element={<TaskListPage />} />
           <Route path="tasks/:id" element={<TaskDetailPage />} />
+          <Route path="documents/upload" element={<InternUploadPage />} />
+          <Route path="upload" element={<InternUploadPage />} />
+          <Route path="schedule" element={<InternSchedulePage />} />
+          <Route path="attendance" element={<InternAttendancePage />} />
+          <Route path="reports" element={<InternReportsPage />} />
+          <Route path="allowance" element={<InternAllowancePage />} />
+          <Route path="support" element={<InternSupportPage />} />
+          <Route path="training" element={<InternTrainingPage />} />
+          <Route path="report" element={<WeeklyReportForm />} />
+          <Route path="profile" element={<InternProfilePage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

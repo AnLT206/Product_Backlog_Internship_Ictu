@@ -287,3 +287,108 @@ def test_unauthenticated_request_returns_401(integration_client):
     response = client.get("/api/hr/interns/10/documents")
     assert response.status_code == 401
 
+
+def test_intern_can_get_my_documents(integration_client):
+    client, session_factory = integration_client
+    with session_factory() as db:
+        db.add(
+            Document(
+                id=201,
+                user_id=12,
+                doc_type="cv",
+                file_name="cv_active.pdf",
+                file_path="/uploads/cv_active.pdf",
+                status="pending",
+                created_at=datetime(2026, 10, 3, 10, 0, 0),
+            )
+        )
+        db.commit()
+
+    token = create_access_token(user_id=12, role="intern")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.get("/api/intern/documents", headers=headers)
+    assert response.status_code == 200
+    docs = response.json()
+    assert len(docs) == 1
+    assert docs[0]["file_name"] == "cv_active.pdf"
+
+    # Filter by doc_type=cv
+    response_cv = client.get("/api/intern/documents?doc_type=cv", headers=headers)
+    assert response_cv.status_code == 200
+    docs_cv = response_cv.json()
+    assert len(docs_cv) == 1
+    assert docs_cv[0]["doc_type"] == "cv"
+
+
+def test_intern_preview_staged_document_docx(integration_client):
+    import io, zipfile
+    client, _ = integration_client
+    token = create_access_token(user_id=12, role="intern")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    docx_buffer = io.BytesIO()
+    with zipfile.ZipFile(docx_buffer, "w") as z:
+        xml = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:body>
+            <w:p><w:r><w:t>Nguyễn Văn A - CV Ứng Tuyển</w:t></w:r></w:p>
+            <w:p><w:r><w:t>Mục tiêu nghề nghiệp: Frontend Developer</w:t></w:r></w:p>
+          </w:body>
+        </w:document>"""
+        z.writestr("word/document.xml", xml)
+    docx_buffer.seek(0)
+
+    response = client.post(
+        "/api/intern/documents/preview-file",
+        headers=headers,
+        files={"file": ("Bai2CNXh.docx", docx_buffer, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["extension"] == "docx"
+    assert data["total_paragraphs"] == 2
+    assert "Nguyễn Văn A - CV Ứng Tuyển" in data["paragraphs"]
+    assert "Mục tiêu nghề nghiệp: Frontend Developer" in data["paragraphs"]
+
+
+def test_view_document_docx_raw(integration_client, tmp_path):
+    import zipfile
+    client, session_factory = integration_client
+
+    sample_docx = tmp_path / "test_cv.docx"
+    with zipfile.ZipFile(sample_docx, "w") as z:
+        xml = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:body>
+            <w:p><w:r><w:t>Kỹ năng: React, FastAPI, Docker</w:t></w:r></w:p>
+          </w:body>
+        </w:document>"""
+        z.writestr("word/document.xml", xml)
+
+    with session_factory() as db:
+        db.add(
+            Document(
+                id=301,
+                user_id=12,
+                doc_type="cv",
+                file_name="test_cv.docx",
+                file_path=str(sample_docx),
+                status="pending",
+                created_at=datetime(2026, 10, 3, 11, 0, 0),
+            )
+        )
+        db.commit()
+
+    token = create_access_token(user_id=12, role="intern")
+    # Test query param token as well as header
+    response = client.get(f"/api/documents/301/view?token={token}&raw=true")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == 301
+    assert data["file_name"] == "test_cv.docx"
+    assert "Kỹ năng: React, FastAPI, Docker" in data["paragraphs"]
+
+
+

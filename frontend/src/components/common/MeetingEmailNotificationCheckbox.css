@@ -1,0 +1,417 @@
+/* ==========================================================================
+   MeetingEmailNotificationCheckbox CSS
+   ========================================================================== */
+
+.meeting-email-checkbox-wrapper {
+  margin: 1rem 0;
+  font-family: inherit;
+}
+
+/* Card bao quanh Checkbox */
+.email-checkbox-card {
+  background-color: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.email-checkbox-card:hover {
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
+}
+
+.email-checkbox-card.is-checked {
+  background-color: #eff6ff;
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);
+}
+
+/* Label & Input */
+.email-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.email-checkbox-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.email-checkbox-custom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 2px solid #94a3b8;
+  background-color: #ffffff;
+  color: transparent;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.email-checkbox-input:checked + .email-checkbox-custom {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+.email-check-icon {
+  stroke-width: 3;
+}
+
+/* Nội dung Text */
+.email-checkbox-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.email-checkbox-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.email-title-icon {
+  color: #2563eb;
+}
+
+.email-checkbox-desc {
+  font-size: 0.825rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.email-checkbox-card.is-checked .email-checkbox-desc {
+  color: #334155;
+}
+
+/* Thanh hành động (Xem trước & Sao chép HTML) */
+.email-checkbox-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #dbeafe;
+  margin-left: 2.15rem;
+  flex-wrap: wrap;
+}
+
+.btn-preview-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1e40af;
+  background-color: #dbeafe;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-preview-email:hover {
+  background-color: #bfdbfe;
+  color: #1e3a8a;
+}
+
+.btn-copy-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #065f46;
+  background-color: #d1fae5;
+  border: 1px solid #a7f3d0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-copy-code:hover {
+  background-color: #a7f3d0;
+  color: #047857;
+}
+
+.btn-copy-code.is-copied {
+  background-color: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+/* ==========================================================================
+   Modal Xem trước Template Email & Lấy Code cho Backend
+   ========================================================================== */
+.email-template-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 10000;
+  animation: email-modal-fade 0.2s ease;
+}
+
+@keyframes email-modal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.email-template-modal-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 820px;
+  height: 88vh;
+  border-radius: 14px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: email-modal-scale 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes email-modal-scale {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Header Modal */
+.email-template-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  gap: 1rem;
+}
+
+.email-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.email-modal-header-icon {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.email-modal-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.email-modal-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.email-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.btn-copy-code-modal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem;
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: 1px solid #059669;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-copy-code-modal:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.btn-copy-code-modal.is-copied {
+  background: #047857;
+}
+
+.btn-close-modal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-close-modal:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Tabs */
+.email-modal-tabs {
+  display: flex;
+  background-color: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.4rem 1.5rem 0;
+  gap: 0.5rem;
+}
+
+.email-modal-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.15rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.email-modal-tab:hover {
+  color: #1e293b;
+}
+
+.email-modal-tab.is-active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  background-color: #ffffff;
+  border-radius: 8px 8px 0 0;
+}
+
+/* Body Modal */
+.email-modal-body {
+  flex: 1;
+  background-color: #f8fafc;
+  overflow: hidden;
+  position: relative;
+}
+
+.email-preview-frame-wrap {
+  width: 100%;
+  height: 100%;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.email-preview-iframe {
+  width: 100%;
+  height: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background-color: #f1f5f9;
+}
+
+.email-code-container {
+  width: 100%;
+  height: 100%;
+  padding: 1rem;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.email-code-block {
+  margin: 0;
+  background-color: #0f172a;
+  color: #e2e8f0;
+  padding: 1.25rem;
+  border-radius: 8px;
+  font-family: 'Consolas', 'Courier New', Courier, monospace;
+  font-size: 0.825rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Footer Modal */
+.email-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1.5rem;
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  gap: 1rem;
+}
+
+.email-modal-footer-note {
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.btn-modal-done {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #2563eb;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-modal-done:hover {
+  background-color: #1d4ed8;
+}
+
+@media (max-width: 640px) {
+  .email-checkbox-actions {
+    margin-left: 0;
+  }
+
+  .email-modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+

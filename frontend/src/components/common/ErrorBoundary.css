@@ -1,0 +1,95 @@
+/* frontend/src/components/common/ErrorBoundary.css */
+.ui-error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--fb-font);
+}
+
+.ui-error-card {
+  max-width: 580px;
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  box-shadow: var(--shadow-md);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ui-error-icon-box {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background-color: var(--danger-bg);
+  color: var(--danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.ui-error-title {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+
+.ui-error-desc {
+  font-size: var(--font-base);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 20px 0;
+}
+
+.ui-error-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.ui-error-details {
+  width: 100%;
+  text-align: left;
+  margin-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 12px;
+}
+
+.ui-error-details summary {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+.ui-error-details summary:hover {
+  color: var(--text-secondary);
+}
+
+.ui-error-trace {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background-color: var(--gray-50);
+  border: 1px solid var(--border-main);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--danger-text);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font-family: monospace;
+  max-height: 160px;
+}
+

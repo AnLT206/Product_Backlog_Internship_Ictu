@@ -59,10 +59,14 @@ class InternListItem(BaseModel):
     """Thông tin tóm tắt TTS trả về trong danh sách tìm kiếm/lọc."""
 
     id: int
+    code: str | None = None
     email: str
     full_name: str | None = None
     role: str = "intern"
     status: str
+    has_cv: bool = False
+    cv_file_name: str | None = None
+    cv_id: int | None = None
     phone_number: str | None = None
     dob: date | None = None
     gender: str | None = None
@@ -71,6 +75,7 @@ class InternListItem(BaseModel):
     academic_year: str | None = None
     gpa: Decimal | None = None
     address: str | None = None
+    avatar: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -107,3 +112,38 @@ class InternProfileStatusResponse(BaseModel):
     full_name: str | None
     profile_status: Literal["pending", "approved", "rejected"]
     account_status: Literal["pending", "active", "inactive"]
+
+
+class InternUpdateRequest(BaseModel):
+    """Body cập nhật hồ sơ thực tập sinh (HR / admin)."""
+
+    full_name: str | None = Field(default=None, min_length=1, max_length=100)
+    phone_number: str | None = Field(default=None, max_length=20)
+    dob: date | None = None
+    gender: Literal["male", "female", "other"] | None = None
+    university: str | None = Field(default=None, max_length=150)
+    major: str | None = Field(default=None, max_length=150)
+    academic_year: str | None = Field(default=None, max_length=50)
+    gpa: Decimal | None = Field(default=None, ge=0, le=4)
+    address: str | None = Field(default=None, max_length=255)
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = " ".join(value.split())
+        if not cleaned:
+            raise ValueError("Họ và tên không được để trống.")
+        return cleaned
+
+
+class InternRejectRequest(BaseModel):
+    note: str | None = Field(default=None, max_length=255)
+
+
+class InternDetailResponse(InternListItem):
+    """Chi tiết đầy đủ của một TTS bao gồm cả danh sách tài liệu."""
+
+    documents: list = []
+

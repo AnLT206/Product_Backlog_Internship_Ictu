@@ -5,67 +5,23 @@
  *
  * Quy tắc folder-structure.md §3: "Gọi API → src/api/, không fetch rải
  * trong mọi component/feature."
- *
- * Cả hai endpoint bên dưới ĐÃ CÓ THẬT ở backend:
- *   GET  /api/departments    — backend/app/api/routes/departments.py
- *   POST /api/hr/mentors     — backend/app/api/routes/mentors.py
- * → Gọi thẳng apiFetch, KHÔNG viết mock.
  */
 
 import apiFetch from './client';
 
-/* ─────────────────────────────────────────────
-   getDepartments
-───────────────────────────────────────────── */
-
 /**
  * Lấy danh sách phòng ban.
- *
- * Endpoint đã có thật, gọi trực tiếp, không cần mock.
  * Route: GET /api/departments
- * (backend/app/api/routes/departments.py)
- *
- * Response shape (DepartmentResponse[]):
- *   [{ id: number, name: string, description: string | null }]
  *
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
- *
- * @example
- * import { getDepartments } from '../api/mentors';
- *
- * const { ok, data } = await getDepartments();
- * if (ok) {
- *   // data — mảng [{ id, name, description }]
- * }
  */
 export async function getDepartments() {
   return apiFetch('/api/departments', { method: 'GET' });
 }
 
-/* ─────────────────────────────────────────────
-   createMentor
-───────────────────────────────────────────── */
-
 /**
  * Tạo mới một mentor (HR / Admin only).
- *
- * Endpoint đã có thật, gọi trực tiếp, không cần mock.
  * Route: POST /api/hr/mentors
- * (backend/app/api/routes/mentors.py)
- *
- * Request body (MentorCreateRequest — bắt buộc: full_name, email, password):
- *   full_name     {string}          min 1, max 100 ký tự
- *   email         {string}          định dạng email hợp lệ
- *   password      {string}          min 6, max 128 ký tự
- *   department_id {number|null}     ID phòng ban (từ getDepartments())
- *
- * Response shape (MentorResponse):
- *   { id, email, full_name, role, status, phone_number, dob, position, department_id }
- *
- * HTTP status:
- *   201 → tạo thành công
- *   409 → email đã tồn tại
- *   422 → dữ liệu không hợp lệ (validate fail phía backend)
  *
  * @param {{
  *   full_name:     string,
@@ -74,16 +30,6 @@ export async function getDepartments() {
  *   department_id?: number | null,
  * }} body
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
- *
- * @example
- * import { createMentor } from '../api/mentors';
- *
- * const { ok, status, data } = await createMentor({
- *   full_name:     'Nguyễn Văn A',
- *   email:         'a@ictu.edu.vn',
- *   password:      'mentor123',
- *   department_id: 2,
- * });
  */
 export async function createMentor(body) {
   return apiFetch('/api/hr/mentors', {
@@ -92,19 +38,9 @@ export async function createMentor(body) {
   });
 }
 
-/* ─────────────────────────────────────────────
-   getMentors
-───────────────────────────────────────────── */
-
 /**
- * Lấy danh sách mentor (HR / Admin only).
- *
- * Endpoint đã có thật, gọi trực tiếp, không cần mock.
+ * Lấy danh sách tất cả mentor.
  * Route: GET /api/hr/mentors
- * (backend/app/api/routes/mentors.py)
- *
- * Response shape (MentorResponse[]):
- *   [{ id, email, full_name, role, status, phone_number, dob, position, department_id }]
  *
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
  */
@@ -112,27 +48,11 @@ export async function getMentors() {
   return apiFetch('/api/hr/mentors', { method: 'GET' });
 }
 
-/* ─────────────────────────────────────────────
-   assignInternsToMentor
-───────────────────────────────────────────── */
-
 /**
  * Phân công một hoặc nhiều thực tập sinh cho mentor (HR / Admin only).
- *
- * Endpoint đã có thật, gọi trực tiếp, không cần mock.
  * Route: POST /api/hr/mentors/{mentor_id}/assign-interns
- * (backend/app/api/routes/mentor_assignments.py)
  *
- * Request body (MentorAssignInternsRequest):
- *   intern_ids  {number[]}     ít nhất 1 id dương
- *   program_id  {number|null}  ID kỳ thực tập (tuỳ chọn)
- *
- * Response 200 (MentorAssignResponse):
- *   { mentor_id, mentor_name, assigned_count, intern_ids, message }
- *
- * Lỗi: { detail: string } hoặc 422 { detail: [{ msg, ... }] }
- *
- * @param {number} mentorId
+ * @param {number|string} mentorId
  * @param {number[]} internIds
  * @param {number|null} [programId=null]
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
@@ -144,48 +64,52 @@ export async function assignInternsToMentor(mentorId, internIds, programId = nul
   });
 }
 
-/* ─────────────────────────────────────────────
-   getAssignedInterns
-───────────────────────────────────────────── */
-
 /**
- * Lấy danh sách thực tập sinh đang thuộc quyền hướng dẫn của Mentor đang
- * đăng nhập (dùng cho dropdown "Intern phụ trách" trong TaskCreateModal).
- *
- * Endpoint đã có thật, gọi trực tiếp, KHÔNG mock.
+ * Lấy danh sách thực tập sinh đang thuộc quyền hướng dẫn của Mentor đang đăng nhập.
  * Route: GET /api/mentor/assigned-interns
- * (backend/app/api/routes/mentor_assignments.py)
- *
- * Quyền: mentor, admin
- *
- * Response shape (AssignedInternListResponse):
- *   {
- *     items: [
- *       {
- *         intern_id:    number,
- *         intern_code:  string | null,
- *         intern_name:  string | null,
- *         intern_email: string,
- *         program_id:   number,
- *         program_name: string | null,
- *         assigned_at:  string | null,
- *       }
- *     ],
- *     total: number
- *   }
  *
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
- *
- * @example
- * import { getAssignedInterns } from '../api/mentors';
- *
- * const { ok, data } = await getAssignedInterns();
- * if (ok) {
- *   // data.items — mảng AssignedInternItem
- *   // Hiển thị: `${intern_name} (${intern_code || intern_email})`
- *   // value   : intern_id
- * }
  */
 export async function getAssignedInterns() {
   return apiFetch('/api/mentor/assigned-interns', { method: 'GET' });
+}
+
+/**
+ * Lấy danh sách thực tập sinh và trạng thái phân công cho mentor.
+ * Route: GET /api/hr/mentors/:mentorId/interns
+ *
+ * @param {number|string} mentorId
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function getMentorInterns(mentorId) {
+  return apiFetch(`/api/hr/mentors/${mentorId}/interns`, { method: 'GET' });
+}
+
+/**
+ * Phân bổ thực tập sinh cho mentor.
+ * Route: POST /api/hr/mentors/:mentorId/assign-interns
+ *
+ * @param {number|string} mentorId
+ * @param {number[]} internIds
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function assignMentorInterns(mentorId, internIds) {
+  return apiFetch(`/api/hr/mentors/${mentorId}/assign-interns`, {
+    method: 'POST',
+    body: JSON.stringify({ intern_ids: internIds }),
+  });
+}
+
+/**
+ * Phân công Mentor cho danh sách Thực tập sinh (Batch Assignment).
+ * Route: POST /api/hr/assign-mentor
+ *
+ * @param {{ mentor_id: number|string, intern_ids: number[] }} payload
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function assignMentor({ mentor_id, intern_ids }) {
+  return apiFetch('/api/hr/assign-mentor', {
+    method: 'POST',
+    body: JSON.stringify({ mentor_id, intern_ids }),
+  });
 }

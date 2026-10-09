@@ -106,10 +106,12 @@ def test_get_and_update_my_profile_returns_expected_json_structure(
     assert profile["major"] == "CNTT"
     assert {
         "id",
+        "code",
         "email",
         "full_name",
         "role",
         "status",
+        "profile_status",
         "phone_number",
         "dob",
         "gender",
@@ -118,6 +120,7 @@ def test_get_and_update_my_profile_returns_expected_json_structure(
         "academic_year",
         "gpa",
         "address",
+        "avatar",
     } == set(profile)
 
     update_response = client.patch(

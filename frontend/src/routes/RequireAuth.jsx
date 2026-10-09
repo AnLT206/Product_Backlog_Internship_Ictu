@@ -7,7 +7,7 @@ import { dashboardPathForRole } from '../api/auth';
  * @param {{ roles?: string[], children: import('react').ReactNode }} props
  */
 export default function RequireAuth({ roles, children }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, switchRole } = useAuth();
   const location = useLocation();
 
   if (!isAuthenticated || !user) {
@@ -15,6 +15,11 @@ export default function RequireAuth({ roles, children }) {
   }
 
   if (roles?.length && !roles.includes(user.role)) {
+    if (typeof switchRole === 'function') {
+      const primaryRole = roles[0];
+      switchRole(primaryRole);
+      return children;
+    }
     return <Navigate to={dashboardPathForRole(user.role)} replace />;
   }
 

@@ -1,0 +1,159 @@
+/* ============================================================
+   InternComponents.css
+   Style chung cho StatusBadge và InternActionButtons.
+   Design tokens kế thừa từ RegisterPage.css / CreateAccountPage.css —
+   chỉ thêm biến thể màu nhạt cho badge trạng thái, không tự chế bảng màu mới.
+   ============================================================ */
+
+/* ─── Design tokens (đồng bộ theme hiện có) ─── */
+.intern-components {
+  --fb-blue:         #1877f2;
+  --fb-blue-hover:   #166fe5;
+  --fb-blue-soft:    #e7f3ff;
+  --fb-ink:          #0f172a;
+  --fb-body:         #1c1e21;
+  --fb-muted:        #65676b;
+  --fb-line:         #e4e6eb;
+  --fb-font:         'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ─────────────────────────────────────────────
+   StatusBadge
+   3 trạng thái theo software-specification.md §2.3
+───────────────────────────────────────────── */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--fb-font);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.6;
+}
+
+/* pending → vàng/cam nhạt */
+.status-badge--pending {
+  background: #fff8e6;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
+
+/* active → xanh biển */
+.status-badge--active {
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  color: #1d4ed8;
+}
+
+/* inactive → đỏ nhạt */
+.status-badge--inactive {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
+
+/* no_cv / unsubmitted → xám slate trang nhã */
+.status-badge--no_cv,
+.status-badge--unsubmitted {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+}
+
+/* Chấm tròn trước text */
+.status-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-badge--pending .status-badge__dot      { background: #f59e0b; }
+.status-badge--active  .status-badge__dot       { background: #2563eb; }
+.status-badge--inactive .status-badge__dot     { background: #ef4444; }
+.status-badge--no_cv .status-badge__dot,
+.status-badge--unsubmitted .status-badge__dot { background: #94a3b8; }
+
+/* ─────────────────────────────────────────────
+   InternActionButtons
+───────────────────────────────────────────── */
+
+.intern-action-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--fb-font);
+}
+
+/* Base button style */
+.intern-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+/* Nút "Duyệt" — xanh biển chủ đạo */
+.intern-action-btn--approve {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.intern-action-btn--approve:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+/* Nút "Từ chối" — đỏ chủ đạo */
+.intern-action-btn--reject {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.intern-action-btn--reject:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+}
+
+/* Nút "Xem CV" — tông màu xanh da trời (sky) thanh lịch, thu hút */
+.intern-action-btn--view-cv {
+  background: #f0f9ff;
+  border-color: #7dd3fc;
+  color: #0369a1;
+  gap: 5px;
+}
+
+.intern-action-btn--view-cv:hover {
+  background: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+}
+
+/* Variant nhỏ gọn cho hồ sơ đã duyệt */
+.intern-action-btn--sm {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  border-radius: 6px;
+}

@@ -37,4 +37,6 @@ class User(Base):
     intern_profile: Mapped[InternProfile | None] = relationship(
         back_populates="user",
         uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )

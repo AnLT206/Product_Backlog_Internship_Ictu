@@ -20,19 +20,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getPermissionMatrix, updatePermissionMatrix } from '../../api/admin';
 import { buildToast } from '../../api/interns';
 import './PermissionMatrixPage.css';
 
-/* ─────────────────────────────────────────────
-   Icon helper — emoji tương ứng với mỗi role key
-───────────────────────────────────────────── */
-const ROLE_ICONS = {
-  admin:  '🛡️',
-  hr:     '👩‍💼',
-  mentor: '🎓',
-  intern: '🧑‍💻',
-};
 
 /* ─────────────────────────────────────────────
    buildToast — tái sử dụng từ src/api/interns.js
@@ -159,9 +151,9 @@ function PermissionMatrixPage() {
       <div className="perm-matrix-shell">
 
         {/* Back link */}
-        <a href="/admin/dashboard" className="perm-matrix-back">
+        <Link to="/admin/dashboard" className="perm-matrix-back">
           ← Quay lại Dashboard
-        </a>
+        </Link>
 
         {/* Page header */}
         <div className="perm-matrix-header">
@@ -186,7 +178,7 @@ function PermissionMatrixPage() {
                 Đang lưu…
               </>
             ) : (
-              '💾 Lưu thay đổi'
+              'Lưu thay đổi'
             )}
           </button>
         </div>
@@ -212,9 +204,6 @@ function PermissionMatrixPage() {
                     {roles.map((role) => (
                       <th key={role.key}>
                         <div className="pm-role-chip">
-                          <span className="pm-role-chip__icon" aria-hidden="true">
-                            {ROLE_ICONS[role.key] ?? '👤'}
-                          </span>
                           <span className="pm-role-chip__label">{role.label}</span>
                         </div>
                       </th>
