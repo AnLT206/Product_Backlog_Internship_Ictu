@@ -10,6 +10,7 @@ from app.models.user import User
 from app.schemas.support_request import (
     SupportRequestCreate,
     SupportRequestResponse,
+    SupportRequestRespond,
     SupportRequestStatus,
     SupportRequestUpdateStatus,
 )
@@ -94,6 +95,25 @@ def update_support_request(
     current_user: User = Depends(get_current_user),
 ) -> SupportRequestResponse:
     """HR hoặc Admin phản hồi, đổi trạng thái yêu cầu sang in_progress, resolved, rejected."""
+    return SupportRequestService(db).update_request_status(
+        request_id=request_id,
+        responder_id=current_user.id,
+        payload=payload,
+    )
+
+
+@router.put(
+    "/hr/support-requests/{request_id}/respond",
+    response_model=SupportRequestResponse,
+    summary="HR / Admin chốt và phản hồi yêu cầu hỗ trợ",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def respond_to_support_request(
+    request_id: int,
+    payload: SupportRequestRespond,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> SupportRequestResponse:
     return SupportRequestService(db).update_request_status(
         request_id=request_id,
         responder_id=current_user.id,
