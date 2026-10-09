@@ -27,6 +27,11 @@ def list_notifications(
     response_model=NotificationResponse,
     status_code=status.HTTP_200_OK,
 )
+@router.put(
+    "/{notification_id}/read",
+    response_model=NotificationResponse,
+    status_code=status.HTTP_200_OK,
+)
 def mark_notification_read(
     notification_id: int,
     db: Session = Depends(get_db),

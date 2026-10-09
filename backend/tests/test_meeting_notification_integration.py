@@ -250,6 +250,8 @@ def test_notification_read_state_persists_after_reloading_list(meeting_client):
 
     initial_response = client.get("/api/notifications", headers=headers)
     assert initial_response.status_code == 200
+    assert initial_response.json()["total"] == 1
+    assert len(initial_response.json()["items"]) == 1
 
     mark_read_response = client.patch(
         f"/api/notifications/{notification_id}/read",
@@ -295,6 +297,77 @@ def test_notifications_are_scoped_to_current_user(meeting_client):
     assert update_response.status_code == 404
     with session_factory() as db:
         assert db.get(Notification, notification_id).is_read is False
+
+    put_response = client.put(
+        f"/api/notifications/{notification_id}/read",
+        headers=headers,
+    )
+    assert put_response.status_code == 404
+    with session_factory() as db:
+        assert db.get(Notification, notification_id).is_read is False
+
+
+def test_put_notification_read_persists_and_returns_notification(meeting_client):
+    client, session_factory = meeting_client
+    with session_factory() as db:
+        notification = Notification(
+            user_id=10,
+            title="Thông báo cần đọc",
+            body="Nội dung thông báo.",
+            is_read=False,
+        )
+        db.add(notification)
+        db.commit()
+        notification_id = notification.id
+
+    headers = {
+        "Authorization": f"Bearer {create_access_token(user_id=10, role='intern')}"
+    }
+    response = client.put(
+        f"/api/notifications/{notification_id}/read",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    response_data = response.json()
+    assert response_data["id"] == notification_id
+    assert response_data["user_id"] == 10
+    assert response_data["title"] == "Thông báo cần đọc"
+    assert response_data["body"] == "Nội dung thông báo."
+    assert response_data["is_read"] is True
+    assert "created_at" in response_data
+
+    with session_factory() as db:
+        assert db.get(Notification, notification_id).is_read is True
+
+    list_response = client.get("/api/notifications", headers=headers)
+    assert list_response.status_code == 200
+    listed_notification = next(
+        item
+        for item in list_response.json()["items"]
+        if item["id"] == notification_id
+    )
+    assert listed_notification["is_read"] is True
+
+
+def test_notifications_require_authentication(meeting_client):
+    client, session_factory = meeting_client
+    with session_factory() as db:
+        notification = Notification(
+            user_id=10,
+            title="Thông báo riêng",
+            body="Cần đăng nhập để đọc.",
+            is_read=False,
+        )
+        db.add(notification)
+        db.commit()
+        notification_id = notification.id
+
+    assert client.get("/api/notifications").status_code == 401
+    assert (
+        client.put(f"/api/notifications/{notification_id}/read").status_code
+        == 401
+    )
 
 
 def test_notification_websocket_rejects_invalid_expired_and_inactive_users(
