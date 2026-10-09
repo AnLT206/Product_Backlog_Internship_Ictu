@@ -312,11 +312,16 @@ export function AuthProvider({ children }) {
   const switchRole = useCallback(async (targetRole) => {
     const rawProfile = DEMO_PROFILES[targetRole] || DEMO_PROFILES.intern;
     const profile = enrichUserWithPersistedProfile(rawProfile);
+    const existingToken = localStorage.getItem(`access_token_${targetRole}`);
+    saveSession({
+      access_token: existingToken || localStorage.getItem('access_token') || 'demo-enterprise-token',
+      user: profile,
+    });
     setUser(profile);
     const roleKey = targetRole;
     const freshToken = await acquireTokenForRole(roleKey);
     saveSession({
-      access_token: freshToken || localStorage.getItem('access_token') || 'demo-enterprise-token',
+      access_token: freshToken || existingToken || localStorage.getItem('access_token') || 'demo-enterprise-token',
       user: profile,
     });
     return profile;

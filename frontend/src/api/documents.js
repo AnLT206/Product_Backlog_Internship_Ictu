@@ -6,7 +6,7 @@
  * "Gọi API → src/api/, không fetch rải trong mọi component/feature."
  */
 
-import apiFetch from './client';
+import apiFetch, { getTokenForRole, acquireTokenForRole } from './client';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -19,7 +19,10 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
  */
 export async function uploadDocument(file, docType = 'cv') {
-  const token = localStorage.getItem('access_token') || '';
+  let token = getTokenForRole('applicant') || getTokenForRole('intern');
+  if (!token) token = (await acquireTokenForRole('applicant')) || (await acquireTokenForRole('intern'));
+  if (!token) token = localStorage.getItem('access_token') || '';
+
   const formData = new FormData();
   formData.append('file', file);
 
@@ -67,7 +70,10 @@ export async function getMyDocuments(filters = {}) {
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
  */
 export async function uploadContract(internId, file) {
-  const token = localStorage.getItem('access_token') || '';
+  let token = getTokenForRole('hr');
+  if (!token) token = await acquireTokenForRole('hr');
+  if (!token) token = localStorage.getItem('access_token') || '';
+
   const formData = new FormData();
   formData.append('file', file);
 
@@ -159,7 +165,10 @@ export function getDocumentDownloadUrl(documentId) {
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
  */
 export async function previewDocumentFile(file) {
-  const token = localStorage.getItem('access_token') || '';
+  let token = getTokenForRole('applicant') || getTokenForRole('intern');
+  if (!token) token = (await acquireTokenForRole('applicant')) || (await acquireTokenForRole('intern'));
+  if (!token) token = localStorage.getItem('access_token') || '';
+
   const formData = new FormData();
   formData.append('file', file);
 
@@ -202,7 +211,7 @@ export async function viewDocument(documentId, options = {}) {
  * @returns {string}
  */
 export function getDocumentViewUrl(documentId) {
-  const token = localStorage.getItem('access_token') || '';
+  const token = getTokenForRole('hr') || getTokenForRole('mentor') || localStorage.getItem('access_token') || '';
   return `${BASE_URL}/api/documents/${documentId}/view${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 }
 
@@ -218,4 +227,3 @@ export async function deleteDocument(documentId) {
     method: 'DELETE',
   });
 }
-

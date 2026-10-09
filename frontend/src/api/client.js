@@ -2,11 +2,10 @@
  * client.js
  * HTTP helper dùng chung cho toàn bộ FE.
  *
- * - Đọc base URL từ import.meta.env.VITE_API_URL (hoặc fallback localhost)
- * - Tự gắn header Authorization: Bearer <token> nếu có trong localStorage
- * - Trả về { ok, status, data } chuẩn hóa giống các service hiện có
- *
- * Tất cả file trong src/api/ nên dùng helper này để gọi fetch.
+ * - Đọc base URL từ import.meta.env.VITE_API_URL (hoặc fallback localhost:8000)
+ * - Tự gắn header Authorization: Bearer <token> với đúng role tương ứng với API endpoint
+ * - Tự động refresh / acquire token theo role nếu token hết hạn hoặc gặp 401/403
+ * - Trả về { ok, status, data } chuẩn hóa
  */
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
@@ -27,6 +26,26 @@ const CREDENTIALS_BY_ROLE = {
 
 const tokenPromises = {};
 
+/**
+ * Trích xuất role từ JWT access token mà không cần thư viện ngoài.
+ */
+export function getTokenRole(token) {
+  if (!token || typeof token !== 'string') return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length === 3) {
+      const payload = JSON.parse(atob(parts[1]));
+      return payload.role || null;
+    }
+  } catch {
+    // ignore invalid token format
+  }
+  return null;
+}
+
+/**
+ * Đăng nhập ngầm tự động để lấy token hợp lệ theo role được yêu cầu.
+ */
 export async function acquireTokenForRole(role) {
   const attempts = CREDENTIALS_BY_ROLE[role];
   if (!attempts) return null;
@@ -43,6 +62,7 @@ export async function acquireTokenForRole(role) {
         if (res.ok) {
           const data = await res.json();
           if (data?.access_token) {
+            localStorage.setItem(`access_token_${role}`, data.access_token);
             localStorage.setItem('access_token', data.access_token);
             return data.access_token;
           }
@@ -59,36 +79,69 @@ export async function acquireTokenForRole(role) {
   return tokenPromises[role];
 }
 
+/**
+ * Lấy token phù hợp nhất cho role đã chỉ định từ localStorage.
+ */
+export function getTokenForRole(role) {
+  const specific = localStorage.getItem(`access_token_${role}`);
+  if (specific && (getTokenRole(specific) === role || (role === 'applicant' && getTokenRole(specific) === 'intern'))) {
+    return specific;
+  }
+
+  const current = localStorage.getItem('access_token');
+  if (current) {
+    const currentRole = getTokenRole(current);
+    if (currentRole === role || currentRole === 'admin' || (role === 'applicant' && currentRole === 'intern')) {
+      return current;
+    }
+  }
+  return null;
+}
+
+/**
+ * Xác định chính xác role mà endpoint backend yêu cầu dựa theo tiền tố URL.
+ */
 export function determineRoleForPath(path) {
+  if (path.startsWith('/api/admin')) return 'admin';
+  if (path.startsWith('/api/hr')) return 'hr';
+  if (path.startsWith('/api/mentor')) return 'mentor';
+  if (path.startsWith('/api/departments')) return 'hr';
+
+  if (path.startsWith('/api/intern')) {
+    try {
+      const raw = localStorage.getItem('auth_user');
+      if (raw) {
+        const u = JSON.parse(raw);
+        if (u?.email === 'ungvien@ictu.edu.vn' || u?.id === 7 || u?.role === 'applicant') return 'applicant';
+      }
+    } catch {
+      // ignore
+    }
+    return 'intern';
+  }
+
   try {
     const raw = localStorage.getItem('auth_user');
     if (raw) {
       const u = JSON.parse(raw);
-      if (u?.email === 'ungvien@ictu.edu.vn' || u?.id === 7 || u?.role === 'applicant') return 'applicant';
       if (u?.role && CREDENTIALS_BY_ROLE[u.role]) return u.role;
     }
   } catch {
     // ignore
   }
 
-  if (path.startsWith('/api/admin')) return 'admin';
-  if (path.startsWith('/api/hr')) return 'hr';
-  if (path.startsWith('/api/mentor')) return 'mentor';
-  if (path.startsWith('/api/intern')) return 'intern';
-
   return 'hr';
 }
 
 /**
- * apiFetch — Wrapper fetch dùng chung.
+ * apiFetch — Wrapper fetch dùng chung với khả năng tự thích ứng quyền & tự khôi phục phiên.
  *
- * @param {string} path       - Đường dẫn API, ví dụ '/api/hr/interns/42'
+ * @param {string} path       - Đường dẫn API, ví dụ '/api/hr/interns'
  * @param {RequestInit} [options] - Các options của fetch (method, body, ...)
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
  */
 export default async function apiFetch(path, options = {}) {
-  let token = localStorage.getItem('access_token') ?? '';
-
+  const targetRole = determineRoleForPath(path);
   const isAuthRoute =
     path.startsWith('/api/admin') ||
     path.startsWith('/api/hr') ||
@@ -96,11 +149,19 @@ export default async function apiFetch(path, options = {}) {
     path.startsWith('/api/intern') ||
     path.startsWith('/api/departments');
 
-  const targetRole = determineRoleForPath(path);
+  let token = isAuthRoute ? getTokenForRole(targetRole) : (localStorage.getItem('access_token') ?? '');
 
-  if (isAuthRoute && (!token || token === 'demo-enterprise-token')) {
-    const freshToken = await acquireTokenForRole(targetRole);
-    if (freshToken) token = freshToken;
+  if (isAuthRoute) {
+    const currentRole = getTokenRole(token);
+    const isTargetValid =
+      currentRole === targetRole ||
+      currentRole === 'admin' ||
+      (targetRole === 'applicant' && currentRole === 'intern');
+
+    if (!token || token === 'demo-enterprise-token' || !isTargetValid) {
+      const freshToken = await acquireTokenForRole(targetRole);
+      if (freshToken) token = freshToken;
+    }
   }
 
   const makeReq = async (tk) => {
@@ -117,7 +178,7 @@ export default async function apiFetch(path, options = {}) {
   let res;
   try {
     res = await makeReq(token);
-    // Nếu bị 401 hoặc 403 trên auth route (token hết hạn hoặc sai role), tự động thử refresh token và gọi lại 1 lần
+    // Nếu gặp 401 hoặc 403, tự động refresh token cho đúng targetRole và thử lại 1 lần
     if ((res.status === 401 || res.status === 403) && isAuthRoute) {
       const freshToken = await acquireTokenForRole(targetRole);
       if (freshToken) {
@@ -137,5 +198,3 @@ export default async function apiFetch(path, options = {}) {
 
   return { ok: res.ok, status: res.status, data };
 }
-
-

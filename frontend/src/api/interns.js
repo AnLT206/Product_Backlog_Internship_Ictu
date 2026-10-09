@@ -7,7 +7,7 @@
  * "Gọi API → src/api/, không fetch rải trong mọi component/feature."
  */
 
-import apiFetch from './client';
+import apiFetch, { getTokenForRole, acquireTokenForRole } from './client';
 
 /**
  * Lấy danh sách thực tập sinh với bộ lọc tuỳ chọn (phân trang, ngành, trường, trạng thái, từ khóa).
@@ -146,7 +146,9 @@ export async function updateInternStatus(internId, status) {
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
  */
 export async function uploadInternCv(internId, file) {
-  const token = localStorage.getItem('access_token') || '';
+  let token = getTokenForRole('hr');
+  if (!token) token = await acquireTokenForRole('hr');
+  if (!token) token = localStorage.getItem('access_token') || '';
   const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   const formData = new FormData();
   formData.append('file', file);

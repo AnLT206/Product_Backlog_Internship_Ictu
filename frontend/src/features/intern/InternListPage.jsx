@@ -112,14 +112,15 @@ function InternListPage() {
      loadInterns — khai báo TRƯỚC useEffect
      Mọi setState đều SAU await → tránh ESLint set-state-in-effect
   ───────────────────────────────────────────── */
-  async function loadInterns() {
-    const { ok, data } = await getInterns({
+  async function loadInterns(retryCount = 1) {
+    const res = await getInterns({
       major:      filterMajor,
       university: filterUni,
       q:          debouncedQuery.trim(),
       page:       1,
     });
-    if (ok) {
+    const { ok, data, status } = res;
+    if (ok && data) {
       const syncState = getRealtimeSyncState();
       let localCvSubmitted = false;
       let localCvFileName = null;
@@ -193,6 +194,9 @@ function InternListPage() {
       });
       setInterns(items);
       setLoadErr(null);
+    } else if (retryCount > 0 && (status === 401 || status === 403 || status === 0)) {
+      await new Promise((r) => setTimeout(r, 400));
+      return loadInterns(retryCount - 1);
     } else {
       setLoadErr('Không thể tải danh sách thực tập sinh, vui lòng thử lại.');
     }
