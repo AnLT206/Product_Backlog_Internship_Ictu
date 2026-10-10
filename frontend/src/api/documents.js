@@ -26,8 +26,12 @@ export async function uploadDocument(file, docType = 'cv') {
   const formData = new FormData();
   formData.append('file', file);
 
+  const endpoint = docType === 'cv'
+    ? `${BASE_URL}/api/documents/cv`
+    : `${BASE_URL}/api/intern/documents/upload?doc_type=${encodeURIComponent(docType)}`;
+
   const res = await fetch(
-    `${BASE_URL}/api/intern/documents/upload?doc_type=${encodeURIComponent(docType)}`,
+    endpoint,
     {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},

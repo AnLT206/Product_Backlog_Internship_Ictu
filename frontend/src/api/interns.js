@@ -99,18 +99,18 @@ export async function updateIntern(internId, payload) {
 
 /**
  * Duyệt hồ sơ thực tập sinh (chuyển sang active và gửi email thông báo).
- * Route: POST /api/hr/interns/{id}/approve
+ * Route: PATCH /api/hr/interns/{id}/approve
  *
  * @param {number|string} internId
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
  */
 export async function approveIntern(internId) {
-  return apiFetch(`/api/hr/interns/${internId}/approve`, { method: 'POST' });
+  return apiFetch(`/api/hr/interns/${internId}/approve`, { method: 'PATCH' });
 }
 
 /**
  * Từ chối hồ sơ thực tập sinh (kèm ghi chú lý do).
- * Route: POST /api/hr/interns/{id}/reject
+ * Route: PATCH /api/hr/interns/{id}/reject
  *
  * @param {number|string} internId
  * @param {string} [note]
@@ -118,7 +118,7 @@ export async function approveIntern(internId) {
  */
 export async function rejectIntern(internId, note = '') {
   return apiFetch(`/api/hr/interns/${internId}/reject`, {
-    method: 'POST',
+    method: 'PATCH',
     body: JSON.stringify({ note: note || undefined }),
   });
 }

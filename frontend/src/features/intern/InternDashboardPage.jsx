@@ -412,6 +412,15 @@ export default function InternDashboardPage() {
     notifyInternDataChanged()
     refreshMetrics()
 
+    // Đồng bộ API backend (DFD Section 4.3)
+    apiFetch('/api/intern/attendance/check-in', {
+      method: 'POST',
+      body: JSON.stringify({
+        timestamp: new Date().toISOString(),
+        note: 'Check-in qua Intern Dashboard',
+      }),
+    }).catch(() => {})
+
     // Đồng bộ thời gian thực tới Báo cáo chuyên cần HR
     emitRealtimeEvent(SYNC_EVENTS.ATTENDANCE_CHECKED_IN, {
       type: 'checkin',
@@ -488,6 +497,15 @@ export default function InternDashboardPage() {
     }
     notifyInternDataChanged()
     refreshMetrics()
+
+    // Đồng bộ API backend (DFD Section 4.3)
+    apiFetch('/api/intern/attendance/check-out', {
+      method: 'POST',
+      body: JSON.stringify({
+        timestamp: new Date().toISOString(),
+        note: `Check-out qua Intern Dashboard (${duration})`,
+      }),
+    }).catch(() => {})
 
     // Đồng bộ thời gian thực tới Báo cáo chuyên cần HR
     emitRealtimeEvent(SYNC_EVENTS.ATTENDANCE_CHECKED_IN, {
