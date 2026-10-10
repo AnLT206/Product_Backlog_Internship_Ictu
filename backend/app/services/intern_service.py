@@ -478,7 +478,21 @@ class InternService:
             from app.models.document import Document
             self.db.query(Document).filter(
                 Document.user_id == intern_id, Document.doc_type == "cv"
-            ).update({"status": "rejected"}, synchronize_session=False)
+            ).update(
+                {"status": "rejected", "review_note": (note or "")[:255] if note else None},
+                synchronize_session=False,
+            )
+            from app.services.notification_service import NotificationService
+            NotificationService(self.db).create_notification(
+                user_id=user.id,
+                title="Thông báo kết quả xét duyệt hồ sơ thực tập",
+                body=(
+                    f"Hồ sơ ứng tuyển của bạn hiện chưa được tiếp nhận. "
+                    + (f"Lý do: {note}. " if note else "")
+                    + "Bạn có thể chuẩn bị lại CV và nộp lại hồ sơ bất kỳ lúc nào."
+                ),
+                commit=False,
+            )
             self.db.commit()
             self.db.refresh(user)
             EmailService.enqueue_email(
