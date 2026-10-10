@@ -77,6 +77,18 @@ function LoginPage() {
   async function performLogin(targetEmail, targetPassword, forcedDest) {
     setError('')
     setLoading(true)
+
+    const isApplicantAccount = targetEmail.trim().toLowerCase().includes('ungvien')
+    if (isApplicantAccount) {
+      try {
+        localStorage.removeItem('applicant_decision_status')
+        localStorage.removeItem('applicant_onboarded')
+        localStorage.removeItem('applicant_pending_contract')
+        sessionStorage.removeItem('applicant_reject_modal_dismissed')
+        localStorage.removeItem('ictu_user_profile_ungvien@ictu.edu.vn')
+      } catch {}
+    }
+
     try {
       const result = await login(targetEmail.trim(), targetPassword)
       if (!result.ok) {

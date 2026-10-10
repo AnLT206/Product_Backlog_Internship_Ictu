@@ -49,7 +49,7 @@ export default function InternLayout() {
     : 'TTS (TTS0001)'
 
   const displayUserMeta = isApplicant
-    ? `Mã UV: ${user?.code && user.code !== 'TTS0001' ? user.code : 'TTS0003'} · K20-CNTT`
+    ? `Mã UV: ${user?.code && user.code !== 'TTS0001' ? user.code : 'UV0001'} · K20-CNTT`
     : isActualIntern
     ? `Mã TTS: ${user?.code || 'TTS0001'} · K20-CNTT`
     : 'Mã TTS: TTS0001 · K20-CNTT'

@@ -95,27 +95,34 @@ export function getPersistedUserProfile(email) {
 
 export function enrichUserWithPersistedProfile(userObj) {
   if (!userObj) return userObj;
+  const isCandidate = (userObj.email || '').toLowerCase().includes('ungvien') || (userObj.code || '') === 'UV0001';
   const persisted = getPersistedUserProfile(userObj.email);
   let resolvedStatus = userObj.status;
   let resolvedProfileStatus = userObj.profile_status || userObj.status;
 
-  if (persisted?.status) resolvedStatus = persisted.status;
-  if (persisted?.profile_status) resolvedProfileStatus = persisted.profile_status;
+  if (persisted?.status && !isCandidate) resolvedStatus = persisted.status;
+  if (persisted?.profile_status && !isCandidate) resolvedProfileStatus = persisted.profile_status;
 
-  try {
-    const rawDec = localStorage.getItem('applicant_decision_status');
-    if (rawDec) {
-      const dec = JSON.parse(rawDec);
-      const isTargetApplicant =
-        (dec?.applicantId && (dec.applicantId === userObj.id || String(dec.applicantId) === String(userObj.id))) ||
-        (userObj.email && userObj.email.toLowerCase().includes('ungvien'));
+  // Nếu người dùng từ backend là pending (chưa được duyệt), giữ vững trạng thái pending
+  if (isCandidate && userObj.status === 'pending') {
+    resolvedStatus = 'pending';
+    resolvedProfileStatus = 'pending';
+  } else {
+    try {
+      const rawDec = localStorage.getItem('applicant_decision_status');
+      if (rawDec) {
+        const dec = JSON.parse(rawDec);
+        const isTargetApplicant =
+          (dec?.applicantId && (dec.applicantId === userObj.id || String(dec.applicantId) === String(userObj.id))) ||
+          (userObj.email && userObj.email.toLowerCase().includes('ungvien'));
 
-      if (dec?.status && isTargetApplicant) {
-        resolvedStatus = dec.status === 'rejected' ? 'rejected' : dec.status === 'approved' ? 'approved' : resolvedStatus;
-        resolvedProfileStatus = dec.status;
+        if (dec?.status && isTargetApplicant) {
+          resolvedStatus = dec.status === 'rejected' ? 'rejected' : dec.status === 'approved' ? 'approved' : resolvedStatus;
+          resolvedProfileStatus = dec.status;
+        }
       }
-    }
-  } catch {}
+    } catch {}
+  }
 
   return {
     ...userObj,
@@ -141,19 +148,24 @@ export function isApplicantUser(u) {
   const status = (u.status || '').toLowerCase().trim();
   const profileStatus = (u.profile_status || '').toLowerCase().trim();
 
-  // ĐÃ DUYỆT / ACTIVE -> Chắc chắn là Thực tập sinh chính thức, KHÔNG còn là Ứng viên chờ duyệt nữa!
+  // 1. ĐÃ DUYỆT / ACTIVE -> Chắc chắn là Thực tập sinh chính thức, KHÔNG còn là Ứng viên chờ duyệt nữa!
   if (status === 'active' || status === 'approved' || profileStatus === 'approved') {
     return false;
   }
 
-  // Nếu người dùng đã hoàn thành ký hợp đồng (onboarded), không còn là ứng viên chờ duyệt nữa
+  // 2. Nếu người dùng đã hoàn thành ký hợp đồng (onboarded), không còn là ứng viên chờ duyệt nữa
   if (typeof window !== 'undefined' && localStorage.getItem('applicant_onboarded') === 'true') {
     return false;
   }
 
-  // Các tài khoản TTS chính thức có code TTS
+  // 3. Các tài khoản TTS chính thức có code TTS
   if (code.startsWith('TTS') && code !== 'TTS9999' && code !== 'TTS0003' && status !== 'pending') {
     return false;
+  }
+
+  // 4. Đối với tài khoản ứng viên định danh (ungvien@ictu.edu.vn hoặc UV0001)
+  if (email.includes('ungvien') || code === 'UV0001') {
+    return true;
   }
 
   return (
