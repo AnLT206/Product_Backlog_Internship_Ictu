@@ -260,34 +260,49 @@ export default function InternUploadPage() {
         }
       }
 
-      // 3. Kiểm tra xem HR đã phát hành & gửi hợp đồng tiếp nhận chưa
-      try {
-        if (isAlreadyOnboarded && resolvedDecision?.status !== 'rejected') {
-          setIsContractConfirmed(true);
-          setCurrentStep('onboarded');
-        } else {
-          setIsContractConfirmed(false);
-          const pendingRaw = localStorage.getItem('applicant_pending_contract');
-          if (pendingRaw && isMounted) {
-            const parsed = JSON.parse(pendingRaw);
-            if (parsed && parsed.contract) {
-              setPendingContract(parsed.contract);
-            }
-          } else if (isMounted) {
-            const targetId = user?.id || 7;
-            const myContract = syncState.contracts?.find(
-              (c) =>
-                (c.intern_id === targetId ||
-                  String(c.intern_id) === String(targetId) ||
-                  c.student_name === user?.full_name) &&
-                !c.signed_intern
-            );
-            if (myContract) {
-              setPendingContract(myContract);
+      // 3. Kiểm tra xem HR đã phát hành & gửi hợp đồng tiếp nhận chưa (CHỈ KHI KHÔNG BỊ TỪ CHỐI)
+      const isCandidateRejected = resolvedDecision?.status === 'rejected';
+
+      if (!isCandidateRejected) {
+        try {
+          if (isAlreadyOnboarded) {
+            setIsContractConfirmed(true);
+            setCurrentStep('onboarded');
+          } else {
+            setIsContractConfirmed(false);
+            const pendingRaw = localStorage.getItem('applicant_pending_contract');
+            if (pendingRaw && isMounted) {
+              const parsed = JSON.parse(pendingRaw);
+              if (parsed && parsed.contract) {
+                setPendingContract(parsed.contract);
+              }
+            } else if (isMounted) {
+              const targetId = user?.id || 7;
+              const myContract = syncState.contracts?.find(
+                (c) =>
+                  (c.intern_id === targetId ||
+                    String(c.intern_id) === String(targetId) ||
+                    c.student_name === user?.full_name) &&
+                  !c.signed_intern
+              );
+              if (myContract) {
+                setPendingContract(myContract);
+              }
             }
           }
+        } catch {}
+      } else {
+        if (isMounted) {
+          setPendingContract(null);
+          setShowContractModal(false);
+          setIsContractConfirmed(false);
         }
-      } catch {}
+        if (isCandidateRejected) {
+          try {
+            localStorage.removeItem('applicant_pending_contract');
+          } catch {}
+        }
+      }
     }
 
     loadCvData();
@@ -794,8 +809,8 @@ export default function InternUploadPage() {
         </div>
       )}
 
-      {/* BANNER THÔNG BÁO HỢP ĐỒNG TIẾP NHẬN ĐƯỢC GỬI TỪ HR */}
-      {pendingContract && !isContractConfirmed && (
+      {/* BANNER THÔNG BÁO HỢP ĐỒNG TIẾP NHẬN ĐƯỢC GỬI TỪ HR (CHỈ HIỂN THỊ KHI KHÔNG BỊ TỪ CHỐI) */}
+      {pendingContract && !isContractConfirmed && currentStep !== 'rejected' && (
         <div className="iad-alert-contract-banner">
           <div className="iad-alert-contract-left">
             <div className="iad-alert-contract-icon">

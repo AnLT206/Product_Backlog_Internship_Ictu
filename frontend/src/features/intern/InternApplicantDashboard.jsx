@@ -103,6 +103,7 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
 
   // Trạng thái Modal Thông báo khi HR từ chối
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
   // Thông báo Toast nhanh
   const [toastMessage, setToastMessage] = useState(null);
@@ -259,45 +260,63 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
         }
       }
 
+      const isRejected = resolvedDecision?.status === 'rejected';
+      const isApproved = resolvedDecision?.status === 'approved';
+
       if (isMounted) {
-        if (resolvedDecision?.status === 'approved') {
+        if (isApproved) {
           setCurrentStep('approved');
           setShowRejectModal(false);
-        } else if (resolvedDecision?.status === 'rejected') {
+          setRejectReason('');
+        } else if (isRejected) {
           setCurrentStep('rejected');
+          setRejectReason(resolvedDecision?.reason || 'Hồ sơ chưa đáp ứng đủ yêu cầu tiếp nhận thực tập đợt này.');
           const isDismissed = sessionStorage.getItem('applicant_reject_modal_dismissed') === 'true';
           setShowRejectModal(!isDismissed);
+          setPendingContract(null);
+          setShowContractModal(false);
+          setIsContractConfirmed(false);
+          try {
+            localStorage.removeItem('applicant_pending_contract');
+          } catch {}
         }
       }
 
-      // 3. Kiểm tra xem HR đã phát hành & gửi hợp đồng tiếp nhận chưa
-      try {
-        const isAlreadyOnboarded = localStorage.getItem('applicant_onboarded') === 'true';
-        if (isAlreadyOnboarded) {
-          setIsContractConfirmed(true);
-          setCurrentStep('onboarded');
-        } else {
-          const pendingRaw = localStorage.getItem('applicant_pending_contract');
-          if (pendingRaw && isMounted) {
-            const parsed = JSON.parse(pendingRaw);
-            if (parsed && parsed.contract) {
-              setPendingContract(parsed.contract);
-            }
-          } else if (isMounted) {
-            const targetId = user?.id || 7;
-            const myContract = syncState.contracts?.find(
-              (c) =>
-                (c.intern_id === targetId ||
-                  String(c.intern_id) === String(targetId) ||
-                  c.student_name === user?.full_name) &&
-                !c.signed_intern
-            );
-            if (myContract) {
-              setPendingContract(myContract);
+      // 3. Kiểm tra hợp đồng tiếp nhận (CHỈ HIỂN THỊ KHI KHÔNG BỊ TỪ CHỐI)
+      if (!isRejected) {
+        try {
+          const isAlreadyOnboarded = localStorage.getItem('applicant_onboarded') === 'true';
+          if (isAlreadyOnboarded) {
+            setIsContractConfirmed(true);
+            setCurrentStep('onboarded');
+          } else {
+            const pendingRaw = localStorage.getItem('applicant_pending_contract');
+            if (pendingRaw && isMounted) {
+              const parsed = JSON.parse(pendingRaw);
+              if (parsed && parsed.contract) {
+                setPendingContract(parsed.contract);
+              }
+            } else if (isMounted && isApproved) {
+              const targetId = user?.id || 7;
+              const myContract = syncState.contracts?.find(
+                (c) =>
+                  (c.intern_id === targetId ||
+                    String(c.intern_id) === String(targetId) ||
+                    c.student_name === user?.full_name) &&
+                  !c.signed_intern
+              );
+              if (myContract) {
+                setPendingContract(myContract);
+              }
             }
           }
+        } catch {}
+      } else {
+        if (isMounted) {
+          setPendingContract(null);
+          setShowContractModal(false);
         }
-      } catch {}
+      }
     }
 
     loadCvData();
@@ -477,8 +496,8 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
         </div>
       )}
 
-      {/* BANNER THÔNG BÁO HỢP ĐỒNG TIẾP NHẬN ĐƯỢC GỬI TỪ HR */}
-      {pendingContract && !isContractConfirmed && (
+      {/* BANNER THÔNG BÁO HỢP ĐỒNG TIẾP NHẬN ĐƯỢC GỬI TỪ HR (CHỈ HIỂN THỊ KHI KHÔNG BỊ TỪ CHỐI) */}
+      {pendingContract && !isContractConfirmed && currentStep !== 'rejected' && (
         <div className="iad-alert-contract-banner">
           <div className="iad-alert-contract-left">
             <div className="iad-alert-contract-icon">
@@ -594,7 +613,7 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
               <div className="iad-hero__info-card-sub">Khoa Công nghệ Thông tin - ICTU</div>
             </div>
 
-            {!isContractConfirmed && (pendingContract || currentStep === 'approved') && (
+            {!isContractConfirmed && currentStep !== 'rejected' && pendingContract && (
               <button
                 type="button"
                 onClick={() => setShowContractModal(true)}
@@ -880,20 +899,52 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
               <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                 <FileX size={32} />
               </div>
-              <p style={{ fontSize: 15, color: '#1e293b', lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
-                CV của bạn không đạt đủ yêu cầu, bạn hãy dành thêm thời gian để chuẩn bị lại CV cho lần tiếp theo nhé!
+              <p style={{ fontSize: 15, color: '#1e293b', lineHeight: 1.6, margin: '0 0 12px', fontWeight: 600 }}>
+                CV của bạn chưa đạt yêu cầu tiếp nhận thực tập đợt này.
+              </p>
+              {rejectReason && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 16px', textAlign: 'left', margin: '0 auto 16px', maxWidth: '440px' }}>
+                  <span style={{ fontSize: '12px', color: '#991b1b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                    Lý do từ chối từ Phòng Nhân sự:
+                  </span>
+                  <span style={{ fontSize: '13.5px', color: '#b91c1c', lineHeight: 1.5 }}>
+                    {rejectReason}
+                  </span>
+                </div>
+              )}
+              <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                Bạn hãy chuẩn bị và hoàn thiện lại CV để nộp lại cho các đợt tuyển dụng tiếp theo nhé!
               </p>
             </div>
 
-            <div className="iad-modal-footer" style={{ justifyContent: 'center', padding: '16px 20px' }}>
+            <div className="iad-modal-footer" style={{ justifyContent: 'center', gap: '12px', padding: '16px 20px' }}>
               <button
                 type="button"
                 onClick={handleCloseRejectModal}
                 className="iad-btn iad-btn--secondary"
-                style={{ minWidth: 120, justifyContent: 'center', padding: '10px 24px', fontSize: 14, fontWeight: 600 }}
+                style={{ minWidth: 100, justifyContent: 'center', padding: '10px 20px', fontSize: 14, fontWeight: 600 }}
               >
                 Đóng
               </button>
+              <Link
+                to="/intern/upload"
+                onClick={handleCloseRejectModal}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: '#2563EB',
+                  color: '#FFFFFF',
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                <UploadCloud size={16} />
+                <span>Nộp lại CV mới</span>
+              </Link>
             </div>
           </div>
         </div>

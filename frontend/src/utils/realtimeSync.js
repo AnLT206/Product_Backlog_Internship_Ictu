@@ -357,12 +357,14 @@ export function getRealtimeSyncState() {
               };
             } else {
               let hasActiveRejection = false;
+              let rejectReason = '';
               try {
                 const decRaw = localStorage.getItem('applicant_decision_status');
                 if (decRaw) {
                   const dec = JSON.parse(decRaw);
                   if (dec?.status === 'rejected' && (!dec.applicantId || dec.applicantId === a.id || a.email === 'ungvien@ictu.edu.vn')) {
                     hasActiveRejection = true;
+                    rejectReason = dec.reason || '';
                   }
                 }
               } catch {}
@@ -370,7 +372,7 @@ export function getRealtimeSyncState() {
               let resolvedStatus;
               if (a.status === 'approved') {
                 resolvedStatus = 'approved';
-              } else if (hasActiveRejection) {
+              } else if (hasActiveRejection || a.status === 'rejected') {
                 resolvedStatus = 'rejected';
               } else {
                 resolvedStatus = 'pending';
@@ -381,6 +383,7 @@ export function getRealtimeSyncState() {
                 cv_file: actualCvName || a.cv_file,
                 applied_at: actualCvDate || a.applied_at,
                 status: resolvedStatus,
+                reject_reason: resolvedStatus === 'rejected' ? (rejectReason || a.reject_reason || 'Hồ sơ chưa đáp ứng đủ yêu cầu tiếp nhận thực tập đợt này.') : undefined,
                 avatar: currentAvt,
               };
             }
@@ -716,16 +719,45 @@ export function syncApplicantDecision(applicantId, decisionStatus, reason = '') 
   let targetApplicant = null;
 
   state.applicants = state.applicants.map((a) => {
-    if (a.id === applicantId) {
+    const isTarget =
+      a.id === applicantId ||
+      String(a.id) === String(applicantId) ||
+      (applicantId === 7 && a.email?.toLowerCase() === 'ungvien@ictu.edu.vn') ||
+      (a.email && a.email.toLowerCase() === 'ungvien@ictu.edu.vn' && (applicantId === 7 || applicantId === '7'));
+
+    if (isTarget) {
       targetApplicant = {
         ...a,
         status: decisionStatus,
-        reject_reason: decisionStatus === 'rejected' ? reason : undefined,
+        reject_reason: decisionStatus === 'rejected' ? (reason || 'Hồ sơ chưa đáp ứng đủ yêu cầu tiếp nhận thực tập đợt này.') : undefined,
       };
+      if (decisionStatus === 'rejected') {
+        targetApplicant.contract_sent = false;
+        targetApplicant.contract_code = undefined;
+        targetApplicant.contract_file = null;
+        targetApplicant.contract_info = null;
+      }
       return targetApplicant;
     }
     return a;
   });
+
+  if (decisionStatus === 'rejected') {
+    // 1. Dọn sạch hợp đồng của ứng viên bị từ chối
+    if (state.contracts) {
+      state.contracts = state.contracts.filter(
+        (c) =>
+          c.intern_id !== applicantId &&
+          String(c.intern_id) !== String(applicantId) &&
+          c.student_name !== targetApplicant?.full_name &&
+          c.email !== targetApplicant?.email
+      );
+    }
+    // 2. Xóa sạch cache hợp đồng chờ ký trên máy ứng viên
+    try {
+      localStorage.removeItem('applicant_pending_contract');
+    } catch {}
+  }
 
   saveRealtimeSyncState(state);
 
@@ -733,7 +765,12 @@ export function syncApplicantDecision(applicantId, decisionStatus, reason = '') 
   try {
     localStorage.setItem(
       'applicant_decision_status',
-      JSON.stringify({ status: decisionStatus, applicantId, reason, timestamp: Date.now() })
+      JSON.stringify({
+        status: decisionStatus,
+        applicantId,
+        reason: decisionStatus === 'rejected' ? (reason || 'Hồ sơ chưa đáp ứng đủ yêu cầu tiếp nhận thực tập đợt này.') : '',
+        timestamp: Date.now(),
+      })
     );
   } catch {
     /* ignore */

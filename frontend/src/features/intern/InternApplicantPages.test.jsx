@@ -120,6 +120,41 @@ describe('InternApplicantPages Test Suite', () => {
       expect(screen.getAllByText(/3.500.000 VNĐ \/ tháng/i).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/Điều khoản cam kết thực tập bảo mật thông tin/i)).toBeInTheDocument();
     });
+
+    it('khi ứng viên bị HR từ chối: TUYỆT ĐỐI KHÔNG hiển thị banner hợp đồng và hiển thị modal từ chối kèm lý do', async () => {
+      // Giả lập HR đã ra quyết định từ chối
+      const rejectReason = 'CV chưa đáp ứng đủ tiêu chuẩn kỹ thuật đợt này.';
+      localStorage.setItem('applicant_decision_status', JSON.stringify({
+        status: 'rejected',
+        applicantId: 7,
+        reason: rejectReason,
+      }));
+      // Giả lập cache cũ còn sót hợp đồng
+      localStorage.setItem('applicant_pending_contract', JSON.stringify({
+        contract: {
+          id: 99,
+          doc_type: 'Hợp Đồng Cũ Bị Hủy',
+        },
+      }));
+
+      render(
+        <BrowserRouter>
+          <InternApplicantDashboard user={mockCurrentUser} />
+        </BrowserRouter>
+      );
+
+      // Banner hợp đồng tuyệt đối không được xuất hiện
+      await waitFor(() => {
+        expect(screen.queryByText(/THÔNG BÁO: BẠN NHẬN ĐƯỢC HỢP ĐỒNG TIẾP NHẬN THỰC TẬP TỪ PHÒNG NHÂN SỰ/i)).not.toBeInTheDocument();
+      });
+      expect(screen.queryByText(/Xem Hợp Đồng Thực Tập/i)).not.toBeInTheDocument();
+
+      // Modal từ chối phải hiển thị kèm lý do từ chối
+      expect(screen.getByText(/Thông Báo Kết Quả Tuyển Dụng/i)).toBeInTheDocument();
+      expect(screen.getByText(/CV của bạn chưa đạt yêu cầu tiếp nhận thực tập đợt này/i)).toBeInTheDocument();
+      expect(screen.getByText(rejectReason)).toBeInTheDocument();
+      expect(screen.getByText(/Nộp lại CV mới/i)).toBeInTheDocument();
+    });
   });
 
   describe('3. InternUploadPage Component', () => {

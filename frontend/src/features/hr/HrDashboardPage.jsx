@@ -178,30 +178,31 @@ export default function HrDashboardPage() {
 
           // Kiểm tra xem ứng viên có quyết định từ chối còn hiệu lực không
           let hasActiveLocalReject = false;
+          let localRejectReason = '';
           try {
             const decRaw = localStorage.getItem('applicant_decision_status');
             if (decRaw) {
               const dec = JSON.parse(decRaw);
-              if (dec?.status === 'rejected' && (!dec.applicantId || dec.applicantId === item.id || isApplicantAccount)) {
-                // CHỈ coi là active reject nếu syncMatch?.status !== 'pending' (nếu đã nộp lại CV thì chuyển về pending)
-                if (syncMatch?.status !== 'pending') {
-                  hasActiveLocalReject = true;
-                }
+              if (
+                dec?.status === 'rejected' &&
+                (!dec.applicantId || dec.applicantId === item.id || isApplicantAccount || String(dec.applicantId) === String(item.id))
+              ) {
+                hasActiveLocalReject = true;
+                localRejectReason = dec.reason || '';
               }
             }
           } catch {}
 
-          // Xác định trạng thái nghiệp vụ
+          // Xác định trạng thái nghiệp vụ chuẩn xác
           const isApproved = item.status === 'approved' || item.status === 'active' || syncMatch?.status === 'approved';
+          const isRejected = !isApproved && (item.status === 'rejected' || syncMatch?.status === 'rejected' || hasActiveLocalReject);
 
           let finalStatus;
           if (isApproved) {
             finalStatus = 'approved';
-          } else if (syncMatch?.status === 'pending' || (isApplicantAccount && localCvSubmitted && !hasActiveLocalReject) || item.status === 'pending') {
-            finalStatus = 'pending';
-          } else if (hasActiveLocalReject || syncMatch?.status === 'rejected' || (item.status === 'rejected' && !hasCv)) {
+          } else if (isRejected) {
             finalStatus = 'rejected';
-          } else if (hasCv) {
+          } else if (syncMatch?.status === 'pending' || item.status === 'pending' || (isApplicantAccount && localCvSubmitted) || hasCv) {
             finalStatus = 'pending';
           } else {
             // Chưa nộp CV thì ở trạng thái Chưa nộp CV, không được xét duyệt
@@ -220,6 +221,7 @@ export default function HrDashboardPage() {
             has_cv: hasCv,
             cv_file: actualCvFile,
             status: finalStatus,
+            reject_reason: isRejected ? (localRejectReason || syncMatch?.reject_reason) : undefined,
             applied_at: hasCv
               ? (localCvDate || syncMatch?.applied_at || (item.created_at ? formatDate(item.created_at.split('T')[0]) : '01/10/2026'))
               : null,
@@ -233,8 +235,8 @@ export default function HrDashboardPage() {
             const isApplicantAccount = sa.email === 'ungvien@ictu.edu.vn' || sa.id === 7;
             const hasCv = Boolean(sa.cv_file && sa.cv_file !== 'CV_UngVien.pdf') || (isApplicantAccount && localCvSubmitted);
             const isApproved = sa.status === 'approved';
-            const isRejected = sa.status === 'rejected' && sa.status !== 'pending';
-            const status = isApproved ? 'approved' : (sa.status === 'pending' || hasCv) ? 'pending' : isRejected ? 'rejected' : 'unsubmitted';
+            const isRejected = !isApproved && sa.status === 'rejected';
+            const status = isApproved ? 'approved' : isRejected ? 'rejected' : (sa.status === 'pending' || hasCv) ? 'pending' : 'unsubmitted';
             const saAvatar = sa.avatar || getSavedAvatar(sa.email, sa.id);
             merged.push({
               ...sa,
@@ -379,11 +381,20 @@ export default function HrDashboardPage() {
     setActionLoadingId(applicant.id);
     try {
       syncApplicantDecision(applicant.id, 'approved');
+      setInterns((prev) =>
+        prev.map((it) =>
+          it.id === applicant.id || (applicant.email && it.email === applicant.email)
+            ? { ...it, status: 'approved' }
+            : it
+        )
+      );
       if (typeof applicant.id === 'number') {
-        await approveIntern(applicant.id).catch(() => {});
+        await approveIntern(applicant.id).catch((err) => {
+          console.warn('approveIntern error:', err);
+        });
       }
       showToast(`Đã duyệt hồ sơ của ${applicant.full_name}! Trạng thái chuyển thành "Đã duyệt".`);
-      loadDashboardData();
+      await loadDashboardData();
     } catch {
       showToast(`Không thể duyệt hồ sơ ${applicant.full_name}. Vui lòng thử lại.`, 'error');
     } finally {
@@ -415,13 +426,22 @@ export default function HrDashboardPage() {
     setActionLoadingId(applicant?.id);
     try {
       syncApplicantDecision(applicant.id, 'rejected', reason);
+      setInterns((prev) =>
+        prev.map((it) =>
+          it.id === applicant.id || (applicant.email && it.email === applicant.email)
+            ? { ...it, status: 'rejected', reject_reason: reason }
+            : it
+        )
+      );
       if (typeof applicant?.id === 'number') {
-        await rejectIntern(applicant.id, reason).catch(() => {});
+        await rejectIntern(applicant.id, reason).catch((err) => {
+          console.warn('rejectIntern error:', err);
+        });
       }
       showToast(`Đã từ chối hồ sơ của ${applicant.full_name}.`, 'info');
       setRejectDialog({ open: false, applicant: null, reason: '' });
       if (cvModal.open) setCvModal({ open: false, applicant: null });
-      loadDashboardData();
+      await loadDashboardData();
     } catch {
       showToast('Lỗi khi từ chối hồ sơ.', 'error');
     } finally {

@@ -59,3 +59,4 @@ describe('InternProfilePage Test', () => {
     expect(screen.getByText('Thông Tin Cá Nhân & Tài Khoản Ngân Hàng')).toBeInTheDocument();
   });
 });
+
