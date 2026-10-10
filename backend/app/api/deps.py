@@ -35,7 +35,7 @@ def get_active_user_from_token(token: str, db: Session) -> User | None:
         return None
 
     user = db.query(User).filter(User.id == user_id).first()
-    if user is None or user.status != "active":
+    if user is None or user.status not in ("active", "pending"):
         return None
     return user
 

@@ -139,12 +139,10 @@ export function isApplicantUser(u) {
   const name = (u.full_name || '').toLowerCase().trim();
   const role = (u.role || '').toLowerCase().trim();
   const status = (u.status || '').toLowerCase().trim();
+  const profileStatus = (u.profile_status || '').toLowerCase().trim();
 
-  // Đảm bảo các tài khoản TTS chính thức không bị nhầm lẫn
-  if (
-    (code === 'TTS0001' || email === 'intern@ictu.edu.vn' || code === 'TTS0002' || email === 'tts02@student.ictu.edu.vn') &&
-    !name.includes('ứng viên')
-  ) {
+  // ĐÃ DUYỆT / ACTIVE -> Chắc chắn là Thực tập sinh chính thức, KHÔNG còn là Ứng viên chờ duyệt nữa!
+  if (status === 'active' || status === 'approved' || profileStatus === 'approved') {
     return false;
   }
 
@@ -153,14 +151,18 @@ export function isApplicantUser(u) {
     return false;
   }
 
-  if (role === 'intern' && status === 'active' && !name.includes('ứng viên') && !email.includes('ungvien')) {
+  // Các tài khoản TTS chính thức có code TTS
+  if (code.startsWith('TTS') && code !== 'TTS9999' && code !== 'TTS0003' && status !== 'pending') {
     return false;
   }
 
   return (
     role === 'applicant' ||
     status === 'pending' ||
+    status === 'unsubmitted' ||
+    profileStatus === 'pending' ||
     email.includes('ungvien') ||
+    code === 'UV0001' ||
     code === 'TTS9999' ||
     code === 'TTS0003' ||
     name === 'ứng viên' ||
@@ -171,30 +173,14 @@ export function isApplicantUser(u) {
 export function normalizeUserName(u) {
   if (!u) return u;
   const clone = { ...u };
-  const role = clone.role;
-  const email = (clone.email || '').toLowerCase();
-  const isApplicant = isApplicantUser(clone);
-
-  if (role === 'admin' || email.includes('admin')) {
-    clone.id = 1;
-    clone.code = clone.code || 'AD0001';
-    clone.full_name = 'Admin';
-  } else if (role === 'hr' || email.includes('hr')) {
-    clone.id = 2;
-    clone.code = clone.code || 'HR0001';
-    clone.full_name = 'HR';
-  } else if (role === 'mentor' || email.includes('mentor')) {
-    clone.id = 3;
-    clone.code = clone.code || 'MT0001';
-    clone.full_name = 'Mentor';
-  } else if (isApplicant) {
-    clone.id = 7;
-    clone.code = clone.code || 'TTS0003';
-    clone.full_name = 'Ứng viên';
-  } else if (role === 'intern' || email.includes('intern')) {
-    clone.id = 5;
-    clone.code = 'TTS0001';
-    clone.full_name = 'TTS';
+  // Giữ nguyên ID, full_name, email, status từ backend
+  // Chỉ gán mã mặc định nếu user thiếu code
+  if (!clone.code) {
+    if (clone.role === 'admin') clone.code = 'AD0001';
+    else if (clone.role === 'hr') clone.code = 'HR0001';
+    else if (clone.role === 'mentor') clone.code = 'MT0001';
+    else if (clone.role === 'intern') clone.code = 'TTS0001';
+    else clone.code = 'UV0001';
   }
   return clone;
 }

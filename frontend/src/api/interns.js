@@ -1,3 +1,4 @@
+
 /**
  * src/api/interns.js
  * Tất cả lời gọi API liên quan đến thực tập sinh (intern).

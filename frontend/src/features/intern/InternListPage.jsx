@@ -192,7 +192,9 @@ function InternListPage() {
           avatar: item.avatar || syncMatch?.avatar || getSavedAvatar(item.email, item.id, item.full_name),
         };
       });
-      setInterns(items);
+      // Phân tách 2 luồng: Trang Quản lý hồ sơ TTS chỉ hiển thị các TTS chính thức (active/approved), không lẫn ứng viên pending
+      const activeInterns = items.filter((item) => item.status === 'active' || item.status === 'approved');
+      setInterns(activeInterns);
       setLoadErr(null);
     } else if (retryCount > 0 && (status === 401 || status === 403 || status === 0)) {
       await new Promise((r) => setTimeout(r, 400));

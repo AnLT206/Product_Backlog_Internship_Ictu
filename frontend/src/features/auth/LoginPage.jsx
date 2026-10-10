@@ -40,10 +40,16 @@ const QUICK_ACCOUNTS = [
     variant: 'intern',
   },
   {
+    role: 'Vũ Hải Yến (TTS 5)',
+    email: 'tts05@student.ictu.edu.vn',
+    password: 'Intern@123',
+    variant: 'intern',
+  },
+  {
     role: 'Ứng viên',
     email: 'ungvien@ictu.edu.vn',
     password: 'Intern@123',
-    variant: 'intern',
+    variant: 'applicant',
   },
 ]
 
@@ -110,8 +116,7 @@ function LoginPage() {
     setEmail(account.email)
     setPassword(account.password)
     setQuickLoadingRole(account.role)
-    const targetRole = account.variant === 'intern' ? 'intern' : account.role.toLowerCase()
-    await performLogin(account.email, account.password, dashboardPathForRole(targetRole))
+    await performLogin(account.email, account.password)
   }
 
   return (

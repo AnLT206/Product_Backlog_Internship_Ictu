@@ -5,6 +5,7 @@ import InternApplicantDashboard from './InternApplicantDashboard'
 import TaskProgressModal from './components/TaskProgressModal'
 import { useInternMetrics, notifyInternDataChanged, formatVND } from './utils/internMetrics'
 import { emitRealtimeEvent, SYNC_EVENTS } from '../../utils/realtimeSync'
+import apiFetch from '../../api/client'
 import './InternDashboardPage.css'
 
 function generateTagsFromTitle(title) {
@@ -149,6 +150,10 @@ export default function InternDashboardPage() {
   const { metrics, refreshMetrics } = useInternMetrics()
 
   const [tasks, setTasks] = useState(() => {
+    // Với tài khoản TTS mới tinh (TTS 5, Ứng viên mới duyệt) -> bắt đầu với mảng rỗng
+    if (user?.id === 10 || user?.email === 'tts05@student.ictu.edu.vn' || user?.email?.includes('ungvien')) {
+      return []
+    }
     try {
       const stored = localStorage.getItem('intern_sprint1_tasks_v1')
       if (stored) {
@@ -189,6 +194,34 @@ export default function InternDashboardPage() {
     }
     return INITIAL_SPRINT1_TASKS
   })
+
+  // Đồng bộ nhiệm vụ thực tế từ API /api/intern/tasks
+  useEffect(() => {
+    let isMounted = true
+    async function loadLiveTasks() {
+      try {
+        const res = await apiFetch('/api/intern/tasks')
+        if (isMounted && res?.ok && Array.isArray(res.data)) {
+          const mapped = res.data.map((t) => ({
+            ...t,
+            tags: generateTagsFromTitle(t.title),
+            subtasks: t.subtasks || [
+              { id: `st-${t.id}-1`, text: 'Phân tích yêu cầu và kế hoạch triển khai', completed: (t.progress || 0) >= 30 },
+              { id: `st-${t.id}-2`, text: 'Thực thi và hoàn thiện mã nguồn', completed: (t.progress || 0) >= 70 },
+              { id: `st-${t.id}-3`, text: 'Kiểm thử và bàn giao nghiệm thu', completed: (t.progress || 0) >= 100 },
+            ],
+          }))
+          setTasks(mapped)
+        }
+      } catch {
+        // keep current
+      }
+    }
+    void loadLiveTasks()
+    return () => {
+      isMounted = false
+    }
+  }, [user?.id, user?.email])
   const [searchQuery, setSearchQuery] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [isPriorityOpen, setIsPriorityOpen] = useState(false)
@@ -486,20 +519,18 @@ export default function InternDashboardPage() {
     (sum, t) => sum + (t.subtasks?.filter((st) => st.completed).length || 0),
     0
   )
-  // Quy mô bộ test case của dự án (15 test chuẩn ban đầu, mở rộng theo subtasks)
-  const totalTests = Math.max(15, totalSubtasks > 0 ? totalSubtasks * 2 - 1 : 15)
-  // Số test pass tăng theo từng subtask kiểm thử hoàn thành (baseline 8 + completedSubtasks)
-  const passedTests = Math.min(totalTests, 8 + completedSubtasks)
+  // Quy mô bộ test case của dự án
+  const totalTests = totalSubtasks > 0 ? Math.max(15, totalSubtasks * 2 - 1) : 0
+  const passedTests = totalSubtasks > 0 ? Math.min(totalTests, 8 + completedSubtasks) : 0
   const testCoverage = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0
 
   // 4. Code Review & Merge (Pull Requests): Tính từ số lượng task có PR link và trạng thái done
   const tasksWithPR = tasks.filter((t) => Boolean(t.prLink && t.prLink.trim()))
-  // Baseline 1 PR khởi tạo sprint + các task có PR đã hoàn thành (done)
-  const mergedPRs = 1 + tasksWithPR.filter((t) => t.status === 'done').length
-  const prMergeRate = Math.min(100, Math.round((mergedPRs / (tasksWithPR.length + 1)) * 100))
+  const mergedPRs = totalTasks > 0 ? (1 + tasksWithPR.filter((t) => t.status === 'done').length) : 0
+  const prMergeRate = totalTasks > 0 ? Math.min(100, Math.round((mergedPRs / (tasksWithPR.length + 1)) * 100)) : 0
 
   // Nếu là ứng viên chưa duyệt
-  const isApplicant = isApplicantUser(user) && !isContractSignedLocally
+  const isApplicant = isApplicantUser(user)
 
   if (isApplicant) {
     return (
@@ -1081,7 +1112,11 @@ export default function InternDashboardPage() {
         <div className="task-cards-list">
           {filteredTasks.length === 0 ? (
             <div className="empty-tasks-state">
-              <p>Không tìm thấy nhiệm vụ nào phù hợp với bộ lọc hiện tại.</p>
+              <p>
+                {tasks.length === 0
+                  ? 'Chưa có nhiệm vụ Sprint nào được giao. Vui lòng chờ Mentor phân công công việc!'
+                  : 'Không tìm thấy nhiệm vụ nào phù hợp với bộ lọc hiện tại.'}
+              </p>
             </div>
           ) : (
             filteredTasks.map((t) => {

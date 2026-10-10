@@ -349,9 +349,18 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
             setCurrentStep('approved');
             setShowRejectModal(false);
             showToast(
-              'Chúc mừng! Hồ sơ của bạn đã được HR phê duyệt tiếp nhận. Vui lòng chờ thông báo hợp đồng tiếp nhận.',
+              'Chúc mừng! Hồ sơ của bạn đã được HR phê duyệt tiếp nhận. Đang chuyển hướng vào Không gian làm việc Thực tập sinh...',
               'success'
             );
+            setTimeout(() => {
+              if (updateUser) {
+                updateUser({
+                  status: 'active',
+                  role: 'intern',
+                  profile_status: 'approved',
+                });
+              }
+            }, 1200);
           } else if (status === 'rejected') {
             sessionStorage.removeItem('applicant_reject_modal_dismissed');
             setShowRejectModal(true);
