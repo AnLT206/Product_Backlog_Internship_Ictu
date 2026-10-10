@@ -193,9 +193,7 @@ def create_task(payload: TaskCreateRequest, db: Session = Depends(get_db)) -> di
     }
 
 
-@router.patch("/mentor/tasks/{task_id}/status", dependencies=[Depends(require_roles("mentor", "hr", "admin"))])
-def update_task_status(task_id: int, payload: TaskStatusUpdateRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
-    """Cập nhật trạng thái nhiệm vụ trực tiếp trong DB."""
+def _handle_task_status_update(task_id: int, payload: TaskStatusUpdateRequest, db: Session) -> dict[str, Any]:
     task = db.query(InternTask).filter(InternTask.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Không tìm thấy nhiệm vụ.")
@@ -208,6 +206,18 @@ def update_task_status(task_id: int, payload: TaskStatusUpdateRequest, db: Sessi
 
     db.commit()
     return {"id": task.id, "status": task.status, "progress": task.progress}
+
+
+@router.patch("/mentor/tasks/{task_id}/status", dependencies=[Depends(require_roles("mentor", "hr", "admin"))])
+def update_task_status(task_id: int, payload: TaskStatusUpdateRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Cập nhật trạng thái nhiệm vụ từ phía Mentor."""
+    return _handle_task_status_update(task_id, payload, db)
+
+
+@router.patch("/intern/tasks/{task_id}", dependencies=[Depends(require_roles("intern", "mentor", "hr", "admin"))])
+def update_intern_task(task_id: int, payload: TaskStatusUpdateRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Thực tập sinh cập nhật tiến độ nhiệm vụ (DFD Section 4.4)."""
+    return _handle_task_status_update(task_id, payload, db)
 
 
 @router.delete("/mentor/tasks/{task_id}", dependencies=[Depends(require_roles("mentor", "hr", "admin"))])
@@ -301,15 +311,24 @@ def get_intern_reports(
     ]
 
 
-@router.post("/mentor/reports/{report_id}/grade", dependencies=[Depends(require_roles("mentor", "hr", "admin"))])
-def grade_report(report_id: int, payload: ReportGradeRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
-    """Mentor chấm điểm và phản hồi báo cáo tuần, lưu trực tiếp vào DB."""
+@router.get("/mentor/reports/pending", dependencies=[Depends(require_roles("mentor", "hr", "admin"))])
+def get_pending_reports(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[dict[str, Any]]:
+    """Mentor lấy danh sách báo cáo cần nghiệm thu (DFD Section 4.4)."""
+    all_reports = get_reports(current_user=current_user, db=db)
+    return [r for r in all_reports if r.get("status") in ("pending", "submitted")]
+
+
+def _handle_report_grade(report_id: int, payload: ReportGradeRequest, db: Session) -> dict[str, Any]:
     report = db.query(InternReport).filter(InternReport.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Không tìm thấy báo cáo.")
 
+    feedback = payload.mentor_feedback or payload.comments or "Đã duyệt"
     report.score = payload.score
-    report.mentor_feedback = payload.mentor_feedback
+    report.mentor_feedback = feedback
     report.status = payload.status
     db.commit()
     db.refresh(report)
@@ -321,6 +340,18 @@ def grade_report(report_id: int, payload: ReportGradeRequest, db: Session = Depe
         "status": report.status,
         "detail": "Đã lưu kết quả chấm điểm báo cáo tuần vào CSDL thành công.",
     }
+
+
+@router.post("/mentor/reports/{report_id}/grade", dependencies=[Depends(require_roles("mentor", "hr", "admin"))])
+def grade_report(report_id: int, payload: ReportGradeRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Mentor chấm điểm và phản hồi báo cáo tuần, lưu trực tiếp vào DB."""
+    return _handle_report_grade(report_id, payload, db)
+
+
+@router.post("/mentor/reports/{report_id}/review", dependencies=[Depends(require_roles("mentor", "hr", "admin"))])
+def review_report(report_id: int, payload: ReportGradeRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Mentor nghiệm thu và phản hồi báo cáo tuần (DFD Section 4.4)."""
+    return _handle_report_grade(report_id, payload, db)
 
 
 @router.post("/intern/reports", dependencies=[Depends(require_roles("intern", "admin", "hr", "mentor"))])

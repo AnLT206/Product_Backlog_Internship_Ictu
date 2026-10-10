@@ -265,3 +265,4 @@ sequenceDiagram
 2. **Xử lý Race-Condition & Cache Token**:
    - `client.js` tự động cấp phát token mới theo vai trò đích (`acquireTokenForRole`) khi phát hiện token hết hạn hoặc gặp lỗi 401/403.
    - Ngăn chặn triệt để lỗi ghi đè profile giữa ứng viên (`ungvien@ictu.edu.vn`) và thực tập sinh chính thức (`intern@ictu.edu.vn`).
+

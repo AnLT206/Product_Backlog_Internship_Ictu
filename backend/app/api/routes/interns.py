@@ -92,6 +92,12 @@ def create_intern(
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(require_roles("hr", "admin"))],
 )
+@router.patch(
+    "/{intern_id}/approve",
+    response_model=InternRegisterResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
 def approve_intern(
     intern_id: int,
     background_tasks: BackgroundTasks,
@@ -101,6 +107,12 @@ def approve_intern(
 
 
 @router.post(
+    "/{intern_id}/reject",
+    response_model=InternRegisterResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+@router.patch(
     "/{intern_id}/reject",
     response_model=InternRegisterResponse,
     status_code=status.HTTP_200_OK,
