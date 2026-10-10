@@ -57,3 +57,4 @@ describe('auth.js and multi-tab session isolation', () => {
     expect(isApplicantUser(hr)).toBe(false);
   });
 });
+

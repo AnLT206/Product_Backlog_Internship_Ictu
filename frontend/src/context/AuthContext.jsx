@@ -110,6 +110,12 @@ export function enrichUserWithPersistedProfile(userObj) {
   if (userObj.profile_status === 'rejected' || userObj.status === 'rejected') {
     resolvedStatus = 'rejected';
     resolvedProfileStatus = 'rejected';
+  } else if ((userObj.profile_status === 'pending' || userObj.status === 'pending') && isCandidate) {
+    resolvedStatus = 'pending';
+    resolvedProfileStatus = 'pending';
+    try {
+      localStorage.removeItem('applicant_decision_status');
+    } catch {}
   } else {
     try {
       const rawDec = localStorage.getItem('applicant_decision_status');

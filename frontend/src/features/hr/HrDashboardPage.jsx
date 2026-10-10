@@ -187,15 +187,21 @@ export default function HrDashboardPage() {
                 dec?.status === 'rejected' &&
                 (!dec.applicantId || dec.applicantId === item.id || isApplicantAccount || String(dec.applicantId) === String(item.id))
               ) {
-                hasActiveLocalReject = true;
-                localRejectReason = dec.reason || '';
+                if (item.status === 'pending') {
+                  // CSDL backend đã được đồng bộ / reset về trạng thái pending -> xóa quyết định cũ
+                  localStorage.removeItem('applicant_decision_status');
+                  hasActiveLocalReject = false;
+                } else {
+                  hasActiveLocalReject = true;
+                  localRejectReason = dec.reason || '';
+                }
               }
             }
           } catch {}
 
           // Xác định trạng thái nghiệp vụ chuẩn xác
           const isApproved = item.status === 'approved' || item.status === 'active' || syncMatch?.status === 'approved';
-          const isRejected = !isApproved && (item.status === 'rejected' || syncMatch?.status === 'rejected' || hasActiveLocalReject);
+          const isRejected = !isApproved && (item.status === 'rejected' || syncMatch?.status === 'rejected' || (hasActiveLocalReject && item.status !== 'pending'));
 
           let finalStatus;
           if (isApproved) {
