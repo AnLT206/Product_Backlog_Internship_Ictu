@@ -82,10 +82,16 @@ class AuthService:
             status=user.status,
             phone_number=profile.phone_number,
         )
-
     def login(self, payload: LoginRequest) -> LoginResponse:
         user = self.db.query(User).filter(User.email == payload.email).first()
-        if user is None or user.status == "inactive":
+        is_rejected_intern = (
+            user is not None
+            and user.role is not None
+            and user.role.name == TTS_ROLE_NAME
+            and user.intern_profile is not None
+            and user.intern_profile.status == "rejected"
+        )
+        if user is None or (user.status == "inactive" and not is_rejected_intern):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Email hoặc mật khẩu không đúng.",
