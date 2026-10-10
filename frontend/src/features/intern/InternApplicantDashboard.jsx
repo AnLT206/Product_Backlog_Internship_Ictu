@@ -14,7 +14,6 @@ import {
   User,
   FileX,
   CheckSquare,
-  RotateCcw,
 } from 'lucide-react';
 import {
   syncContractSigning,
@@ -472,26 +471,6 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
     showToast('Đã đóng thông báo. Bạn có thể chuẩn bị lại CV và nộp lại bất kỳ lúc nào.', 'info');
   };
 
-  // Đặt lại tài khoản ứng viên về trạng thái ban đầu (Chờ duyệt)
-  const handleResetApplicantState = () => {
-    try {
-      localStorage.removeItem('applicant_decision_status');
-      localStorage.removeItem('applicant_onboarded');
-      localStorage.removeItem('applicant_pending_contract');
-      sessionStorage.removeItem('applicant_reject_modal_dismissed');
-      localStorage.removeItem('ictu_user_profile_ungvien@ictu.edu.vn');
-    } catch {}
-    setCurrentStep('applied');
-    setShowRejectModal(false);
-    setShowContractModal(false);
-    setIsContractConfirmed(false);
-    setPendingContract(null);
-    if (updateUser) {
-      updateUser({ status: 'pending', profile_status: 'pending' });
-    }
-    showToast('Đã đặt lại tài khoản ứng viên về trạng thái ban đầu (Chờ duyệt).', 'success');
-  };
-
   // Lộ trình 6 giai đoạn: cập nhật đồng bộ trạng thái thực tế từ HR
   const isRejected = currentStep === 'rejected';
   const roadmapStages = getInternshipRoadmap(Boolean(cvSubmissionDate), isRejected, rejectReason);
@@ -595,28 +574,6 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
                 <User size={16} />
                 <span>Xem hồ sơ cá nhân</span>
               </Link>
-              <button
-                type="button"
-                onClick={handleResetApplicantState}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  backgroundColor: '#F8FAFC',
-                  color: '#475569',
-                  border: '1px solid #E2E8F0',
-                  padding: '9px 16px',
-                  borderRadius: '10px',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-                title="Khôi phục trạng thái ứng viên về ban đầu (Chờ duyệt)"
-              >
-                <RotateCcw size={15} />
-                <span>Đặt lại tài khoản ứng viên</span>
-              </button>
             </div>
           </div>
 

@@ -863,16 +863,6 @@ export default function InternProfilePage() {
                     </svg>
                     {isSavingProfile ? 'Đang lưu...' : 'Lưu thay đổi'}
                   </button>
-
-                  <button
-                    type="button"
-                    className="prf-btn-secondary"
-                    onClick={handleResetApplicantProfile}
-                    style={{ marginLeft: 'auto', color: '#64748b' }}
-                    title="Đặt lại toàn bộ trạng thái ứng viên và hồ sơ về ban đầu"
-                  >
-                    Đặt lại tài khoản ứng viên
-                  </button>
                 </div>
               </>
             )}
