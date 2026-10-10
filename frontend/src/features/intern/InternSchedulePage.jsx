@@ -582,6 +582,28 @@ const MOCK_SCHEDULE_EVENTS = [
   },
 ]
 
+// ── HELPER FUNCTIONS (module-level để tránh TDZ khi minify) ──
+
+/** Trả về ngày hôm nay dưới dạng 'YYYY-MM-DD', giả định tháng 10/2026 cho demo */
+function getTodayStr() {
+  const now = new Date()
+  const yr = now.getFullYear()
+  const mo = String(now.getMonth() + 1).padStart(2, '0')
+  const dy = String(now.getDate()).padStart(2, '0')
+  const realToday = `${yr}-${mo}-${dy}`
+  return realToday.startsWith('2026-10') ? realToday : '2026-10-02'
+}
+
+/** Tính số ngày từ hôm nay tới targetDateStr ('YYYY-MM-DD') */
+function getDaysDiff(todayStr, targetDateStr) {
+  if (!targetDateStr || !todayStr) return null
+  const [yr1, mo1, dy1] = todayStr.split('-').map(Number)
+  const [yr2, mo2, dy2] = targetDateStr.split('-').map(Number)
+  const date1 = new Date(yr1, mo1 - 1, dy1)
+  const date2 = new Date(yr2, mo2 - 1, dy2)
+  return Math.round((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24))
+}
+
 // Icon đồng hồ analog kim 5h vẽ theo chuẩn Image 1 (thay thế emoji stopwatch)
 function ClockIcon({ size = 14.5, className = 'timeline-clock-icon' }) {
   return (
@@ -662,26 +684,11 @@ export default function InternSchedulePage() {
       return a.time.localeCompare(b.time)
     })
 
-  // Xác định ngày hôm nay chuẩn hóa
-  const getTodayStr = () => {
-    const now = new Date()
-    const y = now.getFullYear()
-    const m = String(now.getMonth() + 1).padStart(2, '0')
-    const d = String(now.getDate()).padStart(2, '0')
-    const realToday = `${y}-${m}-${d}`
-    return realToday.startsWith('2026-10') ? realToday : '2026-10-02'
-  }
+  // Xác định ngày hôm nay chuẩn hóa (dùng module-level function để tránh TDZ khi minify)
   const todayDateStr = getTodayStr()
 
-  // Tính khoảng cách ngày từ ngày hôm nay tới ngày mục tiêu
-  const getDaysDiffFromToday = (targetDateStr) => {
-    if (!targetDateStr) return null
-    const [y1, m1, d1] = todayDateStr.split('-').map(Number)
-    const [y2, m2, d2] = targetDateStr.split('-').map(Number)
-    const d1Date = new Date(y1, m1 - 1, d1)
-    const d2Date = new Date(y2, m2 - 1, d2)
-    return Math.round((d2Date.getTime() - d1Date.getTime()) / (1000 * 60 * 60 * 24))
-  }
+  // Wrapper gọi hàm module-level getDaysDiff
+  const getDaysDiffFromToday = (targetDateStr) => getDaysDiff(todayDateStr, targetDateStr)
 
   // Lọc sự kiện cho chế độ danh sách: Ẩn các sự kiện của ngày đã qua theo yêu cầu
   const pastEventsCount = filteredEvents.filter((evt) => {
