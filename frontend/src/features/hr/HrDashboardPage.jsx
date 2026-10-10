@@ -178,30 +178,37 @@ export default function HrDashboardPage() {
 
           // Kiểm tra xem ứng viên có quyết định từ chối còn hiệu lực không
           let hasActiveLocalReject = false;
+          let localRejectReason = '';
           try {
             const decRaw = localStorage.getItem('applicant_decision_status');
             if (decRaw) {
               const dec = JSON.parse(decRaw);
-              if (dec?.status === 'rejected' && (!dec.applicantId || dec.applicantId === item.id || isApplicantAccount)) {
-                // CHỈ coi là active reject nếu syncMatch?.status !== 'pending' (nếu đã nộp lại CV thì chuyển về pending)
-                if (syncMatch?.status !== 'pending') {
+              if (
+                dec?.status === 'rejected' &&
+                (!dec.applicantId || dec.applicantId === item.id || isApplicantAccount || String(dec.applicantId) === String(item.id))
+              ) {
+                if (item.status === 'pending') {
+                  // CSDL backend đã được đồng bộ / reset về trạng thái pending -> xóa quyết định cũ
+                  localStorage.removeItem('applicant_decision_status');
+                  hasActiveLocalReject = false;
+                } else {
                   hasActiveLocalReject = true;
+                  localRejectReason = dec.reason || '';
                 }
               }
             }
           } catch {}
 
-          // Xác định trạng thái nghiệp vụ
+          // Xác định trạng thái nghiệp vụ chuẩn xác
           const isApproved = item.status === 'approved' || item.status === 'active' || syncMatch?.status === 'approved';
+          const isRejected = !isApproved && (item.status === 'rejected' || syncMatch?.status === 'rejected' || (hasActiveLocalReject && item.status !== 'pending'));
 
           let finalStatus;
           if (isApproved) {
             finalStatus = 'approved';
-          } else if (syncMatch?.status === 'pending' || (isApplicantAccount && localCvSubmitted && !hasActiveLocalReject) || item.status === 'pending') {
-            finalStatus = 'pending';
-          } else if (hasActiveLocalReject || syncMatch?.status === 'rejected' || (item.status === 'rejected' && !hasCv)) {
+          } else if (isRejected) {
             finalStatus = 'rejected';
-          } else if (hasCv) {
+          } else if (syncMatch?.status === 'pending' || item.status === 'pending' || (isApplicantAccount && localCvSubmitted) || hasCv) {
             finalStatus = 'pending';
           } else {
             // Chưa nộp CV thì ở trạng thái Chưa nộp CV, không được xét duyệt
@@ -220,6 +227,7 @@ export default function HrDashboardPage() {
             has_cv: hasCv,
             cv_file: actualCvFile,
             status: finalStatus,
+            reject_reason: isRejected ? (localRejectReason || syncMatch?.reject_reason) : undefined,
             applied_at: hasCv
               ? (localCvDate || syncMatch?.applied_at || (item.created_at ? formatDate(item.created_at.split('T')[0]) : '01/10/2026'))
               : null,
@@ -233,8 +241,8 @@ export default function HrDashboardPage() {
             const isApplicantAccount = sa.email === 'ungvien@ictu.edu.vn' || sa.id === 7;
             const hasCv = Boolean(sa.cv_file && sa.cv_file !== 'CV_UngVien.pdf') || (isApplicantAccount && localCvSubmitted);
             const isApproved = sa.status === 'approved';
-            const isRejected = sa.status === 'rejected' && sa.status !== 'pending';
-            const status = isApproved ? 'approved' : (sa.status === 'pending' || hasCv) ? 'pending' : isRejected ? 'rejected' : 'unsubmitted';
+            const isRejected = !isApproved && sa.status === 'rejected';
+            const status = isApproved ? 'approved' : isRejected ? 'rejected' : (sa.status === 'pending' || hasCv) ? 'pending' : 'unsubmitted';
             const saAvatar = sa.avatar || getSavedAvatar(sa.email, sa.id);
             merged.push({
               ...sa,
@@ -379,11 +387,20 @@ export default function HrDashboardPage() {
     setActionLoadingId(applicant.id);
     try {
       syncApplicantDecision(applicant.id, 'approved');
+      setInterns((prev) =>
+        prev.map((it) =>
+          it.id === applicant.id || (applicant.email && it.email === applicant.email)
+            ? { ...it, status: 'approved' }
+            : it
+        )
+      );
       if (typeof applicant.id === 'number') {
-        await approveIntern(applicant.id).catch(() => {});
+        await approveIntern(applicant.id).catch((err) => {
+          console.warn('approveIntern error:', err);
+        });
       }
       showToast(`Đã duyệt hồ sơ của ${applicant.full_name}! Trạng thái chuyển thành "Đã duyệt".`);
-      loadDashboardData();
+      await loadDashboardData();
     } catch {
       showToast(`Không thể duyệt hồ sơ ${applicant.full_name}. Vui lòng thử lại.`, 'error');
     } finally {
@@ -415,13 +432,30 @@ export default function HrDashboardPage() {
     setActionLoadingId(applicant?.id);
     try {
       syncApplicantDecision(applicant.id, 'rejected', reason);
+      setInterns((prev) =>
+        prev.map((it) =>
+          it.id === applicant.id || (applicant.email && it.email === applicant.email)
+            ? { ...it, status: 'rejected', reject_reason: reason }
+            : it
+        )
+      );
       if (typeof applicant?.id === 'number') {
-        await rejectIntern(applicant.id, reason).catch(() => {});
+        await rejectIntern(applicant.id, reason).catch((err) => {
+          console.warn('rejectIntern error:', err);
+        });
       }
       showToast(`Đã từ chối hồ sơ của ${applicant.full_name}.`, 'info');
       setRejectDialog({ open: false, applicant: null, reason: '' });
       if (cvModal.open) setCvModal({ open: false, applicant: null });
-      loadDashboardData();
+      await loadDashboardData();
+
+      // Kích hoạt event tức thời để toàn bộ các trang ứng viên (Dashboard lộ trình, Upload CV) tự động làm mới
+      window.dispatchEvent(
+        new CustomEvent('applicant_decision_updated', {
+          detail: { status: 'rejected', reason, applicantId: applicant.id, targetEmail: applicant.email },
+        })
+      );
+      window.dispatchEvent(new Event('storage'));
     } catch {
       showToast('Lỗi khi từ chối hồ sơ.', 'error');
     } finally {
@@ -686,17 +720,17 @@ export default function HrDashboardPage() {
             ) : (
               <table className="hr-dash-table">
                 <colgroup>
-                  <col style={{ width: '28%' }} />
-                  <col style={{ width: '22%' }} />
-                  <col style={{ width: '16%' }} />
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: '20%' }} />
+                  <col style={{ width: '27%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '23%' }} />
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '17%' }} />
                 </colgroup>
                 <thead>
                   <tr>
-                    <th>Ứng viên</th>
-                    <th>Chuyên ngành</th>
-                    <th>Trường ĐH</th>
+                    <th style={{ textAlign: 'left' }}>Ứng viên</th>
+                    <th style={{ textAlign: 'left' }}>Chuyên ngành</th>
+                    <th style={{ textAlign: 'left' }}>Trường ĐH</th>
                     <th style={{ textAlign: 'center' }}>Trạng thái</th>
                     <th style={{ textAlign: 'center' }}>Thao tác xét duyệt</th>
                   </tr>
@@ -710,7 +744,7 @@ export default function HrDashboardPage() {
                     return (
                       <tr key={applicant.id}>
                         {/* Cột 1: Thông tin ứng viên */}
-                        <td>
+                        <td style={{ textAlign: 'left' }}>
                           <div className="hr-applicant-cell">
                             <div className="hr-applicant-avatar">
                               {applicant.avatar && applicant.avatar.startsWith('data:image') ? (
@@ -729,13 +763,13 @@ export default function HrDashboardPage() {
                         </td>
 
                         {/* Cột 2: Chuyên ngành */}
-                        <td>
+                        <td style={{ textAlign: 'left' }}>
                           <span className="hr-major-badge">{applicant.major}</span>
                         </td>
 
                         {/* Cột 3: Trường ĐH */}
-                        <td>
-                          <span className="hr-uni-text">{applicant.university}</span>
+                        <td style={{ textAlign: 'left' }}>
+                          <span className="hr-uni-text" title={applicant.university}>{applicant.university}</span>
                         </td>
 
                         {/* Cột 4: Trạng thái */}
@@ -787,17 +821,17 @@ export default function HrDashboardPage() {
                                   <span>Xem CV</span>
                                 </button>
 
-                                {/* Nút Duyệt: Hiển thị khi pending hoặc khi hồ sơ có CV cần duyệt lại */}
-                                {(isPending || (isRejected && applicant.has_cv)) && (
+                                {/* Nút Duyệt: CHỈ hiển thị khi ĐANG CHỜ DUYỆT (isPending). Khi đã từ chối hoặc đã duyệt, chỉ còn nút Xem CV! */}
+                                {isPending && (
                                   <button
                                     type="button"
                                     className="hr-action-btn hr-action-btn--approve"
                                     onClick={() => handleApproveApplicant(applicant)}
                                     disabled={actionLoadingId === applicant.id}
-                                    title={isRejected ? "Xem xét lại và phê duyệt hồ sơ ứng viên" : "Phê duyệt ứng viên vào thực tập chính thức"}
+                                    title="Phê duyệt ứng viên vào thực tập chính thức"
                                   >
                                     <Check size={13} />
-                                    <span>{isRejected ? 'Duyệt lại' : 'Duyệt'}</span>
+                                    <span>Duyệt</span>
                                   </button>
                                 )}
 

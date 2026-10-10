@@ -116,3 +116,124 @@ def test_approve_pending_intern_activates_database_account(integration_client):
     )
     assert login_response.status_code == 200
     assert login_response.json()["user"]["status"] == "active"
+
+
+def test_reject_pending_intern_updates_status_and_persists(integration_client):
+    client, session_factory = integration_client
+    password = "SecretPassword123"
+    register_payload = {
+        "full_name": "Tran Thi Ung Vien",
+        "email": "rejected.intern@example.com",
+        "password": password,
+        "confirm_password": password,
+        "university": "ICTU",
+        "major": "CNTT",
+    }
+    hr_headers = {
+        "Authorization": f"Bearer {create_access_token(user_id=1, role='hr')}"
+    }
+
+    register_response = client.post(
+        "/api/auth/register",
+        json=register_payload,
+    )
+    assert register_response.status_code == 201
+    registered = register_response.json()
+    intern_id = registered["id"]
+
+    reject_note = "CV chua dap ung du tieu chi thuc tap dot nay"
+    reject_response = client.post(
+        f"/api/hr/interns/{intern_id}/reject",
+        json={"note": reject_note},
+        headers=hr_headers,
+    )
+
+    assert reject_response.status_code == 200
+    rejected_body = reject_response.json()
+    assert rejected_body["id"] == intern_id
+    assert rejected_body["status"] == "rejected"
+
+    with session_factory() as db:
+        user = db.query(User).filter(User.id == intern_id).one()
+        profile = db.query(InternProfile).filter(InternProfile.user_id == intern_id).one()
+        assert profile.status == "rejected"
+        assert user.status == "inactive"
+
+    # Kiem tra danh sach get interns tra ve status rejected
+    list_response = client.get(
+        "/api/hr/interns",
+        headers=hr_headers,
+    )
+    assert list_response.status_code == 200
+    items = list_response.json()["items"]
+    matched = next((i for i in items if i["id"] == intern_id), None)
+    assert matched is not None
+    assert matched["status"] == "rejected"
+
+
+def test_rejected_intern_can_login_and_reapply_with_new_cv(integration_client):
+    import io
+    client, session_factory = integration_client
+    password = "SecretPassword123"
+    register_payload = {
+        "full_name": "Vu Tien Dung",
+        "email": "reapply.intern@example.com",
+        "password": password,
+        "confirm_password": password,
+        "university": "ICTU",
+        "major": "CNTT",
+    }
+    hr_headers = {
+        "Authorization": f"Bearer {create_access_token(user_id=1, role='hr')}"
+    }
+
+    # 1. Dang ky
+    reg_res = client.post("/api/auth/register", json=register_payload)
+    assert reg_res.status_code == 201
+    intern_id = reg_res.json()["id"]
+
+    # 2. HR Tu choi
+    client.post(
+        f"/api/hr/interns/{intern_id}/reject",
+        json={"note": "Chua dat tieu chi"},
+        headers=hr_headers,
+    )
+
+    # 3. Ung vien bi tu choi van dang nhap duoc de xem ket qua & nop lai CV
+    login_res = client.post(
+        "/api/auth/login",
+        json={"email": register_payload["email"], "password": password},
+    )
+    assert login_res.status_code == 200
+    token = login_res.json()["access_token"]
+    intern_headers = {"Authorization": f"Bearer {token}"}
+
+    # 4. Kiem tra /api/auth/me van tra ve thong tin ung vien
+    me_res = client.get("/api/auth/me", headers=intern_headers)
+    assert me_res.status_code == 200
+    assert me_res.json()["profile_status"] == "rejected"
+
+    # 5. Ung vien nop lai CV moi (file docx hoac pdf)
+    cv_file = io.BytesIO(b"%PDF-1.4 Mock CV Content")
+    upload_res = client.post(
+        "/api/intern/documents/upload?doc_type=cv",
+        headers=intern_headers,
+        files={"file": ("CV_Moi_Cap_Nhat.pdf", cv_file, "application/pdf")},
+    )
+    assert upload_res.status_code == 201
+    assert upload_res.json()["file_name"] == "CV_Moi_Cap_Nhat.pdf"
+
+    # 6. Kiem tra sau khi nop lai CV, trang thai user va profile chuyen thanh pending de HR xet duyet lai
+    with session_factory() as db:
+        user = db.query(User).filter(User.id == intern_id).one()
+        profile = db.query(InternProfile).filter(InternProfile.user_id == intern_id).one()
+        assert profile.status == "pending"
+        assert user.status == "pending"
+
+    # 7. HR xem lai danh sach thay ung vien o trang thai pending
+    list_res = client.get("/api/hr/interns", headers=hr_headers)
+    items = list_res.json()["items"]
+    matched = next((i for i in items if i["id"] == intern_id), None)
+    assert matched is not None
+    assert matched["status"] == "pending"
+    assert matched["has_cv"] is True

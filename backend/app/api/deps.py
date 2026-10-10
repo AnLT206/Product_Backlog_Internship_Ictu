@@ -35,7 +35,19 @@ def get_active_user_from_token(token: str, db: Session) -> User | None:
         return None
 
     user = db.query(User).filter(User.id == user_id).first()
-    if user is None or user.status not in ("active", "pending"):
+    if user is None:
+        return None
+
+    # Cho phép người dùng active hoặc pending.
+    # Đồng thời cho phép tài khoản ứng viên TTS (role=intern) có profile rejected
+    # được xác thực để xem thông báo kết quả và nộp lại CV mới.
+    is_rejected_intern = (
+        user.role is not None
+        and user.role.name == "intern"
+        and user.intern_profile is not None
+        and user.intern_profile.status == "rejected"
+    )
+    if user.status not in ("active", "pending") and not is_rejected_intern:
         return None
     return user
 

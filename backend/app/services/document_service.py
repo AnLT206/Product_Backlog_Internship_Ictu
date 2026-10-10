@@ -373,11 +373,16 @@ class DocumentService:
         doc_type: str | None = None,
     ) -> list[DocumentResponse]:
         """Lấy danh sách tài liệu cần duyệt hoặc tất cả tài liệu của TTS (SCRUM-24)."""
-        intern = self.db.query(User).filter(User.id == intern_id).first()
+        intern = (
+            self.db.query(User)
+            .join(Role, User.role_id == Role.id)
+            .filter(User.id == intern_id, Role.name == "intern")
+            .first()
+        )
         if intern is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Không tìm thấy hồ sơ người dùng.",
+                detail="Không tìm thấy hồ sơ thực tập sinh.",
             )
 
         query = self.db.query(Document).filter(Document.user_id == intern_id)

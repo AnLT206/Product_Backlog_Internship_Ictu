@@ -215,7 +215,7 @@ function formatVND(amount) {
 
 export default function InternAllowancePage() {
   const { user } = useAuth()
-  const { metrics } = useInternMetrics()
+  const { metrics } = useInternMetrics(user)
   const [filterYear, setFilterYear] = useState('all')
   const [filterMonth, setFilterMonth] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')

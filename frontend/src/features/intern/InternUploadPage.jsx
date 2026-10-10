@@ -188,10 +188,10 @@ export default function InternUploadPage() {
 
       // 2. Xác định quyết định duyệt / từ chối của HR
       let resolvedDecision = null;
-      if (serverDocStatus === 'rejected') {
+      if (serverDocStatus === 'rejected' || user?.profile_status === 'rejected' || user?.status === 'rejected') {
         resolvedDecision = {
           status: 'rejected',
-          reason: serverDocReason || 'CV của bạn không đạt đủ yêu cầu, bạn hãy dành thêm thời gian để chuẩn bị lại CV cho lần tiếp theo nhé!',
+          reason: serverDocReason || user?.reject_reason || 'CV của bạn không đạt đủ yêu cầu, bạn hãy dành thêm thời gian để chuẩn bị lại CV cho lần tiếp theo nhé!',
         };
       } else if (serverDocStatus === 'approved') {
         resolvedDecision = { status: 'approved', reason: '' };
@@ -203,11 +203,9 @@ export default function InternUploadPage() {
           if (decRaw) {
             const dec = JSON.parse(decRaw);
             const isTargetApplicant =
-              !dec.applicantId ||
-              dec.applicantId === user?.id ||
-              String(dec.applicantId) === String(user?.id) ||
-              (user?.email && user.email.toLowerCase().includes('ungvien')) ||
-              user?.role === 'applicant';
+              (dec.applicantId && (dec.applicantId === user?.id || String(dec.applicantId) === String(user?.id))) ||
+              (dec.targetEmail && user?.email && dec.targetEmail.toLowerCase() === user.email.toLowerCase()) ||
+              (!dec.applicantId && user?.email && user.email.toLowerCase().includes('ungvien'));
             if (dec && dec.status && isTargetApplicant) {
               resolvedDecision = dec;
             }
@@ -224,9 +222,7 @@ export default function InternUploadPage() {
       }
 
       if (!resolvedDecision) {
-        if (user?.profile_status === 'rejected' || user?.status === 'rejected') {
-          resolvedDecision = { status: 'rejected', reason: user?.reject_reason || '' };
-        } else if (user?.profile_status === 'approved' || user?.status === 'approved') {
+        if (user?.profile_status === 'approved' || user?.status === 'approved') {
           resolvedDecision = { status: 'approved', reason: '' };
         }
       }
@@ -260,34 +256,64 @@ export default function InternUploadPage() {
         }
       }
 
-      // 3. Kiểm tra xem HR đã phát hành & gửi hợp đồng tiếp nhận chưa
-      try {
-        if (isAlreadyOnboarded && resolvedDecision?.status !== 'rejected') {
-          setIsContractConfirmed(true);
-          setCurrentStep('onboarded');
-        } else {
-          setIsContractConfirmed(false);
-          const pendingRaw = localStorage.getItem('applicant_pending_contract');
-          if (pendingRaw && isMounted) {
-            const parsed = JSON.parse(pendingRaw);
-            if (parsed && parsed.contract) {
-              setPendingContract(parsed.contract);
-            }
-          } else if (isMounted) {
-            const targetId = user?.id || 7;
-            const myContract = syncState.contracts?.find(
-              (c) =>
-                (c.intern_id === targetId ||
-                  String(c.intern_id) === String(targetId) ||
-                  c.student_name === user?.full_name) &&
-                !c.signed_intern
-            );
-            if (myContract) {
-              setPendingContract(myContract);
+      // 3. Kiểm tra xem HR đã phát hành & gửi hợp đồng tiếp nhận chưa (CHỈ KHI KHÔNG BỊ TỪ CHỐI)
+      const isCandidateRejected = resolvedDecision?.status === 'rejected';
+
+      if (!isCandidateRejected) {
+        try {
+          if (isAlreadyOnboarded) {
+            setIsContractConfirmed(true);
+            setCurrentStep('onboarded');
+          } else {
+            setIsContractConfirmed(false);
+            const pendingRaw = localStorage.getItem('applicant_pending_contract');
+            if (pendingRaw && isMounted) {
+              const parsed = JSON.parse(pendingRaw);
+              const hasTargetRestriction = Boolean(
+                parsed?.applicantId ||
+                parsed?.targetEmail ||
+                parsed?.contract?.email ||
+                parsed?.contract?.student_name
+              );
+              const matchesContract = hasTargetRestriction
+                ? Boolean(
+                    (parsed?.applicantId && (parsed.applicantId === user?.id || String(parsed.applicantId) === String(user?.id))) ||
+                    (parsed?.targetEmail && user?.email && parsed.targetEmail.toLowerCase() === user.email.toLowerCase()) ||
+                    (parsed?.contract?.email && user?.email && parsed.contract.email.toLowerCase() === user.email.toLowerCase()) ||
+                    (parsed?.contract?.student_name && user?.full_name && parsed.contract.student_name === user.full_name)
+                  )
+                : true;
+              if (matchesContract && parsed?.contract) {
+                setPendingContract(parsed.contract);
+              }
+            } else if (isMounted) {
+              const targetId = user?.id || 7;
+              const myContract = syncState.contracts?.find(
+                (c) =>
+                  (c.intern_id === targetId ||
+                    String(c.intern_id) === String(targetId) ||
+                    (user?.email && c.email && c.email.toLowerCase() === user.email.toLowerCase()) ||
+                    c.student_name === user?.full_name) &&
+                  !c.signed_intern
+              );
+              if (myContract) {
+                setPendingContract(myContract);
+              }
             }
           }
+        } catch {}
+      } else {
+        if (isMounted) {
+          setPendingContract(null);
+          setShowContractModal(false);
+          setIsContractConfirmed(false);
         }
-      } catch {}
+        if (isCandidateRejected) {
+          try {
+            localStorage.removeItem('applicant_pending_contract');
+          } catch {}
+        }
+      }
     }
 
     loadCvData();
@@ -334,8 +360,11 @@ export default function InternUploadPage() {
     // Đồng bộ thời gian thực từ HR Dashboard
     const unsubscribeSync = subscribeRealtimeEvents((event) => {
       if (event.type === SYNC_EVENTS.APPLICANT_DECISION) {
-        const { applicantId, status, reason } = event.payload || {};
-        const matchesUser = !applicantId || applicantId === user?.id || String(applicantId) === String(user?.id) || user?.role === 'applicant' || user?.role === 'intern';
+        const { applicantId, targetEmail, status, reason } = event.payload || {};
+        const matchesUser =
+          (applicantId && (applicantId === user?.id || String(applicantId) === String(user?.id))) ||
+          (targetEmail && user?.email && targetEmail.toLowerCase() === user.email.toLowerCase()) ||
+          (!applicantId && !targetEmail && user?.email && user.email.toLowerCase().includes('ungvien'));
         if (matchesUser) {
           if (status === 'approved') {
             setShowContractModal(true);
@@ -345,20 +374,20 @@ export default function InternUploadPage() {
           } else if (status === 'rejected') {
             setShowRejectModal(true);
             setShowContractModal(false);
+            setPendingContract(null);
             setCurrentStep('rejected');
             if (reason) setRejectReason(reason);
             showToast(`Hồ sơ chưa phù hợp đợt này${reason ? ': ' + reason : '.'}`, 'info');
           }
         }
       } else if (event.type === SYNC_EVENTS.CONTRACT_SENT) {
-        const { applicantId, contract } = event.payload || {};
+        const { applicantId, targetEmail, contract } = event.payload || {};
         const matchesUser =
-          !applicantId ||
-          applicantId === user?.id ||
-          String(applicantId) === String(user?.id) ||
-          user?.role === 'applicant' ||
-          user?.role === 'intern';
-        if (matchesUser && contract) {
+          (applicantId && (applicantId === user?.id || String(applicantId) === String(user?.id))) ||
+          (targetEmail && user?.email && targetEmail.toLowerCase() === user.email.toLowerCase()) ||
+          (contract?.email && user?.email && contract.email.toLowerCase() === user.email.toLowerCase()) ||
+          (contract?.student_name && user?.full_name && contract.student_name === user.full_name);
+        if (matchesUser && contract && currentStep !== 'rejected' && user?.profile_status !== 'rejected') {
           setPendingContract(contract);
           setShowContractModal(true);
           showToast(`🔔 Bạn vừa nhận được văn bản "${contract.doc_type}" từ HR! Vui lòng xem và ký xác nhận.`, 'success');
@@ -500,6 +529,14 @@ export default function InternUploadPage() {
     showToast('Đã hủy bỏ file vừa chọn.', 'info');
   };
 
+  // Kích hoạt chọn lại file CV mới khi bị từ chối
+  const handleTriggerReapply = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
   // Gửi CV chính thức tới HR
   const handleSubmitCv = async () => {
     if (!stagedFile) return;
@@ -541,6 +578,14 @@ export default function InternUploadPage() {
         gpa: user?.gpa || '3.55',
         cvId: docId,
       });
+
+      // Phát sự kiện reset quyết định để các trang khác (Roadmap, HR) tức thời chuyển sang trạng thái Chờ duyệt
+      window.dispatchEvent(
+        new CustomEvent('applicant_decision_updated', {
+          detail: { status: 'pending', applicantId: user?.id || 7, targetEmail: user?.email || 'ungvien@ictu.edu.vn' },
+        })
+      );
+      window.dispatchEvent(new Event('storage'));
 
       setCvFile({
         id: docId,
@@ -794,8 +839,8 @@ export default function InternUploadPage() {
         </div>
       )}
 
-      {/* BANNER THÔNG BÁO HỢP ĐỒNG TIẾP NHẬN ĐƯỢC GỬI TỪ HR */}
-      {pendingContract && !isContractConfirmed && (
+      {/* BANNER THÔNG BÁO HỢP ĐỒNG TIẾP NHẬN ĐƯỢC GỬI TỪ HR (CHỈ HIỂN THỊ KHI KHÔNG BỊ TỪ CHỐI) */}
+      {pendingContract && !isContractConfirmed && currentStep !== 'rejected' && (
         <div className="iad-alert-contract-banner">
           <div className="iad-alert-contract-left">
             <div className="iad-alert-contract-icon">
@@ -943,9 +988,7 @@ export default function InternUploadPage() {
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                onClick={() => {
-                  fileInputRef.current?.click();
-                }}
+                onClick={handleTriggerReapply}
                 className="iad-btn iad-btn--primary"
                 style={{
                   fontSize: '13px',
@@ -967,7 +1010,7 @@ export default function InternUploadPage() {
       )}
 
       {/* 2. KHU VỰC TẢI LÊN CV / HỒ SƠ ỨNG TUYỂN - ẢNH 1 */}
-      <section className="iad-card">
+      <section className="iad-card" id="upload-cv-section">
         <div className="iad-card__head">
           <div>
             <h3 className="iad-card__title">Tài Liệu & CV Ứng Tuyển</h3>
@@ -978,6 +1021,19 @@ export default function InternUploadPage() {
           <span style={{ fontSize: 12.5, color: '#64748b' }}>Tối đa 1 file (5 MB)</span>
         </div>
 
+        {/* Input file duy nhất, độc lập và luôn mounted để kích hoạt ở mọi tình huống */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.doc,.docx"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              handleFileSelect(e.target.files[0]);
+            }
+          }}
+        />
+
         {/* TRƯỜNG HỢP 1: Chưa chọn file và chưa nộp CV -> Dropzone ban đầu */}
         {!stagedFile && !cvFile && (
           <div
@@ -987,18 +1043,6 @@ export default function InternUploadPage() {
             onClick={() => fileInputRef.current?.click()}
             className={`iad-dropzone ${isDragging ? 'iad-dropzone--active' : ''}`}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.doc,.docx"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  handleFileSelect(e.target.files[0]);
-                }
-              }}
-            />
-
             <div className="iad-dropzone__icon-box">
               <UploadCloud size={28} />
             </div>
@@ -1013,17 +1057,6 @@ export default function InternUploadPage() {
         {/* TRƯỜNG HỢP 2: Đã chọn file nhưng CHƯA BẤM GỬI -> Khung div bọc file & nút Xem lại, Hủy bỏ, Gửi CV */}
         {stagedFile && (
           <div className="iad-staged-box">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.doc,.docx"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  handleFileSelect(e.target.files[0]);
-                }
-              }}
-            />
             <div className="iad-staged-file-card">
               <div className="iad-staged-file-card__left">
                 <div className="iad-file-badge">
@@ -1290,7 +1323,7 @@ export default function InternUploadPage() {
               {currentStep === 'rejected' && (
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={handleTriggerReapply}
                   className="iad-btn-action"
                   title="Chọn file mới để gửi lại xét tuyển"
                   style={{

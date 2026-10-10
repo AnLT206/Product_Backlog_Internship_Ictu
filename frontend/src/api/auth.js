@@ -22,17 +22,100 @@ export async function getMe() {
 }
 
 export function saveSession({ access_token, user }) {
-  localStorage.setItem('access_token', access_token);
+  if (!user) return;
+  const isApp =
+    (user.email || '').toLowerCase().includes('ungvien') ||
+    (user.code || '').toUpperCase() === 'UV0001' ||
+    user.id === 7 ||
+    user.role === 'applicant';
+  const roleKey = isApp ? 'applicant' : (user.role || 'intern');
+
+  if (access_token) {
+    localStorage.setItem('access_token', access_token);
+    localStorage.setItem(`access_token_${roleKey}`, access_token);
+  }
   localStorage.setItem('auth_user', JSON.stringify(user));
+  localStorage.setItem(`auth_user_${roleKey}`, JSON.stringify(user));
+
+  if (roleKey === 'applicant' || roleKey === 'intern') {
+    localStorage.setItem('last_portal_intern_role', roleKey);
+  }
 }
 
-export function clearSession() {
+export function clearSession(roleKey) {
+  if (roleKey) {
+    localStorage.removeItem(`access_token_${roleKey}`);
+    localStorage.removeItem(`auth_user_${roleKey}`);
+    return;
+  }
   localStorage.removeItem('access_token');
   localStorage.removeItem('auth_user');
+  localStorage.removeItem('access_token_applicant');
+  localStorage.removeItem('auth_user_applicant');
+  localStorage.removeItem('access_token_intern');
+  localStorage.removeItem('auth_user_intern');
+  localStorage.removeItem('access_token_hr');
+  localStorage.removeItem('auth_user_hr');
+  localStorage.removeItem('access_token_mentor');
+  localStorage.removeItem('auth_user_mentor');
+  localStorage.removeItem('access_token_admin');
+  localStorage.removeItem('auth_user_admin');
 }
 
 export function readStoredUser() {
   try {
+    const path = typeof window !== 'undefined' ? window.location.pathname : '';
+
+    // 1. Phân hệ HR (/hr/*)
+    if (path.startsWith('/hr')) {
+      const hrRaw = localStorage.getItem('auth_user_hr');
+      if (hrRaw) return JSON.parse(hrRaw);
+    }
+
+    // 2. Phân hệ Admin (/admin/*)
+    if (path.startsWith('/admin')) {
+      const adminRaw = localStorage.getItem('auth_user_admin');
+      if (adminRaw) return JSON.parse(adminRaw);
+    }
+
+    // 3. Phân hệ Mentor (/mentor/*)
+    if (path.startsWith('/mentor')) {
+      const mentorRaw = localStorage.getItem('auth_user_mentor');
+      if (mentorRaw) return JSON.parse(mentorRaw);
+    }
+
+    // 4. Phân hệ TTS / Ứng viên (/intern/*)
+    if (path.startsWith('/intern')) {
+      const lastInternRole = localStorage.getItem('last_portal_intern_role');
+      if (lastInternRole === 'applicant') {
+        const appRaw = localStorage.getItem('auth_user_applicant');
+        if (appRaw) return JSON.parse(appRaw);
+      } else if (lastInternRole === 'intern') {
+        const internRaw = localStorage.getItem('auth_user_intern');
+        if (internRaw) return JSON.parse(internRaw);
+      }
+
+      if (path === '/intern/upload') {
+        const appRaw = localStorage.getItem('auth_user_applicant');
+        if (appRaw) return JSON.parse(appRaw);
+      }
+
+      const raw = localStorage.getItem('auth_user');
+      if (raw) {
+        const u = JSON.parse(raw);
+        if (u?.role === 'intern' || (u?.email || '').includes('ungvien')) {
+          return u;
+        }
+      }
+
+      // Nếu auth_user là role khác (HR/Admin mở tab khác), không ghi đè sang /intern/*
+      const appRaw = localStorage.getItem('auth_user_applicant');
+      if (appRaw) return JSON.parse(appRaw);
+      const internRaw = localStorage.getItem('auth_user_intern');
+      if (internRaw) return JSON.parse(internRaw);
+    }
+
+    // 5. Mặc định
     const raw = localStorage.getItem('auth_user');
     return raw ? JSON.parse(raw) : null;
   } catch {

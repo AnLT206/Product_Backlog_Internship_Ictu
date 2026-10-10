@@ -63,7 +63,15 @@ export async function acquireTokenForRole(role) {
           const data = await res.json();
           if (data?.access_token) {
             localStorage.setItem(`access_token_${role}`, data.access_token);
-            localStorage.setItem('access_token', data.access_token);
+            const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+            const isMatchingPortal =
+              (currentPath.startsWith('/hr') && role === 'hr') ||
+              (currentPath.startsWith('/admin') && role === 'admin') ||
+              (currentPath.startsWith('/mentor') && role === 'mentor') ||
+              (currentPath.startsWith('/intern') && (role === 'intern' || role === 'applicant'));
+            if (isMatchingPortal || !localStorage.getItem('access_token')) {
+              localStorage.setItem('access_token', data.access_token);
+            }
             return data.access_token;
           }
         }
@@ -107,8 +115,22 @@ export function determineRoleForPath(path) {
   if (path.startsWith('/api/mentor')) return 'mentor';
   if (path.startsWith('/api/departments')) return 'hr';
 
-  if (path.startsWith('/api/intern')) {
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+
+  if (
+    path.startsWith('/api/intern') ||
+    ((path.startsWith('/api/auth/me') || path.startsWith('/api/documents')) && currentPath.startsWith('/intern'))
+  ) {
     try {
+      const lastInternRole = localStorage.getItem('last_portal_intern_role');
+      if (lastInternRole === 'applicant') return 'applicant';
+
+      const rawApp = localStorage.getItem('auth_user_applicant');
+      if (rawApp) {
+        const u = JSON.parse(rawApp);
+        if (u?.email === 'ungvien@ictu.edu.vn' || u?.id === 7 || u?.role === 'applicant') return 'applicant';
+      }
+
       const raw = localStorage.getItem('auth_user');
       if (raw) {
         const u = JSON.parse(raw);

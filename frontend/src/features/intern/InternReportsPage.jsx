@@ -8,8 +8,9 @@ import {
   Lock,
 } from 'lucide-react'
 import apiFetch from '../../api/client'
+import { useAuth } from '../../context/AuthContext'
 import WeeklyReportForm from './WeeklyReportForm'
-import { useInternMetrics, notifyInternDataChanged } from './utils/internMetrics'
+import { useInternMetrics, notifyInternDataChanged, getStoredReports } from './utils/internMetrics'
 import './InternDashboardPage.css'
 import './InternReportsPage.css'
 
@@ -99,36 +100,9 @@ const INITIAL_REPORTS = [
 ]
 
 export default function InternReportsPage() {
-  const { metrics, refreshMetrics } = useInternMetrics()
-  const [reports, setReports] = useState(() => {
-    try {
-      const stored = localStorage.getItem('intern_report_history')
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const migrated = parsed.map((item, idx) => ({
-            ...item,
-            report_time:
-              item.report_time && !item.report_time.startsWith('Tuần')
-                ? item.report_time
-                : (item.submitted_at && !item.submitted_at.startsWith('Tuần')
-                    ? item.submitted_at.replace(' (Vừa xong)', '')
-                    : (idx === 0 ? '28/09/2026 16:45' : '20/09/2026 17:15')),
-            task_name:
-              item.task_name ||
-              (idx === 0
-                ? 'Phát triển API phân quyền RBAC & Unit Test Sprint 1'
-                : 'Kiểm thử API auth/register & môi trường Docker Compose'),
-          }))
-          localStorage.setItem('intern_report_history', JSON.stringify(migrated))
-          return migrated
-        }
-      }
-    } catch (err) {
-      console.warn('LocalStorage error:', err)
-    }
-    return INITIAL_REPORTS
-  })
+  const { user } = useAuth()
+  const { metrics, refreshMetrics } = useInternMetrics(user)
+  const [reports, setReports] = useState(() => getStoredReports(user))
 
   const [reportModal, setReportModal] = useState(false)
   const [selectedReport, setSelectedReport] = useState(null)
@@ -151,7 +125,9 @@ export default function InternReportsPage() {
 
       // 2. Kết hợp với localStorage
       try {
-        const stored = localStorage.getItem('intern_report_history')
+        const email = user?.email?.toLowerCase().trim()
+        const userKey = email ? `intern_reports_${email}` : null
+        const stored = (userKey && localStorage.getItem(userKey)) || localStorage.getItem('intern_report_history')
         if (stored) {
           const parsed = JSON.parse(stored)
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -182,6 +158,10 @@ export default function InternReportsPage() {
       if (merged.length > 0) {
         setReports(merged)
         try {
+          const email = user?.email?.toLowerCase().trim()
+          if (email) {
+            localStorage.setItem(`intern_reports_${email}`, JSON.stringify(merged))
+          }
           localStorage.setItem('intern_report_history', JSON.stringify(merged))
         } catch {}
       }
@@ -198,7 +178,7 @@ export default function InternReportsPage() {
       window.removeEventListener('storage', handleDataChanged)
       window.removeEventListener('intern_data_changed', handleDataChanged)
     }
-  }, [])
+  }, [user?.id, user?.email])
 
   function showToast(message, type = 'success') {
     setToast({ message, type })

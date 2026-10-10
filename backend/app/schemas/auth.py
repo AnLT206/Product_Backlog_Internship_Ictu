@@ -82,7 +82,7 @@ class InternRegisterResponse(BaseModel):
     email: str
     full_name: str | None
     role: Literal["intern"] = "intern"
-    status: Literal["pending", "active", "inactive"]
+    status: Literal["pending", "active", "inactive", "rejected"]
     phone_number: str | None = None
 
     model_config = {"from_attributes": True}

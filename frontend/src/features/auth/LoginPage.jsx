@@ -28,19 +28,31 @@ const QUICK_ACCOUNTS = [
     variant: 'mentor',
   },
   {
-    role: 'TTS',
+    role: 'TTS 1 (An)',
     email: 'intern@ictu.edu.vn',
     password: 'Intern@123',
     variant: 'intern',
   },
   {
-    role: 'Lê Hoàng Nam',
+    role: 'TTS 2 (Nam)',
     email: 'tts02@student.ictu.edu.vn',
     password: 'Intern@123',
     variant: 'intern',
   },
   {
-    role: 'Vũ Hải Yến (TTS 5)',
+    role: 'TTS 3 (Phương)',
+    email: 'tts03@student.ictu.edu.vn',
+    password: 'Intern@123',
+    variant: 'intern',
+  },
+  {
+    role: 'TTS 4 (Đức)',
+    email: 'tts04@student.ictu.edu.vn',
+    password: 'Intern@123',
+    variant: 'intern',
+  },
+  {
+    role: 'TTS 5 (Yến)',
     email: 'tts05@student.ictu.edu.vn',
     password: 'Intern@123',
     variant: 'intern',
@@ -77,6 +89,16 @@ function LoginPage() {
   async function performLogin(targetEmail, targetPassword, forcedDest) {
     setError('')
     setLoading(true)
+
+    const isApplicantAccount = targetEmail.trim().toLowerCase().includes('ungvien')
+    if (isApplicantAccount) {
+      try {
+        localStorage.removeItem('applicant_onboarded')
+        localStorage.removeItem('applicant_pending_contract')
+        sessionStorage.removeItem('applicant_reject_modal_dismissed')
+      } catch {}
+    }
+
     try {
       const result = await login(targetEmail.trim(), targetPassword)
       if (!result.ok) {

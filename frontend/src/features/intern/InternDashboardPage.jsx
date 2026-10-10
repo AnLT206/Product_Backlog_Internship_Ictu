@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, isApplicantUser } from '../../context/AuthContext'
 import InternApplicantDashboard from './InternApplicantDashboard'
 import TaskProgressModal from './components/TaskProgressModal'
-import { useInternMetrics, notifyInternDataChanged, formatVND } from './utils/internMetrics'
+import { useInternMetrics, notifyInternDataChanged, formatVND, getStoredTasks } from './utils/internMetrics'
 import { emitRealtimeEvent, SYNC_EVENTS } from '../../utils/realtimeSync'
 import apiFetch from '../../api/client'
 import './InternDashboardPage.css'
@@ -147,52 +147,14 @@ export default function InternDashboardPage() {
   const [isContractSignedLocally, setIsContractSignedLocally] = useState(
     () => typeof window !== 'undefined' && localStorage.getItem('applicant_onboarded') === 'true'
   )
-  const { metrics, refreshMetrics } = useInternMetrics()
+  const { metrics, refreshMetrics } = useInternMetrics(user)
 
   const [tasks, setTasks] = useState(() => {
-    // Với tài khoản TTS mới tinh (TTS 5, Ứng viên mới duyệt) -> bắt đầu với mảng rỗng
-    if (user?.id === 10 || user?.email === 'tts05@student.ictu.edu.vn' || user?.email?.includes('ungvien')) {
+    // Với tài khoản ứng viên mới duyệt chưa giao việc -> bắt đầu với mảng rỗng
+    if (user?.email?.includes('ungvien')) {
       return []
     }
-    try {
-      const stored = localStorage.getItem('intern_sprint1_tasks_v1')
-      if (stored) {
-        let parsed = JSON.parse(stored)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasDesign = parsed.some((t) => (t.title || '').toLowerCase().includes('thiết kế giao diện'))
-          if (!hasDesign) {
-            parsed = [INITIAL_SPRINT1_TASKS[0], ...parsed]
-          }
-          // Chuẩn hóa dữ liệu cũ và luôn tự động sinh tags mới theo tiêu đề nhiệm vụ
-          const normalized = parsed.map((t) => {
-            let taskItem = { ...t }
-            if (taskItem.id === 1 && taskItem.subtasks && taskItem.subtasks[2] && !taskItem.subtasks[2].completed) {
-              const updatedSubtasks = [...taskItem.subtasks]
-              updatedSubtasks[2] = { ...updatedSubtasks[2], completed: true }
-              taskItem = { ...taskItem, subtasks: updatedSubtasks, progress: 75 }
-            }
-            if (taskItem.id === 3 && taskItem.status === 'todo' && taskItem.progress === 0) {
-              taskItem = {
-                ...taskItem,
-                status: 'review',
-                progress: 50,
-                subtasks: [
-                  { id: 'st-31', text: 'Cài đặt Swagger UI theme chuẩn ICTU', completed: true },
-                  { id: 'st-32', text: 'Viết docstring cho từng route FastAPI', completed: false },
-                ],
-              }
-            }
-            taskItem.tags = generateTagsFromTitle(taskItem.title)
-            return taskItem
-          })
-          localStorage.setItem('intern_sprint1_tasks_v1', JSON.stringify(normalized))
-          return normalized
-        }
-      }
-    } catch {
-      // fallback
-    }
-    return INITIAL_SPRINT1_TASKS
+    return getStoredTasks(user)
   })
 
   // Đồng bộ nhiệm vụ thực tế từ API /api/intern/tasks
@@ -585,6 +547,10 @@ export default function InternDashboardPage() {
     )
     setTasks(updatedTasks)
     try {
+      const email = user?.email?.toLowerCase().trim()
+      if (email) {
+        localStorage.setItem(`intern_sprint1_tasks_${email}`, JSON.stringify(updatedTasks))
+      }
       localStorage.setItem('intern_sprint1_tasks_v1', JSON.stringify(updatedTasks))
     } catch {
       // fallback
@@ -698,6 +664,10 @@ export default function InternDashboardPage() {
     const updated = [newTask, ...tasks]
     setTasks(updated)
     try {
+      const email = user?.email?.toLowerCase().trim()
+      if (email) {
+        localStorage.setItem(`intern_sprint1_tasks_${email}`, JSON.stringify(updated))
+      }
       localStorage.setItem('intern_sprint1_tasks_v1', JSON.stringify(updated))
     } catch {
       // fallback

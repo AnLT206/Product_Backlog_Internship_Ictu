@@ -57,3 +57,26 @@ class AttendanceTodayStatusResponse(BaseModel):
     checked_in: bool
     checked_out: bool
     record: AttendanceResponse | None = None
+
+
+class AttendanceLeaveTotals(BaseModel):
+    """Tổng số ngày chuyên cần sau khi Join Attendance với LeaveRequest."""
+
+    present_days: int = 0
+    late_days: int = 0
+    authorized_leave_days: int = 0
+    unauthorized_leave_days: int = 0
+
+
+class AttendanceLeaveReportItem(AttendanceLeaveTotals):
+    intern_id: int
+    user_code: str | None = None
+    full_name: str | None = None
+
+
+class AttendanceLeaveReportResponse(BaseModel):
+    from_date: date | None = None
+    to_date: date | None = None
+    totals: AttendanceLeaveTotals
+    items: list[AttendanceLeaveReportItem]
+    total: int

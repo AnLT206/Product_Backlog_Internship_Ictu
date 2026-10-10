@@ -201,10 +201,14 @@ class InternService:
                 full_name=u.full_name,
                 role="intern",
                 status=(
-                    "pending"
-                    if (u.intern_profile and u.intern_profile.status == "pending")
-                    or (u.id in cv_map and cv_map[u.id].status == "pending" and u.status != "active")
-                    else u.status
+                    "rejected"
+                    if (u.intern_profile and u.intern_profile.status == "rejected")
+                    else (
+                        "pending"
+                        if (u.intern_profile and u.intern_profile.status == "pending")
+                        or (u.id in cv_map and cv_map[u.id].status == "pending" and u.status != "active")
+                        else u.status
+                    )
                 ),
                 has_cv=(u.id in cv_map),
                 cv_file_name=cv_map[u.id].file_name if u.id in cv_map else None,
@@ -365,24 +369,6 @@ class InternService:
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Không tìm thấy hồ sơ thực tập sinh.",
                 )
-            from app.models.document import Document
-            has_pending_cv = (
-                self.db.query(Document)
-                .filter(Document.user_id == intern_id, Document.doc_type == "cv")
-                .first()
-                is not None
-            )
-            if (
-                user.intern_profile.status in ("pending", "rejected")
-                or user.status in ("pending", "inactive")
-                or has_pending_cv
-            ):
-                user.intern_profile.status = "pending"
-            elif user.intern_profile.status == "approved" and user.status == "active":
-                # Cho phép HR cập nhật hoặc duyệt lại hồ sơ
-                user.intern_profile.status = "pending"
-            else:
-                user.intern_profile.status = "pending"
             return user, user.intern_profile
         except HTTPException:
             raise
@@ -415,7 +401,15 @@ class InternService:
             email=user.email,
             full_name=user.full_name,
             role="intern",
-            status=user.status,
+            status=(
+                "rejected"
+                if (profile and profile.status == "rejected")
+                else (
+                    "pending"
+                    if (profile and profile.status == "pending")
+                    else user.status
+                )
+            ),
             phone_number=profile.phone_number if profile else None,
             dob=profile.dob if profile else None,
             gender=profile.gender if profile else None,
@@ -474,13 +468,28 @@ class InternService:
         user, profile = self._get_pending_intern(intern_id)
         try:
             profile.status = "rejected"
-            user.status = "pending"
+            user.status = "inactive"
             from app.models.document import Document
             self.db.query(Document).filter(
                 Document.user_id == intern_id, Document.doc_type == "cv"
-            ).update({"status": "rejected"}, synchronize_session=False)
+            ).update(
+                {"status": "rejected", "review_note": (note or "")[:255] if note else None},
+                synchronize_session=False,
+            )
+            from app.services.notification_service import NotificationService
+            NotificationService(self.db).create_notification(
+                user_id=user.id,
+                title="Thông báo kết quả xét duyệt hồ sơ thực tập",
+                body=(
+                    f"Hồ sơ ứng tuyển của bạn hiện chưa được tiếp nhận. "
+                    + (f"Lý do: {note}. " if note else "")
+                    + "Bạn có thể chuẩn bị lại CV và nộp lại hồ sơ bất kỳ lúc nào."
+                ),
+                commit=False,
+            )
             self.db.commit()
             self.db.refresh(user)
+            self.db.refresh(profile)
             EmailService.enqueue_email(
                 background_tasks,
                 user.email,
@@ -503,6 +512,6 @@ class InternService:
             email=user.email,
             full_name=user.full_name,
             role="intern",
-            status=user.status,
+            status="rejected",
             phone_number=profile.phone_number if profile else None,
         )

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import { useInternMetrics, notifyInternDataChanged, formatVND, getStoredAttendanceHistory } from './utils/internMetrics'
+import { useInternMetrics, notifyInternDataChanged, formatVND, getStoredAttendanceHistory, getStoredLeaves } from './utils/internMetrics'
 import { emitRealtimeEvent, subscribeRealtimeEvents, SYNC_EVENTS } from '../../utils/realtimeSync'
 import { fetchInternLeaveRequests, createLeaveRequest } from '../../api/operations'
 import { getSavedAvatar } from '../../utils/avatarHelper'
@@ -135,7 +135,7 @@ function getStatusBadgeClass(item) {
 
 export default function InternAttendancePage() {
   const { user } = useAuth()
-  const { metrics, refreshMetrics } = useInternMetrics()
+  const { metrics, refreshMetrics } = useInternMetrics(user)
   const [toast, setToast] = useState(null)
   const [leaveModal, setLeaveModal] = useState(false)
   const [rulesModal, setRulesModal] = useState(false)
@@ -162,7 +162,7 @@ export default function InternAttendancePage() {
     }
   }, [rulesModal, leaveModal, selectedLeaveDetail])
   const [history, setHistory] = useState(() => {
-    const list = getStoredAttendanceHistory()
+    const list = getStoredAttendanceHistory(user)
     return list.map((item) => {
       if (item.total_hours === 'Đã hoàn thành ca' || !item.total_hours) {
         const calculated = calculateWorkDuration(
@@ -300,7 +300,7 @@ export default function InternAttendancePage() {
     } catch {
       // fallback
     }
-    return INITIAL_LEAVE_REQUESTS
+    return getStoredLeaves(user)
   })
 
   useEffect(() => {

@@ -30,94 +30,173 @@ const POPULAR_BANKS = [
 ]
 
 export function getSavedUserProfile(currentUser) {
-  const isActualIntern = currentUser?.role === 'intern'
-  const isApplicant = isApplicantUser(currentUser)
+  try {
+    const isActualIntern = currentUser?.role === 'intern'
+    const isApplicant =
+      isApplicantUser(currentUser) ||
+      (typeof window !== 'undefined' &&
+        localStorage.getItem('last_portal_intern_role') === 'applicant' &&
+        localStorage.getItem('applicant_onboarded') !== 'true')
 
-  // Nếu người dùng đang xem trang không phải là Thực tập sinh hoặc Ứng viên (ví dụ tài khoản HR, Admin):
-  // Cố định thông tin hiển thị là hồ sơ TTS chuẩn của hệ thống, tuyệt đối KHÔNG lấy thông tin HR/Admin!
-  if (!isActualIntern && !isApplicant) {
+    const cleanName = (n) => {
+      if (!n) return isApplicant ? 'Nguyễn Thu Hà' : 'TTS'
+      const str = String(n).trim()
+      if (str === 'HR' || str === 'Hr') {
+        return isApplicant ? 'Nguyễn Thu Hà' : 'TTS'
+      }
+      if (str.includes('Nguyễn Văn An') && isApplicant) {
+        return 'Nguyễn Thu Hà'
+      }
+      if (str.includes('Nguyễn Văn An') && !isApplicant) {
+        return 'TTS'
+      }
+      return str
+    }
+
+    const cleanEmail = (m) => {
+      if (!m) return isApplicant ? 'ungvien@ictu.edu.vn' : 'intern@ictu.edu.vn'
+      const str = String(m).trim()
+      if (str.includes('hr@ictu.edu.vn') || (str.includes('intern@ictu.edu.vn') && isApplicant)) {
+        return isApplicant ? 'ungvien@ictu.edu.vn' : 'intern@ictu.edu.vn'
+      }
+      return str
+    }
+
+    const cleanCode = (c) => {
+      if (!c) return isApplicant ? 'UV0001' : 'TTS0001'
+      const str = String(c).trim()
+      if (str.includes('HR') || str.includes('AD') || (str.includes('TTS') && isApplicant)) {
+        return isApplicant ? 'UV0001' : 'TTS0001'
+      }
+      return str
+    }
+
+    const email = (currentUser?.email || '').toLowerCase().trim()
+    const uid = currentUser?.id
+
+    let fallbackBankName = 'MB Bank'
+    let fallbackBankAccount = '999908123451'
+    let fallbackPhone = '0912.345.001'
+    let fallbackCccd = '001203019871'
+    let fallbackMajor = 'Công nghệ thông tin'
+
+    if (uid === 6 || email === 'tts02@student.ictu.edu.vn') {
+      fallbackBankName = 'Techcombank'
+      fallbackBankAccount = '190368123452'
+      fallbackPhone = '0912.345.002'
+      fallbackCccd = '001203019872'
+      fallbackMajor = 'Kỹ thuật phần mềm'
+    } else if (uid === 8 || email === 'tts03@student.ictu.edu.vn') {
+      fallbackBankName = 'Vietcombank'
+      fallbackBankAccount = '0071008123453'
+      fallbackPhone = '0912.345.003'
+      fallbackCccd = '001203019873'
+      fallbackMajor = 'Hệ thống thông tin'
+    } else if (uid === 9 || email === 'tts04@student.ictu.edu.vn') {
+      fallbackBankName = 'BIDV'
+      fallbackBankAccount = '42710008123454'
+      fallbackPhone = '0912.345.004'
+      fallbackCccd = '001203019874'
+      fallbackMajor = 'An toàn thông tin'
+    } else if (uid === 10 || email === 'tts05@student.ictu.edu.vn') {
+      fallbackBankName = 'TPBank'
+      fallbackBankAccount = '03988123455'
+      fallbackPhone = '0912.345.005'
+      fallbackCccd = '001203019875'
+      fallbackMajor = 'Khoa học máy tính'
+    } else if (isApplicant) {
+      fallbackBankName = 'MB Bank'
+      fallbackBankAccount = '999908123459'
+      fallbackPhone = '0987.654.321'
+      fallbackCccd = '001203019870'
+      fallbackMajor = 'Công nghệ thông tin'
+    }
+
+    const fallbackProfile = {
+      avatar: isApplicant ? (currentUser?.avatar || null) : (currentUser?.avatar || null),
+      full_name: cleanName(currentUser?.full_name),
+      dob: String(currentUser?.dob || (isApplicant ? '20/10/2003' : '15/05/2003')),
+      email: cleanEmail(currentUser?.email),
+      phone: String(currentUser?.phone || currentUser?.phone_number || fallbackPhone),
+      student_code: cleanCode(currentUser?.student_code || currentUser?.code),
+      university: String(currentUser?.university || (isApplicant ? 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)' : 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)')),
+      major: String(currentUser?.major || fallbackMajor),
+      cccd: String(currentUser?.cccd || fallbackCccd),
+      address: String(currentUser?.address || 'Phường Quyết Thắng, TP. Thái Nguyên'),
+      bank_account: String(currentUser?.bank_account || fallbackBankAccount),
+      bank_name: String(currentUser?.bank_name || fallbackBankName),
+    }
+
+    if (!isActualIntern && !isApplicant) {
+      if (typeof window !== 'undefined' && localStorage.getItem('last_portal_intern_role') === 'applicant') {
+        return fallbackProfile
+      }
+      try {
+        const raw = localStorage.getItem('ictu_user_profile_intern@ictu.edu.vn') || localStorage.getItem(STORAGE_KEY)
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (parsed && typeof parsed === 'object') {
+            return {
+              avatar: parsed.avatar || null,
+              full_name: (parsed.full_name && typeof parsed.full_name === 'string' && !parsed.full_name.includes('HR') && !parsed.full_name.includes('Hr') && !parsed.full_name.includes('Nguyễn Văn An')) ? parsed.full_name : 'TTS',
+              dob: String(parsed.dob || '15/05/2003'),
+              email: 'intern@ictu.edu.vn',
+              phone: String(parsed.phone || '0987654322'),
+              student_code: (parsed.student_code && typeof parsed.student_code === 'string' && !parsed.student_code.includes('HR') && !parsed.student_code.includes('AD')) ? parsed.student_code : 'TTS0001',
+              university: String(parsed.university || 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)'),
+              cccd: String(parsed.cccd || '001203019876'),
+              address: String(parsed.address || 'Phường Quyết Thắng, TP. Thái Nguyên'),
+              bank_account: String(parsed.bank_account || '999908123456'),
+              bank_name: String(parsed.bank_name || 'MB Bank'),
+            }
+          }
+        }
+      } catch {}
+      return fallbackProfile
+    }
+
+    const userKey = email ? `ictu_user_profile_${email}` : null
+
     try {
-      const raw = localStorage.getItem('ictu_user_profile_intern@ictu.edu.vn') || localStorage.getItem(STORAGE_KEY)
+      const raw = (userKey && localStorage.getItem(userKey)) || (isApplicant ? null : localStorage.getItem(STORAGE_KEY))
       if (raw) {
         const parsed = JSON.parse(raw)
         if (parsed && typeof parsed === 'object') {
-          return {
-            avatar: parsed.avatar || null,
-            full_name: (parsed.full_name && !parsed.full_name.includes('HR') && !parsed.full_name.includes('Hr') && !parsed.full_name.includes('Nguyễn Văn An')) ? parsed.full_name : 'TTS',
-            dob: parsed.dob || '15/05/2003',
-            email: 'intern@ictu.edu.vn',
-            phone: parsed.phone || '0987654322',
-            student_code: (parsed.student_code && !parsed.student_code.includes('HR') && !parsed.student_code.includes('AD')) ? parsed.student_code : 'TTS0001',
-            university: parsed.university || 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)',
-            cccd: parsed.cccd || '001203019876',
-            address: parsed.address || 'Phường Quyết Thắng, TP. Thái Nguyên',
-            bank_account: parsed.bank_account || '999908123456',
-            bank_name: parsed.bank_name || 'MB Bank',
+          if (!parsed.email || !email || String(parsed.email).toLowerCase().trim() === email) {
+            return {
+              avatar: parsed.avatar ?? currentUser?.avatar ?? null,
+              full_name: cleanName(currentUser?.full_name || parsed.full_name),
+              dob: String(parsed.dob || currentUser?.dob || (isApplicant ? '20/10/2003' : '15/05/2003')),
+              email: cleanEmail(currentUser?.email || parsed.email),
+              phone: String(parsed.phone || parsed.phone_number || currentUser?.phone || currentUser?.phone_number || (isApplicant ? '0987.654.321' : '0912.345.001')),
+              student_code: cleanCode(parsed.student_code ?? currentUser?.student_code ?? currentUser?.code),
+              university: String(parsed.university ?? currentUser?.university ?? 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)'),
+              cccd: String(parsed.cccd || currentUser?.cccd || fallbackCccd),
+              address: String(parsed.address || currentUser?.address || 'Phường Quyết Thắng, TP. Thái Nguyên'),
+              bank_account: String(parsed.bank_account || currentUser?.bank_account || fallbackBankAccount),
+              bank_name: String(parsed.bank_name || currentUser?.bank_name || fallbackBankName),
+            }
           }
         }
       }
     } catch {}
 
+    return fallbackProfile
+  } catch {
+    const isApp = isApplicantUser(currentUser) || (typeof window !== 'undefined' && localStorage.getItem('last_portal_intern_role') === 'applicant')
     return {
       avatar: null,
-      full_name: 'TTS',
-      dob: '15/05/2003',
-      email: 'intern@ictu.edu.vn',
-      phone: '0987654322',
-      student_code: 'TTS0001',
-      university: 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)',
-      cccd: '001203019876',
+      full_name: isApp ? 'Nguyễn Thu Hà' : 'TTS',
+      dob: isApp ? '20/10/2003' : '15/05/2003',
+      email: isApp ? 'ungvien@ictu.edu.vn' : 'intern@ictu.edu.vn',
+      phone: isApp ? '0987.654.321' : '0912.345.001',
+      student_code: isApp ? 'UV0001' : 'TTS0001',
+      university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+      cccd: isApp ? '001203019870' : '001203019876',
       address: 'Phường Quyết Thắng, TP. Thái Nguyên',
-      bank_account: '999908123456',
+      bank_account: isApp ? '999908123459' : '999908123456',
       bank_name: 'MB Bank',
     }
-  }
-
-  const cleanName = (n) => (!n || n === 'HR' || n === 'Hr' || n.includes('Nguyễn Văn An')) ? (isApplicant ? 'Ứng viên' : 'TTS') : n
-  const cleanEmail = (m) => (!m || m.includes('hr@ictu.edu.vn')) ? (isApplicant ? 'ungvien@ictu.edu.vn' : 'intern@ictu.edu.vn') : m
-  const cleanCode = (c) => (!c || c.includes('HR') || c.includes('AD')) ? (isApplicant ? '' : 'TTS0001') : c
-
-  const email = (currentUser?.email || '').toLowerCase().trim()
-  const userKey = email ? `ictu_user_profile_${email}` : null
-
-  try {
-    const raw = (userKey && localStorage.getItem(userKey)) || localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (parsed && typeof parsed === 'object') {
-        if (!parsed.email || !email || parsed.email.toLowerCase().trim() === email) {
-          return {
-            avatar: parsed.avatar ?? currentUser?.avatar ?? null,
-            full_name: cleanName(currentUser?.full_name || parsed.full_name),
-            dob: parsed.dob || currentUser?.dob || (isApplicant ? '20/10/2003' : '15/05/2003'),
-            email: cleanEmail(currentUser?.email || parsed.email),
-            phone: parsed.phone || parsed.phone_number || currentUser?.phone || currentUser?.phone_number || (isApplicant ? '0987654321' : '0987654322'),
-            student_code: cleanCode(parsed.student_code ?? currentUser?.student_code ?? currentUser?.code),
-            university: parsed.university ?? currentUser?.university ?? (isApplicant ? '' : 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)'),
-            cccd: parsed.cccd || currentUser?.cccd || '001203019876',
-            address: parsed.address || currentUser?.address || 'Phường Quyết Thắng, TP. Thái Nguyên',
-            bank_account: parsed.bank_account || currentUser?.bank_account || '999908123456',
-            bank_name: parsed.bank_name || currentUser?.bank_name || 'MB Bank',
-          }
-        }
-      }
-    }
-  } catch {
-    // fallback
-  }
-
-  return {
-    avatar: currentUser?.avatar || null,
-    full_name: cleanName(currentUser?.full_name),
-    dob: currentUser?.dob || (isApplicant ? '20/10/2003' : '15/05/2003'),
-    email: cleanEmail(currentUser?.email),
-    phone: currentUser?.phone || currentUser?.phone_number || (isApplicant ? '0987654321' : '0987654322'),
-    student_code: cleanCode(currentUser?.student_code || currentUser?.code),
-    university: currentUser?.university || (isApplicant ? '' : 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)'),
-    cccd: currentUser?.cccd || '001203019876',
-    address: currentUser?.address || 'Phường Quyết Thắng, TP. Thái Nguyên',
-    bank_account: currentUser?.bank_account || '999908123456',
-    bank_name: currentUser?.bank_name || 'MB Bank',
   }
 }
 
@@ -406,6 +485,42 @@ export default function InternProfilePage() {
     showToastMessage('Đã hủy các thay đổi chưa lưu và khôi phục dữ liệu ban đầu.', 'info')
   }
 
+  // ── ĐẶT LẠI TOÀN BỘ TÀI KHOẢN VÀ HỒ SƠ ỨNG VIÊN VỀ BAN ĐẦU ──
+  function handleResetApplicantProfile() {
+    try {
+      localStorage.removeItem('applicant_decision_status')
+      localStorage.removeItem('applicant_onboarded')
+      localStorage.removeItem('applicant_pending_contract')
+      sessionStorage.removeItem('applicant_reject_modal_dismissed')
+      localStorage.removeItem('ictu_user_profile_ungvien@ictu.edu.vn')
+      localStorage.removeItem('ictu_avatar_ungvien@ictu.edu.vn')
+      localStorage.removeItem('ictu_avatar_applicant')
+    } catch {}
+    const defaultData = {
+      avatar: null,
+      full_name: 'Nguyễn Thu Hà',
+      dob: '20/10/2003',
+      email: 'ungvien@ictu.edu.vn',
+      phone: '0987654321',
+      student_code: 'UV0001',
+      university: 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)',
+      cccd: '001203019876',
+      address: 'Phường Quyết Thắng, TP. Thái Nguyên',
+      bank_account: '999908123456',
+      bank_name: 'MB Bank',
+    }
+    setSavedData(defaultData)
+    setFormData(defaultData)
+    setFormErrors({})
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+    if (updateUser) {
+      updateUser({ status: 'pending', profile_status: 'pending', avatar: null })
+    }
+    showToastMessage('Đã đặt lại thông tin và trạng thái tài khoản ứng viên về ban đầu!')
+  }
+
   // ── LƯU THAY ĐỔI MẬT KHẨU ──
   async function handleSavePassword(e) {
     e.preventDefault()
@@ -570,7 +685,7 @@ export default function InternProfilePage() {
                   <div className="prf-input-wrapper prf-input-disabled">
                     <input
                       type="text"
-                      value={formData.full_name}
+                      value={formData?.full_name || ''}
                       disabled
                       readOnly
                       className="prf-input"
@@ -593,7 +708,7 @@ export default function InternProfilePage() {
                   <div className="prf-input-wrapper prf-input-disabled">
                     <input
                       type="text"
-                      value={formData.dob}
+                      value={formData?.dob || ''}
                       disabled
                       readOnly
                       className="prf-input"
@@ -616,7 +731,7 @@ export default function InternProfilePage() {
                   <div className="prf-input-wrapper prf-input-disabled">
                     <input
                       type="email"
-                      value={formData.email}
+                      value={formData?.email || ''}
                       disabled
                       readOnly
                       className="prf-input"
@@ -650,7 +765,7 @@ export default function InternProfilePage() {
                         id="prf-phone-applicant"
                         type="tel"
                         placeholder="VD: 0987654321"
-                        value={formData.phone}
+                        value={formData?.phone || ''}
                         onChange={(e) => {
                           setFormData({ ...formData, phone: e.target.value })
                           if (formErrors.phone) setFormErrors({ ...formErrors, phone: null })
@@ -675,7 +790,7 @@ export default function InternProfilePage() {
                         id="prf-address-applicant"
                         type="text"
                         placeholder="VD: Số 12, P. Quyết Thắng, TP. Thái Nguyên"
-                        value={formData.address}
+                        value={formData?.address || ''}
                         onChange={(e) => {
                           setFormData({ ...formData, address: e.target.value })
                           if (formErrors.address) setFormErrors({ ...formErrors, address: null })
@@ -703,7 +818,7 @@ export default function InternProfilePage() {
                         id="prf-student-code-applicant"
                         type="text"
                         placeholder="VD: DTC2051220001 (Nếu là sinh viên)"
-                        value={formData.student_code || ''}
+                        value={formData?.student_code || ''}
                         onChange={(e) => setFormData({ ...formData, student_code: e.target.value })}
                         className="prf-input"
                       />
@@ -727,7 +842,7 @@ export default function InternProfilePage() {
                         id="prf-university-applicant"
                         type="text"
                         placeholder="VD: Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)"
-                        value={formData.university || ''}
+                        value={formData?.university || ''}
                         onChange={(e) => setFormData({ ...formData, university: e.target.value })}
                         className="prf-input"
                       />
@@ -840,7 +955,7 @@ export default function InternProfilePage() {
                         id="prf-phone"
                         type="tel"
                         placeholder="VD: 0987654321"
-                        value={formData.phone}
+                        value={formData?.phone || ''}
                         onChange={(e) => {
                           setFormData({ ...formData, phone: e.target.value })
                           if (formErrors.phone) setFormErrors({ ...formErrors, phone: null })
@@ -867,7 +982,7 @@ export default function InternProfilePage() {
                         id="prf-cccd"
                         type="text"
                         placeholder="VD: 001203019876"
-                        value={formData.cccd}
+                        value={formData?.cccd || ''}
                         onChange={(e) => {
                           setFormData({ ...formData, cccd: e.target.value })
                           if (formErrors.cccd) setFormErrors({ ...formErrors, cccd: null })
@@ -893,7 +1008,7 @@ export default function InternProfilePage() {
                       id="prf-address"
                       type="text"
                       placeholder="VD: Số 12, Đ. Z115, P. Quyết Thắng, TP. Thái Nguyên"
-                      value={formData.address}
+                      value={formData?.address || ''}
                       onChange={(e) => {
                         setFormData({ ...formData, address: e.target.value })
                         if (formErrors.address) setFormErrors({ ...formErrors, address: null })
@@ -919,7 +1034,7 @@ export default function InternProfilePage() {
                         id="prf-bank-account"
                         type="text"
                         placeholder="VD: 999908123456"
-                        value={formData.bank_account}
+                        value={formData?.bank_account || ''}
                         onChange={(e) => {
                           setFormData({ ...formData, bank_account: e.target.value })
                           if (formErrors.bank_account) setFormErrors({ ...formErrors, bank_account: null })
@@ -946,7 +1061,7 @@ export default function InternProfilePage() {
                         list="bank-suggestions"
                         type="text"
                         placeholder="Chọn hoặc nhập tên ngân hàng"
-                        value={formData.bank_name}
+                        value={formData?.bank_name || ''}
                         onChange={(e) => {
                           setFormData({ ...formData, bank_name: e.target.value })
                           if (formErrors.bank_name) setFormErrors({ ...formErrors, bank_name: null })
