@@ -32,13 +32,23 @@ const POPULAR_BANKS = [
 export function getSavedUserProfile(currentUser) {
   try {
     const isActualIntern = currentUser?.role === 'intern'
-    const isApplicant = isApplicantUser(currentUser)
+    const isApplicant =
+      isApplicantUser(currentUser) ||
+      (typeof window !== 'undefined' &&
+        localStorage.getItem('last_portal_intern_role') === 'applicant' &&
+        localStorage.getItem('applicant_onboarded') !== 'true')
 
     const cleanName = (n) => {
-      if (!n) return isApplicant ? 'Ứng viên' : 'TTS'
+      if (!n) return isApplicant ? 'Nguyễn Thu Hà' : 'TTS'
       const str = String(n).trim()
-      if (str === 'HR' || str === 'Hr' || str.includes('Nguyễn Văn An')) {
-        return isApplicant ? 'Ứng viên' : 'TTS'
+      if (str === 'HR' || str === 'Hr') {
+        return isApplicant ? 'Nguyễn Thu Hà' : 'TTS'
+      }
+      if (str.includes('Nguyễn Văn An') && isApplicant) {
+        return 'Nguyễn Thu Hà'
+      }
+      if (str.includes('Nguyễn Văn An') && !isApplicant) {
+        return 'TTS'
       }
       return str
     }
@@ -46,7 +56,7 @@ export function getSavedUserProfile(currentUser) {
     const cleanEmail = (m) => {
       if (!m) return isApplicant ? 'ungvien@ictu.edu.vn' : 'intern@ictu.edu.vn'
       const str = String(m).trim()
-      if (str.includes('hr@ictu.edu.vn')) {
+      if (str.includes('hr@ictu.edu.vn') || (str.includes('intern@ictu.edu.vn') && isApplicant)) {
         return isApplicant ? 'ungvien@ictu.edu.vn' : 'intern@ictu.edu.vn'
       }
       return str
@@ -55,7 +65,7 @@ export function getSavedUserProfile(currentUser) {
     const cleanCode = (c) => {
       if (!c) return isApplicant ? 'UV0001' : 'TTS0001'
       const str = String(c).trim()
-      if (str.includes('HR') || str.includes('AD')) {
+      if (str.includes('HR') || str.includes('AD') || (str.includes('TTS') && isApplicant)) {
         return isApplicant ? 'UV0001' : 'TTS0001'
       }
       return str
@@ -103,13 +113,13 @@ export function getSavedUserProfile(currentUser) {
     }
 
     const fallbackProfile = {
-      avatar: currentUser?.avatar || null,
+      avatar: isApplicant ? (currentUser?.avatar || null) : (currentUser?.avatar || null),
       full_name: cleanName(currentUser?.full_name),
       dob: String(currentUser?.dob || (isApplicant ? '20/10/2003' : '15/05/2003')),
       email: cleanEmail(currentUser?.email),
       phone: String(currentUser?.phone || currentUser?.phone_number || fallbackPhone),
       student_code: cleanCode(currentUser?.student_code || currentUser?.code),
-      university: String(currentUser?.university || (isApplicant ? '' : 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)')),
+      university: String(currentUser?.university || (isApplicant ? 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)' : 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)')),
       major: String(currentUser?.major || fallbackMajor),
       cccd: String(currentUser?.cccd || fallbackCccd),
       address: String(currentUser?.address || 'Phường Quyết Thắng, TP. Thái Nguyên'),
@@ -118,6 +128,9 @@ export function getSavedUserProfile(currentUser) {
     }
 
     if (!isActualIntern && !isApplicant) {
+      if (typeof window !== 'undefined' && localStorage.getItem('last_portal_intern_role') === 'applicant') {
+        return fallbackProfile
+      }
       try {
         const raw = localStorage.getItem('ictu_user_profile_intern@ictu.edu.vn') || localStorage.getItem(STORAGE_KEY)
         if (raw) {
@@ -145,7 +158,7 @@ export function getSavedUserProfile(currentUser) {
     const userKey = email ? `ictu_user_profile_${email}` : null
 
     try {
-      const raw = (userKey && localStorage.getItem(userKey)) || localStorage.getItem(STORAGE_KEY)
+      const raw = (userKey && localStorage.getItem(userKey)) || (isApplicant ? null : localStorage.getItem(STORAGE_KEY))
       if (raw) {
         const parsed = JSON.parse(raw)
         if (parsed && typeof parsed === 'object') {
@@ -155,13 +168,13 @@ export function getSavedUserProfile(currentUser) {
               full_name: cleanName(currentUser?.full_name || parsed.full_name),
               dob: String(parsed.dob || currentUser?.dob || (isApplicant ? '20/10/2003' : '15/05/2003')),
               email: cleanEmail(currentUser?.email || parsed.email),
-              phone: String(parsed.phone || parsed.phone_number || currentUser?.phone || currentUser?.phone_number || (isApplicant ? '0987654321' : '0987654322')),
+              phone: String(parsed.phone || parsed.phone_number || currentUser?.phone || currentUser?.phone_number || (isApplicant ? '0987.654.321' : '0912.345.001')),
               student_code: cleanCode(parsed.student_code ?? currentUser?.student_code ?? currentUser?.code),
-              university: String(parsed.university ?? currentUser?.university ?? (isApplicant ? '' : 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)')),
-              cccd: String(parsed.cccd || currentUser?.cccd || '001203019876'),
+              university: String(parsed.university ?? currentUser?.university ?? 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)'),
+              cccd: String(parsed.cccd || currentUser?.cccd || fallbackCccd),
               address: String(parsed.address || currentUser?.address || 'Phường Quyết Thắng, TP. Thái Nguyên'),
-              bank_account: String(parsed.bank_account || currentUser?.bank_account || '999908123456'),
-              bank_name: String(parsed.bank_name || currentUser?.bank_name || 'MB Bank'),
+              bank_account: String(parsed.bank_account || currentUser?.bank_account || fallbackBankAccount),
+              bank_name: String(parsed.bank_name || currentUser?.bank_name || fallbackBankName),
             }
           }
         }
@@ -170,17 +183,18 @@ export function getSavedUserProfile(currentUser) {
 
     return fallbackProfile
   } catch {
+    const isApp = isApplicantUser(currentUser) || (typeof window !== 'undefined' && localStorage.getItem('last_portal_intern_role') === 'applicant')
     return {
       avatar: null,
-      full_name: 'TTS',
-      dob: '15/05/2003',
-      email: 'intern@ictu.edu.vn',
-      phone: '0987654321',
-      student_code: 'TTS0001',
-      university: 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)',
-      cccd: '001203019876',
+      full_name: isApp ? 'Nguyễn Thu Hà' : 'TTS',
+      dob: isApp ? '20/10/2003' : '15/05/2003',
+      email: isApp ? 'ungvien@ictu.edu.vn' : 'intern@ictu.edu.vn',
+      phone: isApp ? '0987.654.321' : '0912.345.001',
+      student_code: isApp ? 'UV0001' : 'TTS0001',
+      university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+      cccd: isApp ? '001203019870' : '001203019876',
       address: 'Phường Quyết Thắng, TP. Thái Nguyên',
-      bank_account: '999908123456',
+      bank_account: isApp ? '999908123459' : '999908123456',
       bank_name: 'MB Bank',
     }
   }

@@ -80,11 +80,15 @@ export function getPersistedUserProfile(email) {
       const parsed = JSON.parse(scopedRaw);
       if (parsed && typeof parsed === 'object') return parsed;
     }
+    // Đối với ứng viên (ungvien), TUYỆT ĐỐI không đọc fallback từ 'ictu_user_profile' (vốn là TTS 1 An)
+    if (normalized.includes('ungvien')) {
+      return null;
+    }
     const legacyRaw = localStorage.getItem('ictu_user_profile');
     if (legacyRaw) {
       const parsed = JSON.parse(legacyRaw);
       if (parsed && typeof parsed === 'object') {
-        if (!parsed.email || parsed.email.toLowerCase().trim() === normalized) {
+        if (parsed.email && parsed.email.toLowerCase().trim() === normalized) {
           return parsed;
         }
       }
@@ -148,33 +152,39 @@ export function isApplicantUser(u) {
   const status = (u.status || '').toLowerCase().trim();
   const profileStatus = (u.profile_status || '').toLowerCase().trim();
 
-  // 1. ĐÃ DUYỆT / ACTIVE -> Chắc chắn là Thực tập sinh chính thức, KHÔNG còn là Ứng viên chờ duyệt nữa!
-  if (status === 'active' || status === 'approved' || profileStatus === 'approved') {
-    return false;
-  }
-
-  // 2. Nếu người dùng đã hoàn thành ký hợp đồng (onboarded), không còn là ứng viên chờ duyệt nữa
+  // 1. Nếu người dùng đã hoàn thành ký hợp đồng (onboarded), chắc chắn là Thực tập sinh chính thức
   if (typeof window !== 'undefined' && localStorage.getItem('applicant_onboarded') === 'true') {
     return false;
   }
 
-  // 3. Các tài khoản TTS chính thức có code TTS
-  if (code.startsWith('TTS') && code !== 'TTS9999' && code !== 'TTS0003' && status !== 'pending') {
+  // 2. Các tài khoản TTS chính thức cụ thể (TTS0001 - TTS0005, v.v.)
+  if (code.startsWith('TTS') && code !== 'TTS9999' && code !== 'TTS0003') {
+    return false;
+  }
+  if (email === 'intern@ictu.edu.vn' || email.startsWith('tts0') || email.startsWith('an.nv')) {
     return false;
   }
 
-  // 4. Đối với tài khoản ứng viên định danh (ungvien@ictu.edu.vn hoặc UV0001)
-  if (email.includes('ungvien') || code === 'UV0001') {
+  // 3. Tài khoản định danh Ứng viên (ungvien@ictu.edu.vn hoặc UV0001 hoặc ID 7)
+  if (email.includes('ungvien') || code === 'UV0001' || u.id === 7) {
+    if (status === 'active' && profileStatus !== 'rejected' && profileStatus !== 'pending') {
+      return false;
+    }
     return true;
+  }
+
+  // 4. Các tài khoản đã active / approved khác
+  if (status === 'active' || status === 'approved' || profileStatus === 'approved') {
+    return false;
   }
 
   return (
     role === 'applicant' ||
     status === 'pending' ||
     status === 'unsubmitted' ||
+    status === 'rejected' ||
     profileStatus === 'pending' ||
-    email.includes('ungvien') ||
-    code === 'UV0001' ||
+    profileStatus === 'rejected' ||
     code === 'TTS9999' ||
     code === 'TTS0003' ||
     name === 'ứng viên' ||
@@ -203,14 +213,24 @@ export function AuthProvider({ children }) {
     if (stored) {
       const normalized = normalizeUserName(stored);
       const enriched = enrichUserWithPersistedProfile(normalized);
+      const isApp = isApplicantUser(enriched);
+      const roleKey = isApp ? 'applicant' : (enriched.role || 'intern');
       saveSession({
-        access_token: stored.access_token || localStorage.getItem('access_token') || 'demo-enterprise-token',
+        access_token:
+          stored.access_token ||
+          localStorage.getItem(`access_token_${roleKey}`) ||
+          localStorage.getItem('access_token') ||
+          'demo-enterprise-token',
         user: enriched,
       });
       return enriched;
     }
-    // Default demo session for immediate preview
-    const demo = DEMO_PROFILES.intern;
+    // Default demo session: xác định đúng vai trò theo ngữ cảnh URL
+    const isApplicantUrl =
+      typeof window !== 'undefined' &&
+      (window.location.pathname === '/intern/upload' ||
+        localStorage.getItem('last_portal_intern_role') === 'applicant');
+    const demo = isApplicantUrl ? DEMO_PROFILES.applicant : DEMO_PROFILES.intern;
     const enriched = enrichUserWithPersistedProfile(demo);
     saveSession({ access_token: 'demo-enterprise-token', user: enriched });
     return enriched;
@@ -326,10 +346,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    const tk = localStorage.getItem('access_token');
+    const isApp = isApplicantUser(user);
+    const roleKey = isApp ? 'applicant' : (user?.role || 'intern');
+    const tk = localStorage.getItem(`access_token_${roleKey}`) || localStorage.getItem('access_token');
     if (!tk || tk === 'demo-enterprise-token') {
-      const currentRole = user?.email === 'ungvien@ictu.edu.vn' || user?.id === 7 ? 'applicant' : (user?.role || 'hr');
-      acquireTokenForRole(currentRole).then((freshToken) => {
+      acquireTokenForRole(roleKey).then((freshToken) => {
         if (freshToken && user) {
           saveSession({ access_token: freshToken, user });
         }

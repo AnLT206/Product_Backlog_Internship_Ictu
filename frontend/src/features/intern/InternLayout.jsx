@@ -23,7 +23,14 @@ const APPLICANT_NAV_ITEMS = [
 export default function InternLayout() {
   const { user } = useAuth()
   const location = useLocation()
-  const isApplicant = isApplicantUser(user) || location.pathname === '/intern/upload' || location.pathname === '/intern/roadmap'
+  const isApplicant =
+    isApplicantUser(user) ||
+    location.pathname === '/intern/upload' ||
+    location.pathname === '/intern/roadmap' ||
+    (typeof window !== 'undefined' &&
+      localStorage.getItem('last_portal_intern_role') === 'applicant' &&
+      !['tts02', 'tts03', 'tts04', 'tts05', 'intern@ictu.edu.vn'].some((e) => (user?.email || '').toLowerCase().includes(e)) &&
+      localStorage.getItem('applicant_onboarded') !== 'true')
   const isActualIntern = user?.role === 'intern' && !isApplicant
 
   // Nếu là ứng viên, cho phép truy cập: /intern/upload, /intern/dashboard, /intern/roadmap, /intern/profile
@@ -40,10 +47,10 @@ export default function InternLayout() {
 
   // Tên hiển thị người dùng:
   // Nếu là tài khoản TTS thực tế -> hiển thị tên thật của TTS
-  // Nếu là Ứng viên -> 'Ứng viên' (hoặc user?.full_name)
+  // Nếu là Ứng viên -> 'Nguyễn Thu Hà' (hoặc user?.full_name)
   // Nếu là HR / Admin đang vào kiểm thử -> cố định hiển thị chuẩn là 'TTS (TTS0001)'
   const displayUserName = isApplicant
-    ? (user?.full_name && !user.full_name.includes('TTS') ? user.full_name : 'Ứng viên')
+    ? (user?.full_name && !user.full_name.includes('TTS') ? user.full_name : 'Nguyễn Thu Hà')
     : isActualIntern
     ? (user?.full_name || 'TTS')
     : 'TTS (TTS0001)'
