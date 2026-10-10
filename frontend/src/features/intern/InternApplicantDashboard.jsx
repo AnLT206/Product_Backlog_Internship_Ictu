@@ -27,22 +27,26 @@ import { getSavedUserProfile } from './InternProfilePage';
 import './InternApplicantDashboard.css';
 
 // 6 Giai đoạn trong Lộ trình thực tập chuẩn mực doanh nghiệp ICTU
-const getInternshipRoadmap = (hasSubmitted) => [
+const getInternshipRoadmap = (hasSubmitted, isRejected = false, rejectReason = '') => [
   {
     step: '01',
     title: 'Ứng tuyển & Sàng lọc CV',
-    desc: 'Tải lên CV & hồ sơ sinh viên trực tuyến. Doanh nghiệp tiếp nhận, sàng lọc chuyên ngành và thẩm định GPA nền tảng.',
+    desc: isRejected
+      ? `Hồ sơ chưa đạt yêu cầu đợt này. ${rejectReason || 'Bạn có thể chuẩn bị và nộp lại CV mới bất kỳ lúc nào.'}`
+      : 'Tải lên CV & hồ sơ sinh viên trực tuyến. Doanh nghiệp tiếp nhận, sàng lọc chuyên ngành và thẩm định GPA nền tảng.',
     duration: 'Tuần 0',
     badge: 'Giai đoạn 1',
-    status: hasSubmitted ? 'completed' : 'active',
+    status: isRejected ? 'rejected' : (hasSubmitted ? 'completed' : 'active'),
   },
   {
     step: '02',
     title: 'Phỏng vấn & Đánh giá năng lực',
-    desc: 'Phỏng vấn chuyên môn 1-1 với Tech Lead / Mentor và HR đánh giá thái độ, định hướng kỹ thuật phù hợp dự án.',
+    desc: isRejected
+      ? 'Tạm dừng quy trình phỏng vấn do hồ sơ vòng xét duyệt chưa đạt yêu cầu.'
+      : 'Phỏng vấn chuyên môn 1-1 với Tech Lead / Mentor và HR đánh giá thái độ, định hướng kỹ thuật phù hợp dự án.',
     duration: 'Tuần 1',
     badge: 'Giai đoạn 2',
-    status: hasSubmitted ? 'active' : 'upcoming',
+    status: isRejected ? 'upcoming' : (hasSubmitted ? 'active' : 'upcoming'),
   },
   {
     step: '03',
@@ -488,8 +492,9 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
     showToast('Đã đặt lại tài khoản ứng viên về trạng thái ban đầu (Chờ duyệt).', 'success');
   };
 
-  // Lộ trình 6 giai đoạn: chỉ chuyển sang hoàn thành giai đoạn 1 khi đã nộp CV
-  const roadmapStages = getInternshipRoadmap(Boolean(cvSubmissionDate));
+  // Lộ trình 6 giai đoạn: cập nhật đồng bộ trạng thái thực tế từ HR
+  const isRejected = currentStep === 'rejected';
+  const roadmapStages = getInternshipRoadmap(Boolean(cvSubmissionDate), isRejected, rejectReason);
 
   return (
     <div className="iad-container">
@@ -653,8 +658,20 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
               key={idx}
               style={{
                 borderRadius: '14px',
-                border: item.status === 'completed' ? '1.5px solid #BBF7D0' : item.status === 'active' ? '1.5px solid #BFDBFE' : '1px solid #E2E8F0',
-                backgroundColor: item.status === 'completed' ? '#F0FDF4' : item.status === 'active' ? '#EFF6FF' : '#FFFFFF',
+                border: item.status === 'completed'
+                  ? '1.5px solid #BBF7D0'
+                  : item.status === 'active'
+                  ? '1.5px solid #BFDBFE'
+                  : item.status === 'rejected'
+                  ? '1.5px solid #FECACA'
+                  : '1px solid #E2E8F0',
+                backgroundColor: item.status === 'completed'
+                  ? '#F0FDF4'
+                  : item.status === 'active'
+                  ? '#EFF6FF'
+                  : item.status === 'rejected'
+                  ? '#FEF2F2'
+                  : '#FFFFFF',
                 padding: '18px 16px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -667,8 +684,20 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
                 <span style={{
                   fontSize: '11px',
                   fontWeight: 800,
-                  color: item.status === 'completed' ? '#166534' : item.status === 'active' ? '#1D4ED8' : '#64748B',
-                  backgroundColor: item.status === 'completed' ? '#DCFCE7' : item.status === 'active' ? '#DBEAFE' : '#F1F5F9',
+                  color: item.status === 'completed'
+                    ? '#166534'
+                    : item.status === 'active'
+                    ? '#1D4ED8'
+                    : item.status === 'rejected'
+                    ? '#DC2626'
+                    : '#64748B',
+                  backgroundColor: item.status === 'completed'
+                    ? '#DCFCE7'
+                    : item.status === 'active'
+                    ? '#DBEAFE'
+                    : item.status === 'rejected'
+                    ? '#FEE2E2'
+                    : '#F1F5F9',
                   padding: '2px 8px',
                   borderRadius: '6px',
                   textTransform: 'uppercase',
@@ -685,7 +714,13 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
                   width: '28px',
                   height: '28px',
                   borderRadius: '8px',
-                  backgroundColor: item.status === 'completed' ? '#16A34A' : item.status === 'active' ? '#2563EB' : '#94A3B8',
+                  backgroundColor: item.status === 'completed'
+                    ? '#16A34A'
+                    : item.status === 'active'
+                    ? '#2563EB'
+                    : item.status === 'rejected'
+                    ? '#EF4444'
+                    : '#94A3B8',
                   color: '#FFFFFF',
                   display: 'flex',
                   alignItems: 'center',
@@ -714,9 +749,13 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
                   <span style={{ color: '#2563EB', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Clock size={13} /> Đang diễn ra
                   </span>
+                ) : item.status === 'rejected' ? (
+                  <span style={{ color: '#DC2626', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <X size={13} /> Chưa tiếp nhận
+                  </span>
                 ) : (
                   <span style={{ color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Lock size={13} /> Dự kiến
+                    <Lock size={13} /> {isRejected ? 'Tạm dừng' : 'Dự kiến'}
                   </span>
                 )}
               </div>

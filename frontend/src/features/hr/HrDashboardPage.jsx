@@ -442,6 +442,14 @@ export default function HrDashboardPage() {
       setRejectDialog({ open: false, applicant: null, reason: '' });
       if (cvModal.open) setCvModal({ open: false, applicant: null });
       await loadDashboardData();
+
+      // Kích hoạt event tức thời để toàn bộ các trang ứng viên (Dashboard lộ trình, Upload CV) tự động làm mới
+      window.dispatchEvent(
+        new CustomEvent('applicant_decision_updated', {
+          detail: { status: 'rejected', reason, applicantId: applicant.id, targetEmail: applicant.email },
+        })
+      );
+      window.dispatchEvent(new Event('storage'));
     } catch {
       showToast('Lỗi khi từ chối hồ sơ.', 'error');
     } finally {
@@ -706,17 +714,17 @@ export default function HrDashboardPage() {
             ) : (
               <table className="hr-dash-table">
                 <colgroup>
-                  <col style={{ width: '28%' }} />
-                  <col style={{ width: '22%' }} />
-                  <col style={{ width: '16%' }} />
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: '20%' }} />
+                  <col style={{ width: '27%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '23%' }} />
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '17%' }} />
                 </colgroup>
                 <thead>
                   <tr>
-                    <th>Ứng viên</th>
-                    <th>Chuyên ngành</th>
-                    <th>Trường ĐH</th>
+                    <th style={{ textAlign: 'left' }}>Ứng viên</th>
+                    <th style={{ textAlign: 'left' }}>Chuyên ngành</th>
+                    <th style={{ textAlign: 'left' }}>Trường ĐH</th>
                     <th style={{ textAlign: 'center' }}>Trạng thái</th>
                     <th style={{ textAlign: 'center' }}>Thao tác xét duyệt</th>
                   </tr>
@@ -730,7 +738,7 @@ export default function HrDashboardPage() {
                     return (
                       <tr key={applicant.id}>
                         {/* Cột 1: Thông tin ứng viên */}
-                        <td>
+                        <td style={{ textAlign: 'left' }}>
                           <div className="hr-applicant-cell">
                             <div className="hr-applicant-avatar">
                               {applicant.avatar && applicant.avatar.startsWith('data:image') ? (
@@ -749,13 +757,13 @@ export default function HrDashboardPage() {
                         </td>
 
                         {/* Cột 2: Chuyên ngành */}
-                        <td>
+                        <td style={{ textAlign: 'left' }}>
                           <span className="hr-major-badge">{applicant.major}</span>
                         </td>
 
                         {/* Cột 3: Trường ĐH */}
-                        <td>
-                          <span className="hr-uni-text">{applicant.university}</span>
+                        <td style={{ textAlign: 'left' }}>
+                          <span className="hr-uni-text" title={applicant.university}>{applicant.university}</span>
                         </td>
 
                         {/* Cột 4: Trạng thái */}
@@ -807,17 +815,17 @@ export default function HrDashboardPage() {
                                   <span>Xem CV</span>
                                 </button>
 
-                                {/* Nút Duyệt: Hiển thị khi pending hoặc khi hồ sơ có CV cần duyệt lại */}
-                                {(isPending || (isRejected && applicant.has_cv)) && (
+                                {/* Nút Duyệt: CHỈ hiển thị khi ĐANG CHỜ DUYỆT (isPending). Khi đã từ chối hoặc đã duyệt, chỉ còn nút Xem CV! */}
+                                {isPending && (
                                   <button
                                     type="button"
                                     className="hr-action-btn hr-action-btn--approve"
                                     onClick={() => handleApproveApplicant(applicant)}
                                     disabled={actionLoadingId === applicant.id}
-                                    title={isRejected ? "Xem xét lại và phê duyệt hồ sơ ứng viên" : "Phê duyệt ứng viên vào thực tập chính thức"}
+                                    title="Phê duyệt ứng viên vào thực tập chính thức"
                                   >
                                     <Check size={13} />
-                                    <span>{isRejected ? 'Duyệt lại' : 'Duyệt'}</span>
+                                    <span>Duyệt</span>
                                   </button>
                                 )}
 

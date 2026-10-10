@@ -529,6 +529,14 @@ export default function InternUploadPage() {
     showToast('Đã hủy bỏ file vừa chọn.', 'info');
   };
 
+  // Kích hoạt chọn lại file CV mới khi bị từ chối
+  const handleTriggerReapply = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
   // Gửi CV chính thức tới HR
   const handleSubmitCv = async () => {
     if (!stagedFile) return;
@@ -570,6 +578,14 @@ export default function InternUploadPage() {
         gpa: user?.gpa || '3.55',
         cvId: docId,
       });
+
+      // Phát sự kiện reset quyết định để các trang khác (Roadmap, HR) tức thời chuyển sang trạng thái Chờ duyệt
+      window.dispatchEvent(
+        new CustomEvent('applicant_decision_updated', {
+          detail: { status: 'pending', applicantId: user?.id || 7, targetEmail: user?.email || 'ungvien@ictu.edu.vn' },
+        })
+      );
+      window.dispatchEvent(new Event('storage'));
 
       setCvFile({
         id: docId,
@@ -972,9 +988,7 @@ export default function InternUploadPage() {
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                onClick={() => {
-                  fileInputRef.current?.click();
-                }}
+                onClick={handleTriggerReapply}
                 className="iad-btn iad-btn--primary"
                 style={{
                   fontSize: '13px',
@@ -996,7 +1010,7 @@ export default function InternUploadPage() {
       )}
 
       {/* 2. KHU VỰC TẢI LÊN CV / HỒ SƠ ỨNG TUYỂN - ẢNH 1 */}
-      <section className="iad-card">
+      <section className="iad-card" id="upload-cv-section">
         <div className="iad-card__head">
           <div>
             <h3 className="iad-card__title">Tài Liệu & CV Ứng Tuyển</h3>
@@ -1007,6 +1021,19 @@ export default function InternUploadPage() {
           <span style={{ fontSize: 12.5, color: '#64748b' }}>Tối đa 1 file (5 MB)</span>
         </div>
 
+        {/* Input file duy nhất, độc lập và luôn mounted để kích hoạt ở mọi tình huống */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.doc,.docx"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              handleFileSelect(e.target.files[0]);
+            }
+          }}
+        />
+
         {/* TRƯỜNG HỢP 1: Chưa chọn file và chưa nộp CV -> Dropzone ban đầu */}
         {!stagedFile && !cvFile && (
           <div
@@ -1016,18 +1043,6 @@ export default function InternUploadPage() {
             onClick={() => fileInputRef.current?.click()}
             className={`iad-dropzone ${isDragging ? 'iad-dropzone--active' : ''}`}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.doc,.docx"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  handleFileSelect(e.target.files[0]);
-                }
-              }}
-            />
-
             <div className="iad-dropzone__icon-box">
               <UploadCloud size={28} />
             </div>
@@ -1042,17 +1057,6 @@ export default function InternUploadPage() {
         {/* TRƯỜNG HỢP 2: Đã chọn file nhưng CHƯA BẤM GỬI -> Khung div bọc file & nút Xem lại, Hủy bỏ, Gửi CV */}
         {stagedFile && (
           <div className="iad-staged-box">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.doc,.docx"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  handleFileSelect(e.target.files[0]);
-                }
-              }}
-            />
             <div className="iad-staged-file-card">
               <div className="iad-staged-file-card__left">
                 <div className="iad-file-badge">
@@ -1319,7 +1323,7 @@ export default function InternUploadPage() {
               {currentStep === 'rejected' && (
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={handleTriggerReapply}
                   className="iad-btn-action"
                   title="Chọn file mới để gửi lại xét tuyển"
                   style={{

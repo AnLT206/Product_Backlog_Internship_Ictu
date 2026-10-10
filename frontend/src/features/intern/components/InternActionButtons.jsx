@@ -130,16 +130,6 @@ function InternActionButtons({
               <FileText size={12} />
               <span>CV</span>
             </button>
-            {status !== 'active' && status !== 'approved' && (
-              <button
-                type="button"
-                className="intern-action-btn intern-action-btn--approve intern-action-btn--sm"
-                onClick={() => setDialog('approve')}
-                title="Xem xét lại và phê duyệt hồ sơ này"
-              >
-                Duyệt lại
-              </button>
-            )}
           </>
         )}
         {cvModalElement}
