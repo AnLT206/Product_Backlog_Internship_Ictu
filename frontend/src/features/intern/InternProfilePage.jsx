@@ -61,18 +61,60 @@ export function getSavedUserProfile(currentUser) {
       return str
     }
 
+    const email = (currentUser?.email || '').toLowerCase().trim()
+    const uid = currentUser?.id
+
+    let fallbackBankName = 'MB Bank'
+    let fallbackBankAccount = '999908123451'
+    let fallbackPhone = '0912.345.001'
+    let fallbackCccd = '001203019871'
+    let fallbackMajor = 'Công nghệ thông tin'
+
+    if (uid === 6 || email === 'tts02@student.ictu.edu.vn') {
+      fallbackBankName = 'Techcombank'
+      fallbackBankAccount = '190368123452'
+      fallbackPhone = '0912.345.002'
+      fallbackCccd = '001203019872'
+      fallbackMajor = 'Kỹ thuật phần mềm'
+    } else if (uid === 8 || email === 'tts03@student.ictu.edu.vn') {
+      fallbackBankName = 'Vietcombank'
+      fallbackBankAccount = '0071008123453'
+      fallbackPhone = '0912.345.003'
+      fallbackCccd = '001203019873'
+      fallbackMajor = 'Hệ thống thông tin'
+    } else if (uid === 9 || email === 'tts04@student.ictu.edu.vn') {
+      fallbackBankName = 'BIDV'
+      fallbackBankAccount = '42710008123454'
+      fallbackPhone = '0912.345.004'
+      fallbackCccd = '001203019874'
+      fallbackMajor = 'An toàn thông tin'
+    } else if (uid === 10 || email === 'tts05@student.ictu.edu.vn') {
+      fallbackBankName = 'TPBank'
+      fallbackBankAccount = '03988123455'
+      fallbackPhone = '0912.345.005'
+      fallbackCccd = '001203019875'
+      fallbackMajor = 'Khoa học máy tính'
+    } else if (isApplicant) {
+      fallbackBankName = 'MB Bank'
+      fallbackBankAccount = '999908123459'
+      fallbackPhone = '0987.654.321'
+      fallbackCccd = '001203019870'
+      fallbackMajor = 'Công nghệ thông tin'
+    }
+
     const fallbackProfile = {
       avatar: currentUser?.avatar || null,
       full_name: cleanName(currentUser?.full_name),
       dob: String(currentUser?.dob || (isApplicant ? '20/10/2003' : '15/05/2003')),
       email: cleanEmail(currentUser?.email),
-      phone: String(currentUser?.phone || currentUser?.phone_number || (isApplicant ? '0987654321' : '0987654322')),
+      phone: String(currentUser?.phone || currentUser?.phone_number || fallbackPhone),
       student_code: cleanCode(currentUser?.student_code || currentUser?.code),
       university: String(currentUser?.university || (isApplicant ? '' : 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)')),
-      cccd: String(currentUser?.cccd || '001203019876'),
+      major: String(currentUser?.major || fallbackMajor),
+      cccd: String(currentUser?.cccd || fallbackCccd),
       address: String(currentUser?.address || 'Phường Quyết Thắng, TP. Thái Nguyên'),
-      bank_account: String(currentUser?.bank_account || '999908123456'),
-      bank_name: String(currentUser?.bank_name || 'MB Bank'),
+      bank_account: String(currentUser?.bank_account || fallbackBankAccount),
+      bank_name: String(currentUser?.bank_name || fallbackBankName),
     }
 
     if (!isActualIntern && !isApplicant) {
@@ -100,7 +142,6 @@ export function getSavedUserProfile(currentUser) {
       return fallbackProfile
     }
 
-    const email = (currentUser?.email || '').toLowerCase().trim()
     const userKey = email ? `ictu_user_profile_${email}` : null
 
     try {

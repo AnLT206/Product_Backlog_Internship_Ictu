@@ -201,6 +201,54 @@ const DEFAULT_INITIAL_DATA = {
       status: 'approved',
       avatar: 'LN',
     },
+    {
+      id: 8,
+      full_name: 'Trần Thị Mai Phương',
+      student_code: 'TTS0003',
+      email: 'tts03@student.ictu.edu.vn',
+      phone: '0912.345.003',
+      faculty: 'Khoa Hệ thống Thông tin Kinh tế',
+      major: 'Hệ thống thông tin',
+      gpa: '3.72',
+      cv_file: 'CV_TranThiMaiPhuong.pdf',
+      app_file: 'Đơn_xin_thực_tập_MaiPhuong.pdf',
+      contract_file: 'HopDong_ThoaThuan_TTS0003.pdf',
+      applied_at: '26/09/2026',
+      status: 'approved',
+      avatar: 'TP',
+    },
+    {
+      id: 9,
+      full_name: 'Hoàng Minh Đức',
+      student_code: 'TTS0004',
+      email: 'tts04@student.ictu.edu.vn',
+      phone: '0912.345.004',
+      faculty: 'Khoa Công nghệ Thông tin',
+      major: 'An toàn thông tin',
+      gpa: '3.60',
+      cv_file: 'CV_HoangMinhDuc.pdf',
+      app_file: 'Đơn_xin_thực_tập_MinhDuc.pdf',
+      contract_file: 'HopDong_ThoaThuan_TTS0004.pdf',
+      applied_at: '25/09/2026',
+      status: 'approved',
+      avatar: 'HD',
+    },
+    {
+      id: 10,
+      full_name: 'Vũ Hải Yến',
+      student_code: 'TTS0005',
+      email: 'tts05@student.ictu.edu.vn',
+      phone: '0912.345.005',
+      faculty: 'Khoa Công nghệ Thông tin',
+      major: 'Khoa học máy tính',
+      gpa: '3.80',
+      cv_file: 'CV_VuHaiYen.pdf',
+      app_file: 'Đơn_xin_thực_tập_HaiYen.pdf',
+      contract_file: 'HopDong_ThoaThuan_TTS0005.pdf',
+      applied_at: '25/09/2026',
+      status: 'approved',
+      avatar: 'HY',
+    },
   ],
   contracts: [
     {
@@ -230,10 +278,58 @@ const DEFAULT_INITIAL_DATA = {
       created_at: '27/09/2026',
       signed_intern: true,
       signed_company: true,
-      signed_ictu: false,
-      status: 'pending_ictu',
-      status_label: 'Chờ Nhà trường xác thực',
-      cert: 'Doanh nghiệp đã ký (VNPT-CA)',
+      signed_ictu: true,
+      status: 'completed',
+      status_label: 'Đã hoàn tất ký số 3 bên',
+      cert: 'ICTU-CA Verified (27/09)',
+    },
+    {
+      id: 3,
+      intern_id: 8,
+      contract_code: 'HĐTT-2026-003',
+      student_name: 'Trần Thị Mai Phương',
+      student_code: 'TTS0003',
+      faculty: 'Khoa Hệ thống Thông tin Kinh tế',
+      doc_type: 'Thỏa thuận thực tập 3 bên & NDA',
+      created_at: '26/09/2026',
+      signed_intern: true,
+      signed_company: true,
+      signed_ictu: true,
+      status: 'completed',
+      status_label: 'Đã hoàn tất ký số 3 bên',
+      cert: 'ICTU-CA Verified (26/09)',
+    },
+    {
+      id: 4,
+      intern_id: 9,
+      contract_code: 'HĐTT-2026-004',
+      student_name: 'Hoàng Minh Đức',
+      student_code: 'TTS0004',
+      faculty: 'Khoa Công nghệ Thông tin',
+      doc_type: 'Thỏa thuận thực tập 3 bên & NDA',
+      created_at: '25/09/2026',
+      signed_intern: true,
+      signed_company: true,
+      signed_ictu: true,
+      status: 'completed',
+      status_label: 'Đã hoàn tất ký số 3 bên',
+      cert: 'ICTU-CA Verified (25/09)',
+    },
+    {
+      id: 5,
+      intern_id: 10,
+      contract_code: 'HĐTT-2026-005',
+      student_name: 'Vũ Hải Yến',
+      student_code: 'TTS0005',
+      faculty: 'Khoa Công nghệ Thông tin',
+      doc_type: 'Thỏa thuận thực tập 3 bên & NDA',
+      created_at: '25/09/2026',
+      signed_intern: true,
+      signed_company: true,
+      signed_ictu: true,
+      status: 'completed',
+      status_label: 'Đã hoàn tất ký số 3 bên',
+      cert: 'ICTU-CA Verified (25/09)',
     },
   ],
   mentorAssignments: [
@@ -250,12 +346,64 @@ const DEFAULT_INITIAL_DATA = {
       status: 'assigned',
       status_label: 'Đã phân công',
     },
+    {
+      id: 2,
+      intern_id: 6,
+      student: 'Lê Hoàng Nam',
+      student_code: 'TTS0002 • K20-KTPM',
+      company: 'Phòng Đảm bảo Chất lượng Phần mềm (QA Lab)',
+      project: 'HR Portal Web App & Tuyển dụng sinh viên',
+      mentor: 'Mentor 2',
+      mentor_role: 'QA Lead Engineer',
+      mentor_id: 4,
+      status: 'assigned',
+      status_label: 'Đã phân công',
+    },
+    {
+      id: 3,
+      intern_id: 8,
+      student: 'Trần Thị Mai Phương',
+      student_code: 'TTS0003 • K21-HTTT',
+      company: 'Trung tâm Dữ liệu & Hệ thống Thông tin',
+      project: 'Enterprise Data Dashboard & BI',
+      mentor: 'Mentor',
+      mentor_role: 'Senior Tech Lead',
+      mentor_id: 3,
+      status: 'assigned',
+      status_label: 'Đã phân công',
+    },
+    {
+      id: 4,
+      intern_id: 9,
+      student: 'Hoàng Minh Đức',
+      student_code: 'TTS0004 • K20-ATTT',
+      company: 'Trung tâm An toàn Thông tin & Tác chiến mạng',
+      project: 'Security Infrastructure, SSO & Pentest Web API',
+      mentor: 'Mentor 2',
+      mentor_role: 'QA Lead Engineer',
+      mentor_id: 4,
+      status: 'assigned',
+      status_label: 'Đã phân công',
+    },
+    {
+      id: 5,
+      intern_id: 10,
+      student: 'Vũ Hải Yến',
+      student_code: 'TTS0005 • K21-KHMT',
+      company: 'Phòng Nghiên cứu Trí tuệ Nhân tạo ICTU AI Lab',
+      project: 'AI & Natural Language Processing (NLP) Lab',
+      mentor: 'Mentor',
+      mentor_role: 'Senior Tech Lead',
+      mentor_id: 3,
+      status: 'assigned',
+      status_label: 'Đã phân công',
+    },
   ],
 };
 
 /**
  * Lấy toàn bộ trạng thái đồng bộ hiện tại từ LocalStorage
- * Tự động đồng bộ TTS Lê Hoàng Nam và kiểm tra trạng thái nộp bài thực tế của Ứng viên
+ * Tự động đồng bộ đầy đủ 5 TTS và kiểm tra trạng thái nộp bài thực tế của Ứng viên
  */
 export function getRealtimeSyncState() {
   if (typeof window === 'undefined') return DEFAULT_INITIAL_DATA;
@@ -287,27 +435,28 @@ export function getRealtimeSyncState() {
           } catch {}
         }
 
-        // Đảm bảo có mặt Lê Hoàng Nam
-        if (!parsed.applicants.some((a) => a.id === 6 || a.email === 'tts02@student.ictu.edu.vn')) {
-          const namObj = DEFAULT_INITIAL_DATA.applicants.find((a) => a.id === 6);
-          if (namObj) parsed.applicants.push(namObj);
+        // Đảm bảo đầy đủ cả 5 tài khoản TTS chính thức có mặt
+        for (const defApp of DEFAULT_INITIAL_DATA.applicants) {
+          if (defApp.id !== 7 && !parsed.applicants.some((a) => a.id === defApp.id || (a.email && a.email.toLowerCase() === defApp.email.toLowerCase()))) {
+            parsed.applicants.push(defApp);
+          }
         }
 
         if (!parsed.contracts) parsed.contracts = [];
-        // Lọc bỏ các hợp đồng mẫu phát sinh ngoài luồng nếu có
-        parsed.contracts = parsed.contracts.filter(
-          (c) => c.id !== 3 && c.id !== 4 && c.contract_code !== 'HĐTT-2026-003' && c.contract_code !== 'HĐTT-2026-004'
-        );
-        if (!parsed.contracts.some((c) => c.intern_id === 6 || c.student_name === 'Lê Hoàng Nam')) {
-          const namContract = DEFAULT_INITIAL_DATA.contracts.find((c) => c.intern_id === 6);
-          if (namContract) parsed.contracts.push(namContract);
+        // Đảm bảo đầy đủ cả 5 hợp đồng thực tập chính thức
+        for (const defCon of DEFAULT_INITIAL_DATA.contracts) {
+          if (!parsed.contracts.some((c) => c.intern_id === defCon.intern_id || c.contract_code === defCon.contract_code)) {
+            parsed.contracts.push(defCon);
+          }
         }
 
         if (!parsed.mentorAssignments) parsed.mentorAssignments = [];
-        // Lọc bỏ phân công không chính xác nếu có trong cache cũ
-        parsed.mentorAssignments = parsed.mentorAssignments.filter(
-          (m) => m.intern_id !== 6 && m.student !== 'Lê Hoàng Nam'
-        );
+        // Đảm bảo đầy đủ cả 5 phân công mentor chuẩn xác
+        for (const defAssign of DEFAULT_INITIAL_DATA.mentorAssignments) {
+          if (!parsed.mentorAssignments.some((m) => m.intern_id === defAssign.intern_id)) {
+            parsed.mentorAssignments.push(defAssign);
+          }
+        }
 
         if (!parsed.templates || !Array.isArray(parsed.templates) || parsed.templates.length === 0) {
           parsed.templates = [...DEFAULT_CONTRACT_TEMPLATES];
