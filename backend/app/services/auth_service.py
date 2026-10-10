@@ -115,6 +115,7 @@ class AuthService:
                 full_name=user.full_name,
                 role=user.role.name,
                 status=user.status,
+                profile_status=profile.status if profile else user.status,
                 avatar=profile.avatar if profile else None,
             ),
         )

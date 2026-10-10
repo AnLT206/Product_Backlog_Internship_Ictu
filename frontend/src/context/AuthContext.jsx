@@ -103,10 +103,9 @@ export function enrichUserWithPersistedProfile(userObj) {
   if (persisted?.status && !isCandidate) resolvedStatus = persisted.status;
   if (persisted?.profile_status && !isCandidate) resolvedProfileStatus = persisted.profile_status;
 
-  // Nếu người dùng từ backend là pending (chưa được duyệt), giữ vững trạng thái pending
-  if (isCandidate && userObj.status === 'pending') {
-    resolvedStatus = 'pending';
-    resolvedProfileStatus = 'pending';
+  if (userObj.profile_status === 'rejected' || userObj.status === 'rejected') {
+    resolvedStatus = 'rejected';
+    resolvedProfileStatus = 'rejected';
   } else {
     try {
       const rawDec = localStorage.getItem('applicant_decision_status');
@@ -114,7 +113,8 @@ export function enrichUserWithPersistedProfile(userObj) {
         const dec = JSON.parse(rawDec);
         const isTargetApplicant =
           (dec?.applicantId && (dec.applicantId === userObj.id || String(dec.applicantId) === String(userObj.id))) ||
-          (userObj.email && userObj.email.toLowerCase().includes('ungvien'));
+          (dec?.targetEmail && userObj.email && dec.targetEmail.toLowerCase() === userObj.email.toLowerCase()) ||
+          (!dec?.applicantId && userObj.email && userObj.email.toLowerCase().includes('ungvien'));
 
         if (dec?.status && isTargetApplicant) {
           resolvedStatus = dec.status === 'rejected' ? 'rejected' : dec.status === 'approved' ? 'approved' : resolvedStatus;

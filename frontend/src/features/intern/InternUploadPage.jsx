@@ -188,10 +188,10 @@ export default function InternUploadPage() {
 
       // 2. Xác định quyết định duyệt / từ chối của HR
       let resolvedDecision = null;
-      if (serverDocStatus === 'rejected') {
+      if (serverDocStatus === 'rejected' || user?.profile_status === 'rejected' || user?.status === 'rejected') {
         resolvedDecision = {
           status: 'rejected',
-          reason: serverDocReason || 'CV của bạn không đạt đủ yêu cầu, bạn hãy dành thêm thời gian để chuẩn bị lại CV cho lần tiếp theo nhé!',
+          reason: serverDocReason || user?.reject_reason || 'CV của bạn không đạt đủ yêu cầu, bạn hãy dành thêm thời gian để chuẩn bị lại CV cho lần tiếp theo nhé!',
         };
       } else if (serverDocStatus === 'approved') {
         resolvedDecision = { status: 'approved', reason: '' };
@@ -203,11 +203,9 @@ export default function InternUploadPage() {
           if (decRaw) {
             const dec = JSON.parse(decRaw);
             const isTargetApplicant =
-              !dec.applicantId ||
-              dec.applicantId === user?.id ||
-              String(dec.applicantId) === String(user?.id) ||
-              (user?.email && user.email.toLowerCase().includes('ungvien')) ||
-              user?.role === 'applicant';
+              (dec.applicantId && (dec.applicantId === user?.id || String(dec.applicantId) === String(user?.id))) ||
+              (dec.targetEmail && user?.email && dec.targetEmail.toLowerCase() === user.email.toLowerCase()) ||
+              (!dec.applicantId && user?.email && user.email.toLowerCase().includes('ungvien'));
             if (dec && dec.status && isTargetApplicant) {
               resolvedDecision = dec;
             }
@@ -224,9 +222,7 @@ export default function InternUploadPage() {
       }
 
       if (!resolvedDecision) {
-        if (user?.profile_status === 'rejected' || user?.status === 'rejected') {
-          resolvedDecision = { status: 'rejected', reason: user?.reject_reason || '' };
-        } else if (user?.profile_status === 'approved' || user?.status === 'approved') {
+        if (user?.profile_status === 'approved' || user?.status === 'approved') {
           resolvedDecision = { status: 'approved', reason: '' };
         }
       }
@@ -273,7 +269,21 @@ export default function InternUploadPage() {
             const pendingRaw = localStorage.getItem('applicant_pending_contract');
             if (pendingRaw && isMounted) {
               const parsed = JSON.parse(pendingRaw);
-              if (parsed && parsed.contract) {
+              const hasTargetRestriction = Boolean(
+                parsed?.applicantId ||
+                parsed?.targetEmail ||
+                parsed?.contract?.email ||
+                parsed?.contract?.student_name
+              );
+              const matchesContract = hasTargetRestriction
+                ? Boolean(
+                    (parsed?.applicantId && (parsed.applicantId === user?.id || String(parsed.applicantId) === String(user?.id))) ||
+                    (parsed?.targetEmail && user?.email && parsed.targetEmail.toLowerCase() === user.email.toLowerCase()) ||
+                    (parsed?.contract?.email && user?.email && parsed.contract.email.toLowerCase() === user.email.toLowerCase()) ||
+                    (parsed?.contract?.student_name && user?.full_name && parsed.contract.student_name === user.full_name)
+                  )
+                : true;
+              if (matchesContract && parsed?.contract) {
                 setPendingContract(parsed.contract);
               }
             } else if (isMounted) {
@@ -282,6 +292,7 @@ export default function InternUploadPage() {
                 (c) =>
                   (c.intern_id === targetId ||
                     String(c.intern_id) === String(targetId) ||
+                    (user?.email && c.email && c.email.toLowerCase() === user.email.toLowerCase()) ||
                     c.student_name === user?.full_name) &&
                   !c.signed_intern
               );
@@ -349,8 +360,11 @@ export default function InternUploadPage() {
     // Đồng bộ thời gian thực từ HR Dashboard
     const unsubscribeSync = subscribeRealtimeEvents((event) => {
       if (event.type === SYNC_EVENTS.APPLICANT_DECISION) {
-        const { applicantId, status, reason } = event.payload || {};
-        const matchesUser = !applicantId || applicantId === user?.id || String(applicantId) === String(user?.id) || user?.role === 'applicant' || user?.role === 'intern';
+        const { applicantId, targetEmail, status, reason } = event.payload || {};
+        const matchesUser =
+          (applicantId && (applicantId === user?.id || String(applicantId) === String(user?.id))) ||
+          (targetEmail && user?.email && targetEmail.toLowerCase() === user.email.toLowerCase()) ||
+          (!applicantId && !targetEmail && user?.email && user.email.toLowerCase().includes('ungvien'));
         if (matchesUser) {
           if (status === 'approved') {
             setShowContractModal(true);
@@ -360,20 +374,20 @@ export default function InternUploadPage() {
           } else if (status === 'rejected') {
             setShowRejectModal(true);
             setShowContractModal(false);
+            setPendingContract(null);
             setCurrentStep('rejected');
             if (reason) setRejectReason(reason);
             showToast(`Hồ sơ chưa phù hợp đợt này${reason ? ': ' + reason : '.'}`, 'info');
           }
         }
       } else if (event.type === SYNC_EVENTS.CONTRACT_SENT) {
-        const { applicantId, contract } = event.payload || {};
+        const { applicantId, targetEmail, contract } = event.payload || {};
         const matchesUser =
-          !applicantId ||
-          applicantId === user?.id ||
-          String(applicantId) === String(user?.id) ||
-          user?.role === 'applicant' ||
-          user?.role === 'intern';
-        if (matchesUser && contract) {
+          (applicantId && (applicantId === user?.id || String(applicantId) === String(user?.id))) ||
+          (targetEmail && user?.email && targetEmail.toLowerCase() === user.email.toLowerCase()) ||
+          (contract?.email && user?.email && contract.email.toLowerCase() === user.email.toLowerCase()) ||
+          (contract?.student_name && user?.full_name && contract.student_name === user.full_name);
+        if (matchesUser && contract && currentStep !== 'rejected' && user?.profile_status !== 'rejected') {
           setPendingContract(contract);
           setShowContractModal(true);
           showToast(`🔔 Bạn vừa nhận được văn bản "${contract.doc_type}" từ HR! Vui lòng xem và ký xác nhận.`, 'success');

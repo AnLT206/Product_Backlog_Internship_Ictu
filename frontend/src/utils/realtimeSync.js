@@ -345,6 +345,31 @@ export function getRealtimeSyncState() {
           const savedAvt = getSavedAvatar(a.email, a.id);
           const currentAvt = savedAvt || a.avatar;
           if (a.email === 'ungvien@ictu.edu.vn' || a.id === 7) {
+            let hasActiveRejection = false;
+            let rejectReason = '';
+            try {
+              const decRaw = localStorage.getItem('applicant_decision_status');
+              if (decRaw) {
+                const dec = JSON.parse(decRaw);
+                if (dec?.status === 'rejected' && (!dec.applicantId || dec.applicantId === a.id || a.email === 'ungvien@ictu.edu.vn')) {
+                  hasActiveRejection = true;
+                  rejectReason = dec.reason || '';
+                }
+              }
+            } catch {}
+
+            if (hasActiveRejection || a.status === 'rejected') {
+              return {
+                ...a,
+                status: 'rejected',
+                reject_reason: rejectReason || a.reject_reason || 'Hồ sơ chưa đáp ứng đủ yêu cầu tiếp nhận thực tập đợt này.',
+                contract_sent: false,
+                contract_file: null,
+                contract_info: null,
+                avatar: currentAvt,
+              };
+            }
+
             if (!hasActualCv) {
               return {
                 ...a,
@@ -356,34 +381,12 @@ export function getRealtimeSyncState() {
                 avatar: currentAvt,
               };
             } else {
-              let hasActiveRejection = false;
-              let rejectReason = '';
-              try {
-                const decRaw = localStorage.getItem('applicant_decision_status');
-                if (decRaw) {
-                  const dec = JSON.parse(decRaw);
-                  if (dec?.status === 'rejected' && (!dec.applicantId || dec.applicantId === a.id || a.email === 'ungvien@ictu.edu.vn')) {
-                    hasActiveRejection = true;
-                    rejectReason = dec.reason || '';
-                  }
-                }
-              } catch {}
-
-              let resolvedStatus;
-              if (a.status === 'approved') {
-                resolvedStatus = 'approved';
-              } else if (hasActiveRejection || a.status === 'rejected') {
-                resolvedStatus = 'rejected';
-              } else {
-                resolvedStatus = 'pending';
-              }
-
+              let resolvedStatus = a.status === 'approved' ? 'approved' : 'pending';
               return {
                 ...a,
                 cv_file: actualCvName || a.cv_file,
                 applied_at: actualCvDate || a.applied_at,
                 status: resolvedStatus,
-                reject_reason: resolvedStatus === 'rejected' ? (rejectReason || a.reject_reason || 'Hồ sơ chưa đáp ứng đủ yêu cầu tiếp nhận thực tập đợt này.') : undefined,
                 avatar: currentAvt,
               };
             }
@@ -768,6 +771,7 @@ export function syncApplicantDecision(applicantId, decisionStatus, reason = '') 
       JSON.stringify({
         status: decisionStatus,
         applicantId,
+        targetEmail: targetApplicant?.email,
         reason: decisionStatus === 'rejected' ? (reason || 'Hồ sơ chưa đáp ứng đủ yêu cầu tiếp nhận thực tập đợt này.') : '',
         timestamp: Date.now(),
       })
@@ -778,6 +782,7 @@ export function syncApplicantDecision(applicantId, decisionStatus, reason = '') 
 
   emitRealtimeEvent(SYNC_EVENTS.APPLICANT_DECISION, {
     applicantId,
+    targetEmail: targetApplicant?.email,
     status: decisionStatus,
     reason,
     applicant: targetApplicant,
@@ -853,6 +858,7 @@ export function syncSendContractToApplicant(applicantId, contractInfo) {
       'applicant_pending_contract',
       JSON.stringify({
         applicantId,
+        targetEmail: email,
         contract: newContract,
         timestamp: Date.now(),
       })
@@ -863,6 +869,7 @@ export function syncSendContractToApplicant(applicantId, contractInfo) {
 
   emitRealtimeEvent(SYNC_EVENTS.CONTRACT_SENT, {
     applicantId,
+    targetEmail: email,
     contract: newContract,
   });
 

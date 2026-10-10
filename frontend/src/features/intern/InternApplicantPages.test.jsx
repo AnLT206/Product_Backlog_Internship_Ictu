@@ -195,5 +195,58 @@ describe('InternApplicantPages Test Suite', () => {
       });
       expect(screen.getByText(/AI & Data Lab/i)).toBeInTheDocument();
     });
+
+    it('khi ứng viên có profile_status "rejected": trang InternUploadPage TUYỆT ĐỐI KHÔNG mở modal hợp đồng và hiển thị thông báo từ chối', async () => {
+      localStorage.setItem('applicant_decision_status', JSON.stringify({
+        status: 'rejected',
+        applicantId: 7,
+        reason: 'CV chưa đạt yêu cầu đợt tuyển.',
+      }));
+      // Giả lập hợp đồng của người khác còn trong storage
+      localStorage.setItem('applicant_pending_contract', JSON.stringify({
+        applicantId: 5,
+        targetEmail: 'intern@ictu.edu.vn',
+        contract: {
+          id: 1,
+          student_name: 'Nguyễn Văn An',
+          doc_type: 'HĐTT-2026-001',
+        },
+      }));
+
+      render(
+        <BrowserRouter>
+          <InternUploadPage />
+        </BrowserRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText(/Kết Quả Xét Duyệt Hồ Sơ: Chưa tiếp nhận hồ sơ đợt này/i)).toBeInTheDocument();
+      });
+      expect(screen.queryByText(/HĐTT-2026-001/i)).not.toBeInTheDocument();
+      expect(screen.getAllByText(/Chưa tiếp nhận/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.queryByText(/Đã phê duyệt/i)).not.toBeInTheDocument();
+    });
+
+    it('hợp đồng của thực tập sinh khác (applicantId khác) TUYỆT ĐỐI KHÔNG hiển thị cho ứng viên', async () => {
+      localStorage.setItem('applicant_pending_contract', JSON.stringify({
+        applicantId: 5,
+        targetEmail: 'intern@ictu.edu.vn',
+        contract: {
+          id: 1,
+          student_name: 'Nguyễn Văn An',
+          doc_type: 'Hợp Đồng Của TTS Khác',
+        },
+      }));
+
+      render(
+        <BrowserRouter>
+          <InternUploadPage />
+        </BrowserRouter>
+      );
+
+      // Tuyệt đối không hiển thị hợp đồng của người khác
+      expect(screen.queryByText(/Hợp Đồng Của TTS Khác/i)).not.toBeInTheDocument();
+    });
   });
 });
+

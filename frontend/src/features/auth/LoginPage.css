@@ -270,7 +270,7 @@
 
 .login-quick-actions {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin-bottom: 8px;
 }
@@ -282,13 +282,13 @@
   justify-content: center;
   gap: 6px;
   height: 42px;
-  padding: 0 8px;
+  padding: 0 6px;
   border-radius: var(--radius-sm);
   border: 1.5px solid var(--fb-line);
   background: #ffffff;
   cursor: pointer;
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--fb-ink);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
