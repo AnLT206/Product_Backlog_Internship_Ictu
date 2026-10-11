@@ -36,6 +36,7 @@ api_router.include_router(documents.router)           # /api/hr/documents/*
 api_router.include_router(documents.intern_router)    # /api/intern/documents/*
 api_router.include_router(documents.download_router)  # /api/documents/*
 api_router.include_router(evaluations.router)
+api_router.include_router(evaluations.hr_router)
 api_router.include_router(intern_contract.router)
 api_router.include_router(interns.router)
 api_router.include_router(leaves.router)
@@ -43,7 +44,6 @@ api_router.include_router(meetings.router)
 api_router.include_router(mentor_assignments.router)
 api_router.include_router(mentors.router)
 api_router.include_router(attendance.router)
-api_router.include_router(operations.router)
 api_router.include_router(tasks.router)
 api_router.include_router(support_requests.router)
 api_router.include_router(weekly_reports.router)
@@ -55,4 +55,5 @@ api_router.include_router(admin.router)
 api_router.include_router(admin.users_router)
 api_router.include_router(admin.settings_router)
 api_router.include_router(work_schedules.router)
+api_router.include_router(operations.router)
 

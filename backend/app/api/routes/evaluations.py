@@ -3,10 +3,15 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, require_roles
 from app.models.user import User
-from app.schemas.evaluation import EvaluationCreateRequest, EvaluationResponse
+from app.schemas.evaluation import (
+    EvaluationCreateRequest,
+    EvaluationResponse,
+    FinalEvaluationReportResponse,
+)
 from app.services.evaluation_service import EvaluationService
 
 router = APIRouter(prefix="/mentor", tags=["evaluations"])
+hr_router = APIRouter(prefix="/hr", tags=["evaluations"])
 
 
 @router.post(
@@ -22,3 +27,41 @@ def create_evaluation(
     current_user: User = Depends(get_current_user),
 ) -> EvaluationResponse:
     return EvaluationService(db).create_evaluation(current_user, payload)
+
+
+@hr_router.get(
+    "/evaluations/summary",
+    response_model=FinalEvaluationReportResponse,
+    status_code=status.HTTP_200_OK,
+    summary="HR xem báo cáo tổng hợp đánh giá cuối kỳ, xếp loại và chuyên cần (US-20)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+@hr_router.get(
+    "/evaluations/final-report",
+    response_model=FinalEvaluationReportResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Bí danh của báo cáo tổng hợp đánh giá cuối kỳ (US-20)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+    include_in_schema=False,
+)
+def get_final_evaluations_summary(
+    program_id: int | None = None,
+    batch_id: int | None = None,
+    university: str | None = None,
+    grade: str | None = None,
+    search: str | None = None,
+    academic_year: str | None = None,
+    intern_id: int | None = None,
+    db: Session = Depends(get_db),
+) -> FinalEvaluationReportResponse:
+    target_program_id = program_id if program_id is not None else batch_id
+    from app.services.evaluation_report_service import EvaluationReportService
+
+    return EvaluationReportService(db).get_final_evaluation_report(
+        program_id=target_program_id,
+        university=university,
+        grade=grade,
+        search=search,
+        academic_year=academic_year,
+        intern_id=intern_id,
+    )
