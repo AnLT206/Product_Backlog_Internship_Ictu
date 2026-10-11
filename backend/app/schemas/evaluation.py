@@ -33,16 +33,25 @@ class EvaluationResponse(BaseModel):
 class UniversityReportSummary(BaseModel):
     university: str
     intern_count: int = 0
+    total_interns: int | None = None
     evaluated_count: int = 0
+    unevaluated_count: int = 0
     average_score: float | None = None
     average_attendance_rate: float = 0.0
+    excellent_count: int = 0
+    good_count: int = 0
+    fair_count: int = 0
+    average_count: int = 0
+    poor_count: int = 0
 
 
 class ProgramReportSummary(BaseModel):
     program_id: int
     program_name: str
     intern_count: int = 0
+    total_interns: int | None = None
     evaluated_count: int = 0
+    unevaluated_count: int = 0
     average_score: float | None = None
     average_attendance_rate: float = 0.0
 
@@ -71,6 +80,11 @@ class FinalEvaluationItem(BaseModel):
     unauthorized_leave_days: int = 0
     total_working_days: int = 0
     attendance_rate: float = 0.0
+    school: str | None = None
+    batch: str | None = None
+    gpa: float | None = None
+    attendance_sessions: str | None = None
+    mentor: str | None = None
 
 
 class FinalEvaluationReportResponse(BaseModel):

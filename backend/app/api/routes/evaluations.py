@@ -47,21 +47,26 @@ def create_evaluation(
 def get_final_evaluations_summary(
     program_id: int | None = None,
     batch_id: int | None = None,
+    batch: str | None = None,
     university: str | None = None,
+    school: str | None = None,
     grade: str | None = None,
     search: str | None = None,
     academic_year: str | None = None,
     intern_id: int | None = None,
     db: Session = Depends(get_db),
 ) -> FinalEvaluationReportResponse:
-    target_program_id = program_id if program_id is not None else batch_id
     from app.services.evaluation_report_service import EvaluationReportService
 
     return EvaluationReportService(db).get_final_evaluation_report(
-        program_id=target_program_id,
+        program_id=program_id,
+        batch_id=batch_id,
+        batch=batch,
         university=university,
+        school=school,
         grade=grade,
         search=search,
         academic_year=academic_year,
         intern_id=intern_id,
     )
+
