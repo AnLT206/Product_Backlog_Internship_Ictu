@@ -16,7 +16,6 @@ import {
   ChevronRight,
   ShieldAlert,
   Sparkles,
-  ArrowRightLeft,
   UserMinus,
   Info,
 } from 'lucide-react';
@@ -24,7 +23,6 @@ import { getMentors, assignMentor, unassignInternFromMentor } from '../../api/me
 import { getInterns } from '../../api/interns';
 import {
   syncMentorAssignment,
-  syncReassignMentor,
   syncUnassignMentor,
   getRealtimeSyncState,
   subscribeRealtimeEvents,
@@ -557,60 +555,7 @@ export default function MentorAssignmentPage() {
     }
   };
 
-  /* ── 2. LOGIC ĐIỀU CHUYỂN MENTOR CHO TTS ĐÃ CÓ PHÂN CÔNG ── */
-  const handleReassignMentor = async (internId, targetMentorId) => {
-    const targetMentor = mentors.find((m) => m.id === Number(targetMentorId));
-    if (!targetMentor) return;
-
-    if (targetMentor.current_interns >= targetMentor.max_interns) {
-      showToast(`Mentor ${targetMentor.full_name} đã đạt giới hạn tối đa 5 TTS!`, 'error');
-      return;
-    }
-
-    try {
-      try {
-        await assignMentor({
-          mentor_id: Number(targetMentorId),
-          intern_ids: [internId],
-        });
-      } catch (apiErr) {
-        console.warn('API reassign fallback:', apiErr);
-      }
-
-      const nextAssigned = assignedInterns.map((item) => {
-        if (item.id === internId) {
-          return {
-            ...item,
-            mentor_id: Number(targetMentorId),
-            mentor_name: targetMentor.full_name,
-            department: targetMentor.department,
-          };
-        }
-        return item;
-      });
-
-      setAssignedInterns(nextAssigned);
-      setMentors((prevMentors) =>
-        prevMentors.map((m) => ({
-          ...m,
-          current_interns: nextAssigned.filter((a) => a.mentor_id === m.id).length,
-        }))
-      );
-
-      // Đồng bộ thời gian thực
-      syncReassignMentor(internId, Number(targetMentorId), targetMentor.full_name, targetMentor.department);
-
-      showToast(
-        `Đã điều chuyển thực tập sinh sang Mentor ${targetMentor.full_name} thành công!`,
-        'success'
-      );
-    } catch (err) {
-      console.error('Lỗi khi điều chuyển mentor:', err);
-      showToast('Không thể điều chuyển Mentor. Vui lòng thử lại!', 'error');
-    }
-  };
-
-  /* ── 3. LOGIC HỦY GÁN MENTOR (ĐƯA VỀ HÀNG CHỜ PHÂN CÔNG) ── */
+  /* ── 2. LOGIC HỦY GÁN MENTOR (ĐƯA VỀ HÀNG CHỜ PHÂN CÔNG) ── */
   const handleUnassignIntern = async (internId, currentMentorId) => {
     try {
       try {
@@ -827,7 +772,7 @@ export default function MentorAssignmentPage() {
                         <th style={{ minWidth: '170px' }}>Chuyên ngành</th>
                         <th style={{ width: '90px', textAlign: 'center' }}>GPA</th>
                         <th style={{ minWidth: '200px' }}>Mentor phụ trách</th>
-                        <th style={{ width: '180px', textAlign: 'center' }}>Thao tác điều phối</th>
+                        <th style={{ width: '110px', textAlign: 'center' }}>Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -842,7 +787,6 @@ export default function MentorAssignmentPage() {
                       ) : (
                         filteredAssignedInterns.map((intern, index) => {
                           const currentMentor = mentors.find((m) => m.id === intern.mentor_id);
-                          const otherMentor = mentors.find((m) => m.id !== intern.mentor_id);
 
                           return (
                             <tr key={intern.id} className="intern-table-row">
@@ -881,28 +825,15 @@ export default function MentorAssignmentPage() {
                                 </div>
                               </td>
                               <td style={{ textAlign: 'center' }}>
-                                <div className="action-row-buttons">
-                                  {otherMentor && (
-                                    <button
-                                      type="button"
-                                      className="btn-action-reassign"
-                                      onClick={() => handleReassignMentor(intern.id, otherMentor.id)}
-                                      title={`Điều chuyển sang Mentor ${otherMentor.full_name}`}
-                                    >
-                                      <ArrowRightLeft size={13} />
-                                      <span>Đổi sang {otherMentor.full_name.split(' ').slice(-1)[0]}</span>
-                                    </button>
-                                  )}
-                                  <button
-                                    type="button"
-                                    className="btn-action-unassign"
-                                    onClick={() => handleUnassignIntern(intern.id, intern.mentor_id)}
-                                    title="Gỡ phân công và đưa về danh sách chờ"
-                                  >
-                                    <UserMinus size={13} />
-                                    <span>Hủy gán</span>
-                                  </button>
-                                </div>
+                                <button
+                                  type="button"
+                                  className="btn-action-unassign"
+                                  onClick={() => handleUnassignIntern(intern.id, intern.mentor_id)}
+                                  title="Gỡ phân công và đưa về danh sách chờ"
+                                >
+                                  <UserMinus size={13} />
+                                  <span>Hủy gán</span>
+                                </button>
                               </td>
                             </tr>
                           );
