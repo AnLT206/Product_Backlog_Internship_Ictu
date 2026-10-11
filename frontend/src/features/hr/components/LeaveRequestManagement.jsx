@@ -664,22 +664,17 @@ export default function LeaveRequestManagement({ onPendingCountChange }) {
               <div className="leave-modal-body">
                 {modalError && (
                   <div className="leave-modal-error">
-                    <AlertCircle size={15} />
+                    <AlertCircle size={16} />
                     <span>{modalError}</span>
                   </div>
                 )}
 
-                {/* Thông tin TTS & Đơn xin nghỉ - Đầy đủ tất cả trường bao gồm cả 3 cột ẩn */}
-                <div className="leave-detail-box">
-                  <div className="leave-detail-row">
-                    <span className="leave-detail-label">Mã đơn:</span>
-                    <span className="leave-code-tag">{activeModal.item.requestCode || activeModal.item.id}</span>
-                  </div>
-
-                  <div className="leave-detail-row">
-                    <span className="leave-detail-label">Thực tập sinh:</span>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                      <div className="leave-avatar" style={{ width: 26, height: 26, fontSize: '11px', borderRadius: '6px' }}>
+                {/* Card thông tin Thực tập sinh & Đơn xin nghỉ */}
+                <div className="leave-modal-info-card">
+                  {/* Header của thẻ TTS: Avatar + Tên + Mã + Email + Trạng thái */}
+                  <div className="leave-modal-user-row">
+                    <div className="leave-modal-user-left">
+                      <div className="leave-avatar" style={{ width: 36, height: 36, fontSize: '13px', borderRadius: '8px' }}>
                         {(activeModal.item.avatar || getSavedAvatar(activeModal.item.internEmail, activeModal.item.internId, activeModal.item.internName)) ? (
                           <img
                             src={activeModal.item.avatar || getSavedAvatar(activeModal.item.internEmail, activeModal.item.internId, activeModal.item.internName)}
@@ -695,104 +690,103 @@ export default function LeaveRequestManagement({ onPendingCountChange }) {
                           {getInitialLetter(activeModal.item.internName)}
                         </span>
                       </div>
-                      <div className="leave-detail-val">
-                        <strong>{activeModal.item.internName}</strong>
-                        <span style={{ color: '#64748B', fontSize: '12px', marginLeft: '6px' }}>
-                          ({activeModal.item.internCode || 'TTS0001'})
-                        </span>
+                      <div className="leave-modal-user-info">
+                        <div className="leave-modal-user-name">
+                          <strong>{activeModal.item.internName}</strong>
+                          <span className="leave-modal-user-code">({activeModal.item.internCode || 'TTS0001'})</span>
+                        </div>
                         {activeModal.item.internEmail && (
-                          <span style={{ color: '#64748B', fontSize: '12px', marginLeft: '6px' }}>
-                            • {activeModal.item.internEmail}
-                          </span>
+                          <div className="leave-modal-user-email">{activeModal.item.internEmail}</div>
                         )}
                       </div>
                     </div>
-                  </div>
 
-                  <div className="leave-detail-row">
-                    <span className="leave-detail-label">Loại nghỉ phép:</span>
-                    <span className="leave-type-tag">{activeModal.item.type}</span>
-                  </div>
-
-                  <div className="leave-detail-row">
-                    <span className="leave-detail-label">Thời gian nghỉ:</span>
-                    <span className="leave-detail-val">
-                      <strong>
-                        {activeModal.item.startDate === activeModal.item.endDate
-                          ? activeModal.item.startDate
-                          : `${activeModal.item.startDate} → ${activeModal.item.endDate}`}
-                      </strong>{' '}
-                      - {activeModal.item.session} ({activeModal.item.duration})
-                    </span>
-                  </div>
-
-                  {/* Cột ẩn 2: Ngày nộp đơn */}
-                  <div className="leave-detail-row">
-                    <span className="leave-detail-label">Ngày nộp đơn:</span>
-                    <span className="leave-detail-val" style={{ fontWeight: 600, color: '#334155' }}>
-                      {activeModal.item.createdDate}
-                    </span>
-                  </div>
-
-                  <div className="leave-detail-row">
-                    <span className="leave-detail-label">Trạng thái:</span>
-                    <div className="leave-detail-val">
+                    <div className="leave-modal-user-status">
                       {activeModal.item.status === 'pending' && (
                         <span className="leave-badge leave-badge--pending">
-                          <Clock size={11} />
+                          <Clock size={12} />
                           <span>Chờ duyệt</span>
                         </span>
                       )}
                       {activeModal.item.status === 'approved' && (
                         <span className="leave-badge leave-badge--approved">
-                          <CheckCircle size={11} />
+                          <CheckCircle size={12} />
                           <span>Đã duyệt</span>
                         </span>
                       )}
                       {activeModal.item.status === 'rejected' && (
                         <span className="leave-badge leave-badge--rejected">
-                          <XCircle size={11} />
+                          <XCircle size={12} />
                           <span>Từ chối</span>
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Cột ẩn 1: Lý do xin nghỉ */}
-                  <div className="leave-detail-row">
-                    <span className="leave-detail-label">Lý do xin nghỉ:</span>
-                    <p className="leave-detail-val leave-detail-reason">
-                      {activeModal.item.reason}
-                    </p>
-                  </div>
+                  {/* Lưới thông tin chi tiết các trường */}
+                  <div className="leave-modal-fields-grid">
+                    <div className="leave-modal-field">
+                      <span className="leave-modal-field-label">Loại nghỉ phép:</span>
+                      <span className="leave-type-tag">{activeModal.item.type}</span>
+                    </div>
 
-                  {/* Cột ẩn 3: Phản hồi của HR (Hiển thị chi tiết ở chế độ xem) */}
-                  {activeModal.mode === 'view' && (
-                    <div className="leave-detail-row">
-                      <span className="leave-detail-label">Phản hồi của HR:</span>
-                      <div className="leave-detail-val">
-                        {activeModal.item.status === 'pending' ? (
-                          <span className="leave-feedback-muted">Chờ HR xem xét & phản hồi</span>
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            <span className="leave-feedback-approver">
-                              Người duyệt: {activeModal.item.approver || 'Hr'}
-                            </span>
-                            <span style={{ color: '#1E293B', fontSize: '13px', lineHeight: 1.5 }}>
-                              {activeModal.item.feedback || 'Không có ghi chú'}
-                            </span>
-                          </div>
-                        )}
+                    <div className="leave-modal-field">
+                      <span className="leave-modal-field-label">Ngày nộp đơn:</span>
+                      <span className="leave-modal-field-value">{activeModal.item.createdDate}</span>
+                    </div>
+
+                    <div className="leave-modal-field leave-modal-field--full">
+                      <span className="leave-modal-field-label">Thời gian xin nghỉ:</span>
+                      <div className="leave-modal-time-wrap">
+                        <Calendar size={14} color="#2563EB" />
+                        <span className="leave-modal-field-value">
+                          <strong>
+                            {activeModal.item.startDate === activeModal.item.endDate
+                              ? activeModal.item.startDate
+                              : `${activeModal.item.startDate} → ${activeModal.item.endDate}`}
+                          </strong>
+                          <span className="leave-modal-session-pill">
+                            {activeModal.item.session} ({activeModal.item.duration})
+                          </span>
+                        </span>
                       </div>
                     </div>
-                  )}
+
+                    <div className="leave-modal-field leave-modal-field--full">
+                      <span className="leave-modal-field-label">Lý do xin nghỉ:</span>
+                      <div className="leave-modal-reason-box">
+                        {activeModal.item.reason}
+                      </div>
+                    </div>
+
+                    {/* Phản hồi của HR (chỉ ở chế độ view) */}
+                    {activeModal.mode === 'view' && (
+                      <div className="leave-modal-field leave-modal-field--full">
+                        <span className="leave-modal-field-label">Phản hồi của HR:</span>
+                        <div className="leave-modal-feedback-box">
+                          {activeModal.item.status === 'pending' ? (
+                            <span className="leave-feedback-muted">Chờ HR xem xét & phản hồi</span>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              <span className="leave-feedback-approver">
+                                Người duyệt: {activeModal.item.approver || 'Hr'}
+                              </span>
+                              <span style={{ color: '#1E293B', fontSize: '13px', lineHeight: 1.5 }}>
+                                {activeModal.item.feedback || 'Không có ghi chú'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Khi ở chế độ Approve hoặc Reject: Ô Textarea cho HR nhập phản hồi */}
+                {/* Phần nhập phản hồi của HR khi Duyệt hoặc Từ chối */}
                 {activeModal.mode !== 'view' && (
-                  <div className="leave-form-group">
-                    <label htmlFor="leave-feedback-input" className="leave-form-label">
-                      <MessageSquare size={14} />
+                  <div className="leave-modal-input-section">
+                    <label htmlFor="leave-feedback-input" className="leave-modal-input-label">
+                      <MessageSquare size={15} color="#2563EB" />
                       <span>
                         {activeModal.mode === 'approve' && 'Ý kiến phê duyệt / Lời nhắn gửi TTS:'}
                         {activeModal.mode === 'reject' && 'Lý do từ chối (bắt buộc thông báo cho TTS):'}
@@ -801,7 +795,7 @@ export default function LeaveRequestManagement({ onPendingCountChange }) {
                     <textarea
                       id="leave-feedback-input"
                       rows="3"
-                      className="leave-form-textarea"
+                      className="leave-modal-input-textarea"
                       placeholder={
                         activeModal.mode === 'reject'
                           ? 'Nhập lý do từ chối để thực tập sinh nắm được thông tin...'
@@ -810,7 +804,7 @@ export default function LeaveRequestManagement({ onPendingCountChange }) {
                       value={modalFeedback}
                       onChange={(e) => setModalFeedback(e.target.value)}
                     />
-                    <span className="leave-form-hint">
+                    <span className="leave-modal-input-hint">
                       Phản hồi này sẽ được lưu vào hệ thống và hiển thị trực tiếp trên trang Chấm công của TTS.
                     </span>
                   </div>
@@ -827,7 +821,6 @@ export default function LeaveRequestManagement({ onPendingCountChange }) {
                   Đóng
                 </button>
 
-                {/* Ở chế độ Xem nếu đơn còn đang Chờ duyệt thì cho phép HR duyệt hoặc từ chối ngay */}
                 {activeModal.mode === 'view' && activeModal.item.status === 'pending' && (
                   <>
                     <button
@@ -855,7 +848,7 @@ export default function LeaveRequestManagement({ onPendingCountChange }) {
                     className="leave-modal-btn leave-modal-btn--confirm-approve"
                     disabled={submitting}
                   >
-                    <Check size={14} />
+                    <Check size={15} />
                     <span>{submitting ? 'Đang duyệt...' : 'Xác nhận Duyệt đơn'}</span>
                   </button>
                 )}
@@ -866,7 +859,7 @@ export default function LeaveRequestManagement({ onPendingCountChange }) {
                     className="leave-modal-btn leave-modal-btn--confirm-reject"
                     disabled={submitting}
                   >
-                    <X size={14} />
+                    <X size={15} />
                     <span>{submitting ? 'Đang từ chối...' : 'Xác nhận Từ chối đơn'}</span>
                   </button>
                 )}
