@@ -72,11 +72,19 @@ class AttendanceLeaveReportItem(AttendanceLeaveTotals):
     intern_id: int
     user_code: str | None = None
     full_name: str | None = None
+    email: str | None = None
+    program_id: int | None = None
+    program_name: str | None = None
+    total_working_days: int = 0
+    attendance_rate: float = 0.0
 
 
 class AttendanceLeaveReportResponse(BaseModel):
     from_date: date | None = None
     to_date: date | None = None
+    month: str | None = None
+    program_id: int | None = None
+    program_name: str | None = None
     totals: AttendanceLeaveTotals
     items: list[AttendanceLeaveReportItem]
     total: int

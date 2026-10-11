@@ -162,22 +162,59 @@ def get_monthly_attendance_summary(
 
 
 @router.get(
-    "/hr/attendance/report",
+    "/hr/attendance-reports",
     response_model=AttendanceLeaveReportResponse,
     status_code=status.HTTP_200_OK,
-    summary="HR xem báo cáo đi làm và nghỉ phép (Join Attendance + LeaveRequest)",
+    summary="HR xem báo cáo thống kê chuyên cần của thực tập sinh kèm bộ lọc theo tháng/đợt (US-22)",
     dependencies=[Depends(require_roles("hr", "admin"))],
 )
-def get_attendance_leave_report(
+def get_attendance_reports(
+    month: str | None = Query(default=None, description="Lọc theo tháng (định dạng YYYY-MM hoặc 1-12)"),
+    year: int | None = Query(default=None, description="Lọc theo năm (YYYY) khi dùng cùng month 1-12"),
+    program_id: int | None = Query(default=None, description="Lọc theo đợt/kỳ thực tập (Internship Program ID)"),
+    batch_id: int | None = Query(default=None, description="Bí danh của program_id (lọc theo đợt thực tập)"),
     from_date: date | None = Query(default=None, description="Lọc từ ngày (YYYY-MM-DD)"),
     to_date: date | None = Query(default=None, description="Lọc đến ngày (YYYY-MM-DD)"),
     intern_id: int | None = Query(default=None, description="Lọc theo ID thực tập sinh"),
     db: Session = Depends(get_db),
 ) -> AttendanceLeaveReportResponse:
+    target_program_id = program_id if program_id is not None else batch_id
     return AttendanceReportService(db).get_attendance_leave_report(
         from_date=from_date,
         to_date=to_date,
+        month=month,
+        year=year,
+        program_id=target_program_id,
         intern_id=intern_id,
+    )
+
+
+@router.get(
+    "/hr/attendance/report",
+    response_model=AttendanceLeaveReportResponse,
+    status_code=status.HTTP_200_OK,
+    summary="HR xem báo cáo đi làm và nghỉ phép (Legacy alias)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def get_attendance_leave_report(
+    month: str | None = Query(default=None, description="Lọc theo tháng (định dạng YYYY-MM hoặc 1-12)"),
+    year: int | None = Query(default=None, description="Lọc theo năm (YYYY)"),
+    program_id: int | None = Query(default=None, description="Lọc theo đợt/kỳ thực tập"),
+    batch_id: int | None = Query(default=None, description="Bí danh của program_id"),
+    from_date: date | None = Query(default=None, description="Lọc từ ngày (YYYY-MM-DD)"),
+    to_date: date | None = Query(default=None, description="Lọc đến ngày (YYYY-MM-DD)"),
+    intern_id: int | None = Query(default=None, description="Lọc theo ID thực tập sinh"),
+    db: Session = Depends(get_db),
+) -> AttendanceLeaveReportResponse:
+    return get_attendance_reports(
+        month=month,
+        year=year,
+        program_id=program_id,
+        batch_id=batch_id,
+        from_date=from_date,
+        to_date=to_date,
+        intern_id=intern_id,
+        db=db,
     )
 
 
