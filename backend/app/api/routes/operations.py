@@ -776,7 +776,35 @@ def update_hr_allowance(payload: AllowanceUpdatePayload, db: Session = Depends(g
         if u:
             rec = db.query(InternAttendance).filter(InternAttendance.intern_id == u.id).first()
 
-    if rec:
+    if not rec:
+        target_uid = payload.intern_id
+        if payload.code:
+            u = db.query(User).filter(User.code == payload.code).first()
+            if u:
+                target_uid = u.id
+        elif payload.email:
+            u = db.query(User).filter(User.email == payload.email).first()
+            if u:
+                target_uid = u.id
+        else:
+            id_map = {1: 5, 2: 6, 3: 8, 4: 9}
+            target_uid = id_map.get(payload.intern_id, payload.intern_id)
+
+        rec = InternAttendance(
+            intern_id=target_uid,
+            base_allowance=int(payload.base_allowance),
+            allowance=int(payload.total_net),
+            bonus_amount=int(payload.bonus_penalty) if payload.bonus_penalty >= 0 else 0,
+            deduction_amount=int(abs(payload.bonus_penalty)) if payload.bonus_penalty < 0 else 0,
+            actual_days=22,
+            standard_days=22,
+            status=payload.status or "approved",
+            status_label="Đã chi trả" if (payload.status or "approved") == "approved" else "Chờ chi trả",
+        )
+        db.add(rec)
+        db.commit()
+        db.refresh(rec)
+    else:
         rec.allowance = int(payload.total_net)
         if hasattr(rec, "base_allowance"):
             rec.base_allowance = int(payload.base_allowance)

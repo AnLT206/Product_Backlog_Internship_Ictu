@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import AllowanceManagementPage, {
   parseRawNumber,
   formatCurrencyInput,
+  computeFormattedCurrencyWithCursor,
   formatVndDisplay,
   INITIAL_ALLOWANCE_RECORDS,
 } from './AllowanceManagementPage';
@@ -134,6 +135,32 @@ describe('AllowanceManagementPage Component Test Suite', () => {
       await user.type(bonusInput, '350000');
 
       expect(bonusInput).toHaveValue('350,000');
+    });
+
+    it('computeFormattedCurrencyWithCursor tính toán chính xác toạ độ con trỏ khi gõ số vào giữa chuỗi', () => {
+      // Nhập '0' vào vị trí sau số 2 của '2,500,000' -> raw là '20,500,000'
+      const res = computeFormattedCurrencyWithCursor('20,500,000', 2);
+      expect(res.formatted).toBe('20,500,000');
+      // Con trỏ nằm ngay sau 2 chữ số ('2', '0') -> vị trí 2
+      expect(res.targetCursor).toBe(2);
+    });
+
+    it('computeFormattedCurrencyWithCursor giữ nguyên vị trí đầu hoặc cuối khi rỗng', () => {
+      expect(computeFormattedCurrencyWithCursor('', 0)).toEqual({ formatted: '', targetCursor: 0 });
+      expect(computeFormattedCurrencyWithCursor(null, 0)).toEqual({ formatted: '', targetCursor: 0 });
+    });
+
+    it('nút Xoá nhanh (Clear button) xoá trắng mức phụ cấp ngay lập tức', async () => {
+      const user = userEvent.setup();
+      render(<AllowanceManagementPage />);
+
+      const baseInput = screen.getByLabelText(/Mức phụ cấp cơ bản/i);
+      expect(baseInput).toHaveValue('2,500,000');
+
+      const clearBtn = screen.getByRole('button', { name: /Xoá nhanh mức phụ cấp/i });
+      await user.click(clearBtn);
+
+      expect(baseInput).toHaveValue('');
     });
   });
 

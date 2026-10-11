@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import {
   DollarSign,
   Users,
@@ -14,6 +14,7 @@ import {
   Sparkles,
   ArrowRight,
   TrendingUp,
+  X,
 } from 'lucide-react';
 import { fetchHrAllowances, updateHrAllowance } from '../../api/operations';
 import {
@@ -45,6 +46,52 @@ export function formatCurrencyInput(value) {
   const num = typeof value === 'number' ? value : parseRawNumber(value);
   if (num === 0 && String(value).trim() === '0') return '0';
   return num.toLocaleString('en-US');
+}
+
+/**
+ * Tính toán định dạng tiền tệ và toạ độ con trỏ (caret position) mượt mà
+ * Giữ nguyên vị trí con trỏ sau khi format lại hàng nghìn, không giật về cuối ô.
+ */
+export function computeFormattedCurrencyWithCursor(rawVal, selStart) {
+  if (rawVal === null || rawVal === undefined) {
+    return { formatted: '', targetCursor: 0 };
+  }
+  const str = String(rawVal);
+  const pos = typeof selStart === 'number' ? selStart : str.length;
+  const digitsBeforeCursor = str.slice(0, pos).replace(/\D/g, '').length;
+
+  let digitsOnly = str.replace(/\D/g, '');
+  if (digitsOnly.length > 11) {
+    digitsOnly = digitsOnly.slice(0, 11);
+  }
+
+  if (digitsOnly === '') {
+    return { formatted: '', targetCursor: 0 };
+  }
+
+  const num = parseInt(digitsOnly, 10);
+  const formatted = num.toLocaleString('en-US');
+
+  let targetPos = 0;
+  if (digitsBeforeCursor === 0) {
+    targetPos = 0;
+  } else {
+    let count = 0;
+    for (let i = 0; i < formatted.length; i++) {
+      if (/\d/.test(formatted[i])) {
+        count++;
+      }
+      if (count === digitsBeforeCursor) {
+        targetPos = i + 1;
+        break;
+      }
+    }
+    if (digitsBeforeCursor >= digitsOnly.length) {
+      targetPos = formatted.length;
+    }
+  }
+
+  return { formatted, targetCursor: targetPos };
 }
 
 /**
@@ -129,6 +176,28 @@ export default function AllowanceManagementPage({
   const [adjustmentType, setAdjustmentType] = useState('bonus'); // 'bonus' (+) | 'deduction' (-)
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Tham chiếu DOM & vị trí con trỏ để giữ nguyên vị trí khi gõ tiền tệ có dấu phẩy
+  const baseInputRef = useRef(null);
+  const bonusInputRef = useRef(null);
+  const baseCursorRef = useRef(null);
+  const bonusCursorRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (baseInputRef.current && baseCursorRef.current !== null) {
+      const pos = Math.min(baseCursorRef.current, baseInputRef.current.value.length);
+      baseInputRef.current.setSelectionRange(pos, pos);
+      baseCursorRef.current = null;
+    }
+  }, [baseAllowance]);
+
+  useLayoutEffect(() => {
+    if (bonusInputRef.current && bonusCursorRef.current !== null) {
+      const pos = Math.min(bonusCursorRef.current, bonusInputRef.current.value.length);
+      bonusInputRef.current.setSelectionRange(pos, pos);
+      bonusCursorRef.current = null;
+    }
+  }, [bonusPenalty]);
 
   // 2. Quản lý State Bảng dữ liệu & Bộ lọc (Đồng bộ số ngày công theo thời gian thực)
   const [allowanceList, setAllowanceList] = useState(() => {
@@ -289,18 +358,15 @@ export default function AllowanceManagementPage({
     }
   };
 
-  // 4. RÀNG BUỘC & FORMAT TIỀN KHI GÕ: KHÔNG SỐ ÂM, KHÔNG CHỮ CÁI, TỰ FORMAT DẤU PHẨY
+  // 4. RÀNG BUỘC & FORMAT TIỀN KHI GÕ: GIỮ NGUYÊN VỊ TRÍ CON TRỎ, KHÔNG SỐ ÂM, TỰ FORMAT DẤU PHẨY
   const handleBaseAllowanceChange = (e) => {
-    const inputVal = e.target.value;
-    // Lọc chỉ giữ lại ký tự số, loại bỏ hoàn toàn chữ cái và ký tự đặc biệt (kể cả dấu trừ)
-    const digitsOnly = inputVal.replace(/\D/g, '');
-
-    if (digitsOnly === '') {
-      setBaseAllowance('');
-    } else {
-      const formatted = formatCurrencyInput(digitsOnly);
-      setBaseAllowance(formatted);
-    }
+    const input = e.target;
+    const { formatted, targetCursor } = computeFormattedCurrencyWithCursor(
+      input.value,
+      input.selectionStart
+    );
+    baseCursorRef.current = targetCursor;
+    setBaseAllowance(formatted);
 
     if (formErrors.baseAllowance) {
       setFormErrors((prev) => {
@@ -311,16 +377,105 @@ export default function AllowanceManagementPage({
     }
   };
 
-  const handleBonusPenaltyChange = (e) => {
-    const inputVal = e.target.value;
-    // Lọc chỉ giữ lại ký tự số, loại bỏ hoàn toàn chữ cái và ký tự âm
-    const digitsOnly = inputVal.replace(/\D/g, '');
+  const handleBaseAllowanceKeyDown = (e) => {
+    const input = e.currentTarget;
+    const { selectionStart, selectionEnd, value } = input;
 
-    if (digitsOnly === '') {
-      setBonusPenalty('');
-    } else {
-      const formatted = formatCurrencyInput(digitsOnly);
-      setBonusPenalty(formatted);
+    // Phím Backspace khi đứng ngay sau dấu phân cách (VD: "2,|500,000")
+    if (e.key === 'Backspace' && selectionStart === selectionEnd && selectionStart > 0) {
+      const charBefore = value[selectionStart - 1];
+      if (charBefore === ',' || charBefore === '.' || charBefore === ' ') {
+        e.preventDefault();
+        const before = value.slice(0, selectionStart - 2);
+        const after = value.slice(selectionStart);
+        const { formatted, targetCursor } = computeFormattedCurrencyWithCursor(
+          before + after,
+          before.length
+        );
+        baseCursorRef.current = targetCursor;
+        setBaseAllowance(formatted);
+        return;
+      }
+    }
+
+    // Phím Delete khi đứng ngay trước dấu phân cách (VD: "2|,500,000")
+    if (e.key === 'Delete' && selectionStart === selectionEnd && selectionStart < value.length) {
+      const charAt = value[selectionStart];
+      if (charAt === ',' || charAt === '.' || charAt === ' ') {
+        e.preventDefault();
+        const before = value.slice(0, selectionStart);
+        const after = value.slice(selectionStart + 2);
+        const { formatted, targetCursor } = computeFormattedCurrencyWithCursor(
+          before + after,
+          before.length
+        );
+        baseCursorRef.current = targetCursor;
+        setBaseAllowance(formatted);
+        return;
+      }
+    }
+  };
+
+  const handleClearBaseAllowance = () => {
+    setBaseAllowance('');
+    baseCursorRef.current = 0;
+    if (baseInputRef.current) {
+      baseInputRef.current.focus();
+    }
+  };
+
+  const handleBonusPenaltyChange = (e) => {
+    const input = e.target;
+    const { formatted, targetCursor } = computeFormattedCurrencyWithCursor(
+      input.value,
+      input.selectionStart
+    );
+    bonusCursorRef.current = targetCursor;
+    setBonusPenalty(formatted);
+  };
+
+  const handleBonusPenaltyKeyDown = (e) => {
+    const input = e.currentTarget;
+    const { selectionStart, selectionEnd, value } = input;
+
+    if (e.key === 'Backspace' && selectionStart === selectionEnd && selectionStart > 0) {
+      const charBefore = value[selectionStart - 1];
+      if (charBefore === ',' || charBefore === '.' || charBefore === ' ') {
+        e.preventDefault();
+        const before = value.slice(0, selectionStart - 2);
+        const after = value.slice(selectionStart);
+        const { formatted, targetCursor } = computeFormattedCurrencyWithCursor(
+          before + after,
+          before.length
+        );
+        bonusCursorRef.current = targetCursor;
+        setBonusPenalty(formatted);
+        return;
+      }
+    }
+
+    if (e.key === 'Delete' && selectionStart === selectionEnd && selectionStart < value.length) {
+      const charAt = value[selectionStart];
+      if (charAt === ',' || charAt === '.' || charAt === ' ') {
+        e.preventDefault();
+        const before = value.slice(0, selectionStart);
+        const after = value.slice(selectionStart + 2);
+        const { formatted, targetCursor } = computeFormattedCurrencyWithCursor(
+          before + after,
+          before.length
+        );
+        bonusCursorRef.current = targetCursor;
+        setBonusPenalty(formatted);
+        return;
+      }
+    }
+  };
+
+  const handleClearBonusPenalty = () => {
+    setBonusPenalty('');
+    bonusCursorRef.current = 0;
+    if (bonusInputRef.current) {
+      bonusInputRef.current.focus();
     }
   };
 
@@ -603,14 +758,28 @@ export default function AllowanceManagementPage({
               </label>
               <div className="amp-input-wrapper">
                 <input
+                  ref={baseInputRef}
                   type="text"
+                  inputMode="numeric"
                   id="amp-input-base-allowance"
                   aria-label="Mức phụ cấp cơ bản"
                   className={`amp-input amp-input-money ${formErrors.baseAllowance ? 'amp-input--error' : ''}`}
                   placeholder="VD: 2,500,000"
                   value={baseAllowance}
                   onChange={handleBaseAllowanceChange}
+                  onKeyDown={handleBaseAllowanceKeyDown}
                 />
+                {baseAllowance && (
+                  <button
+                    type="button"
+                    className="amp-clear-btn"
+                    onClick={handleClearBaseAllowance}
+                    title="Xoá nhanh mức phụ cấp"
+                    aria-label="Xoá nhanh mức phụ cấp"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
                 <span className="amp-currency-badge">VNĐ</span>
               </div>
               {formErrors.baseAllowance && (
@@ -650,14 +819,28 @@ export default function AllowanceManagementPage({
               </div>
               <div className="amp-input-wrapper">
                 <input
+                  ref={bonusInputRef}
                   type="text"
+                  inputMode="numeric"
                   id="amp-input-bonus"
                   aria-label="Thưởng hoặc khấu trừ"
                   className="amp-input amp-input-money"
                   placeholder="VD: 300,000"
                   value={bonusPenalty}
                   onChange={handleBonusPenaltyChange}
+                  onKeyDown={handleBonusPenaltyKeyDown}
                 />
+                {bonusPenalty && (
+                  <button
+                    type="button"
+                    className="amp-clear-btn"
+                    onClick={handleClearBonusPenalty}
+                    title="Xoá nhanh thưởng/phạt"
+                    aria-label="Xoá nhanh thưởng/phạt"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
                 <span className="amp-currency-badge">VNĐ</span>
               </div>
             </div>
