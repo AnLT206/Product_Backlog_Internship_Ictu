@@ -82,10 +82,10 @@ export const INITIAL_ALLOWANCE_RECORDS = [
   },
   {
     id: 3,
-    intern_id: 3,
+    intern_id: 8,
     code: 'TTS0003',
-    full_name: 'Trần Thị Bình',
-    email: 'binh.tt@ictu.edu.vn',
+    full_name: 'Trần Thị Mai Phương',
+    email: 'tts03@student.ictu.edu.vn',
     actual_days: 18,
     base_allowance: 2000000,
     bonus_penalty: 0,
@@ -95,10 +95,10 @@ export const INITIAL_ALLOWANCE_RECORDS = [
   },
   {
     id: 4,
-    intern_id: 4,
+    intern_id: 9,
     code: 'TTS0004',
-    full_name: 'Hoàng Minh Tuấn',
-    email: 'tuan.hm@ictu.edu.vn',
+    full_name: 'Hoàng Minh Đức',
+    email: 'tts04@student.ictu.edu.vn',
     actual_days: 20,
     base_allowance: 2200000,
     bonus_penalty: 200000,
@@ -312,23 +312,6 @@ export default function AllowanceManagementPage({
         return item;
       })
     );
-  };
-
-  // Nạp nhanh dữ liệu dòng lên form khi bấm nút "Sửa"
-  const handleQuickEdit = (item) => {
-    setSelectedInternId(String(item.intern_id || item.id));
-    setBaseAllowance(formatCurrencyInput(item.base_allowance));
-    if (item.bonus_penalty > 0) {
-      setAdjustmentType('bonus');
-      setBonusPenalty(formatCurrencyInput(item.bonus_penalty));
-    } else if (item.bonus_penalty < 0) {
-      setAdjustmentType('deduction');
-      setBonusPenalty(formatCurrencyInput(Math.abs(item.bonus_penalty)));
-    } else {
-      setBonusPenalty('');
-    }
-    // Cuộn nhẹ lên form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Lọc bảng dữ liệu theo ô tìm kiếm và trạng thái
@@ -650,28 +633,17 @@ export default function AllowanceManagementPage({
 
                       {/* Cột 6: Trạng thái (Đã chi trả / Chờ chi trả) */}
                       <td className="amp-cell-center">
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                          <span
-                            role="status"
-                            className={`amp-status-badge ${
-                              item.status === 'approved' ? 'amp-status-badge--paid' : 'amp-status-badge--pending'
-                            }`}
-                            onClick={() => toggleStatus(item.id || item.intern_id)}
-                            title="Click để đổi trạng thái chi trả"
-                          >
-                            {item.status === 'approved' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                            <span>{item.status === 'approved' ? 'Đã chi trả' : 'Chờ chi trả'}</span>
-                          </span>
-
-                          <button
-                            type="button"
-                            className="amp-btn-quick-edit"
-                            onClick={() => handleQuickEdit(item)}
-                            title="Chỉnh sửa phụ cấp cho TTS này"
-                          >
-                            Sửa
-                          </button>
-                        </div>
+                        <span
+                          role="status"
+                          className={`amp-status-badge ${
+                            item.status === 'approved' ? 'amp-status-badge--paid' : 'amp-status-badge--pending'
+                          }`}
+                          onClick={() => toggleStatus(item.id || item.intern_id)}
+                          title="Click để đổi trạng thái chi trả"
+                        >
+                          {item.status === 'approved' ? <CheckCircle2 size={13} /> : <Clock size={13} />}
+                          <span>{item.status === 'approved' ? 'Đã chi trả' : 'Chờ chi trả'}</span>
+                        </span>
                       </td>
                     </tr>
                   );

@@ -428,12 +428,14 @@
 
 .amp-cell-center {
   text-align: center;
+  white-space: nowrap;
 }
 
 .amp-cell-right {
   text-align: right;
   font-family: monospace, sans-serif;
   font-size: 13px;
+  white-space: nowrap;
 }
 
 /* Intern Name cell */
@@ -489,22 +491,27 @@
   color: #0f172a;
 }
 
-/* Trạng thái Badges */
+/* Trạng thái Badges (Nằm trên 1 dòng duy nhất) */
 .amp-status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  font-size: 12px;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 12.5px;
   font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
   border-radius: 9999px;
   cursor: pointer;
   user-select: none;
-  transition: opacity 0.15s ease;
+  transition: all 0.2s ease;
+  min-width: 110px;
 }
 
 .amp-status-badge:hover {
-  opacity: 0.85;
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .amp-status-badge--paid {
@@ -517,24 +524,6 @@
   background-color: #fffbeb;
   color: #b45309;
   border: 1px solid #fde68a;
-}
-
-/* Nút Quick Select */
-.amp-btn-quick-edit {
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #2563eb;
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.amp-btn-quick-edit:hover {
-  background-color: #2563eb;
-  color: #ffffff;
 }
 
 /* Footer counter */
