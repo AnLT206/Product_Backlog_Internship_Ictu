@@ -3,15 +3,16 @@
 Script chuẩn hóa và làm sạch toàn bộ dữ liệu CSDL theo yêu cầu:
 1. 1 Admin: admin@ictu.edu.vn (Admin@123)
 2. 1 HR: hr@ictu.edu.vn (Hr@123)
-3. 2 Mentors:
-   - mentor@ictu.edu.vn (Trần Hoàng Quân, Dept KTPM)
-   - mentor2@ictu.edu.vn (Phạm Quốc Hướng, Dept QA/QC)
+3. 3 Mentors (3 bộ dữ liệu riêng biệt):
+   - Mentor 1: mentor@ictu.edu.vn (Trần Hoàng Quân, Dept KTPM)
+   - Mentor 2: mentor2@ictu.edu.vn (Phạm Quốc Hướng, Dept QA/QC)
+   - Mentor 3: mentor3@ictu.edu.vn (Nguyễn Thị Thu Hương, Dept AI & Data Science)
 4. 5 Tài khoản TTS (với 5 bộ dữ liệu khác nhau, sạch và chuẩn):
-   - TTS 1: intern@ictu.edu.vn (Nguyễn Văn An, ĐH ICTU, CNTT, GPA 3.65) - Có mentor Quân, 2 tasks, báo cáo, chấm công, đánh giá, hợp đồng.
-   - TTS 2: tts02@student.ictu.edu.vn (Lê Hoàng Nam, ĐH ICTU, KTPM, GPA 3.55) - Có mentor Hướng, 2 tasks, báo cáo, chấm công, đánh giá, hợp đồng.
-   - TTS 3: tts03@student.ictu.edu.vn (Trần Thị Mai Phương, ĐH ICTU, HTTT, GPA 3.72) - Có mentor Quân, 2 tasks, báo cáo, chấm công, đánh giá, hợp đồng.
-   - TTS 4: tts04@student.ictu.edu.vn (Hoàng Minh Đức, ĐH ICTU, ATTT, GPA 3.60) - Có mentor Hướng, 2 tasks, báo cáo, chấm công, đánh giá, hợp đồng.
-   - TTS 5: tts05@student.ictu.edu.vn (Vũ Hải Yến, ĐH ICTU, KHMT, GPA 3.80) - Vừa được HR duyệt, cấp quyền TTS, DỮ LIỆU ĐANG TRỐNG, chờ phân công mentor và giao việc!
+   - TTS 1: intern@ictu.edu.vn (Nguyễn Văn An, ĐH ICTU, CNTT, GPA 3.65) - Mentor Quân, 2 tasks, báo cáo, chấm công, đánh giá, hợp đồng.
+   - TTS 2: tts02@student.ictu.edu.vn (Lê Hoàng Nam, ĐH ICTU, KTPM, GPA 3.55) - Mentor Hướng, 2 tasks, báo cáo, chấm công, đánh giá, hợp đồng.
+   - TTS 3: tts03@student.ictu.edu.vn (Trần Thị Mai Phương, ĐH ICTU, HTTT, GPA 3.72) - Mentor Quân, 2 tasks, báo cáo, chấm công, đánh giá, hợp đồng.
+   - TTS 4: tts04@student.ictu.edu.vn (Hoàng Minh Đức, ĐH ICTU, ATTT, GPA 3.60) - Mentor Hướng, 2 tasks, báo cáo, chấm công, đánh giá, hợp đồng.
+   - TTS 5: tts05@student.ictu.edu.vn (Vũ Hải Yến, ĐH ICTU, KHMT/AI, GPA 3.80) - Mentor Hương, 2 tasks, báo cáo, chấm công, đánh giá, hợp đồng.
 5. 1 Ứng viên:
    - ungvien@ictu.edu.vn (Nguyễn Thu Hà, status: pending) - Luồng ứng viên độc lập, chờ HR duyệt.
 6. Nhật ký hệ thống (System Logs):
@@ -93,6 +94,15 @@ def run_clean_and_seed():
                 description="Kiểm thử tự động và đảm bảo chất lượng hệ thống",
             )
             db.add(dept_qa)
+
+        dept_ai = db.query(Department).filter(Department.id == 3).first()
+        if not dept_ai:
+            dept_ai = Department(
+                id=3,
+                name="Trí tuệ nhân tạo & Khoa học dữ liệu (AI & Data Science)",
+                description="Nghiên cứu ứng dụng Machine Learning, NLP, Computer Vision & Big Data",
+            )
+            db.add(dept_ai)
         db.commit()
 
         print("[4] Khởi tạo các tài khoản nhân sự quản trị...")
@@ -120,7 +130,7 @@ def run_clean_and_seed():
         )
         db.add(hr)
 
-        # 2 Mentors
+        # 3 Mentors (3 bộ dữ liệu riêng biệt)
         mentor1 = User(
             id=3,
             code="MT0001",
@@ -142,6 +152,17 @@ def run_clean_and_seed():
             status="active",
         )
         db.add(mentor2)
+
+        mentor3 = User(
+            id=11,
+            code="MT0003",
+            email="mentor3@ictu.edu.vn",
+            password_hash=hash_password("Mentor@123"),
+            full_name="Nguyễn Thị Thu Hương",
+            role_id=mentor_role.id,
+            status="active",
+        )
+        db.add(mentor3)
 
         print("[5] Khởi tạo 5 tài khoản TTS và 1 tài khoản Ứng viên...")
         # TTS 1 (đã có sẵn)
@@ -221,6 +242,7 @@ def run_clean_and_seed():
         # Profiles cho Mentors và HR
         db.add(UserProfile(user_id=mentor1.id, position="Senior Tech Lead", phone_number="0988.111.222", department_id=1))
         db.add(UserProfile(user_id=mentor2.id, position="QA Lead Engineer", phone_number="0988.333.444", department_id=2))
+        db.add(UserProfile(user_id=mentor3.id, position="AI Research & Data Lead", phone_number="0988.777.888", department_id=3))
         db.add(UserProfile(user_id=hr.id, position="HR Manager", phone_number="0988.555.666", department_id=1))
 
         # InternProfiles cho 5 TTS và 1 Ứng viên
@@ -305,14 +327,14 @@ def run_clean_and_seed():
         db.commit()
 
         print("[8] Phân bổ Mentor và thành viên kỳ thực tập...")
-        # TTS 1 & TTS 3 phân công cho Mentor 1 (Trần Hoàng Quân)
-        # TTS 2 & TTS 4 phân công cho Mentor 2 (Phạm Quốc Hướng)
-        # TTS 5: CHƯA PHÂN CÔNG MENTOR (mentor_user_id=None) - Đúng yêu cầu chờ HR phân công!
+        # TTS 1 & TTS 3 phân công cho Mentor 1 (Trần Hoàng Quân - KTPM)
+        # TTS 2 & TTS 4 phân công cho Mentor 2 (Phạm Quốc Hướng - QA/QC)
+        # TTS 5 phân công cho Mentor 3 (Nguyễn Thị Thu Hương - AI & Data Science)
         db.add(ProgramMember(program_id=prog3.id, intern_user_id=tts1.id, mentor_user_id=mentor1.id))
         db.add(ProgramMember(program_id=prog3.id, intern_user_id=tts2.id, mentor_user_id=mentor2.id))
         db.add(ProgramMember(program_id=prog3.id, intern_user_id=tts3.id, mentor_user_id=mentor1.id))
         db.add(ProgramMember(program_id=prog3.id, intern_user_id=tts4.id, mentor_user_id=mentor2.id))
-        db.add(ProgramMember(program_id=prog3.id, intern_user_id=tts5.id, mentor_user_id=None))
+        db.add(ProgramMember(program_id=prog3.id, intern_user_id=tts5.id, mentor_user_id=mentor3.id))
         db.commit()
 
         print("[9] Khởi tạo Nhiệm vụ (Sprint Tasks) cho các TTS đã có Mentor...")
@@ -403,7 +425,28 @@ def run_clean_and_seed():
             status="done",
             progress=100,
         ))
-        # TTS 5 (Vũ Hải Yến) KHÔNG CÓ TASK NÀO (TRỐNG)
+
+        # TTS 5 (Vũ Hải Yến) do Mentor 3 (Nguyễn Thị Thu Hương) giao nhiệm vụ
+        db.add(InternTask(
+            mentor_id=mentor3.id,
+            intern_id=tts5.id,
+            title="Xây dựng mô hình phân loại văn bản Tiếng Việt & RAG",
+            description="Nghiên cứu kiến trúc RAG, embedding vector và fine-tune mô hình xử lý ngôn ngữ tự nhiên.",
+            due_at="2026-10-25",
+            priority="high",
+            status="doing",
+            progress=65,
+        ))
+        db.add(InternTask(
+            mentor_id=mentor3.id,
+            intern_id=tts5.id,
+            title="Tiền xử lý và làm sạch tập dữ liệu huấn luyện Model AI",
+            description="Thu thập, loại bỏ nhiễu và chuẩn hóa dataset theo định dạng JSONL.",
+            due_at="2026-10-05",
+            priority="medium",
+            status="done",
+            progress=100,
+        ))
         db.commit()
 
         print("[10] Khởi tạo Báo cáo tuần (Weekly Reports)...")
@@ -462,6 +505,20 @@ def run_clean_and_seed():
             score=8.8,
             status="graded",
         ))
+
+        db.add(InternReport(
+            mentor_id=mentor3.id,
+            intern_id=tts5.id,
+            week_title="Báo cáo Tuần 07 - Xây dựng mô hình AI & Pipeline xử lý dữ liệu",
+            period="16/09/2026 - 22/09/2026",
+            submitted_at="22/09/2026 18:30",
+            tasks_done="Hoàn thiện thu thập dữ liệu và tích hợp mô hình phân tích tự động.",
+            issues="Cần tối ưu thời gian suy luận (latency) của mô hình.",
+            self_assessment="Xuất sắc (9.2/10)",
+            mentor_feedback="Thuật toán xử lý hiệu quả, mô hình hội tụ tốt.",
+            score=9.2,
+            status="graded",
+        ))
         db.commit()
 
         print("[11] Khởi tạo Bảng điểm Đánh giá năng lực cuối kỳ...")
@@ -510,6 +567,18 @@ def run_clean_and_seed():
             final_score=8.8,
             letter_grade="A",
             mentor_note="Nắm vững các nguyên tắc an ninh bảo mật, giải quyết vấn đề hiệu quả.",
+            status="verified",
+        ))
+
+        db.add(InternEvaluation(
+            mentor_id=mentor3.id,
+            intern_id=tts5.id,
+            attendance_score=9.8,
+            tech_score=9.2,
+            report_score=9.2,
+            final_score=9.4,
+            letter_grade="A",
+            mentor_note="Khả năng nghiên cứu và ứng dụng AI xuất sắc, hoàn thành tốt các bài toán khó.",
             status="verified",
         ))
         db.commit()
@@ -570,10 +639,24 @@ def run_clean_and_seed():
             status="approved",
             status_label="Đã duyệt chi phụ cấp",
         ))
+
+        db.add(InternAttendance(
+            intern_id=tts5.id,
+            month="10/2026",
+            standard_days=22,
+            actual_days=22,
+            late_days=0,
+            leave_days=0,
+            allowance=2500000,
+            base_allowance=2000000,
+            lunch_allowance=500000,
+            status="approved",
+            status_label="Đã duyệt chi phụ cấp",
+        ))
         db.commit()
 
         print("[13] Khởi tạo Hợp đồng tiếp nhận số...")
-        for tts_user in [tts1, tts2, tts3, tts4]:
+        for tts_user in [tts1, tts2, tts3, tts4, tts5]:
             db.add(InternContractRecord(
                 intern_id=tts_user.id,
                 contract_code=f"HD-{tts_user.code}-2026",
@@ -601,7 +684,7 @@ def run_clean_and_seed():
             file_path="uploads/cv/CV_NguyenThuHa_CNTT.pdf",
             status="pending",
         ))
-        # CV cho 4 TTS chính thức (approved)
+        # CV cho 5 TTS chính thức (approved)
         db.add(Document(
             user_id=tts1.id,
             doc_type="cv",
@@ -630,6 +713,13 @@ def run_clean_and_seed():
             file_path="uploads/cv/CV_HoangMinhDuc_ATTT.pdf",
             status="approved",
         ))
+        db.add(Document(
+            user_id=tts5.id,
+            doc_type="cv",
+            file_name="CV_VuHaiYen_KHMT.pdf",
+            file_path="uploads/cv/CV_VuHaiYen_KHMT.pdf",
+            status="approved",
+        ))
         db.commit()
 
         print("[14] Khởi tạo Nhật ký hệ thống (System Logs) chuẩn kèm ngày giờ [YYYY-MM-DD HH:mm:ss] ở cuối...")
@@ -643,10 +733,13 @@ def run_clean_and_seed():
             (hr.id, "hr", "UPDATE", "POST", "/api/hr/assign-mentor", "hr/assign-mentor", 200, "HR phân công Mentor phụ trách thực tập sinh [2026-10-09 13:45:00]"),
             (mentor1.id, "mentor", "CREATE", "POST", "/api/mentor/tasks", "mentor/tasks", 201, "Mentor giao nhiệm vụ Sprint cho thực tập sinh [2026-10-09 14:15:30]"),
             (mentor2.id, "mentor", "CREATE", "POST", "/api/mentor/tasks", "mentor/tasks", 201, "Mentor giao nhiệm vụ Sprint cho thực tập sinh [2026-10-09 14:20:10]"),
+            (mentor3.id, "mentor", "CREATE", "POST", "/api/mentor/tasks", "mentor/tasks", 201, "Mentor giao nhiệm vụ Sprint cho thực tập sinh [2026-10-09 14:30:00]"),
             (tts1.id, "intern", "CREATE", "POST", "/api/intern/reports", "intern/reports", 201, "Thực tập sinh nộp báo cáo tuần [2026-10-09 17:00:00]"),
             (tts2.id, "intern", "CREATE", "POST", "/api/intern/reports", "intern/reports", 201, "Thực tập sinh nộp báo cáo tuần [2026-10-09 17:15:00]"),
+            (tts5.id, "intern", "CREATE", "POST", "/api/intern/reports", "intern/reports", 201, "Thực tập sinh nộp báo cáo tuần [2026-10-09 17:30:00]"),
             (mentor1.id, "mentor", "UPDATE", "POST", "/api/mentor/reports/1/grade", "mentor/reports", 200, "Mentor chấm điểm và phản hồi báo cáo tuần [2026-10-09 18:30:45]"),
             (mentor2.id, "mentor", "UPDATE", "POST", "/api/mentor/reports/2/grade", "mentor/reports", 200, "Mentor chấm điểm và phản hồi báo cáo tuần [2026-10-09 18:45:20]"),
+            (mentor3.id, "mentor", "UPDATE", "POST", "/api/mentor/reports/5/grade", "mentor/reports", 200, "Mentor chấm điểm và phản hồi báo cáo tuần [2026-10-09 19:00:15]"),
             (hr.id, "hr", "CREATE", "POST", "/api/hr/contracts", "hr/contracts", 201, "HR tạo / phát hành hợp đồng tiếp nhận thực tập [2026-10-09 19:10:00]"),
             (tts1.id, "intern", "UPDATE", "POST", "/api/contracts/sign", "contracts/sign", 200, "Thực tập sinh ký hợp đồng thực tập số [2026-10-09 20:00:15]"),
         ]
@@ -670,8 +763,8 @@ def run_clean_and_seed():
         print("[✓] THÀNH CÔNG: Đã làm sạch và chuẩn hóa toàn bộ dữ liệu CSDL hệ thống!")
         print("  - Admin: admin@ictu.edu.vn (Admin@123)")
         print("  - HR: hr@ictu.edu.vn (Hr@123)")
-        print("  - Mentors: mentor@ictu.edu.vn (Trần Hoàng Quân), mentor2@ictu.edu.vn (Phạm Quốc Hướng)")
-        print("  - 5 TTS: TTS1 (Nguyễn Văn An), TTS2 (Lê Hoàng Nam), TTS3 (Trần Thị Mai Phương), TTS4 (Hoàng Minh Đức), TTS5 (Vũ Hải Yến - Trống)")
+        print("  - Mentors: mentor@ictu.edu.vn (Trần Hoàng Quân), mentor2@ictu.edu.vn (Phạm Quốc Hướng), mentor3@ictu.edu.vn (Nguyễn Thị Thu Hương)")
+        print("  - 5 TTS: TTS1 (Nguyễn Văn An), TTS2 (Lê Hoàng Nam), TTS3 (Trần Thị Mai Phương), TTS4 (Hoàng Minh Đức), TTS5 (Vũ Hải Yến)")
         print("  - 1 Ứng viên: ungvien@ictu.edu.vn (Nguyễn Thu Hà - Pending)")
 
     except Exception as e:

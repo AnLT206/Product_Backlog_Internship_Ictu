@@ -16,7 +16,11 @@ const CREDENTIALS_BY_ROLE = {
     { email: 'admin@ictu.edu.vn', password: 'User@123' },
   ],
   hr: [{ email: 'hr@ictu.edu.vn', password: 'Hr@123' }],
-  mentor: [{ email: 'mentor@ictu.edu.vn', password: 'Mentor@123' }],
+  mentor: [
+    { email: 'mentor@ictu.edu.vn', password: 'Mentor@123' },
+    { email: 'mentor2@ictu.edu.vn', password: 'Mentor@123' },
+    { email: 'mentor3@ictu.edu.vn', password: 'Mentor@123' },
+  ],
   intern: [{ email: 'intern@ictu.edu.vn', password: 'Intern@123' }],
   applicant: [
     { email: 'ungvien@ictu.edu.vn', password: 'Intern@123' },

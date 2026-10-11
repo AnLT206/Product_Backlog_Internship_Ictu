@@ -65,6 +65,13 @@ KEEP_ACCOUNTS = {
         "password": "Mentor@123",
         "status": "active",
     },
+    "mentor3@ictu.edu.vn": {
+        "code": "MT0003",
+        "role": "mentor",
+        "full_name": "Nguyễn Thị Thu Hương",
+        "password": "Mentor@123",
+        "status": "active",
+    },
     "intern@ictu.edu.vn": {
         "code": "TTS0001",
         "role": "intern",

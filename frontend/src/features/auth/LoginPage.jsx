@@ -22,8 +22,20 @@ const QUICK_ACCOUNTS = [
     variant: 'hr',
   },
   {
-    role: 'Mentor',
+    role: 'Mentor 1 (Quân)',
     email: 'mentor@ictu.edu.vn',
+    password: 'Mentor@123',
+    variant: 'mentor',
+  },
+  {
+    role: 'Mentor 2 (Hướng)',
+    email: 'mentor2@ictu.edu.vn',
+    password: 'Mentor@123',
+    variant: 'mentor',
+  },
+  {
+    role: 'Mentor 3 (Hương)',
+    email: 'mentor3@ictu.edu.vn',
     password: 'Mentor@123',
     variant: 'mentor',
   },

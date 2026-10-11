@@ -225,7 +225,7 @@ export const UNIFIED_MENTORS = [
   {
     id: 12,
     full_name: 'Nguyễn Thị Thu Hương',
-    email: 'huong.nt@ictu.edu.vn',
+    email: 'mentor3@ictu.edu.vn',
     department: 'Trí tuệ nhân tạo & Data Science',
     position: 'Data Science Lead',
     current_interns: 1, // 1/5 = 20% (Xanh)
