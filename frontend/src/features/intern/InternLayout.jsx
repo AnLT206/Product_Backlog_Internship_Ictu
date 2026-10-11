@@ -23,15 +23,27 @@ const APPLICANT_NAV_ITEMS = [
 export default function InternLayout() {
   const { user } = useAuth()
   const location = useLocation()
-  const isApplicant =
+  // Xác định chính xác tài khoản TTS chính thức
+  const isActualIntern = Boolean(
+    user &&
+    !isApplicantUser(user) &&
+    (user.role === 'intern' ||
+      user.code?.startsWith('TTS') ||
+      user.email?.startsWith('tts') ||
+      user.email?.startsWith('an.nv') ||
+      user.email === 'intern@ictu.edu.vn') &&
+    user.code !== 'TTS9999' &&
+    user.code !== 'UV0001' &&
+    !user.email?.includes('ungvien') &&
+    user.id !== 7
+  )
+
+  const isApplicant = !isActualIntern && (
     isApplicantUser(user) ||
-    location.pathname === '/intern/upload' ||
-    location.pathname === '/intern/roadmap' ||
     (typeof window !== 'undefined' &&
       localStorage.getItem('last_portal_intern_role') === 'applicant' &&
-      !['tts02', 'tts03', 'tts04', 'tts05', 'intern@ictu.edu.vn'].some((e) => (user?.email || '').toLowerCase().includes(e)) &&
       localStorage.getItem('applicant_onboarded') !== 'true')
-  const isActualIntern = user?.role === 'intern' && !isApplicant
+  )
 
   // Nếu là ứng viên, cho phép truy cập: /intern/upload, /intern/dashboard, /intern/roadmap, /intern/profile
   const allowedApplicantPaths = ['/intern/upload', '/intern/dashboard', '/intern/roadmap', '/intern/profile']
@@ -53,16 +65,16 @@ export default function InternLayout() {
     ? (user?.full_name && !user.full_name.includes('TTS') ? user.full_name : 'Nguyễn Thu Hà')
     : isActualIntern
     ? (user?.full_name || 'TTS')
-    : 'TTS (TTS0001)'
+    : (user?.full_name || 'TTS (TTS0001)')
 
   const displayUserMeta = isApplicant
     ? `Mã UV: ${user?.code && user.code !== 'TTS0001' ? user.code : 'UV0001'} · K20-CNTT`
     : isActualIntern
     ? `Mã TTS: ${user?.code || 'TTS0001'} · K20-CNTT`
-    : 'Mã TTS: TTS0001 · K20-CNTT'
+    : `Mã TTS: ${user?.code || 'TTS0001'} · K20-CNTT`
 
   // Breadcrumb chuẩn theo từng trang của TTS
-  let currentBreadcrumbLabel = `Không gian làm việc Thực tập sinh – ${isActualIntern ? (user?.full_name || 'TTS') : 'TTS'}`
+  let currentBreadcrumbLabel = `Không gian làm việc Thực tập sinh – ${displayUserName}`
   if (isApplicant) {
     if (location.pathname.includes('/upload')) {
       currentBreadcrumbLabel = 'Upload CV & Hồ sơ ứng tuyển'

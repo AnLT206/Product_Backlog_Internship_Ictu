@@ -521,7 +521,7 @@ export default function InternDashboardPage() {
           if (updateUser) {
             updateUser({
               status: 'active',
-              code: 'TTS0002',
+              code: user?.code && !user.code.startsWith('UV') ? user.code : 'TTS0001',
               full_name: user?.full_name || 'TTS',
             })
           }

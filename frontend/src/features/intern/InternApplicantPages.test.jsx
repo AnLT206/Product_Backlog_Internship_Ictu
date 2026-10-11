@@ -11,8 +11,8 @@ let mockCurrentUser = {
   id: 7,
   email: 'ungvien@ictu.edu.vn',
   full_name: 'Nguyễn Văn Ứng Viên',
-  code: 'TTS0003',
-  role: 'intern',
+  code: 'UV0001',
+  role: 'applicant',
   status: 'pending',
   phone: '0987654321',
   university: 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)',
@@ -56,7 +56,7 @@ describe('InternApplicantPages Test Suite', () => {
   describe('1. isApplicantUser Helper Function', () => {
     it('nhận diện chính xác ứng viên qua email, mã, role hoặc status', () => {
       expect(isApplicantUser({ email: 'ungvien@ictu.edu.vn', status: 'pending' })).toBe(true);
-      expect(isApplicantUser({ code: 'TTS0003', status: 'pending' })).toBe(true);
+      expect(isApplicantUser({ code: 'UV0001', status: 'pending' })).toBe(true);
       expect(isApplicantUser({ code: 'TTS9999' })).toBe(true);
       expect(isApplicantUser({ role: 'applicant' })).toBe(true);
       expect(isApplicantUser({ full_name: 'Ứng viên' })).toBe(true);
@@ -65,11 +65,12 @@ describe('InternApplicantPages Test Suite', () => {
     it('không nhầm lẫn tài khoản TTS chính thức', () => {
       expect(isApplicantUser({ code: 'TTS0001', email: 'intern@ictu.edu.vn', role: 'intern', status: 'active' })).toBe(false);
       expect(isApplicantUser({ code: 'TTS0002', email: 'tts02@student.ictu.edu.vn', role: 'intern', status: 'active' })).toBe(false);
+      expect(isApplicantUser({ code: 'TTS0003', email: 'tts03@student.ictu.edu.vn', role: 'intern', status: 'active' })).toBe(false);
     });
 
     it('trả về false khi ứng viên đã hoàn tất ký hợp đồng onboarded', () => {
       localStorage.setItem('applicant_onboarded', 'true');
-      expect(isApplicantUser({ code: 'TTS0003', email: 'ungvien@ictu.edu.vn' })).toBe(false);
+      expect(isApplicantUser({ code: 'TTS9999', email: 'ungvien@ictu.edu.vn' })).toBe(false);
     });
   });
 

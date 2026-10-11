@@ -164,10 +164,18 @@ export function isApplicantUser(u) {
   }
 
   // 2. Các tài khoản TTS chính thức cụ thể (TTS0001 - TTS0005, v.v.)
-  if (code.startsWith('TTS') && code !== 'TTS9999' && code !== 'TTS0003') {
+  if (code.startsWith('TTS') && code !== 'TTS9999') {
     return false;
   }
-  if (email === 'intern@ictu.edu.vn' || email.startsWith('tts0') || email.startsWith('an.nv')) {
+  if (
+    email === 'intern@ictu.edu.vn' ||
+    email.startsWith('tts') ||
+    email.startsWith('an.nv') ||
+    email.startsWith('nam.lh') ||
+    email.startsWith('phuong.ttm') ||
+    email.startsWith('duc.hm') ||
+    email.startsWith('yen.vh')
+  ) {
     return false;
   }
 
@@ -192,7 +200,6 @@ export function isApplicantUser(u) {
     profileStatus === 'pending' ||
     profileStatus === 'rejected' ||
     code === 'TTS9999' ||
-    code === 'TTS0003' ||
     name === 'ứng viên' ||
     name.includes('ứng viên')
   );

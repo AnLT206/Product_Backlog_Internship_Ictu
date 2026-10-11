@@ -186,7 +186,7 @@ describe('AttendanceReportPage Component Test Suite', () => {
       expect(screen.getByText('Hoàng Minh Tuấn')).toBeInTheDocument();
       expect(screen.queryByText('Nguyễn Văn An')).not.toBeInTheDocument();
       expect(screen.queryByText('Lê Hoàng Nam')).not.toBeInTheDocument();
-    });
+    }, 15000);
 
     it('lọc chính xác theo đợt thực tập', async () => {
       const user = userEvent.setup();

@@ -31,24 +31,22 @@ const POPULAR_BANKS = [
 
 export function getSavedUserProfile(currentUser) {
   try {
-    const isActualIntern = currentUser?.role === 'intern'
+    const isActualIntern = currentUser?.role === 'intern' && !isApplicantUser(currentUser)
     const isApplicant =
       isApplicantUser(currentUser) ||
-      (typeof window !== 'undefined' &&
+      (!isActualIntern &&
+        typeof window !== 'undefined' &&
         localStorage.getItem('last_portal_intern_role') === 'applicant' &&
         localStorage.getItem('applicant_onboarded') !== 'true')
 
     const cleanName = (n) => {
-      if (!n) return isApplicant ? 'Nguyễn Thu Hà' : 'TTS'
+      if (!n) return isApplicant ? 'Nguyễn Thu Hà' : (currentUser?.full_name || 'Nguyễn Văn An')
       const str = String(n).trim()
       if (str === 'HR' || str === 'Hr') {
-        return isApplicant ? 'Nguyễn Thu Hà' : 'TTS'
+        return isApplicant ? 'Nguyễn Thu Hà' : (currentUser?.full_name || 'Nguyễn Văn An')
       }
       if (str.includes('Nguyễn Văn An') && isApplicant) {
         return 'Nguyễn Thu Hà'
-      }
-      if (str.includes('Nguyễn Văn An') && !isApplicant) {
-        return 'TTS'
       }
       return str
     }
@@ -138,7 +136,7 @@ export function getSavedUserProfile(currentUser) {
           if (parsed && typeof parsed === 'object') {
             return {
               avatar: parsed.avatar || null,
-              full_name: (parsed.full_name && typeof parsed.full_name === 'string' && !parsed.full_name.includes('HR') && !parsed.full_name.includes('Hr') && !parsed.full_name.includes('Nguyễn Văn An')) ? parsed.full_name : 'TTS',
+              full_name: (parsed.full_name && typeof parsed.full_name === 'string' && !parsed.full_name.includes('HR') && !parsed.full_name.includes('Hr')) ? parsed.full_name : (currentUser?.full_name || 'Nguyễn Văn An'),
               dob: String(parsed.dob || '15/05/2003'),
               email: 'intern@ictu.edu.vn',
               phone: String(parsed.phone || '0987654322'),
@@ -186,7 +184,7 @@ export function getSavedUserProfile(currentUser) {
     const isApp = isApplicantUser(currentUser) || (typeof window !== 'undefined' && localStorage.getItem('last_portal_intern_role') === 'applicant')
     return {
       avatar: null,
-      full_name: isApp ? 'Nguyễn Thu Hà' : 'TTS',
+      full_name: isApp ? 'Nguyễn Thu Hà' : (currentUser?.full_name || 'Nguyễn Văn An'),
       dob: isApp ? '20/10/2003' : '15/05/2003',
       email: isApp ? 'ungvien@ictu.edu.vn' : 'intern@ictu.edu.vn',
       phone: isApp ? '0987.654.321' : '0912.345.001',
