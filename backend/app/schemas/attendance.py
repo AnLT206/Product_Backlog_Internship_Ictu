@@ -12,12 +12,16 @@ class AttendanceCheckInRequest(BaseModel):
     """Body thực tập sinh check-in."""
 
     note: str | None = Field(default=None, max_length=255, description="Ghi chú khi check-in (tùy chọn)")
+    timestamp: str | datetime | None = Field(default=None, description="Thời gian check-in")
+    lat: float | None = Field(default=None, description="Tọa độ vĩ độ GPS")
+    long: float | None = Field(default=None, description="Tọa độ kinh độ GPS")
 
 
 class AttendanceCheckOutRequest(BaseModel):
     """Body thực tập sinh check-out."""
 
     note: str | None = Field(default=None, max_length=255, description="Ghi chú khi check-out (tùy chọn)")
+    timestamp: str | datetime | None = Field(default=None, description="Thời gian check-out")
 
 
 class AttendanceResponse(BaseModel):

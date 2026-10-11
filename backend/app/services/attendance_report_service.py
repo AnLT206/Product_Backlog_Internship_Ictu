@@ -150,8 +150,8 @@ class AttendanceReportService:
 
         counted: dict[int, set[date]] = {}
         for leave, user in leave_query.all():
-            range_start = leave.start_date
-            range_end = leave.end_date
+            range_start = date.fromisoformat(leave.start_date) if isinstance(leave.start_date, str) else leave.start_date
+            range_end = date.fromisoformat(leave.end_date) if isinstance(leave.end_date, str) else leave.end_date
             if from_date is not None:
                 range_start = max(range_start, from_date)
             if to_date is not None:

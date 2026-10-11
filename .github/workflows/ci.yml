@@ -1,11 +1,14 @@
 name: CI
 
 on:
+  push:
+    branches: [main, development]
   pull_request:
-    branches: [main]
+    branches: [main, development]
+  workflow_dispatch:
 
 concurrency:
-  group: ci-pr-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:

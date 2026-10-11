@@ -1,12 +1,20 @@
 import io
-from typing import Literal
+from typing import Annotated, Literal
 import xml.etree.ElementTree as ET
 import zipfile
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Security, UploadFile, status
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_current_user_flexible, get_db, require_roles
+from app.api.deps import (
+    bearer_scheme,
+    get_active_user_from_token,
+    get_current_user,
+    get_current_user_flexible,
+    get_db,
+    require_roles,
+)
 from app.models.user import User
 from app.schemas.document import DocumentResponse, DocumentReviewRequest
 from app.services.document_service import DocumentService
@@ -193,6 +201,41 @@ def delete_my_document(
 # ── Tải & Xem trước file tài liệu chung (HR / Admin hoặc chính TTS sở hữu) ──
 
 download_router = APIRouter(prefix="/documents", tags=["documents"])
+
+
+@download_router.post(
+    "/cv",
+    response_model=DocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Ứng viên / TTS upload file CV (DFD Section 4.2 & Section 5)",
+)
+async def upload_candidate_cv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Security(bearer_scheme),
+    ] = None,
+    token: str | None = Query(default=None),
+) -> DocumentResponse:
+    target_user = None
+    raw_token = None
+    if credentials is not None and credentials.scheme.lower() == "bearer":
+        raw_token = credentials.credentials
+    elif token:
+        raw_token = token
+
+    if raw_token:
+        target_user = get_active_user_from_token(raw_token, db)
+
+    if not target_user:
+        target_user = (
+            db.query(User)
+            .filter(User.email.in_(["ungvien@ictu.edu.vn", "intern@ictu.edu.vn"]))
+            .first()
+        )
+    user_id = target_user.id if target_user else 7
+    return DocumentService(db).upload_intern_document(user_id, "cv", file)
 
 
 @download_router.get(

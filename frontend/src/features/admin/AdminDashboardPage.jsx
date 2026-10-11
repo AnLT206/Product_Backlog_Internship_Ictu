@@ -75,6 +75,7 @@ const RBAC_ROLES = [
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'hrm' | 'rbac' | 'logs'
   const [isSyncingHRM, setIsSyncingHRM] = useState(false)
+  const [hrmSyncCount, setHrmSyncCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [httpStatusFilter, setHttpStatusFilter] = useState('all')
   const [toast, setToast] = useState(null)
@@ -166,6 +167,7 @@ export default function AdminDashboardPage() {
       if (logsRes.ok && Array.isArray(logsRes.data?.items)) {
         setSystemLogs(logsRes.data.items)
       }
+      setHrmSyncCount((c) => c + 1)
       emitRealtimeEvent(SYNC_EVENTS.APPLICANT_UPDATED, { syncSource: 'SystemSync' })
       showToast('Đồng bộ dữ liệu thành công! Dữ liệu mới nhất đã được cập nhật từ toàn bộ hệ thống.', 'success')
     } catch {

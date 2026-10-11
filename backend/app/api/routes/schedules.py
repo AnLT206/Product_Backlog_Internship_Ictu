@@ -15,6 +15,12 @@ router = APIRouter(tags=["schedules"])
     summary="Lấy lịch thực tập cá nhân của thực tập sinh đang đăng nhập",
     dependencies=[Depends(require_roles("intern"))],
 )
+@router.get(
+    "/intern/schedule",
+    response_model=list[ScheduleResponse],
+    summary="Lấy lịch thực tập cá nhân của thực tập sinh (DFD Section 4.3 & Section 5)",
+    dependencies=[Depends(require_roles("intern", "hr", "admin"))],
+)
 def list_my_schedules(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

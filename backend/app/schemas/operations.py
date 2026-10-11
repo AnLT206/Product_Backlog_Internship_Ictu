@@ -24,8 +24,9 @@ class TaskStatusUpdateRequest(BaseModel):
 # ── Mentor Report Grade Schemas ──
 class ReportGradeRequest(BaseModel):
     score: float = Field(..., ge=0, le=10)
-    mentor_feedback: str = Field(..., min_length=1)
-    status: Literal["reviewed", "rejected"] = "reviewed"
+    mentor_feedback: str | None = Field(default=None)
+    comments: str | None = Field(default=None)
+    status: Literal["reviewed", "rejected", "approved"] = "reviewed"
 
 
 # ── Mentor Evaluation Schemas ──
