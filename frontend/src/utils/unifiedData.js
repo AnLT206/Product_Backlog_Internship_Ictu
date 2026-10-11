@@ -24,21 +24,21 @@ export const UNIFIED_INTERNS = [
     project: 'Core API Microservice & Web Portal',
     applied_date: '02/10/2026',
 
-    // Chuyên cần tháng 10/2026
+    // Chuyên cần tháng 10/2026 (Tính đến 12/10 có 8 ngày làm việc)
     standard_work_days: 22,
-    actual_work_days: 22,
+    actual_work_days: 8,
     late_count: 0,
     approved_leave_days: 0,
     unapproved_leave_days: 0,
     attendance_status: 'Bình thường',
     attendance_rate: 100,
 
-    // Phụ cấp & Chi trả
+    // Phụ cấp & Chi trả (Kỳ 10/2026 chưa kết thúc -> Chờ chi trả)
     base_allowance: 2500000,
     bonus_penalty: 300000,
     total_net: 2800000,
-    allowance_status: 'approved',
-    allowance_status_label: 'Đã chi trả',
+    allowance_status: 'pending',
+    allowance_status_label: 'Chờ chi trả',
 
     // Kết quả học tập & Báo cáo
     gpa: 8.8,
@@ -63,19 +63,19 @@ export const UNIFIED_INTERNS = [
 
     // Chuyên cần
     standard_work_days: 22,
-    actual_work_days: 22,
+    actual_work_days: 8,
     late_count: 0,
     approved_leave_days: 0,
     unapproved_leave_days: 0,
     attendance_status: 'Bình thường',
     attendance_rate: 100,
 
-    // Phụ cấp & Chi trả
+    // Phụ cấp & Chi trả (Kỳ 10/2026 chưa kết thúc -> Chờ chi trả)
     base_allowance: 2500000,
     bonus_penalty: 500000,
     total_net: 3000000,
-    allowance_status: 'approved',
-    allowance_status_label: 'Đã chi trả',
+    allowance_status: 'pending',
+    allowance_status_label: 'Chờ chi trả',
 
     // Kết quả học tập
     gpa: 8.4,
@@ -100,19 +100,19 @@ export const UNIFIED_INTERNS = [
 
     // Chuyên cần: Đi muộn 3 lần -> Bôi vàng cảnh báo
     standard_work_days: 22,
-    actual_work_days: 20,
+    actual_work_days: 7,
     late_count: 3,
     approved_leave_days: 1,
     unapproved_leave_days: 0,
     attendance_status: 'Cảnh báo đi muộn',
-    attendance_rate: 90.9,
+    attendance_rate: 87.5,
 
-    // Phụ cấp & Chi trả
+    // Phụ cấp & Chi trả (Kỳ 10/2026 chưa kết thúc -> Chờ chi trả)
     base_allowance: 2500000,
     bonus_penalty: -100000,
     total_net: 2400000,
-    allowance_status: 'approved',
-    allowance_status_label: 'Đã chi trả',
+    allowance_status: 'pending',
+    allowance_status_label: 'Chờ chi trả',
 
     // Kết quả học tập
     gpa: 7.6,
@@ -137,14 +137,14 @@ export const UNIFIED_INTERNS = [
 
     // Chuyên cần: Nghỉ không phép 2 ngày -> Bôi đỏ kỷ luật
     standard_work_days: 22,
-    actual_work_days: 18,
+    actual_work_days: 6,
     late_count: 1,
     approved_leave_days: 1,
     unapproved_leave_days: 2,
     attendance_status: 'Vi phạm kỷ luật',
-    attendance_rate: 81.8,
+    attendance_rate: 75.0,
 
-    // Phụ cấp & Chi trả
+    // Phụ cấp & Chi trả (Kỳ 10/2026 chưa kết thúc -> Chờ chi trả)
     base_allowance: 2200000,
     bonus_penalty: -200000,
     total_net: 2000000,

@@ -79,7 +79,7 @@ function cleanVietnamese(str, fallback = 'Thưởng hoàn thành xuất sắc nh
 
 function getInitialAllowanceData(profile, user, metrics) {
   const bankStr = `${profile?.bank_name || user?.bank_name || 'MB Bank'} • ${profile?.bank_account || user?.bank_account || '001203019123'} • ${user?.full_name || 'TTS'}`
-  const actualDays = metrics?.actualWorkDays ?? 22
+  const actualDays = metrics?.actualWorkDays ?? 8
   const standardDays = metrics?.standardWorkDays ?? 22
   const baseAlw = metrics?.baseAllowance ?? 2500000
   const lunchAlw = metrics?.lunchAllowance ?? (actualDays * 30000)
@@ -88,6 +88,7 @@ function getInitialAllowanceData(profile, user, metrics) {
   const deduct = metrics?.deductionAmount ?? 0
   const deductMsg = metrics?.deductionReason || ''
   const net = metrics?.netTotal ?? (baseAlw + lunchAlw + bonus - deduct)
+  const isApproved = metrics?.allowanceStatus === 'approved'
 
   return [
     {
@@ -107,12 +108,12 @@ function getInitialAllowanceData(profile, user, metrics) {
       deductionAmount: deduct,
       deductionReason: deductMsg,
       netTotal: net,
-      paymentDate: '2026-11-05 (Dự kiến)',
-      status: 'processing',
-      statusLabel: 'Đang xử lý tính công',
+      paymentDate: isApproved ? '2026-10-12' : '2026-11-05 (Dự kiến)',
+      status: isApproved ? 'paid' : 'pending',
+      statusLabel: metrics?.allowanceStatusLabel || (isApproved ? 'Đã chi trả' : 'Chờ chi trả (Dự kiến 05/11/2026)'),
       bankAccount: bankStr,
-      transactionCode: 'CHỜ CẤP MÃ GD',
-      note: 'Đang đợi chốt bảng chấm công ngày 31/10/2026',
+      transactionCode: isApproved ? 'FT262991029103' : 'CHỜ CẤP MÃ GD',
+      note: isApproved ? 'Đã chuyển khoản qua Internet Banking MB Priority' : 'Đang đợi chốt bảng chấm công ngày 31/10/2026',
     },
     {
       id: 'ALW-2026-09',
@@ -279,6 +280,13 @@ export default function InternAllowancePage() {
   // Cập nhật kỳ Tháng 10/2026 ngay khi các chỉ số toàn hệ thống thay đổi
   useEffect(() => {
     if (metrics) {
+      const isApproved = metrics.allowanceStatus === 'approved'
+      const status = isApproved ? 'paid' : 'pending'
+      const statusLabel = metrics.allowanceStatusLabel || (isApproved ? 'Đã chi trả' : 'Chờ chi trả (Dự kiến 05/11/2026)')
+      const paymentDate = isApproved ? '2026-10-12' : '2026-11-05 (Dự kiến)'
+      const transactionCode = isApproved ? 'FT262991029103' : 'CHỜ CẤP MÃ GD'
+      const note = isApproved ? 'Đã chuyển khoản qua Internet Banking MB Priority' : 'Đang đợi chốt bảng chấm công ngày 31/10/2026'
+
       setData((prev) =>
         prev.map((item) => {
           if (item.periodMonth === 10 && item.periodYear === 2026) {
@@ -295,6 +303,11 @@ export default function InternAllowancePage() {
               deductionAmount: metrics.deductionAmount,
               deductionReason: metrics.deductionReason,
               netTotal: metrics.netTotal,
+              status,
+              statusLabel,
+              paymentDate,
+              transactionCode,
+              note,
             }
           }
           return item
@@ -317,6 +330,11 @@ export default function InternAllowancePage() {
             deductionAmount: metrics.deductionAmount,
             deductionReason: metrics.deductionReason,
             netTotal: metrics.netTotal,
+            status,
+            statusLabel,
+            paymentDate,
+            transactionCode,
+            note,
           }
         }
         return current
@@ -368,11 +386,13 @@ export default function InternAllowancePage() {
           const [monthStr, yearStr] = (r.month || '09/2026').split('/')
           const monthNum = parseInt(monthStr, 10)
           const yearNum = parseInt(yearStr, 10)
+          const isMonth10 = monthNum === 10 && yearNum === 2026
+
           const isPaid = r.status === 'approved'
           const isProcessing = r.status === 'processing'
           const uiStatus = isPaid ? 'paid' : isProcessing ? 'processing' : 'pending'
 
-          const actualWorkDays = r.actual_days ?? 22
+          const actualWorkDays = r.actual_days ?? (isMonth10 ? (metrics?.actualWorkDays ?? 8) : 22)
           const standardWorkDays = r.standard_days ?? 22
           const baseAllowance = r.base_allowance ?? 2500000
           const lunchAllowance = r.lunch_allowance ?? (actualWorkDays * 30000)
@@ -382,6 +402,13 @@ export default function InternAllowancePage() {
           const deductionAmount = r.deduction_amount ?? 0
           const deductionReason = r.deduction_reason || ''
           const netTotal = r.allowance || (baseAllowance + lunchAllowance + bonusAmount + otherAllowance - deductionAmount)
+
+          const paymentDate = isMonth10
+            ? (isPaid ? '2026-10-12' : '2026-11-05 (Dự kiến)')
+            : `05/${String(monthNum + 1 > 12 ? 1 : monthNum + 1).padStart(2, '0')}/${yearNum}`
+          const statusLabel = r.status_label || (isPaid ? 'Đã chi trả' : (isMonth10 ? 'Chờ chi trả (Dự kiến 05/11/2026)' : 'Chờ chi trả'))
+          const transactionCode = isPaid ? `FT${r.id || 26}26278918` : 'CHỜ CẤP MÃ GD'
+          const note = isPaid ? 'Đã chuyển khoản qua Internet Banking MB Priority' : (isMonth10 ? 'Đang đợi chốt bảng chấm công ngày 31/10/2026' : (r.status_label || 'Đang chờ xử lý'))
 
           return {
             id: `ALW-${yearNum}-${String(monthNum).padStart(2, '0')}`,
@@ -400,12 +427,12 @@ export default function InternAllowancePage() {
             deductionAmount,
             deductionReason,
             netTotal,
-            paymentDate: `05/${String(monthNum + 1 > 12 ? 1 : monthNum + 1).padStart(2, '0')}/${yearNum}`,
+            paymentDate,
             status: uiStatus,
-            statusLabel: r.status_label || (isPaid ? 'Đã duyệt chi trả' : 'Chờ duyệt phụ cấp'),
+            statusLabel,
             bankAccount: `${profile?.bank_name || user?.bank_name || 'MB Bank'} • ${profile?.bank_account || user?.bank_account || '001203019123'} • ${user?.full_name || 'TTS'}`,
-            transactionCode: isPaid ? `FT${r.id}26278918` : 'CHỜ CẤP MÃ GD',
-            note: isPaid ? 'Đã chuyển khoản qua Internet Banking MB Priority' : (r.status_label || 'Đang chờ xử lý'),
+            transactionCode,
+            note,
             targetApprover: 'hr',
           }
         })
@@ -754,7 +781,7 @@ export default function InternAllowancePage() {
                       {item.status === 'pending' && (
                         <span className="alw-status-badge badge-pending">
                           <span className="badge-dot dot-pending" />
-                          Chờ duyệt
+                          Chờ chi trả
                         </span>
                       )}
                     </td>
@@ -899,7 +926,7 @@ export default function InternAllowancePage() {
                             {selectedSlip.actualWorkDays} / {selectedSlip.standardWorkDays} ngày
                           </span>
                           <span className="alw-sub-rate">
-                            (Hệ số: {Math.round(((selectedSlip.actualWorkDays || 22) / (selectedSlip.standardWorkDays || 22)) * 100)}%)
+                            (Hệ số: {Math.round(((selectedSlip.actualWorkDays ?? 8) / (selectedSlip.standardWorkDays || 22)) * 100)}%)
                           </span>
                         </td>
                         <td className="text-right text-muted">

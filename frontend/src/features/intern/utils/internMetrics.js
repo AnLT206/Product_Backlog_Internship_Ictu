@@ -367,56 +367,40 @@ export const DEFAULT_TASKS_TTS05 = [
 // Mặc định tương thích ngược cho TTS 1
 export const DEFAULT_TASKS = DEFAULT_TASKS_TTS01
 
-// 21 ngày làm việc chuẩn của Tháng 10/2026
+// 8 ngày làm việc thực tế của Tháng 10/2026 tính đến ngày 12/10/2026 (Hôm nay)
 export const DEFAULT_OCTOBER_RECORDS = [
-  { id: 1001, date: '02/10/2026 (Thứ Sáu)', check_in: '08:18', check_out: '17:35', total_hours: '8 giờ 17 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Kiểm thử API phân quyền RBAC & PyTest' },
-  { id: 1002, date: '01/10/2026 (Thứ Năm)', check_in: '08:22', check_out: '17:30', total_hours: '8 giờ 08 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Họp rà soát tiến độ Sprint 1 đầu tháng 10' },
-  { id: 1003, date: '30/10/2026 (Thứ Sáu)', check_in: '08:15', check_out: '17:30', total_hours: '8 giờ 15 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Tổng kết hoàn thành Sprint 1' },
-  { id: 1004, date: '29/10/2026 (Thứ Năm)', check_in: '08:20', check_out: '17:35', total_hours: '8 giờ 15 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Tối ưu hiệu năng truy vấn SQLAlchemy' },
-  { id: 1005, date: '28/10/2026 (Thứ Tư)', check_in: '08:16', check_out: '17:30', total_hours: '8 giờ 14 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Viết test case tích hợp cho router' },
-  { id: 1006, date: '27/10/2026 (Thứ Ba)', check_in: '08:25', check_out: '17:40', total_hours: '8 giờ 15 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Fix lỗi CORS và Docker Nginx proxy' },
-  { id: 1007, date: '26/10/2026 (Thứ Hai)', check_in: '08:14', check_out: '17:30', total_hours: '8 giờ 16 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Họp standup đầu tuần cùng Mentor' },
-  { id: 1008, date: '23/10/2026 (Thứ Sáu)', check_in: '08:19', check_out: '17:32', total_hours: '8 giờ 13 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Review Pull Request' },
-  { id: 1009, date: '22/10/2026 (Thứ Năm)', check_in: '08:15', check_out: '17:30', total_hours: '8 giờ 15 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Refactor cấu trúc folder backend' },
-  { id: 1010, date: '21/10/2026 (Thứ Tư)', check_in: '08:22', check_out: '17:35', total_hours: '8 giờ 13 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Tích hợp Alembic migration tự động' },
-  { id: 1011, date: '20/10/2026 (Thứ Ba)', check_in: '08:12', check_out: '17:30', total_hours: '8 giờ 18 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Lập trình tính năng xuất báo cáo' },
-  { id: 1012, date: '19/10/2026 (Thứ Hai)', check_in: '08:15', check_out: '17:30', total_hours: '8 giờ 15 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Họp Sprint Review giữa kỳ' },
-  { id: 1013, date: '16/10/2026 (Thứ Sáu)', check_in: '08:20', check_out: '17:35', total_hours: '8 giờ 15 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Nộp báo cáo tuần 8' },
-  { id: 1014, date: '15/10/2026 (Thứ Năm)', check_in: '08:18', check_out: '17:30', total_hours: '8 giờ 12 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Nghiên cứu kiến trúc Microservices' },
-  { id: 1015, date: '14/10/2026 (Thứ Tư)', check_in: '08:24', check_out: '17:36', total_hours: '8 giờ 12 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Xử lý logic xác thực JWT Refresh Token' },
-  { id: 1016, date: '13/10/2026 (Thứ Ba)', check_in: '08:15', check_out: '17:30', total_hours: '8 giờ 15 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Viết tài liệu API Swagger ICTU' },
-  { id: 1017, date: '12/10/2026 (Thứ Hai)', check_in: '08:16', check_out: '17:30', total_hours: '8 giờ 14 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Họp phân công công việc tuần 7' },
+  { id: 1017, date: '12/10/2026 (Hôm nay - Thứ Hai)', check_in: '08:16', check_out: '17:30', total_hours: '8 giờ 14 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Họp phân công công việc tuần 7 & kiểm thử hệ thống' },
   { id: 1018, date: '09/10/2026 (Thứ Sáu)', check_in: '08:18', check_out: '17:32', total_hours: '8 giờ 14 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Hoàn thành Unit Test module Intern' },
   { id: 1019, date: '08/10/2026 (Thứ Năm)', check_in: '08:21', check_out: '17:35', total_hours: '8 giờ 14 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Đồng bộ Schema Pydantic v2' },
   { id: 1020, date: '07/10/2026 (Thứ Tư)', check_in: '08:15', check_out: '17:30', total_hours: '8 giờ 15 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Cấu hình Docker Compose đa môi trường' },
   { id: 1021, date: '06/10/2026 (Thứ Ba)', check_in: '08:20', check_out: '17:30', total_hours: '8 giờ 10 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Tham gia seminar công nghệ FastAPI' },
+  { id: 1022, date: '05/10/2026 (Thứ Hai)', check_in: '08:15', check_out: '17:30', total_hours: '8 giờ 15 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Họp standup đầu tuần cùng Mentor' },
+  { id: 1001, date: '02/10/2026 (Thứ Sáu)', check_in: '08:18', check_out: '17:35', total_hours: '8 giờ 17 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Kiểm thử API phân quyền RBAC & PyTest' },
+  { id: 1002, date: '01/10/2026 (Thứ Năm)', check_in: '08:22', check_out: '17:30', total_hours: '8 giờ 08 phút', method: 'AI Camera P.301', status: 'on_time', status_label: 'Đúng giờ', note: 'Họp rà soát tiến độ Sprint 1 đầu tháng 10' },
 ]
 
-// ── LỊCH SỬ CHẤM CÔNG THEO TỪNG TTS ──
+// ── LỊCH SỬ CHẤM CÔNG THEO TỪNG TTS (TÍNH ĐẾN 12/10/2026) ──
 export const DEFAULT_ATTENDANCE_TTS01 = [...DEFAULT_OCTOBER_RECORDS]
 
-// TTS 2 (Lê Hoàng Nam): 21 ngày làm việc, 1 ngày nghỉ phép (08/10/2026)
+// TTS 2 (Lê Hoàng Nam): 7 ngày làm việc đúng giờ + 1 ngày nghỉ phép (08/10/2026 đã duyệt NP-004) = 8 công
 export const DEFAULT_ATTENDANCE_TTS02 = DEFAULT_OCTOBER_RECORDS.map((r) =>
   r.date.includes('08/10')
     ? { ...r, check_in: '--:--', check_out: '--:--', total_hours: '0 giờ', status: 'leave', status_label: 'Nghỉ phép', note: 'Nghỉ việc cá nhân (Đã duyệt đơn NP-004)' }
     : r
 )
 
-// TTS 3 (Trần Thị Mai Phương): 22 ngày làm việc chuẩn, 0 muộn
+// TTS 3 (Trần Thị Mai Phương): 8 ngày làm việc chuẩn, 0 muộn
 export const DEFAULT_ATTENDANCE_TTS03 = [...DEFAULT_OCTOBER_RECORDS]
 
-// TTS 4 (Hoàng Minh Đức): 20 ngày đúng giờ, 2 ngày đi muộn (23/10 và 27/10)
+// TTS 4 (Hoàng Minh Đức): 7 ngày đúng giờ, 1 ngày đi muộn (09/10/2026) = 8 công
 export const DEFAULT_ATTENDANCE_TTS04 = DEFAULT_OCTOBER_RECORDS.map((r) => {
-  if (r.date.includes('23/10')) {
+  if (r.date.includes('09/10')) {
     return { ...r, check_in: '08:40', total_hours: '7 giờ 50 phút', status: 'late', status_label: 'Đi muộn (25p)', note: 'Đi muộn do sự cố giao thông' }
-  }
-  if (r.date.includes('27/10')) {
-    return { ...r, check_in: '08:35', total_hours: '7 giờ 55 phút', status: 'late', status_label: 'Đi muộn (20p)', note: 'Đi muộn do thời tiết mưa lớn' }
   }
   return r
 })
 
-// TTS 5 (Vũ Hải Yến): 22 ngày làm việc chuẩn, 0 muộn
+// TTS 5 (Vũ Hải Yến): 8 ngày làm việc chuẩn, 0 muộn
 export const DEFAULT_ATTENDANCE_TTS05 = [...DEFAULT_OCTOBER_RECORDS]
 
 export const DEFAULT_ATTENDANCE_HISTORY = DEFAULT_ATTENDANCE_TTS01
@@ -699,7 +683,7 @@ export function saveStoredAllowanceOverride(internKey, data) {
 
 // Hàm tính toán số ngày công thời gian thực cho bất kỳ thực tập sinh nào
 export function getRealtimeWorkDaysForIntern(intern) {
-  if (!intern) return 22
+  if (!intern) return 8
   const code = intern.code || ''
   const email = (intern.email || '').toLowerCase().trim()
   const rawId = intern.intern_id || intern.id
@@ -727,7 +711,7 @@ export function getRealtimeWorkDaysForIntern(intern) {
     }
   } catch {}
 
-  return intern.actual_days || 22
+  return intern.actual_days || 8
 }
 
 // Hàm lấy danh sách công việc theo từng user
@@ -774,7 +758,19 @@ export function getStoredAttendanceHistory(currentUser = null) {
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
+        // Lọc bỏ mọi bản ghi tương lai sau ngày 12/10/2026 nếu có trong cache cũ
+        const validRecords = parsed.filter((item) => {
+          if (!item.date) return true
+          const m = item.date.match(/(\d{2})\/10\/2026/)
+          if (m) {
+            const day = parseInt(m[1], 10)
+            return day <= 12
+          }
+          return true
+        })
+        if (validRecords.length > 0) {
+          return validRecords
+        }
       }
     }
   } catch {}
@@ -919,24 +915,25 @@ export function calculateInternMetrics(currentUser = null) {
     (r) => r.status === 'late' || (r.status_label && (r.status_label.includes('muộn') || r.status_label.includes('trễ')))
   ).length
 
-  // Tỷ lệ chuyên cần
-  const attendanceRate = Math.min(100, Math.round((actualWorkDays / STANDARD_WORK_DAYS) * 100))
+  // Tỷ lệ chuyên cần (tính trên 8 ngày làm việc thực tế đã qua tính đến 12/10/2026)
+  const PASSED_WORK_DAYS = 8
+  const attendanceRate = Math.min(100, Math.round((actualWorkDays / PASSED_WORK_DAYS) * 100))
 
   // 3. TÍNH TOÁN CÁC KHOẢN TIỀN TRONG PHIẾU LƯƠNG & THU NHẬP THÁNG 10/2026
   // Kiểm tra cấu hình phụ cấp do HR điều chỉnh (Cross-portal override)
   const override = getStoredAllowanceOverride(user)
 
-  // a) Lương cơ bản theo hợp đồng
-  let baseAllowance = actualWorkDays >= 20
-    ? BASE_ALLOWANCE_FULL
-    : Math.round(BASE_ALLOWANCE_FULL * (actualWorkDays / STANDARD_WORK_DAYS))
+  // a) Lương cơ bản theo hợp đồng (định mức tháng)
+  let baseAllowance = BASE_ALLOWANCE_FULL
 
   if (override?.base_allowance) {
     baseAllowance = Number(override.base_allowance)
   } else if (uid === 6 || email === 'tts02@student.ictu.edu.vn') {
-    baseAllowance = 2400000
+    baseAllowance = 2500000
   } else if (uid === 9 || email === 'tts04@student.ictu.edu.vn') {
-    baseAllowance = 2300000
+    baseAllowance = 2200000
+  } else if (uid === 8 || email === 'tts03@student.ictu.edu.vn') {
+    baseAllowance = 2000000
   }
 
   // b) Trợ cấp tiền ăn trưa: Đúng 30.000 ₫/ngày công thực tế
@@ -992,13 +989,16 @@ export function calculateInternMetrics(currentUser = null) {
     netTotal = Math.max(0, (baseAllowance + lunchAllowance + bonusAmount) - deductionAmount)
   }
 
+  const allowanceStatus = override?.status || 'pending'
+  const allowanceStatusLabel = override?.status_label || (allowanceStatus === 'approved' ? 'Đã chi trả' : 'Chờ chi trả (Dự kiến 05/11/2026)')
+
   // 4. CHỈ SỐ BÁO CÁO ĐỊNH KỲ
   const submittedReportsCount = reports.length
   const approvedReportsCount = reports.filter((r) => r.status === 'Đã duyệt' || r.status === 'approved' || r.status === 'graded').length
 
   // 5. ĐIỂM ĐÁNH GIÁ THỰC TẬP TỔNG HỢP (KPI Score 0 - 100 điểm)
   const sprintPts = (sprintProgress / 100) * 50
-  const attendancePts = (actualWorkDays / STANDARD_WORK_DAYS) * 30 - (lateDays * 2)
+  const attendancePts = (actualWorkDays / PASSED_WORK_DAYS) * 30 - (lateDays * 2)
   const reportPts = Math.min(20, (submittedReportsCount / 2) * 20)
   const kpiScore = Math.min(100, Math.max(0, Math.round(sprintPts + attendancePts + reportPts)))
 
@@ -1051,6 +1051,8 @@ export function calculateInternMetrics(currentUser = null) {
     deductionReason,
     netTotal,
     netTotalInWords: readMoneyInWords(netTotal),
+    allowanceStatus,
+    allowanceStatusLabel,
 
     // Báo cáo & Đánh giá tổng hợp
     submittedReportsCount,

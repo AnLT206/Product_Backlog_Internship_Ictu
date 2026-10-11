@@ -113,12 +113,12 @@ export const INITIAL_ALLOWANCE_RECORDS = [
     code: 'TTS0001',
     full_name: 'Nguyễn Văn An',
     email: 'an.nv@ictu.edu.vn',
-    actual_days: 22,
+    actual_days: 8,
     base_allowance: 2500000,
     bonus_penalty: 300000, // Thưởng 300,000
     total_net: 2800000,
-    status: 'approved',
-    status_label: 'Đã chi trả',
+    status: 'pending',
+    status_label: 'Chờ chi trả',
   },
   {
     id: 2,
@@ -126,12 +126,12 @@ export const INITIAL_ALLOWANCE_RECORDS = [
     code: 'TTS0002',
     full_name: 'Lê Hoàng Nam',
     email: 'nam.lh@ictu.edu.vn',
-    actual_days: 21,
+    actual_days: 8,
     base_allowance: 2500000,
     bonus_penalty: -100000, // Phạt/Khấu trừ 100,000
     total_net: 2400000,
-    status: 'approved',
-    status_label: 'Đã chi trả',
+    status: 'pending',
+    status_label: 'Chờ chi trả',
   },
   {
     id: 3,
@@ -139,7 +139,7 @@ export const INITIAL_ALLOWANCE_RECORDS = [
     code: 'TTS0003',
     full_name: 'Trần Thị Mai Phương',
     email: 'tts03@student.ictu.edu.vn',
-    actual_days: 18,
+    actual_days: 8,
     base_allowance: 2000000,
     bonus_penalty: 0,
     total_net: 2000000,
@@ -152,7 +152,7 @@ export const INITIAL_ALLOWANCE_RECORDS = [
     code: 'TTS0004',
     full_name: 'Hoàng Minh Đức',
     email: 'tts04@student.ictu.edu.vn',
-    actual_days: 20,
+    actual_days: 8,
     base_allowance: 2200000,
     bonus_penalty: 200000,
     total_net: 2400000,
@@ -282,6 +282,8 @@ export default function AllowanceManagementPage({
                   base_allowance: o.base_allowance ?? updated.base_allowance,
                   bonus_penalty: o.bonus_penalty ?? updated.bonus_penalty,
                   total_net: o.total_net ?? updated.total_net,
+                  status: o.status ?? updated.status,
+                  status_label: o.status_label ?? updated.status_label,
                 };
               }
             }
@@ -611,19 +613,58 @@ export default function AllowanceManagementPage({
 
   // Đổi trạng thái Đã chi trả <-> Chờ chi trả trực tiếp
   const toggleStatus = (recordId) => {
+    let targetRecord = null;
     setAllowanceList((prev) => {
       const nextList = prev.map((item) => {
         if (item.id === recordId || item.intern_id === recordId) {
           const nextStatus = item.status === 'approved' ? 'pending' : 'approved';
           const nextLabel = nextStatus === 'approved' ? 'Đã chi trả' : 'Chờ chi trả';
           showToast(`Đã chuyển trạng thái của ${item.full_name} sang "${nextLabel}"`, 'success');
-          return { ...item, status: nextStatus, status_label: nextLabel };
+          targetRecord = { ...item, status: nextStatus, status_label: nextLabel };
+          return targetRecord;
         }
         return item;
       });
       try {
         localStorage.setItem('ictu_hr_allowance_list', JSON.stringify(nextList));
+        if (targetRecord) {
+          const overrideData = {
+            base_allowance: targetRecord.base_allowance,
+            bonus_penalty: targetRecord.bonus_penalty,
+            total_net: targetRecord.total_net,
+            status: targetRecord.status,
+            status_label: targetRecord.status_label,
+            updated_at: Date.now(),
+          };
+          if (targetRecord.code) saveStoredAllowanceOverride(targetRecord.code, overrideData);
+          if (targetRecord.email) saveStoredAllowanceOverride(targetRecord.email, overrideData);
+          if (targetRecord.intern_id) saveStoredAllowanceOverride(targetRecord.intern_id, overrideData);
+          if (targetRecord.id) saveStoredAllowanceOverride(targetRecord.id, overrideData);
+        }
       } catch {}
+
+      if (targetRecord) {
+        emitRealtimeEvent(SYNC_EVENTS.ALLOWANCE_UPDATED, {
+          type: 'allowance_updated',
+          intern_id: targetRecord.intern_id || targetRecord.id,
+          code: targetRecord.code,
+          email: targetRecord.email,
+          base_allowance: targetRecord.base_allowance,
+          bonus_penalty: targetRecord.bonus_penalty,
+          total_net: targetRecord.total_net,
+          status: targetRecord.status,
+          status_label: targetRecord.status_label,
+        });
+        notifyInternDataChanged();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('ictu_allowance_updated', {
+              detail: targetRecord,
+            })
+          );
+        }
+      }
+
       return nextList;
     });
   };
