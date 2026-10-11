@@ -60,21 +60,6 @@ export default function ApprovalActionButtons({
   };
 
   /**
-   * 2. XỬ LÝ SỰ KIỆN TỪ CHỐI HỒ SƠ
-   * Mở modal nhập lý do hoặc gọi trực tiếp API cập nhật trạng thái "REJECTED"
-   */
-  const handleRejectClick = () => {
-    if (disabled || actionLoading) return;
-
-    if (askReasonOnReject) {
-      setRejectReason('');
-      setShowRejectModal(true);
-    } else {
-      executeReject('');
-    }
-  };
-
-  /**
    * Thực thi gọi API từ chối hồ sơ kèm lý do
    */
   const executeReject = async (reason) => {
@@ -97,6 +82,21 @@ export default function ApprovalActionButtons({
       alert('Có lỗi xảy ra khi từ chối hồ sơ. Vui lòng thử lại!');
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  /**
+   * 2. XỬ LÝ SỰ KIỆN TỪ CHỐI HỒ SƠ
+   * Mở modal nhập lý do hoặc gọi trực tiếp API cập nhật trạng thái "REJECTED"
+   */
+  const handleRejectClick = () => {
+    if (disabled || actionLoading) return;
+
+    if (askReasonOnReject) {
+      setRejectReason('');
+      setShowRejectModal(true);
+    } else {
+      executeReject('');
     }
   };
 

@@ -406,7 +406,7 @@ export default function TaskProgressModal({ isOpen, task, onClose, onSave }) {
   );
 }
 
-const styles = {
+var styles = {
   backdrop: {
     position: 'fixed',
     inset: 0,

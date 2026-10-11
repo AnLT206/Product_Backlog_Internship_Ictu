@@ -715,7 +715,7 @@ export default function InternTrainingMaterials({ onNavigateToReports }) {
   )
 }
 
-const styles = {
+var styles = {
   container: {
     width: '100%',
     display: 'flex',

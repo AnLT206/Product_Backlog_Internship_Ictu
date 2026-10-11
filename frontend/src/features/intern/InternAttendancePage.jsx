@@ -140,6 +140,53 @@ export default function InternAttendancePage() {
   const [leaveModal, setLeaveModal] = useState(false)
   const [rulesModal, setRulesModal] = useState(false)
   const [isSubmittingLeave, setIsSubmittingLeave] = useState(false)
+  const [selectedLeaveDetail, setSelectedLeaveDetail] = useState(null)
+  const [activeTab, setActiveTab] = useState('attendance') // 'attendance' | 'leave'
+  const [leaveForm, setLeaveForm] = useState({
+    type: 'Nghỉ thi học phần',
+    startDate: '',
+    endDate: '',
+    session: 'Cả ngày (08:15 - 17:30)',
+    reason: '',
+  })
+  const [leaveError, setLeaveError] = useState('')
+  const [leaveRequests, setLeaveRequests] = useState(() => {
+    try {
+      const saved = localStorage.getItem('intern_leave_requests_v1')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const sanitized = parsed.map((item) => {
+            const approver = item.status === 'approved' ? 'Hr' : formatApproverName(item.approver)
+            const feedback = (item.feedback && item.feedback.includes('Mentor'))
+              ? item.feedback.replace(/và Mentor phụ trách/g, '').replace(/Mentor phụ trách/g, 'Phòng Nhân sự (Hr)').replace(/Mentor/g, 'Hr')
+              : item.feedback
+            return {
+              ...item,
+              id: item.id ? item.id.replace('2026-', '') : item.id,
+              targetApprover: 'hr',
+              approver,
+              feedback,
+            }
+          })
+          try {
+            localStorage.setItem('intern_leave_requests_v1', JSON.stringify(sanitized))
+          } catch {
+            // ignore
+          }
+          return sanitized
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return getStoredLeaves(user)
+  })
+
+  function showToast(message, type = 'success') {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3500)
+  }
 
   // Khóa scroll body và bắt sự kiện phím ESC khi mở modal
   useEffect(() => {
@@ -263,46 +310,6 @@ export default function InternAttendancePage() {
     }
   }, [])
 
-  function showToast(message, type = 'success') {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 3500)
-  }
-
-  // ── QUẢN LÝ NGHỈ PHÉP (Story 5) ──
-  const [activeTab, setActiveTab] = useState('attendance') // 'attendance' | 'leave'
-  const [leaveRequests, setLeaveRequests] = useState(() => {
-    try {
-      const saved = localStorage.getItem('intern_leave_requests_v1')
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const sanitized = parsed.map((item) => {
-            const approver = item.status === 'approved' ? 'Hr' : formatApproverName(item.approver)
-            const feedback = (item.feedback && item.feedback.includes('Mentor'))
-              ? item.feedback.replace(/và Mentor phụ trách/g, '').replace(/Mentor phụ trách/g, 'Phòng Nhân sự (Hr)').replace(/Mentor/g, 'Hr')
-              : item.feedback
-            return {
-              ...item,
-              id: item.id ? item.id.replace('2026-', '') : item.id,
-              targetApprover: 'hr',
-              approver,
-              feedback,
-            }
-          })
-          try {
-            localStorage.setItem('intern_leave_requests_v1', JSON.stringify(sanitized))
-          } catch {
-            // ignore
-          }
-          return sanitized
-        }
-      }
-    } catch {
-      // fallback
-    }
-    return getStoredLeaves(user)
-  })
-
   useEffect(() => {
     try {
       const saved = localStorage.getItem('intern_leave_requests_v1')
@@ -355,15 +362,6 @@ export default function InternAttendancePage() {
     }
     loadApiLeaves()
   }, [])
-  const [selectedLeaveDetail, setSelectedLeaveDetail] = useState(null)
-  const [leaveForm, setLeaveForm] = useState({
-    type: 'Nghỉ thi học phần',
-    startDate: '',
-    endDate: '',
-    session: 'Cả ngày (08:15 - 17:30)',
-    reason: '',
-  })
-  const [leaveError, setLeaveError] = useState('')
 
   async function handleCreateLeaveRequest(e) {
     e.preventDefault()
