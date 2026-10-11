@@ -464,7 +464,7 @@ export default function AllowanceManagementPage({
 
             {/* 1.3 Input "Thưởng/Khấu trừ" (có toggle Cộng thưởng / Trừ phạt) */}
             <div className="amp-form-group">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="amp-label-row">
                 <label htmlFor="amp-input-bonus" className="amp-label">
                   <span>Thưởng / Khấu trừ:</span>
                 </label>
@@ -504,22 +504,25 @@ export default function AllowanceManagementPage({
             </div>
 
             {/* 1.4 Hiển thị Live Preview Tổng thực nhận + Nút "Cập nhật" */}
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px' }}>
-              <div className="amp-preview-box">
-                <span className="amp-preview-label">Tổng thực nhận (dự kiến):</span>
-                <span className="amp-preview-value" data-testid="preview-total-net">
-                  {formatVndDisplay(calculatedTotalNet)}
-                </span>
+            <div className="amp-form-group amp-form-group--actions">
+              <div className="amp-label amp-label--spacer" aria-hidden="true">&nbsp;</div>
+              <div className="amp-form-actions">
+                <div className="amp-preview-box">
+                  <span className="amp-preview-label">Tổng thực nhận (dự kiến):</span>
+                  <span className="amp-preview-value" data-testid="preview-total-net">
+                    {formatVndDisplay(calculatedTotalNet)}
+                  </span>
+                </div>
+                <button
+                  type="submit"
+                  className="amp-btn-update"
+                  disabled={isSubmitting}
+                  data-testid="btn-update-allowance"
+                >
+                  <Check size={16} />
+                  <span>{isSubmitting ? 'Đang lưu...' : 'Cập nhật'}</span>
+                </button>
               </div>
-              <button
-                type="submit"
-                className="amp-btn-update"
-                disabled={isSubmitting}
-                data-testid="btn-update-allowance"
-              >
-                <Check size={16} />
-                <span>{isSubmitting ? 'Đang lưu...' : 'Cập nhật'}</span>
-              </button>
             </div>
           </div>
         </form>

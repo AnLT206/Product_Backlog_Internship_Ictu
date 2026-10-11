@@ -162,8 +162,8 @@
 
 .amp-form-grid {
   display: grid;
-  grid-template-columns: 1.3fr 1fr 1.2fr auto;
-  gap: 18px;
+  grid-template-columns: minmax(180px, 1.15fr) minmax(160px, 0.95fr) minmax(260px, 1.3fr) auto;
+  gap: 16px;
   align-items: flex-start;
 }
 
@@ -171,15 +171,40 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+}
+
+.amp-form-group--actions {
+  min-width: fit-content;
+}
+
+.amp-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 24px;
+  min-height: 24px;
+  white-space: nowrap;
 }
 
 .amp-label {
   font-size: 13px;
   font-weight: 600;
   color: #334155;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  height: 24px;
+  min-height: 24px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.amp-label--spacer {
+  visibility: hidden;
+  user-select: none;
+  pointer-events: none;
 }
 
 .amp-required {
@@ -190,9 +215,11 @@
 .amp-select,
 .amp-input {
   width: 100%;
+  height: 42px;
   box-sizing: border-box;
-  padding: 9px 12px;
+  padding: 0 12px;
   font-size: 14px;
+  line-height: 40px;
   color: #0f172a;
   background-color: #ffffff;
   border: 1px solid #cbd5e1;
@@ -200,6 +227,7 @@
   outline: none;
   transition: all 0.2s ease;
   font-family: inherit;
+  white-space: nowrap;
 }
 
 .amp-select:focus,
@@ -212,12 +240,16 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   font-family: monospace, sans-serif;
+  padding-right: 48px;
 }
 
 .amp-input-wrapper {
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
+  height: 42px;
+  box-sizing: border-box;
 }
 
 .amp-currency-badge {
@@ -227,29 +259,34 @@
   font-weight: 600;
   color: #64748b;
   pointer-events: none;
+  white-space: nowrap;
 }
 
 /* Thưởng / Khấu trừ Segmented Toggle */
 .amp-bonus-toggle {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
   border-radius: 6px;
   padding: 2px;
-  margin-bottom: 6px;
-  width: fit-content;
+  margin-bottom: 0;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .amp-bonus-toggle-btn {
   font-size: 11px;
   font-weight: 600;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border: none;
   background: none;
   border-radius: 4px;
   cursor: pointer;
   color: #64748b;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  line-height: 1.4;
 }
 
 .amp-bonus-toggle-btn--active-plus {
@@ -262,30 +299,45 @@
   color: #ffffff;
 }
 
+/* Form Actions (Preview + Cập nhật) */
+.amp-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  white-space: nowrap;
+}
+
 /* Live Preview Tổng thực nhận */
 .amp-preview-box {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 9px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  box-sizing: border-box;
+  padding: 0 14px;
   background-color: #f0fdf4;
   border: 1px solid #bbf7d0;
   border-radius: 8px;
-  min-width: 170px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .amp-preview-label {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #166534;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .amp-preview-value {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: #15803d;
   font-family: monospace, sans-serif;
+  white-space: nowrap;
 }
 
 /* Nút Cập nhật */
@@ -294,7 +346,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 22px;
+  height: 42px;
+  box-sizing: border-box;
+  padding: 0 20px;
   font-size: 14px;
   font-weight: 600;
   background-color: #2563eb;
@@ -303,9 +357,8 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  height: 42px;
-  margin-top: auto;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .amp-btn-update:hover:not(:disabled) {
@@ -567,7 +620,7 @@
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .amp-form-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -576,6 +629,15 @@
 @media (max-width: 640px) {
   .amp-form-grid {
     grid-template-columns: 1fr;
+  }
+  .amp-form-actions {
+    flex-direction: column;
+    height: auto;
+  }
+  .amp-preview-box,
+  .amp-btn-update {
+    width: 100%;
+    justify-content: center;
   }
   .amp-kpi-grid {
     grid-template-columns: 1fr;
