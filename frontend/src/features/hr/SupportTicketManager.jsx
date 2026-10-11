@@ -787,13 +787,6 @@ export default function SupportTicketManager({ fetchTicketsApi, respondTicketApi
             </tbody>
           </table>
         </div>
-
-        {/* Footer bảng dữ liệu */}
-        <div className="stm-table-footer-bar">
-          <span className="stm-footer-count-text">
-            Hiển thị <strong>{filteredTickets.length}</strong> trên tổng số <strong>{tickets.length}</strong> yêu cầu
-          </span>
-        </div>
       </div>
 
       {/* Modal Xử lý Ticket (Khi bấm Xem chi tiết) */}

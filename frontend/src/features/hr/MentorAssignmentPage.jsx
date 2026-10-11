@@ -17,7 +17,6 @@ import {
   ShieldAlert,
   Sparkles,
   UserMinus,
-  Info,
 } from 'lucide-react';
 import { getMentors, assignMentor, unassignInternFromMentor } from '../../api/mentors';
 import { getInterns } from '../../api/interns';
@@ -661,20 +660,6 @@ export default function MentorAssignmentPage() {
                 Tỷ lệ lấp đầy hiển thị màu sắc theo quy tắc: <strong>Xanh (&lt;80%)</strong>, <strong>Cam (&ge;80%)</strong> và <strong>Đỏ (Đạt 100% tối đa - Vô hiệu hóa)</strong>. Hiện cả 2 Mentor đều phụ trách 2/5 TTS (40% - Khả dụng).
               </p>
             </div>
-            <div className="workload-summary-pills">
-              <span className="summary-pill pill--success">
-                ● Khả dụng: {mentors.filter((m) => m.current_interns / m.max_interns < 0.8).length}
-              </span>
-              <span className="summary-pill pill--warning">
-                ▲ Tải cao: {mentors.filter((m) => {
-                  const r = m.current_interns / m.max_interns;
-                  return r >= 0.8 && r < 1;
-                }).length}
-              </span>
-              <span className="summary-pill pill--danger">
-                ■ Đầy tải: {mentors.filter((m) => m.current_interns >= m.max_interns).length}
-              </span>
-            </div>
           </div>
 
           <div className="workload-cards-grid">
@@ -727,13 +712,6 @@ export default function MentorAssignmentPage() {
             {/* SUB-TAB 1: DANH SÁCH TTS ĐÃ PHÂN CÔNG (4 HỒ SƠ) */}
             {subTab === 'assigned' && (
               <>
-                <div className="banner-info-box">
-                  <Info size={18} className="info-icon" />
-                  <div className="info-content">
-                    <strong>Chuẩn hóa dữ liệu theo 4 hồ sơ TTS:</strong> Toàn bộ 4 thực tập sinh đã được phân công Mentor hướng dẫn theo chuyên môn (Trần Hoàng Quân: 2 TTS; Phạm Quốc Hướng: 2 TTS).
-                  </div>
-                </div>
-
                 {/* Thanh tìm kiếm */}
                 <div className="table-filter-bar">
                   <div className="search-box-wrap">

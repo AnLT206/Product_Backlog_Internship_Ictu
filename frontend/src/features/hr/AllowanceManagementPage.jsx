@@ -421,9 +421,6 @@ export default function AllowanceManagementPage({
             <TrendingUp size={18} color="#2563EB" />
             <span>Thiết lập & Điều chỉnh Phụ cấp Thực tập sinh</span>
           </h2>
-          <span style={{ fontSize: '13px', color: '#64748b' }}>
-            Tự động format dấu phẩy phân cách hàng nghìn (VD: 1,500,000 VNĐ).
-          </span>
         </div>
 
         <form onSubmit={handleUpdateSubmit} noValidate>
@@ -688,7 +685,6 @@ export default function AllowanceManagementPage({
           <div>
             Hiển thị <b>{filteredRecords.length}</b> / <b>{allowanceList.length}</b> thực tập sinh
           </div>
-          <div>Cập nhật tự động dựa trên số ngày công và chính sách thưởng/phạt</div>
         </div>
       </section>
     </div>

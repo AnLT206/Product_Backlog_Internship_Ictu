@@ -131,39 +131,6 @@
   margin-bottom: 36px;
 }
 
-.workload-summary-pills {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.summary-pill {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 5px 12px;
-  border-radius: 9999px;
-  display: inline-flex;
-  align-items: center;
-}
-
-.pill--success {
-  background-color: #f0fdf4;
-  color: #16a34a;
-  border: 1px solid #bbf7d0;
-}
-
-.pill--warning {
-  background-color: #fffbeb;
-  color: #d97706;
-  border: 1px solid #fde68a;
-}
-
-.pill--danger {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-}
-
 .workload-cards-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -896,25 +863,6 @@
   color: #ffffff;
   border-color: #1e293b;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-/* ── BANNER INFO BOX ── */
-.banner-info-box {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 10px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
-  font-size: 13px;
-  color: #1e40af;
-}
-
-.banner-info-box .info-icon {
-  flex-shrink: 0;
-  color: #2563eb;
 }
 
 .intern-email-sub {
