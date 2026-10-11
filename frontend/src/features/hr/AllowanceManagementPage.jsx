@@ -16,6 +16,12 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { fetchHrAllowances, updateHrAllowance } from '../../api/operations';
+import {
+  getRealtimeWorkDaysForIntern,
+  saveStoredAllowanceOverride,
+  notifyInternDataChanged,
+} from '../intern/utils/internMetrics';
+import { emitRealtimeEvent, subscribeRealtimeEvents, SYNC_EVENTS } from '../../utils/realtimeSync';
 import './AllowanceManagementPage.css';
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -124,8 +130,31 @@ export default function AllowanceManagementPage({
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 2. Quản lý State Bảng dữ liệu & Bộ lọc
-  const [allowanceList, setAllowanceList] = useState(initialRecords || INITIAL_ALLOWANCE_RECORDS);
+  // 2. Quản lý State Bảng dữ liệu & Bộ lọc (Đồng bộ số ngày công theo thời gian thực)
+  const [allowanceList, setAllowanceList] = useState(() => {
+    if (initialRecords) {
+      return initialRecords.map((item) => ({
+        ...item,
+        actual_days: getRealtimeWorkDaysForIntern(item),
+      }));
+    }
+    try {
+      const cached = typeof window !== 'undefined' ? localStorage.getItem('ictu_hr_allowance_list') : null;
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item) => ({
+            ...item,
+            actual_days: getRealtimeWorkDaysForIntern(item),
+          }));
+        }
+      }
+    } catch {}
+    return INITIAL_ALLOWANCE_RECORDS.map((item) => ({
+      ...item,
+      actual_days: getRealtimeWorkDaysForIntern(item),
+    }));
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [highlightedId, setHighlightedId] = useState(null);
@@ -136,7 +165,7 @@ export default function AllowanceManagementPage({
     setTimeout(() => setToast(null), 3200);
   }, []);
 
-  // Tải dữ liệu ban đầu từ API
+  // Tải dữ liệu ban đầu từ API & tính toán số ngày công theo thời gian thực
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
@@ -144,10 +173,20 @@ export default function AllowanceManagementPage({
       try {
         const res = await (fetchApi || fetchHrAllowances)();
         if (isMounted && res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
-          setAllowanceList(res.data);
+          const freshList = res.data.map((item) => {
+            const realtimeDays = getRealtimeWorkDaysForIntern(item);
+            return {
+              ...item,
+              actual_days: realtimeDays,
+            };
+          });
+          setAllowanceList(freshList);
+          try {
+            localStorage.setItem('ictu_hr_allowance_list', JSON.stringify(freshList));
+          } catch {}
         }
       } catch (err) {
-        // Fallback mock records
+        // Fallback mock records with real-time work days
       }
     }
     loadData();
@@ -155,6 +194,62 @@ export default function AllowanceManagementPage({
       isMounted = false;
     };
   }, [fetchApi, initialRecords]);
+
+  // Lắng nghe sự kiện đồng bộ thời gian thực: Điểm danh (Check-in), Nghỉ phép, Duyệt công
+  useEffect(() => {
+    const syncRealtimeDays = () => {
+      setAllowanceList((prev) =>
+        prev.map((item) => {
+          const freshDays = getRealtimeWorkDaysForIntern(item);
+          let updated = { ...item, actual_days: freshDays };
+          try {
+            const rawMap = typeof window !== 'undefined' ? localStorage.getItem('ictu_intern_allowances_override') : null;
+            if (rawMap) {
+              const map = JSON.parse(rawMap);
+              const o = map[item.code] || map[item.email] || map[item.intern_id] || map[item.id];
+              if (o) {
+                updated = {
+                  ...updated,
+                  base_allowance: o.base_allowance ?? updated.base_allowance,
+                  bonus_penalty: o.bonus_penalty ?? updated.bonus_penalty,
+                  total_net: o.total_net ?? updated.total_net,
+                };
+              }
+            }
+          } catch {}
+          return updated;
+        })
+      );
+    };
+
+    const unsubscribe = subscribeRealtimeEvents((event) => {
+      const relevantTypes = [
+        SYNC_EVENTS.ATTENDANCE_CHECKED_IN,
+        SYNC_EVENTS.LEAVE_REQUEST_SUBMITTED,
+        SYNC_EVENTS.ATTENDANCE_APPROVED,
+        SYNC_EVENTS.ALLOWANCE_UPDATED,
+      ];
+      if (!event || relevantTypes.includes(event?.type)) {
+        syncRealtimeDays();
+      }
+    });
+
+    const handleLocalSync = () => syncRealtimeDays();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('intern_data_sync_event', handleLocalSync);
+      window.addEventListener('ictu_allowance_updated', handleLocalSync);
+      window.addEventListener('storage', handleLocalSync);
+    }
+
+    return () => {
+      unsubscribe();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('intern_data_sync_event', handleLocalSync);
+        window.removeEventListener('ictu_allowance_updated', handleLocalSync);
+        window.removeEventListener('storage', handleLocalSync);
+      }
+    };
+  }, []);
 
   // 3. TÍNH TOÁN TỔNG THỰC NHẬN TỰ ĐỘNG: (Phụ cấp cơ bản + Thưởng/Phạt)
   const calculatedTotalNet = useMemo(() => {
@@ -254,9 +349,21 @@ export default function AllowanceManagementPage({
     const signedBonus = adjustmentType === 'deduction' ? -rawBonus : rawBonus;
     const finalTotalNet = Math.max(0, rawBase + signedBonus);
 
+    const targetIntern = allowanceList.find(
+      (i) =>
+        String(i.intern_id) === String(selectedInternId) ||
+        String(i.id) === String(selectedInternId) ||
+        i.code === String(selectedInternId)
+    );
+    const internName = targetIntern ? targetIntern.full_name : 'TTS';
+    const internCode = targetIntern?.code || `TTS000${selectedInternId}`;
+    const internEmail = targetIntern?.email || '';
+
     // Payload chuẩn bị gửi lên API
     const payload = {
       intern_id: Number(selectedInternId),
+      code: internCode,
+      email: internEmail,
       base_allowance: rawBase,
       bonus_penalty: signedBonus,
       adjustment_type: adjustmentType,
@@ -268,27 +375,75 @@ export default function AllowanceManagementPage({
       await apiFn(payload);
 
       // Cập nhật state bảng dữ liệu tức thì (Optimistic Update)
-      setAllowanceList((prev) =>
-        prev.map((item) => {
-          if (String(item.intern_id) === String(selectedInternId) || String(item.id) === String(selectedInternId)) {
-            return {
-              ...item,
+      const updatedList = allowanceList.map((item) => {
+        if (
+          String(item.intern_id) === String(selectedInternId) ||
+          String(item.id) === String(selectedInternId) ||
+          item.code === String(selectedInternId)
+        ) {
+          return {
+            ...item,
+            base_allowance: rawBase,
+            bonus_penalty: signedBonus,
+            total_net: finalTotalNet,
+          };
+        }
+        return item;
+      });
+      setAllowanceList(updatedList);
+
+      // Lưu trữ đồng bộ vào localStorage cho toàn hệ thống
+      try {
+        localStorage.setItem('ictu_hr_allowance_list', JSON.stringify(updatedList));
+
+        const overrideData = {
+          base_allowance: rawBase,
+          bonus_penalty: signedBonus,
+          total_net: finalTotalNet,
+          updated_at: Date.now(),
+        };
+        if (internCode) saveStoredAllowanceOverride(internCode, overrideData);
+        if (internEmail) saveStoredAllowanceOverride(internEmail, overrideData);
+        if (selectedInternId) saveStoredAllowanceOverride(selectedInternId, overrideData);
+        if (targetIntern?.intern_id) saveStoredAllowanceOverride(targetIntern.intern_id, overrideData);
+
+        if (internCode) localStorage.setItem(`ictu_user_allowance_${internCode}`, JSON.stringify(overrideData));
+        if (internEmail) localStorage.setItem(`ictu_user_allowance_${internEmail}`, JSON.stringify(overrideData));
+      } catch (storageErr) {
+        console.warn('Lỗi lưu trữ cục bộ:', storageErr);
+      }
+
+      // Phát thông điệp đồng bộ thời gian thực cho phân hệ TTS và các tab khác
+      emitRealtimeEvent(SYNC_EVENTS.ALLOWANCE_UPDATED, {
+        type: 'allowance_updated',
+        intern_id: Number(selectedInternId),
+        code: internCode,
+        email: internEmail,
+        base_allowance: rawBase,
+        bonus_penalty: signedBonus,
+        total_net: finalTotalNet,
+      });
+      notifyInternDataChanged();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('ictu_allowance_updated', {
+            detail: {
+              intern_id: Number(selectedInternId),
+              code: internCode,
+              email: internEmail,
               base_allowance: rawBase,
               bonus_penalty: signedBonus,
               total_net: finalTotalNet,
-            };
-          }
-          return item;
-        })
-      );
-
-      const targetIntern = allowanceList.find(
-        (i) => String(i.intern_id) === String(selectedInternId) || String(i.id) === String(selectedInternId)
-      );
-      const internName = targetIntern ? targetIntern.full_name : 'TTS';
+            },
+          })
+        );
+      }
 
       setHighlightedId(Number(selectedInternId));
-      showToast(`Đã cập nhật phụ cấp cho ${internName} thành công! Tổng thực nhận: ${formatVndDisplay(finalTotalNet)}`, 'success');
+      showToast(
+        `Đã cập nhật phụ cấp cho ${internName} thành công! Tổng thực nhận: ${formatVndDisplay(finalTotalNet)}`,
+        'success'
+      );
 
       // Reset ô Thưởng/Khấu trừ sau khi cập nhật thành công
       setBonusPenalty('');
@@ -301,8 +456,8 @@ export default function AllowanceManagementPage({
 
   // Đổi trạng thái Đã chi trả <-> Chờ chi trả trực tiếp
   const toggleStatus = (recordId) => {
-    setAllowanceList((prev) =>
-      prev.map((item) => {
+    setAllowanceList((prev) => {
+      const nextList = prev.map((item) => {
         if (item.id === recordId || item.intern_id === recordId) {
           const nextStatus = item.status === 'approved' ? 'pending' : 'approved';
           const nextLabel = nextStatus === 'approved' ? 'Đã chi trả' : 'Chờ chi trả';
@@ -310,8 +465,12 @@ export default function AllowanceManagementPage({
           return { ...item, status: nextStatus, status_label: nextLabel };
         }
         return item;
-      })
-    );
+      });
+      try {
+        localStorage.setItem('ictu_hr_allowance_list', JSON.stringify(nextList));
+      } catch {}
+      return nextList;
+    });
   };
 
   // Lọc bảng dữ liệu theo ô tìm kiếm và trạng thái

@@ -40,6 +40,7 @@ export const SYNC_EVENTS = {
   ATTENDANCE_CHECKED_IN:   'SYNC_ATTENDANCE_CHECKED_IN',   // TTS điểm danh / check-in hôm nay
   LEAVE_REQUEST_SUBMITTED: 'SYNC_LEAVE_REQUEST_SUBMITTED', // TTS gửi đơn xin nghỉ phép
   ATTENDANCE_APPROVED:     'SYNC_ATTENDANCE_APPROVED',     // HR duyệt công / phụ cấp
+  ALLOWANCE_UPDATED:       'SYNC_ALLOWANCE_UPDATED',       // HR cập nhật lương / phụ cấp / thưởng phạt
 };
 
 // ── Kho Văn bản / Biểu mẫu Hợp đồng có sẵn trong hệ thống ──

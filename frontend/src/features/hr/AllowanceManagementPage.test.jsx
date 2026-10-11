@@ -204,6 +204,58 @@ describe('AllowanceManagementPage Component Test Suite', () => {
       // Toast thông báo
       expect(screen.getByText(/Đã cập nhật phụ cấp cho Nguyễn Văn An thành công/i)).toBeInTheDocument();
     });
+
+    it('khi HR cập nhật phụ cấp, dữ liệu được lưu vào storage override và hệ thống TTS tính lại theo mức mới', async () => {
+      const user = userEvent.setup();
+      render(<AllowanceManagementPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Lê Hoàng Nam')).toBeInTheDocument();
+      });
+
+      // Chọn Lê Hoàng Nam (TTS0002, id: 2)
+      const selectIntern = screen.getByLabelText(/Chọn TTS/i);
+      await user.selectOptions(selectIntern, '2');
+
+      // Nhập phụ cấp cơ bản mới: 3,000,000
+      const baseInput = screen.getByLabelText(/Mức phụ cấp cơ bản/i);
+      await user.clear(baseInput);
+      await user.type(baseInput, '3000000');
+
+      // Chuyển sang + Thưởng
+      const bonusToggleBtn = screen.getByRole('button', { name: /\+ Thưởng/i });
+      await user.click(bonusToggleBtn);
+
+      // Nhập thưởng: 500,000
+      const bonusInput = screen.getByLabelText(/Thưởng hoặc khấu trừ/i);
+      await user.clear(bonusInput);
+      await user.type(bonusInput, '500000');
+
+      // Bấm Cập nhật
+      const updateBtn = screen.getByRole('button', { name: /Cập nhật/i });
+      await user.click(updateBtn);
+
+      await waitFor(() => {
+        const overrideMap = JSON.parse(localStorage.getItem('ictu_intern_allowances_override') || '{}');
+        expect(overrideMap['TTS0002'] || overrideMap[2]).toBeDefined();
+        const ttsOverride = overrideMap['TTS0002'] || overrideMap[2];
+        expect(ttsOverride.base_allowance).toBe(3000000);
+        expect(ttsOverride.bonus_penalty).toBe(500000);
+        expect(ttsOverride.total_net).toBe(3500000);
+      });
+    });
+
+    it('hiển thị số ngày công theo thời gian thực cho từng TTS trong bảng', async () => {
+      render(<AllowanceManagementPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Nguyễn Văn An')).toBeInTheDocument();
+      });
+
+      // Kiểm tra có hiển thị số ngày công
+      const daysCells = screen.getAllByText(/ngày/i);
+      expect(daysCells.length).toBeGreaterThan(0);
+    });
   });
 });
 

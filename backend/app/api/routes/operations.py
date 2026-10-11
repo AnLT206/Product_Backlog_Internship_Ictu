@@ -720,6 +720,8 @@ class AllowanceUpdatePayload(BaseModel):
     total_net: float
     status: str | None = None
     notes: str | None = None
+    code: str | None = None
+    email: str | None = None
 
 
 @router.get("/hr/allowances", dependencies=[Depends(require_roles("hr", "admin", "mentor"))])
@@ -733,10 +735,10 @@ def get_hr_allowances(db: Session = Depends(get_db)) -> list[dict[str, Any]]:
         code = intern.code if intern else f"TTS{r.id:04d}"
         actual_days = r.actual_days if r.actual_days is not None else 22
         base_allowance = getattr(r, "base_allowance", 2500000) or 2500000
-        bonus_penalty = getattr(r, "bonus_penalty", 0) or (300000 if r.id % 3 == 0 else 0)
+        bonus_penalty = (getattr(r, "bonus_amount", 0) or 0) - (getattr(r, "deduction_amount", 0) or 0)
         total_net = getattr(r, "allowance", None) or (base_allowance + bonus_penalty)
-        status = r.status or ("approved" if r.id % 2 == 1 else "pending")
-        status_label = "Đã chi trả" if status == "approved" else "Chờ chi trả"
+        status = r.status or "approved"
+        status_label = r.status_label or ("Đã chi trả" if status == "approved" else "Chờ chi trả")
 
         results.append({
             "id": r.id,
@@ -760,13 +762,32 @@ def update_hr_allowance(payload: AllowanceUpdatePayload, db: Session = Depends(g
     rec = db.query(InternAttendance).filter(InternAttendance.intern_id == payload.intern_id).first()
     if not rec:
         rec = db.query(InternAttendance).filter(InternAttendance.id == payload.intern_id).first()
+    if not rec:
+        id_map = {1: 5, 2: 6, 3: 8, 4: 9}
+        mapped_uid = id_map.get(payload.intern_id)
+        if mapped_uid:
+            rec = db.query(InternAttendance).filter(InternAttendance.intern_id == mapped_uid).first()
+    if not rec and payload.code:
+        u = db.query(User).filter(User.code == payload.code).first()
+        if u:
+            rec = db.query(InternAttendance).filter(InternAttendance.intern_id == u.id).first()
+    if not rec and payload.email:
+        u = db.query(User).filter(User.email == payload.email).first()
+        if u:
+            rec = db.query(InternAttendance).filter(InternAttendance.intern_id == u.id).first()
 
     if rec:
         rec.allowance = int(payload.total_net)
         if hasattr(rec, "base_allowance"):
             rec.base_allowance = int(payload.base_allowance)
-        if hasattr(rec, "bonus_penalty"):
-            rec.bonus_penalty = int(payload.bonus_penalty)
+        if payload.bonus_penalty >= 0:
+            rec.bonus_amount = int(payload.bonus_penalty)
+            rec.deduction_amount = 0
+            rec.bonus_reason = "Thưởng hiệu suất do HR phê duyệt"
+        else:
+            rec.bonus_amount = 0
+            rec.deduction_amount = int(abs(payload.bonus_penalty))
+            rec.deduction_reason = "Khấu trừ do HR điều chỉnh"
         if payload.status:
             rec.status = payload.status
             rec.status_label = "Đã chi trả" if payload.status == "approved" else "Chờ chi trả"

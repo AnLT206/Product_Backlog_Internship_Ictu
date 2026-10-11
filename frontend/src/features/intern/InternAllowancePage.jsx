@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import apiFetch from '../../api/client'
 import { useInternMetrics } from './utils/internMetrics'
+import { subscribeRealtimeEvents, SYNC_EVENTS } from '../../utils/realtimeSync'
 import './InternDashboardPage.css'
 import './InternAllowancePage.css'
 
@@ -429,6 +430,25 @@ export default function InternAllowancePage() {
 
   useEffect(() => {
     fetchAllowances()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    const handleSync = () => {
+      fetchAllowances()
+    }
+    const unsubscribe = subscribeRealtimeEvents((event) => {
+      if (event?.type === SYNC_EVENTS.ALLOWANCE_UPDATED || event?.type === 'allowance_updated') {
+        handleSync()
+      }
+    })
+    window.addEventListener('ictu_allowance_updated', handleSync)
+    window.addEventListener('intern_data_sync_event', handleSync)
+    return () => {
+      unsubscribe()
+      window.removeEventListener('ictu_allowance_updated', handleSync)
+      window.removeEventListener('intern_data_sync_event', handleSync)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

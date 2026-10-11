@@ -639,6 +639,97 @@ export function notifyInternDataChanged() {
   }
 }
 
+// Hàm lấy dữ liệu phụ cấp do HR điều chỉnh (Cross-portal override)
+export function getStoredAllowanceOverride(currentUser = null) {
+  if (typeof window === 'undefined') return null
+  const user = currentUser || getCurrentUserFromStorage()
+  if (!user) return null
+  const email = (user?.email || '').toLowerCase().trim()
+  const code = (user?.code || '').toUpperCase().trim()
+  const uid = user?.id
+
+  try {
+    const mapRaw = localStorage.getItem('ictu_intern_allowances_override')
+    if (mapRaw) {
+      const map = JSON.parse(mapRaw)
+      if (code && map[code]) return map[code]
+      if (email && map[email]) return map[email]
+      if (uid && map[uid]) return map[uid]
+      if (map[1] && (code === 'TTS0001' || email.includes('tts01') || email.includes('intern@'))) return map[1]
+      if (map[2] && (code === 'TTS0002' || email.includes('tts02'))) return map[2]
+      if (map[3] && (code === 'TTS0003' || email.includes('tts03'))) return map[3]
+      if (map[4] && (code === 'TTS0004' || email.includes('tts04'))) return map[4]
+      if (map[5] && (code === 'TTS0001' || email.includes('tts01') || email.includes('intern@'))) return map[5]
+      if (map[6] && (code === 'TTS0002' || email.includes('tts02'))) return map[6]
+      if (map[8] && (code === 'TTS0003' || email.includes('tts03'))) return map[8]
+      if (map[9] && (code === 'TTS0004' || email.includes('tts04'))) return map[9]
+    }
+  } catch {}
+
+  const keys = [
+    code ? `ictu_user_allowance_${code}` : null,
+    email ? `ictu_user_allowance_${email}` : null,
+    uid ? `ictu_user_allowance_${uid}` : null,
+  ].filter(Boolean)
+
+  for (const k of keys) {
+    try {
+      const raw = localStorage.getItem(k)
+      if (raw) return JSON.parse(raw)
+    } catch {}
+  }
+
+  return null
+}
+
+// Lưu dữ liệu phụ cấp do HR điều chỉnh
+export function saveStoredAllowanceOverride(internKey, data) {
+  if (typeof window === 'undefined') return
+  try {
+    const mapRaw = localStorage.getItem('ictu_intern_allowances_override')
+    const map = mapRaw ? JSON.parse(mapRaw) : {}
+    map[internKey] = {
+      ...(map[internKey] || {}),
+      ...data,
+      updated_at: Date.now(),
+    }
+    localStorage.setItem('ictu_intern_allowances_override', JSON.stringify(map))
+  } catch {}
+}
+
+// Hàm tính toán số ngày công thời gian thực cho bất kỳ thực tập sinh nào
+export function getRealtimeWorkDaysForIntern(intern) {
+  if (!intern) return 22
+  const code = intern.code || ''
+  const email = (intern.email || '').toLowerCase().trim()
+  const rawId = intern.intern_id || intern.id
+
+  const mappedUid = rawId === 1 ? 5 : rawId === 2 ? 6 : rawId === 3 ? 8 : rawId === 4 ? 9 : rawId
+  const mappedEmail =
+    email ||
+    (code === 'TTS0001'
+      ? 'intern@ictu.edu.vn'
+      : code === 'TTS0002'
+      ? 'tts02@student.ictu.edu.vn'
+      : code === 'TTS0003'
+      ? 'tts03@student.ictu.edu.vn'
+      : 'tts04@student.ictu.edu.vn')
+
+  try {
+    const mockUser = {
+      id: mappedUid,
+      code,
+      email: mappedEmail,
+    }
+    const metrics = calculateInternMetrics(mockUser)
+    if (metrics && typeof metrics.actualWorkDays === 'number') {
+      return metrics.actualWorkDays
+    }
+  } catch {}
+
+  return intern.actual_days || 22
+}
+
 // Hàm lấy danh sách công việc theo từng user
 export function getStoredTasks(currentUser = null) {
   const user = currentUser || getCurrentUserFromStorage()
@@ -805,14 +896,19 @@ export function calculateInternMetrics(currentUser = null) {
   // Kiểm tra xem hôm nay đã check-in chưa
   const isCheckedInToday = Boolean(todayAtt?.checkedIn)
 
-  // Đếm số ngày công hợp lệ trong tháng 10
+  // Số ngày nghỉ phép đã được duyệt trong tháng 10
+  const approvedLeaveDays = leaves
+    .filter((l) => l.status === 'approved' && (l.startDate?.includes('2026-10') || l.createdDate?.includes('/10/2026')))
+    .reduce((sum, l) => sum + (parseFloat(l.duration) || 1), 0)
+
+  // Đếm số ngày công hợp lệ trong tháng 10: số ngày có check-in + ngày nghỉ phép được HR duyệt
   const attendedDaysInHistory = octRecords.filter(
     (r) => r.status === 'on_time' || r.status === 'late' || (r.check_in && r.check_in !== '--:--')
   ).length
 
   // Nếu hôm nay đã check-in nhưng chưa có trong danh sách lịch sử tháng 10, cộng thêm 1
   const todayInHistory = octRecords.some((r) => r.date && r.date.includes('Hôm nay'))
-  let actualWorkDays = attendedDaysInHistory
+  let actualWorkDays = attendedDaysInHistory + Math.floor(approvedLeaveDays)
   if (isCheckedInToday && !todayInHistory) {
     actualWorkDays += 1
   }
@@ -823,21 +919,21 @@ export function calculateInternMetrics(currentUser = null) {
     (r) => r.status === 'late' || (r.status_label && (r.status_label.includes('muộn') || r.status_label.includes('trễ')))
   ).length
 
-  // Số ngày nghỉ phép đã được duyệt trong tháng 10
-  const approvedLeaveDays = leaves
-    .filter((l) => l.status === 'approved' && (l.startDate?.includes('2026-10') || l.createdDate?.includes('/10/2026')))
-    .reduce((sum, l) => sum + (parseFloat(l.duration) || 1), 0)
-
   // Tỷ lệ chuyên cần
   const attendanceRate = Math.min(100, Math.round((actualWorkDays / STANDARD_WORK_DAYS) * 100))
 
   // 3. TÍNH TOÁN CÁC KHOẢN TIỀN TRONG PHIẾU LƯƠNG & THU NHẬP THÁNG 10/2026
+  // Kiểm tra cấu hình phụ cấp do HR điều chỉnh (Cross-portal override)
+  const override = getStoredAllowanceOverride(user)
+
   // a) Lương cơ bản theo hợp đồng
   let baseAllowance = actualWorkDays >= 20
     ? BASE_ALLOWANCE_FULL
     : Math.round(BASE_ALLOWANCE_FULL * (actualWorkDays / STANDARD_WORK_DAYS))
 
-  if (uid === 6 || email === 'tts02@student.ictu.edu.vn') {
+  if (override?.base_allowance) {
+    baseAllowance = Number(override.base_allowance)
+  } else if (uid === 6 || email === 'tts02@student.ictu.edu.vn') {
     baseAllowance = 2400000
   } else if (uid === 9 || email === 'tts04@student.ictu.edu.vn') {
     baseAllowance = 2300000
@@ -846,13 +942,21 @@ export function calculateInternMetrics(currentUser = null) {
   // b) Trợ cấp tiền ăn trưa: Đúng 30.000 ₫/ngày công thực tế
   const lunchAllowance = actualWorkDays * LUNCH_PER_DAY
 
-  // c) Thưởng hiệu suất (KPI Bonus): Phụ thuộc vào cá nhân hóa & chuyên môn từng TTS
+  // c) Thưởng hiệu suất (KPI Bonus): Phụ thuộc vào cá nhân hóa & chuyên môn từng TTS hoặc HR thiết lập
   let bonusAmount = 500000
   let bonusReason = `Thưởng hoàn thành xuất sắc ${sprintProgress}% nhiệm vụ Sprint 1 & chuyên cần 100%`
   let kpiTier = 'A'
   let kpiTierLabel = 'Xuất sắc (Loại A)'
 
-  if (uid === 8 || email === 'tts03@student.ictu.edu.vn') {
+  if (override !== null && typeof override.bonus_penalty !== 'undefined') {
+    if (override.bonus_penalty > 0) {
+      bonusAmount = Number(override.bonus_penalty)
+      bonusReason = 'Thưởng hiệu suất do HR phê duyệt'
+    } else {
+      bonusAmount = 0
+      bonusReason = 'Không có thưởng kỳ này'
+    }
+  } else if (uid === 8 || email === 'tts03@student.ictu.edu.vn') {
     bonusAmount = 700000
     bonusReason = 'Thưởng thiết kế UI Dashboard xuất sắc & vượt định mức'
   } else if (uid === 10 || email === 'tts05@student.ictu.edu.vn') {
@@ -871,12 +975,22 @@ export function calculateInternMetrics(currentUser = null) {
     kpiTierLabel = 'Trung bình (Loại C)'
   }
 
-  // d) Khấu trừ vi phạm: Đi muộn 50.000 ₫/lần
-  const deductionAmount = lateDays * LATE_DEDUCTION_PER_TIME
-  const deductionReason = lateDays > 0 ? `Khấu trừ vi phạm đi muộn ${lateDays} lần (50.000 ₫/lần)` : ''
+  // d) Khấu trừ vi phạm: Đi muộn hoặc do HR khấu trừ
+  let deductionAmount = lateDays * LATE_DEDUCTION_PER_TIME
+  let deductionReason = lateDays > 0 ? `Khấu trừ vi phạm đi muộn ${lateDays} lần (50.000 ₫/lần)` : ''
 
-  // e) Thực lĩnh phụ cấp tháng 10: (Lương CB + Ăn trưa + Thưởng KPI) - Khấu trừ
-  const netTotal = Math.max(0, (baseAllowance + lunchAllowance + bonusAmount) - deductionAmount)
+  if (override !== null && typeof override.bonus_penalty !== 'undefined' && override.bonus_penalty < 0) {
+    deductionAmount = Math.abs(Number(override.bonus_penalty))
+    deductionReason = 'Khấu trừ do HR điều chỉnh'
+  }
+
+  // e) Thực lĩnh phụ cấp tháng 10: (Lương CB + Ăn trưa + Thưởng KPI) - Khấu trừ hoặc HR chốt
+  let netTotal
+  if (override?.total_net) {
+    netTotal = Number(override.total_net)
+  } else {
+    netTotal = Math.max(0, (baseAllowance + lunchAllowance + bonusAmount) - deductionAmount)
+  }
 
   // 4. CHỈ SỐ BÁO CÁO ĐỊNH KỲ
   const submittedReportsCount = reports.length
