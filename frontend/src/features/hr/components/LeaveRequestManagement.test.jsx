@@ -89,17 +89,38 @@ describe('LeaveRequestManagement Test Suite (HR Leave Approval)', () => {
       expect(screen.getByText('Đơn đã từ chối')).toBeInTheDocument()
     })
 
-    it('render đúng danh sách các cột tiêu đề của bảng lịch sử đơn xin nghỉ', async () => {
+    it('render đúng danh sách các cột tiêu đề của bảng lịch sử đơn xin nghỉ (3 cột chi tiết đã được ẩn khỏi bảng)', async () => {
       render(<LeaveRequestManagement />)
       expect(await screen.findByRole('columnheader', { name: /Mã đơn/i })).toBeInTheDocument()
       expect(screen.getByRole('columnheader', { name: /Thực tập sinh/i })).toBeInTheDocument()
       expect(screen.getByRole('columnheader', { name: /Loại nghỉ/i })).toBeInTheDocument()
       expect(screen.getByRole('columnheader', { name: /Thời gian nghỉ/i })).toBeInTheDocument()
-      expect(screen.getByRole('columnheader', { name: /Lý do xin nghỉ/i })).toBeInTheDocument()
-      expect(screen.getByRole('columnheader', { name: /Ngày nộp/i })).toBeInTheDocument()
       expect(screen.getByRole('columnheader', { name: /Trạng thái/i })).toBeInTheDocument()
-      expect(screen.getByRole('columnheader', { name: /Phản hồi của HR/i })).toBeInTheDocument()
       expect(screen.getByRole('columnheader', { name: /Thao tác/i })).toBeInTheDocument()
+
+      // 3 cột đã ẩn khỏi bảng chính
+      expect(screen.queryByRole('columnheader', { name: /Lý do xin nghỉ/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('columnheader', { name: /Ngày nộp/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('columnheader', { name: /Phản hồi của HR/i })).not.toBeInTheDocument()
+    })
+
+    it('khi click vào khung đơn xin nghỉ (dòng bảng), mở modal chi tiết hiển thị đầy đủ thông tin kể cả 3 cột đã ẩn', async () => {
+      const user = userEvent.setup()
+      render(<LeaveRequestManagement />)
+
+      const rowNp2 = await screen.findByRole('row', { name: /NP-002/i })
+      await user.click(rowNp2)
+
+      const modal = screen.getByRole('dialog')
+      expect(modal).toBeInTheDocument()
+      expect(within(modal).getByText(/Chi tiết đơn xin nghỉ phép/i)).toBeInTheDocument()
+
+      // 3 thông tin của các cột đã ẩn xuất hiện đầy đủ trong modal chi tiết
+      expect(within(modal).getByText(/Lý do xin nghỉ:/i)).toBeInTheDocument()
+      expect(within(modal).getByText(/Về quê giải quyết thủ tục hành chính/i)).toBeInTheDocument()
+      expect(within(modal).getByText(/Ngày nộp đơn:/i)).toBeInTheDocument()
+      expect(within(modal).getByText('06/10/2026')).toBeInTheDocument()
+      expect(within(modal).getByText(/Phản hồi của HR:/i)).toBeInTheDocument()
     })
 
     it('hiển thị đúng mã đơn và dữ liệu thực tập sinh từ API', async () => {
