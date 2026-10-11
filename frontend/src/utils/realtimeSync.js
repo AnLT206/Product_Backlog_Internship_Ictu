@@ -171,7 +171,7 @@ const DEFAULT_INITIAL_DATA = {
     },
     {
       id: 5,
-      full_name: 'TTS',
+      full_name: 'Nguyễn Văn An',
       student_code: 'TTS0001',
       email: 'intern@ictu.edu.vn',
       phone: '0912.345.678',
@@ -239,7 +239,7 @@ const DEFAULT_INITIAL_DATA = {
       id: 1,
       intern_id: 5,
       contract_code: 'HĐTT-2026-001',
-      student_name: 'TTS',
+      student_name: 'Nguyễn Văn An',
       student_code: 'TTS0001',
       faculty: 'Khoa Công nghệ Thông tin',
       doc_type: 'Thỏa thuận thực tập 3 bên & NDA',
@@ -304,11 +304,11 @@ const DEFAULT_INITIAL_DATA = {
     {
       id: 1,
       intern_id: 5,
-      student: 'TTS',
+      student: 'Nguyễn Văn An',
       student_code: 'TTS0001 • K20-CNTT',
       company: 'ICTU Software Engineering Lab',
       project: 'Dự án Core API Microservice & Quản lý TTS',
-      mentor: 'Mentor',
+      mentor: 'Trần Hoàng Quân',
       mentor_role: 'Senior Tech Lead',
       mentor_id: 3,
       status: 'assigned',
@@ -321,7 +321,7 @@ const DEFAULT_INITIAL_DATA = {
       student_code: 'TTS0002 • K20-KTPM',
       company: 'Phòng Đảm bảo Chất lượng Phần mềm (QA Lab)',
       project: 'HR Portal Web App & Tuyển dụng sinh viên',
-      mentor: 'Mentor 2',
+      mentor: 'Phạm Quốc Hướng',
       mentor_role: 'QA Lead Engineer',
       mentor_id: 4,
       status: 'assigned',
@@ -334,7 +334,7 @@ const DEFAULT_INITIAL_DATA = {
       student_code: 'TTS0003 • K21-HTTT',
       company: 'Trung tâm Dữ liệu & Hệ thống Thông tin',
       project: 'Enterprise Data Dashboard & BI',
-      mentor: 'Mentor',
+      mentor: 'Trần Hoàng Quân',
       mentor_role: 'Senior Tech Lead',
       mentor_id: 3,
       status: 'assigned',
@@ -347,7 +347,7 @@ const DEFAULT_INITIAL_DATA = {
       student_code: 'TTS0004 • K20-ATTT',
       company: 'Trung tâm An toàn Thông tin & Tác chiến mạng',
       project: 'Security Infrastructure, SSO & Pentest Web API',
-      mentor: 'Mentor 2',
+      mentor: 'Phạm Quốc Hướng',
       mentor_role: 'QA Lead Engineer',
       mentor_id: 4,
       status: 'assigned',
@@ -358,7 +358,7 @@ const DEFAULT_INITIAL_DATA = {
 
 /**
  * Lấy toàn bộ trạng thái đồng bộ hiện tại từ LocalStorage
- * Tự động đồng bộ đầy đủ 5 TTS và kiểm tra trạng thái nộp bài thực tế của Ứng viên
+ * Tự động chuẩn hóa đúng 4 TTS và 1 Ứng viên
  */
 export function getRealtimeSyncState() {
   if (typeof window === 'undefined') return DEFAULT_INITIAL_DATA;
@@ -373,7 +373,10 @@ export function getRealtimeSyncState() {
           'admin@ictu.edu.vn',
           'mentor@ictu.edu.vn', 'mentor2@ictu.edu.vn',
         ]);
-        const beforeLen = parsed.applicants.length;
+        const ALLOWED_IDS = new Set([5, 6, 7, 8, 9]);
+        const VALID_INTERN_IDS = new Set([5, 6, 8, 9]);
+
+        // 1. Chuẩn hóa danh sách applicants: Chỉ giữ đúng 4 TTS và 1 Ứng viên
         parsed.applicants = parsed.applicants.filter((a) => {
           const email = (a.email || '').toLowerCase().trim();
           const role = (a.role || '').toLowerCase().trim();
@@ -382,41 +385,48 @@ export function getRealtimeSyncState() {
           if (email.startsWith('hr') && email.endsWith('@ictu.edu.vn') && !email.includes('student')) return false;
           if (email.startsWith('admin') && email.endsWith('@ictu.edu.vn')) return false;
           if (email.startsWith('mentor') && email.endsWith('@ictu.edu.vn')) return false;
-          return true;
+          return ALLOWED_IDS.has(a.id);
         });
-        if (parsed.applicants.length !== beforeLen) {
-          try {
-            localStorage.setItem(STORAGE_SYNC_KEY, JSON.stringify(parsed));
-          } catch {}
-        }
 
-        // Đảm bảo đầy đủ cả 5 tài khoản TTS chính thức có mặt
+        // Đảm bảo đầy đủ 4 TTS chính thức có mặt
         for (const defApp of DEFAULT_INITIAL_DATA.applicants) {
-          if (defApp.id !== 7 && !parsed.applicants.some((a) => a.id === defApp.id || (a.email && a.email.toLowerCase() === defApp.email.toLowerCase()))) {
+          if (!parsed.applicants.some((a) => a.id === defApp.id)) {
             parsed.applicants.push(defApp);
           }
         }
 
-        if (!parsed.contracts) parsed.contracts = [];
-        // Đảm bảo đầy đủ cả 5 hợp đồng thực tập chính thức
+        // 2. Chuẩn hóa danh sách hợp đồng: Chỉ giữ hợp đồng của 4 TTS chính thức
+        parsed.contracts = (parsed.contracts || []).filter((c) => VALID_INTERN_IDS.has(c.intern_id));
         for (const defCon of DEFAULT_INITIAL_DATA.contracts) {
-          if (!parsed.contracts.some((c) => c.intern_id === defCon.intern_id || c.contract_code === defCon.contract_code)) {
+          if (!parsed.contracts.some((c) => c.intern_id === defCon.intern_id)) {
             parsed.contracts.push(defCon);
           }
         }
 
-        if (!parsed.mentorAssignments) parsed.mentorAssignments = [];
-        // Đảm bảo đầy đủ cả 5 phân công mentor chuẩn xác
+        // 3. Chuẩn hóa danh sách phân công Mentor: Chỉ giữ đúng các phân công thuộc 4 TTS (IDs: 5, 6, 8, 9)
+        parsed.mentorAssignments = (parsed.mentorAssignments || []).filter(
+          (m) => VALID_INTERN_IDS.has(m.intern_id) && (m.mentor_id === 3 || m.mentor_id === 4)
+        );
+        const seenAssigned = new Set();
+        parsed.mentorAssignments = parsed.mentorAssignments.filter((m) => {
+          if (seenAssigned.has(m.intern_id)) return false;
+          seenAssigned.add(m.intern_id);
+          return true;
+        });
         for (const defAssign of DEFAULT_INITIAL_DATA.mentorAssignments) {
           if (!parsed.mentorAssignments.some((m) => m.intern_id === defAssign.intern_id)) {
             parsed.mentorAssignments.push(defAssign);
           }
         }
 
+        // Luôn đồng bộ lưu lại state sạch vào LocalStorage
+        try {
+          localStorage.setItem(STORAGE_SYNC_KEY, JSON.stringify(parsed));
+        } catch {}
+
         if (!parsed.templates || !Array.isArray(parsed.templates) || parsed.templates.length === 0) {
           parsed.templates = [...DEFAULT_CONTRACT_TEMPLATES];
         } else {
-          // Bổ sung các mẫu hợp đồng mặc định mới nếu chưa có trong LocalStorage
           for (const defTpl of DEFAULT_CONTRACT_TEMPLATES) {
             if (!parsed.templates.some((t) => t.id === defTpl.id || t.code === defTpl.code)) {
               parsed.templates.push(defTpl);
@@ -1227,6 +1237,54 @@ export function syncMentorAssignment(mentorId, mentorName, internIds, projectNam
     mentorName,
     internIds,
     count: internIds.length,
+  });
+}
+
+/**
+ * 6.1 HR hủy phân công của một TTS (chuyển về trạng thái chờ phân công)
+ */
+export function syncUnassignMentor(internId) {
+  const state = getRealtimeSyncState();
+  state.mentorAssignments = (state.mentorAssignments || []).filter((m) => m.intern_id !== internId);
+  saveRealtimeSyncState(state);
+  emitRealtimeEvent(SYNC_EVENTS.MENTOR_ASSIGNED, {
+    internId,
+    unassigned: true,
+  });
+}
+
+/**
+ * 6.2 HR điều chuyển một TTS sang Mentor khác
+ */
+export function syncReassignMentor(internId, newMentorId, newMentorName, projectName = 'Dự án Phát triển Hệ thống') {
+  const state = getRealtimeSyncState();
+  const internObj = (state.applicants || []).find((a) => a.id === internId);
+  const studentName = internObj?.full_name || `TTS #${internId}`;
+  const studentCode = internObj?.student_code || `TTS000${internId}`;
+
+  // Gỡ phân công cũ
+  state.mentorAssignments = (state.mentorAssignments || []).filter((m) => m.intern_id !== internId);
+
+  // Thêm phân công mới
+  state.mentorAssignments.push({
+    id: Date.now() + internId,
+    intern_id: internId,
+    student: studentName,
+    student_code: studentCode,
+    company: 'ICTU Software Engineering Lab',
+    project: projectName,
+    mentor: newMentorName,
+    mentor_role: 'Mentor Hướng dẫn',
+    mentor_id: newMentorId,
+    status: 'assigned',
+    status_label: 'Đã phân công',
+  });
+
+  saveRealtimeSyncState(state);
+  emitRealtimeEvent(SYNC_EVENTS.MENTOR_ASSIGNED, {
+    internId,
+    mentorId: newMentorId,
+    mentorName: newMentorName,
   });
 }
 

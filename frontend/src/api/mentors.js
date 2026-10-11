@@ -113,3 +113,17 @@ export async function assignMentor({ mentor_id, intern_ids }) {
     body: JSON.stringify({ mentor_id, intern_ids }),
   });
 }
+
+/**
+ * Hủy phân công một thực tập sinh khỏi mentor (HR / Admin only).
+ * Route: DELETE /api/hr/mentors/:mentorId/assigned-interns/:internId
+ *
+ * @param {number|string} mentorId
+ * @param {number|string} internId
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function unassignInternFromMentor(mentorId, internId) {
+  return apiFetch(`/api/hr/mentors/${mentorId}/assigned-interns/${internId}`, {
+    method: 'DELETE',
+  });
+}

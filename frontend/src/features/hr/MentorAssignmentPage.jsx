@@ -16,16 +16,26 @@ import {
   ChevronRight,
   ShieldAlert,
   Sparkles,
+  ArrowRightLeft,
+  UserMinus,
+  Info,
 } from 'lucide-react';
-import { getMentors, assignMentor } from '../../api/mentors';
+import { getMentors, assignMentor, unassignInternFromMentor } from '../../api/mentors';
 import { getInterns } from '../../api/interns';
-import { syncMentorAssignment, getRealtimeSyncState, subscribeRealtimeEvents } from '../../utils/realtimeSync';
+import {
+  syncMentorAssignment,
+  syncReassignMentor,
+  syncUnassignMentor,
+  getRealtimeSyncState,
+  subscribeRealtimeEvents,
+} from '../../utils/realtimeSync';
 import './MentorAssignmentPage.css';
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   CONSTANTS & INITIAL MOCK DATA (CHUẨN 3 TRƯỜNG HỢP MÀU: XANH <80%, CAM 80%, ĐỎ 100%)
+   CONSTANTS & INITIAL DATA (CHUẨN 4 HỒ SƠ TTS, 2 MENTOR, MỖI MENTOR 2/5 TTS = 40%)
    ───────────────────────────────────────────────────────────────────────────── */
 const MAX_INTERNS_PER_MENTOR = 5;
+const VALID_INTERN_IDS = new Set([5, 6, 8, 9]);
 
 const INITIAL_MENTORS = [
   {
@@ -48,68 +58,62 @@ const INITIAL_MENTORS = [
   },
 ];
 
-const INITIAL_UNASSIGNED_INTERNS = [
+const DEFAULT_ASSIGNED_INTERNS = [
   {
-    id: 101,
-    code: 'TTS1001',
-    full_name: 'Hoàng Minh Tuấn',
-    email: 'tuan.hm@student.ictu.edu.vn',
-    university: 'ĐH CNTT & Truyền thông (ICTU)',
+    id: 5,
+    code: 'TTS0001',
+    full_name: 'Nguyễn Văn An',
+    email: 'intern@ictu.edu.vn',
+    university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+    major: 'Kỹ thuật Phần mềm',
+    gpa: 3.85,
+    mentor_id: 3,
+    mentor_name: 'Trần Hoàng Quân',
+    department: 'Kỹ thuật phần mềm (Software Engineering)',
+    applied_date: '28/09/2026',
+  },
+  {
+    id: 6,
+    code: 'TTS0002',
+    full_name: 'Lê Hoàng Nam',
+    email: 'tts02@student.ictu.edu.vn',
+    university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
     major: 'Kỹ thuật Phần mềm',
     gpa: 3.65,
-    applied_date: '02/10/2026',
+    mentor_id: 4,
+    mentor_name: 'Phạm Quốc Hướng',
+    department: 'Kiểm thử chất lượng (QA/QC)',
+    applied_date: '27/09/2026',
   },
   {
-    id: 102,
-    code: 'TTS1002',
-    full_name: 'Đặng Thùy Dung',
-    email: 'dung.dt@student.ictu.edu.vn',
-    university: 'ĐH CNTT & Truyền thông (ICTU)',
-    major: 'Khoa học Dữ liệu & AI',
-    gpa: 3.82,
-    applied_date: '02/10/2026',
+    id: 8,
+    code: 'TTS0003',
+    full_name: 'Trần Thị Mai Phương',
+    email: 'tts03@student.ictu.edu.vn',
+    university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+    major: 'Hệ thống thông tin',
+    gpa: 3.72,
+    mentor_id: 3,
+    mentor_name: 'Trần Hoàng Quân',
+    department: 'Kỹ thuật phần mềm (Software Engineering)',
+    applied_date: '26/09/2026',
   },
   {
-    id: 103,
-    code: 'TTS1003',
-    full_name: 'Nguyễn Đức Thắng',
-    email: 'thang.nd@hust.edu.vn',
-    university: 'ĐH Bách Khoa Hà Nội',
-    major: 'Công nghệ Thông tin',
-    gpa: 3.45,
-    applied_date: '03/10/2026',
-  },
-  {
-    id: 104,
-    code: 'TTS1004',
-    full_name: 'Phan Khánh Linh',
-    email: 'linh.pk@uet.vnu.edu.vn',
-    university: 'ĐH Công nghệ - ĐHQGHN',
-    major: 'An toàn Thông tin',
-    gpa: 3.70,
-    applied_date: '04/10/2026',
-  },
-  {
-    id: 105,
-    code: 'TTS1005',
-    full_name: 'Trần Văn Kiên',
-    email: 'kien.tv@tnu.edu.vn',
-    university: 'ĐH Kỹ thuật Công nghiệp Thái Nguyên',
-    major: 'Kỹ thuật Phần mềm',
-    gpa: 3.30,
-    applied_date: '05/10/2026',
-  },
-  {
-    id: 106,
-    code: 'TTS1006',
-    full_name: 'Bùi Lan Anh',
-    email: 'anh.bl@student.ictu.edu.vn',
-    university: 'ĐH CNTT & Truyền thông (ICTU)',
-    major: 'Hệ thống Thông tin',
-    gpa: 3.58,
-    applied_date: '06/10/2026',
+    id: 9,
+    code: 'TTS0004',
+    full_name: 'Hoàng Minh Đức',
+    email: 'tts04@student.ictu.edu.vn',
+    university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+    major: 'An toàn thông tin',
+    gpa: 3.60,
+    mentor_id: 4,
+    mentor_name: 'Phạm Quốc Hướng',
+    department: 'Kiểm thử chất lượng (QA/QC)',
+    applied_date: '25/09/2026',
   },
 ];
+
+const INITIAL_UNASSIGNED_INTERNS = [];
 
 /* ─────────────────────────────────────────────────────────────────────────────
    HELPER: TÍNH TOÁN LEVEL TẢI CÔNG VIỆC CỦA MENTOR
@@ -154,9 +158,9 @@ function getWorkloadStatus(current, max = MAX_INTERNS_PER_MENTOR) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   SUB-COMPONENT 1: MENTOR WORKLOAD CARD (PHẦN 1)
+   SUB-COMPONENT: MENTOR WORKLOAD CARD (PHẦN 1)
    ───────────────────────────────────────────────────────────────────────────── */
-function MentorWorkloadCard({ mentor, onSelectForAssign }) {
+function MentorWorkloadCard({ mentor, assignedList = [], onSelectForAssign }) {
   const status = getWorkloadStatus(mentor.current_interns, mentor.max_interns);
   const initials = (mentor.full_name || 'MT')
     .split(' ')
@@ -189,6 +193,21 @@ function MentorWorkloadCard({ mentor, onSelectForAssign }) {
           </p>
         </div>
       </div>
+
+      {/* Danh sách TTS đang hướng dẫn */}
+      {assignedList.length > 0 && (
+        <div className="mentor-assigned-chips">
+          <span className="chips-title">TTS đang hướng dẫn ({assignedList.length}):</span>
+          <div className="chips-list">
+            {assignedList.map((item) => (
+              <span key={item.id} className="intern-chip" title={`${item.full_name} (${item.code})`}>
+                <span className="intern-chip-name">{item.full_name}</span>
+                <span className="intern-chip-code">{item.code}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Thanh tiến trình Progress Bar */}
       <div className="workload-progress-section">
@@ -224,7 +243,7 @@ function MentorWorkloadCard({ mentor, onSelectForAssign }) {
             disabled={status.isFull}
             title={status.isFull ? 'Mentor đã đầy tải' : 'Chọn mentor này để phân công'}
           >
-            <span>{status.isFull ? 'Đã đủ chỉ tiêu' : 'Gán sinh viên'}</span>
+            <span>{status.isFull ? 'Đã đủ chỉ tiêu' : 'Gán thêm sinh viên'}</span>
             {!status.isFull && <ChevronRight size={14} />}
           </button>
         </div>
@@ -238,7 +257,9 @@ function MentorWorkloadCard({ mentor, onSelectForAssign }) {
    ───────────────────────────────────────────────────────────────────────────── */
 export default function MentorAssignmentPage() {
   const [activeTab, setActiveTab] = useState('both'); // 'both' | 'workload' | 'assign'
+  const [subTab, setSubTab] = useState('assigned'); // 'assigned' | 'unassigned'
   const [mentors, setMentors] = useState(INITIAL_MENTORS);
+  const [assignedInterns, setAssignedInterns] = useState(DEFAULT_ASSIGNED_INTERNS);
   const [unassignedInterns, setUnassignedInterns] = useState(INITIAL_UNASSIGNED_INTERNS);
   const [selectedMentorId, setSelectedMentorId] = useState('');
   const [selectedInternIds, setSelectedInternIds] = useState(new Set());
@@ -252,7 +273,7 @@ export default function MentorAssignmentPage() {
     setTimeout(() => setToast(null), 4000);
   }, []);
 
-  // Tải dữ liệu thật từ Backend nếu có kết nối
+  // Tải dữ liệu thật từ Backend kết hợp Realtime Store
   useEffect(() => {
     let cancelled = false;
 
@@ -263,59 +284,89 @@ export default function MentorAssignmentPage() {
           getInterns({ page_size: 100 }),
         ]);
 
-        if (!cancelled && mentorsRes.ok && Array.isArray(mentorsRes.data) && mentorsRes.data.length > 0) {
-          const syncState = getRealtimeSyncState();
-          const mergedMentors = mentorsRes.data.map((m) => {
-            const countInSync = (syncState.mentorAssignments || []).filter(
-              (a) => a.mentor_id === m.id
-            ).length;
-            return {
-              id: m.id,
-              full_name: m.full_name || 'Mentor',
-              email: m.email,
-              department: m.department || 'Trung tâm Phát triển Phần mềm ICTU',
-              position: m.position || 'Mentor Hướng dẫn',
-              current_interns: countInSync > 0 ? countInSync : (m.intern_count || 0),
-              max_interns: MAX_INTERNS_PER_MENTOR,
-            };
-          });
-          setMentors(mergedMentors);
+        if (cancelled) return;
 
-          if (internsRes.ok) {
-            const rawItems = Array.isArray(internsRes.data)
-              ? internsRes.data
-              : (internsRes.data?.items || []);
-            const assignedIds = new Set(
-              (syncState.mentorAssignments || []).flatMap((a) => a.intern_ids || [])
-            );
-            // Các TTS đã có phân công trong CSDL (TTS 1, 2, 3, 4)
-            const dbAssignedIds = new Set([5, 6, 8, 9]);
+        const syncState = getRealtimeSyncState();
+        const rawItems = internsRes?.ok
+          ? (Array.isArray(internsRes.data) ? internsRes.data : (internsRes.data?.items || []))
+          : [];
 
-            const realUnassigned = rawItems
-              .filter((i) => {
-                const isApproved = i.status === 'active' || i.status === 'approved';
-                const notInSync = !assignedIds.has(i.id);
-                const notInDb = !dbAssignedIds.has(i.id);
-                return isApproved && notInSync && notInDb && i.email !== 'ungvien@ictu.edu.vn';
-              })
-              .map((i) => ({
-                id: i.id,
-                code: i.code || `TTS${String(i.id).padStart(4, '0')}`,
-                full_name: i.full_name || 'Thực tập sinh',
-                email: i.email,
-                university: i.university || 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
-                major: i.major || 'Khoa học máy tính',
-                gpa: Number(i.gpa) || 3.8,
-                applied_date: i.created_at ? i.created_at.split('T')[0] : '09/10/2026',
-              }));
-
-            if (realUnassigned.length > 0) {
-              setUnassignedInterns(realUnassigned);
-            }
-          }
+        // 1. Đồng bộ danh sách Mentors
+        let mergedMentors = INITIAL_MENTORS;
+        if (mentorsRes.ok && Array.isArray(mentorsRes.data) && mentorsRes.data.length > 0) {
+          mergedMentors = mentorsRes.data
+            .filter((m) => m.id === 3 || m.id === 4)
+            .map((m) => {
+              const countInSync = (syncState.mentorAssignments || []).filter(
+                (a) => a.mentor_id === m.id && VALID_INTERN_IDS.has(a.intern_id)
+              ).length;
+              return {
+                id: m.id,
+                full_name: m.full_name || (m.id === 3 ? 'Trần Hoàng Quân' : 'Phạm Quốc Hướng'),
+                email: m.email || (m.id === 3 ? 'mentor@ictu.edu.vn' : 'mentor2@ictu.edu.vn'),
+                department: m.department || (m.id === 3 ? 'Kỹ thuật phần mềm (Software Engineering)' : 'Kiểm thử chất lượng (QA/QC)'),
+                position: m.position || (m.id === 3 ? 'Senior Fullstack Tech Lead' : 'QA Lead & Automation Specialist'),
+                current_interns: countInSync > 0 ? countInSync : 2,
+                max_interns: MAX_INTERNS_PER_MENTOR,
+              };
+            });
         }
+
+        // 2. Đồng bộ danh sách 4 TTS đã phân công
+        const assignments = (syncState.mentorAssignments || []).filter(
+          (a) => VALID_INTERN_IDS.has(a.intern_id) && (a.mentor_id === 3 || a.mentor_id === 4)
+        );
+
+        const assignedList = DEFAULT_ASSIGNED_INTERNS.map((defIntern) => {
+          const assign = assignments.find((a) => a.intern_id === defIntern.id);
+          const rawIntern = rawItems.find((i) => i.id === defIntern.id);
+
+          const mentorId = assign ? assign.mentor_id : defIntern.mentor_id;
+          const mentorObj = mergedMentors.find((m) => m.id === mentorId);
+
+          return {
+            ...defIntern,
+            full_name: rawIntern?.full_name || defIntern.full_name,
+            code: rawIntern?.code || rawIntern?.student_code || defIntern.code,
+            email: rawIntern?.email || defIntern.email,
+            university: rawIntern?.university || defIntern.university,
+            major: rawIntern?.major || defIntern.major,
+            gpa: Number(rawIntern?.gpa) || defIntern.gpa,
+            mentor_id: mentorId,
+            mentor_name: mentorObj?.full_name || (mentorId === 3 ? 'Trần Hoàng Quân' : 'Phạm Quốc Hướng'),
+            department: mentorObj?.department || defIntern.department,
+          };
+        }).filter((item) => {
+          // Chỉ giữ lại nếu đang được gán cho một mentor hợp lệ
+          return assignments.some((a) => a.intern_id === item.id);
+        });
+
+        // 3. Đồng bộ danh sách TTS chưa có Mentor (nếu có hồ sơ trong 4 TTS bị hủy gán)
+        const assignedIds = new Set(assignedList.map((a) => a.id));
+        const unassignedList = DEFAULT_ASSIGNED_INTERNS.filter((i) => !assignedIds.has(i.id)).map((i) => {
+          const rawIntern = rawItems.find((r) => r.id === i.id);
+          return {
+            ...i,
+            full_name: rawIntern?.full_name || i.full_name,
+            code: rawIntern?.code || rawIntern?.student_code || i.code,
+            email: rawIntern?.email || i.email,
+            university: rawIntern?.university || i.university,
+            major: rawIntern?.major || i.major,
+            gpa: Number(rawIntern?.gpa) || i.gpa,
+          };
+        });
+
+        // Cập nhật lại số lượng TTS chuẩn cho từng mentor
+        const finalMentors = mergedMentors.map((m) => ({
+          ...m,
+          current_interns: assignedList.filter((a) => a.mentor_id === m.id).length,
+        }));
+
+        setMentors(finalMentors);
+        setAssignedInterns(assignedList);
+        setUnassignedInterns(unassignedList);
       } catch (e) {
-        // Fallback giữ nguyên
+        console.warn('Lỗi khi tải dữ liệu phân công:', e);
       }
     }
 
@@ -350,7 +401,21 @@ export default function MentorAssignmentPage() {
     return getWorkloadStatus(currentSelectedMentor.current_interns, currentSelectedMentor.max_interns);
   }, [currentSelectedMentor]);
 
-  // Danh sách TTS chưa có Mentor sau khi lọc tìm kiếm
+  // Lọc danh sách TTS đã phân công theo từ khóa tìm kiếm
+  const filteredAssignedInterns = useMemo(() => {
+    if (!searchQuery.trim()) return assignedInterns;
+    const q = searchQuery.trim().toLowerCase();
+    return assignedInterns.filter(
+      (item) =>
+        item.full_name.toLowerCase().includes(q) ||
+        item.code.toLowerCase().includes(q) ||
+        item.university.toLowerCase().includes(q) ||
+        item.major.toLowerCase().includes(q) ||
+        (item.mentor_name && item.mentor_name.toLowerCase().includes(q))
+    );
+  }, [assignedInterns, searchQuery]);
+
+  // Lọc danh sách TTS chưa có Mentor theo từ khóa tìm kiếm
   const filteredUnassignedInterns = useMemo(() => {
     if (!searchQuery.trim()) return unassignedInterns;
     const q = searchQuery.trim().toLowerCase();
@@ -363,7 +428,7 @@ export default function MentorAssignmentPage() {
     );
   }, [unassignedInterns, searchQuery]);
 
-  // Xử lý tick chọn 1 TTS
+  // Xử lý tick chọn 1 TTS ở bảng chờ phân công
   const handleToggleIntern = (internId) => {
     setSelectedInternIds((prev) => {
       const next = new Set(prev);
@@ -391,18 +456,22 @@ export default function MentorAssignmentPage() {
     }
   };
 
-  // Khi click "Gán sinh viên" nhanh từ Thẻ Workload ở Phần 1
+  // Khi click "Gán thêm sinh viên" nhanh từ Thẻ Workload ở Phần 1
   const handleSelectMentorFromCard = (mentorId) => {
     setSelectedMentorId(String(mentorId));
     setActiveTab('both');
-    // Cuộn xuống khu vực Phần 2
+    if (unassignedInterns.length > 0) {
+      setSubTab('unassigned');
+    } else {
+      setSubTab('assigned');
+    }
     const targetElement = document.getElementById('assign-section-target');
     if (targetElement) {
       targetElement.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  /* ── LOGIC PHÂN CÔNG (CALL API & REALTIME SYNC) ── */
+  /* ── 1. LOGIC PHÂN CÔNG THỰC TẬP SINH MỚI (CALL API & SYNC) ── */
   const handleAssignSubmit = async () => {
     if (!selectedMentorId) {
       showToast('Vui lòng chọn Mentor trước khi phân công!', 'error');
@@ -430,38 +499,48 @@ export default function MentorAssignmentPage() {
 
     try {
       // 1. Gọi API POST /api/hr/assign-mentor
-      const res = await assignMentor({
-        mentor_id: Number(selectedMentorId),
-        intern_ids: internIdsArray,
-      });
+      try {
+        await assignMentor({
+          mentor_id: Number(selectedMentorId),
+          intern_ids: internIdsArray,
+        });
+      } catch (apiErr) {
+        console.warn('API assignMentor fallback sang local sync:', apiErr);
+      }
 
-      // 2. Cập nhật State Mentor ở Phần 1 (tăng số lượng TTS, tính lại Progress Bar)
-      setMentors((prevMentors) =>
-        prevMentors.map((m) => {
-          if (String(m.id) === String(selectedMentorId)) {
-            const nextCount = Math.min(m.max_interns, m.current_interns + internIdsArray.length);
-            return {
-              ...m,
-              current_interns: nextCount,
-            };
-          }
-          return m;
-        })
-      );
+      // 2. Chuyển các TTS được chọn từ unassigned sang assigned
+      const newlyAssigned = unassignedInterns
+        .filter((i) => selectedInternIds.has(i.id))
+        .map((i) => ({
+          ...i,
+          mentor_id: Number(selectedMentorId),
+          mentor_name: currentSelectedMentor.full_name,
+          department: currentSelectedMentor.department,
+        }));
 
-      // 3. Tự động xóa các TTS đó khỏi bảng chưa phân công ở Phần 2
-      setUnassignedInterns((prevInterns) =>
-        prevInterns.filter((i) => !selectedInternIds.has(i.id))
-      );
+      const nextAssigned = [...assignedInterns, ...newlyAssigned];
+      const nextUnassigned = unassignedInterns.filter((i) => !selectedInternIds.has(i.id));
 
-      // 4. Reset checkbox selection
+      setAssignedInterns(nextAssigned);
+      setUnassignedInterns(nextUnassigned);
       setSelectedInternIds(new Set());
 
-      // 5. Đồng bộ vào Realtime Store
+      // 3. Cập nhật số lượng trong state mentors
+      setMentors((prevMentors) =>
+        prevMentors.map((m) => ({
+          ...m,
+          current_interns: nextAssigned.filter((a) => a.mentor_id === m.id).length,
+        }))
+      );
+
+      // 4. Đồng bộ vào Realtime Store
+      const currentInternsForMentor = nextAssigned
+        .filter((a) => a.mentor_id === Number(selectedMentorId))
+        .map((a) => a.id);
       syncMentorAssignment(
         Number(selectedMentorId),
         currentSelectedMentor.full_name,
-        internIdsArray,
+        currentInternsForMentor,
         currentSelectedMentor.department
       );
 
@@ -469,11 +548,108 @@ export default function MentorAssignmentPage() {
         `Phân công thành công ${internIdsArray.length} thực tập sinh cho Mentor ${currentSelectedMentor.full_name}!`,
         'success'
       );
+      setSubTab('assigned');
     } catch (err) {
       console.error('Lỗi khi phân công mentor:', err);
       showToast('Lỗi khi phân công mentor. Vui lòng thử lại!', 'error');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  /* ── 2. LOGIC ĐIỀU CHUYỂN MENTOR CHO TTS ĐÃ CÓ PHÂN CÔNG ── */
+  const handleReassignMentor = async (internId, targetMentorId) => {
+    const targetMentor = mentors.find((m) => m.id === Number(targetMentorId));
+    if (!targetMentor) return;
+
+    if (targetMentor.current_interns >= targetMentor.max_interns) {
+      showToast(`Mentor ${targetMentor.full_name} đã đạt giới hạn tối đa 5 TTS!`, 'error');
+      return;
+    }
+
+    try {
+      try {
+        await assignMentor({
+          mentor_id: Number(targetMentorId),
+          intern_ids: [internId],
+        });
+      } catch (apiErr) {
+        console.warn('API reassign fallback:', apiErr);
+      }
+
+      const nextAssigned = assignedInterns.map((item) => {
+        if (item.id === internId) {
+          return {
+            ...item,
+            mentor_id: Number(targetMentorId),
+            mentor_name: targetMentor.full_name,
+            department: targetMentor.department,
+          };
+        }
+        return item;
+      });
+
+      setAssignedInterns(nextAssigned);
+      setMentors((prevMentors) =>
+        prevMentors.map((m) => ({
+          ...m,
+          current_interns: nextAssigned.filter((a) => a.mentor_id === m.id).length,
+        }))
+      );
+
+      // Đồng bộ thời gian thực
+      syncReassignMentor(internId, Number(targetMentorId), targetMentor.full_name, targetMentor.department);
+
+      showToast(
+        `Đã điều chuyển thực tập sinh sang Mentor ${targetMentor.full_name} thành công!`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Lỗi khi điều chuyển mentor:', err);
+      showToast('Không thể điều chuyển Mentor. Vui lòng thử lại!', 'error');
+    }
+  };
+
+  /* ── 3. LOGIC HỦY GÁN MENTOR (ĐƯA VỀ HÀNG CHỜ PHÂN CÔNG) ── */
+  const handleUnassignIntern = async (internId, currentMentorId) => {
+    try {
+      try {
+        await unassignInternFromMentor(currentMentorId, internId);
+      } catch (apiErr) {
+        console.warn('API unassign fallback:', apiErr);
+      }
+
+      const unassignedItem = assignedInterns.find((item) => item.id === internId);
+      if (!unassignedItem) return;
+
+      const nextAssigned = assignedInterns.filter((item) => item.id !== internId);
+      const nextUnassigned = [
+        ...unassignedInterns,
+        {
+          ...unassignedItem,
+          mentor_id: null,
+          mentor_name: null,
+        },
+      ];
+
+      setAssignedInterns(nextAssigned);
+      setUnassignedInterns(nextUnassigned);
+      setMentors((prevMentors) =>
+        prevMentors.map((m) => ({
+          ...m,
+          current_interns: nextAssigned.filter((a) => a.mentor_id === m.id).length,
+        }))
+      );
+
+      syncUnassignMentor(internId);
+
+      showToast(
+        `Đã hủy phân công ${unassignedItem.full_name}. Hồ sơ đã chuyển về danh sách chờ phân công.`,
+        'info'
+      );
+    } catch (err) {
+      console.error('Lỗi khi hủy phân công:', err);
+      showToast('Không thể hủy phân công. Vui lòng thử lại!', 'error');
     }
   };
 
@@ -496,7 +672,7 @@ export default function MentorAssignmentPage() {
           </div>
           <h1 className="header-main-title">Phân công Hướng dẫn & Điều phối Tải công việc Mentor</h1>
           <p className="header-desc">
-            Theo dõi tải công việc thực tế (Workload), kiểm soát giới hạn tiếp nhận tối đa {MAX_INTERNS_PER_MENTOR} TTS/Mentor và phân công sinh viên hàng loạt.
+            Theo dõi tải công việc thực tế (Workload), kiểm soát giới hạn tiếp nhận tối đa {MAX_INTERNS_PER_MENTOR} TTS/Mentor và điều phối chuẩn {assignedInterns.length + unassignedInterns.length} hồ sơ thực tập sinh.
           </p>
         </div>
 
@@ -524,7 +700,7 @@ export default function MentorAssignmentPage() {
             onClick={() => setActiveTab('assign')}
           >
             <UserCheck size={15} />
-            <span>Phần 2: Gán Mentor ({unassignedInterns.length} chưa phân công)</span>
+            <span>Phần 2: Quản lý & Gán Mentor ({assignedInterns.length} đã gán, {unassignedInterns.length} chờ gán)</span>
           </button>
         </div>
       </header>
@@ -537,7 +713,7 @@ export default function MentorAssignmentPage() {
               <div className="section-title-badge">PHẦN 1</div>
               <h2 className="section-title">Theo dõi tải công việc Mentor (Workload Monitoring)</h2>
               <p className="section-desc">
-                Tỷ lệ lấp đầy hiển thị màu sắc theo quy tắc: <strong>Xanh (&lt;80%)</strong>, <strong>Cam (&ge;80%)</strong> và <strong>Đỏ (Đạt 100% tối đa - Vô hiệu hóa)</strong>.
+                Tỷ lệ lấp đầy hiển thị màu sắc theo quy tắc: <strong>Xanh (&lt;80%)</strong>, <strong>Cam (&ge;80%)</strong> và <strong>Đỏ (Đạt 100% tối đa - Vô hiệu hóa)</strong>. Hiện cả 2 Mentor đều phụ trách 2/5 TTS (40% - Khả dụng).
               </p>
             </div>
             <div className="workload-summary-pills">
@@ -561,6 +737,7 @@ export default function MentorAssignmentPage() {
               <MentorWorkloadCard
                 key={mentor.id}
                 mentor={mentor}
+                assignedList={assignedInterns.filter((a) => a.mentor_id === mentor.id)}
                 onSelectForAssign={handleSelectMentorFromCard}
               />
             ))}
@@ -568,243 +745,414 @@ export default function MentorAssignmentPage() {
         </section>
       )}
 
-      {/* ── PHẦN 2: GÁN MENTOR CHO THỰC TẬP SINH ── */}
+      {/* ── PHẦN 2: QUẢN LÝ PHÂN CÔNG & ĐIỀU PHỐI THỰC TẬP SINH ── */}
       {(activeTab === 'both' || activeTab === 'assign') && (
-        <section id="assign-section-target" className="assign-section" aria-label="Phần 2: Gán Mentor cho Thực tập sinh">
+        <section id="assign-section-target" className="assign-section" aria-label="Phần 2: Quản lý Phân công & Điều phối Thực tập sinh">
           <div className="section-header-row">
             <div>
               <div className="section-title-badge">PHẦN 2</div>
-              <h2 className="section-title">Gán Mentor cho Thực tập sinh (Batch Assignment)</h2>
+              <h2 className="section-title">Quản lý Phân công & Điều phối Thực tập sinh (4 Hồ sơ)</h2>
               <p className="section-desc">
-                Chọn Mentor tiếp nhận, tick chọn danh sách Thực tập sinh chưa có Mentor và bấm nút "Phân công".
+                Hệ thống quản lý chuẩn 4 hồ sơ thực tập sinh tương ứng với Phân hệ Quản lý Hồ sơ TTS. Bạn có thể theo dõi, điều chuyển Mentor hoặc phân công sinh viên mới.
               </p>
+            </div>
+
+            {/* Sub-tab switcher cho Phần 2 */}
+            <div className="sub-tabs-container">
+              <button
+                type="button"
+                className={`btn-sub-tab ${subTab === 'assigned' ? 'is-active' : ''}`}
+                onClick={() => setSubTab('assigned')}
+              >
+                <CheckCircle2 size={14} />
+                <span>TTS đã phân công ({assignedInterns.length})</span>
+              </button>
+              <button
+                type="button"
+                className={`btn-sub-tab ${subTab === 'unassigned' ? 'is-active' : ''}`}
+                onClick={() => setSubTab('unassigned')}
+              >
+                <UserCheck size={14} />
+                <span>TTS chờ phân công ({unassignedInterns.length})</span>
+              </button>
             </div>
           </div>
 
           <div className="assign-panel-card">
-            {/* 1. KHU VỰC CHỌN MENTOR & NÚT PHÂN CÔNG */}
-            <div className="assign-control-bar">
-              <div className="mentor-select-group">
-                <label htmlFor="mentor-dropdown" className="control-label">
-                  <UserCheck size={16} />
-                  <span>Chọn Mentor phụ trách:</span>
-                </label>
-
-                <div className="select-wrapper">
-                  <select
-                    id="mentor-dropdown"
-                    className="mentor-select-input"
-                    value={selectedMentorId}
-                    onChange={(e) => setSelectedMentorId(e.target.value)}
-                  >
-                    <option value="" disabled>-- Vui lòng chọn Mentor --</option>
-                    {mentors.map((m) => {
-                      const st = getWorkloadStatus(m.current_interns, m.max_interns);
-                      return (
-                        <option
-                          key={m.id}
-                          value={m.id}
-                          disabled={st.isFull}
-                        >
-                          {m.full_name} ({m.current_interns}/{m.max_interns} TTS {st.isFull ? '— ĐÃ ĐẦY 5/5' : `— Còn ${st.remaining} chỗ`})
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              </div>
-
-              {/* Card tóm tắt trạng thái Mentor đang chọn */}
-              {currentSelectedMentor && currentMentorWorkload && (
-                <div className={`selected-mentor-status-box box--${currentMentorWorkload.colorVariant}`}>
-                  <div className="status-box-header">
-                    <strong>{currentSelectedMentor.full_name}</strong>
-                    <span className="status-box-dept">({currentSelectedMentor.department})</span>
-                  </div>
-                  <div className="status-box-quota">
-                    <span>Đang phụ trách: <strong>{currentSelectedMentor.current_interns}/{currentSelectedMentor.max_interns} TTS</strong></span>
-                    <span className="quota-separator">•</span>
-                    <span>Còn nhận thêm tối đa: <strong className="remaining-count">{currentMentorWorkload.remaining} sinh viên</strong></span>
+            {/* SUB-TAB 1: DANH SÁCH TTS ĐÃ PHÂN CÔNG (4 HỒ SƠ) */}
+            {subTab === 'assigned' && (
+              <>
+                <div className="banner-info-box">
+                  <Info size={18} className="info-icon" />
+                  <div className="info-content">
+                    <strong>Chuẩn hóa dữ liệu theo 4 hồ sơ TTS:</strong> Toàn bộ 4 thực tập sinh đã được phân công Mentor hướng dẫn theo chuyên môn (Trần Hoàng Quân: 2 TTS; Phạm Quốc Hướng: 2 TTS).
                   </div>
                 </div>
-              )}
 
-              {/* Nút Phân công & Cảnh báo hạn mức */}
-              <div className="action-button-group">
-                <button
-                  type="button"
-                  className="btn-submit-assign"
-                  onClick={handleAssignSubmit}
-                  disabled={
-                    submitting ||
-                    !selectedMentorId ||
-                    selectedInternIds.size === 0 ||
-                    currentMentorWorkload?.isFull ||
-                    (selectedInternIds.size > (currentMentorWorkload?.remaining || 0))
-                  }
-                >
-                  <UserCheck size={16} />
-                  <span>
-                    {submitting
-                      ? 'Đang phân công...'
-                      : selectedInternIds.size > 0
-                      ? `Phân công (${selectedInternIds.size} TTS)`
-                      : 'Phân công'}
-                  </span>
-                </button>
-
-                {currentMentorWorkload && selectedInternIds.size > currentMentorWorkload.remaining && (
-                  <div className="assign-quota-warning">
-                    <AlertTriangle size={14} />
-                    <span>Vượt quá hạn mức còn lại ({currentMentorWorkload.remaining} chỗ)!</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 2. THANH CÔNG CỤ TÌM KIẾM & BỘ ĐẾM */}
-            <div className="table-filter-bar">
-              <div className="search-box-wrap">
-                <Search size={16} className="search-icon" />
-                <input
-                  type="text"
-                  className="search-input"
-                  placeholder="Tìm kiếm sinh viên theo tên, mã TTS, trường hoặc chuyên ngành..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    className="btn-clear-search"
-                    onClick={() => setSearchQuery('')}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-
-              <div className="selection-counter-badge">
-                <span>Đã chọn: <strong>{selectedInternIds.size}</strong> / {unassignedInterns.length} TTS chưa gán</span>
-                {selectedInternIds.size > 0 && (
-                  <button
-                    type="button"
-                    className="btn-deselect-all"
-                    onClick={() => setSelectedInternIds(new Set())}
-                  >
-                    Bỏ chọn
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* 3. BẢNG DANH SÁCH THỰC TẬP SINH CHƯA CÓ MENTOR */}
-            <div className="table-responsive-wrapper">
-              <table className="unassigned-interns-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '48px', textAlign: 'center' }}>
+                {/* Thanh tìm kiếm */}
+                <div className="table-filter-bar">
+                  <div className="search-box-wrap">
+                    <Search size={16} className="search-icon" />
+                    <input
+                      type="text"
+                      className="search-input"
+                      placeholder="Tìm kiếm sinh viên theo tên, mã TTS, trường, chuyên ngành hoặc mentor..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
                       <button
                         type="button"
-                        className="btn-checkbox-header"
-                        onClick={handleToggleSelectAll}
-                        title={isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
-                        disabled={filteredUnassignedInterns.length === 0}
+                        className="btn-clear-search"
+                        onClick={() => setSearchQuery('')}
                       >
-                        {isAllSelected ? (
-                          <CheckSquare size={18} className="text-primary" />
-                        ) : (
-                          <Square size={18} className="text-slate" />
-                        )}
+                        ×
                       </button>
-                    </th>
-                    <th style={{ width: '60px', textAlign: 'center' }}>STT</th>
-                    <th style={{ width: '220px' }}>Họ và tên</th>
-                    <th style={{ minWidth: '220px' }}>Trường Đại học</th>
-                    <th style={{ minWidth: '180px' }}>Chuyên ngành</th>
-                    <th style={{ width: '100px', textAlign: 'center' }}>Điểm GPA</th>
-                    <th style={{ width: '150px', textAlign: 'center' }}>Ngày tiếp nhận</th>
-                    <th style={{ width: '140px', textAlign: 'center' }}>Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {unassignedInterns.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="table-empty-row">
-                        <CheckCircle2 size={36} className="empty-success-icon" />
-                        <h4 className="empty-title">Tuyệt vời! Tất cả thực tập sinh đã được phân công Mentor.</h4>
-                        <p className="empty-subtitle">Hiện tại không còn sinh viên nào ở trạng thái chờ phân công.</p>
-                      </td>
-                    </tr>
-                  ) : filteredUnassignedInterns.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="table-empty-row">
-                        <AlertCircle size={32} className="empty-icon" />
-                        <h4 className="empty-title">Không tìm thấy sinh viên phù hợp</h4>
-                        <p className="empty-subtitle">Thử tìm kiếm với từ khóa khác hoặc xóa ô tìm kiếm.</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredUnassignedInterns.map((intern, index) => {
-                      const isSelected = selectedInternIds.has(intern.id);
-                      return (
-                        <tr
-                          key={intern.id}
-                          className={`intern-table-row ${isSelected ? 'row--selected' : ''}`}
-                          onClick={() => handleToggleIntern(intern.id)}
-                        >
-                          <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                            <button
-                              type="button"
-                              className="btn-row-checkbox"
-                              onClick={() => handleToggleIntern(intern.id)}
-                              aria-label={`Chọn ${intern.full_name}`}
-                            >
-                              {isSelected ? (
-                                <CheckSquare size={18} className="text-primary" />
-                              ) : (
-                                <Square size={18} className="text-slate" />
-                              )}
-                            </button>
-                          </td>
-                          <td style={{ textAlign: 'center' }} className="col-stt">
-                            {index + 1}
-                          </td>
-                          <td>
-                            <div className="intern-name-cell">
-                              <strong className="intern-fullname">{intern.full_name}</strong>
-                              <span className="intern-code-tag">{intern.code}</span>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="school-cell">
-                              <GraduationCap size={14} className="cell-icon" />
-                              <span>{intern.university}</span>
-                            </div>
-                          </td>
-                          <td>
-                            <span className="major-text">{intern.major}</span>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <span className="gpa-pill">{intern.gpa.toFixed(2)}</span>
-                          </td>
-                          <td style={{ textAlign: 'center' }} className="col-date">
-                            {intern.applied_date}
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <span className="badge-unassigned">Chờ phân công</span>
+                    )}
+                  </div>
+                  <div className="selection-counter-badge">
+                    <span>Tổng số: <strong>{filteredAssignedInterns.length}</strong> / {assignedInterns.length} TTS đã phân công</span>
+                  </div>
+                </div>
+
+                {/* Bảng TTS đã phân công */}
+                <div className="table-responsive-wrapper">
+                  <table className="unassigned-interns-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '50px', textAlign: 'center' }}>STT</th>
+                        <th style={{ width: '110px', textAlign: 'center' }}>Mã TTS</th>
+                        <th style={{ width: '220px' }}>Họ và tên</th>
+                        <th style={{ minWidth: '220px' }}>Trường Đại học</th>
+                        <th style={{ minWidth: '170px' }}>Chuyên ngành</th>
+                        <th style={{ width: '90px', textAlign: 'center' }}>GPA</th>
+                        <th style={{ minWidth: '200px' }}>Mentor phụ trách</th>
+                        <th style={{ width: '180px', textAlign: 'center' }}>Thao tác điều phối</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredAssignedInterns.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="table-empty-row">
+                            <AlertCircle size={32} className="empty-icon" />
+                            <h4 className="empty-title">Không tìm thấy thực tập sinh phù hợp</h4>
+                            <p className="empty-subtitle">Thử tìm kiếm với từ khóa khác hoặc xóa ô tìm kiếm.</p>
                           </td>
                         </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                      ) : (
+                        filteredAssignedInterns.map((intern, index) => {
+                          const currentMentor = mentors.find((m) => m.id === intern.mentor_id);
+                          const otherMentor = mentors.find((m) => m.id !== intern.mentor_id);
+
+                          return (
+                            <tr key={intern.id} className="intern-table-row">
+                              <td style={{ textAlign: 'center' }} className="col-stt">
+                                {index + 1}
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <span className="intern-code-tag">{intern.code}</span>
+                              </td>
+                              <td>
+                                <div className="intern-name-cell">
+                                  <strong className="intern-fullname">{intern.full_name}</strong>
+                                  <span className="intern-email-sub">{intern.email}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="school-cell">
+                                  <GraduationCap size={14} className="cell-icon" />
+                                  <span>{intern.university}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <span className="major-text">{intern.major}</span>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <span className="gpa-pill">{Number(intern.gpa).toFixed(2)}</span>
+                              </td>
+                              <td>
+                                <div className="mentor-assigned-badge">
+                                  <span className="mentor-assigned-name">
+                                    {intern.mentor_name || currentMentor?.full_name}
+                                  </span>
+                                  <span className="mentor-assigned-dept">
+                                    {intern.department || currentMentor?.department}
+                                  </span>
+                                </div>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <div className="action-row-buttons">
+                                  {otherMentor && (
+                                    <button
+                                      type="button"
+                                      className="btn-action-reassign"
+                                      onClick={() => handleReassignMentor(intern.id, otherMentor.id)}
+                                      title={`Điều chuyển sang Mentor ${otherMentor.full_name}`}
+                                    >
+                                      <ArrowRightLeft size={13} />
+                                      <span>Đổi sang {otherMentor.full_name.split(' ').slice(-1)[0]}</span>
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="btn-action-unassign"
+                                    onClick={() => handleUnassignIntern(intern.id, intern.mentor_id)}
+                                    title="Gỡ phân công và đưa về danh sách chờ"
+                                  >
+                                    <UserMinus size={13} />
+                                    <span>Hủy gán</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* SUB-TAB 2: DANH SÁCH TTS CHỜ PHÂN CÔNG */}
+            {subTab === 'unassigned' && (
+              <>
+                {unassignedInterns.length === 0 ? (
+                  <div className="empty-unassigned-card">
+                    <CheckCircle2 size={44} className="empty-success-icon" />
+                    <h3 className="empty-title">Tuyệt vời! Toàn bộ 4 hồ sơ thực tập sinh đều đã có Mentor phụ trách</h3>
+                    <p className="empty-subtitle">
+                      Mỗi Mentor hiện đang phụ trách 2/5 TTS (40% tải - Khả dụng). Không còn sinh viên nào ở trạng thái chờ phân công.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn-switch-to-assigned"
+                      onClick={() => setSubTab('assigned')}
+                    >
+                      <Users size={15} />
+                      <span>Xem danh sách 4 TTS đã phân công</span>
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {/* KHU VỰC CHỌN MENTOR & NÚT PHÂN CÔNG */}
+                    <div className="assign-control-bar">
+                      <div className="mentor-select-group">
+                        <label htmlFor="mentor-dropdown" className="control-label">
+                          <UserCheck size={16} />
+                          <span>Chọn Mentor tiếp nhận:</span>
+                        </label>
+
+                        <div className="select-wrapper">
+                          <select
+                            id="mentor-dropdown"
+                            className="mentor-select-input"
+                            value={selectedMentorId}
+                            onChange={(e) => setSelectedMentorId(e.target.value)}
+                          >
+                            <option value="" disabled>-- Vui lòng chọn Mentor --</option>
+                            {mentors.map((m) => {
+                              const st = getWorkloadStatus(m.current_interns, m.max_interns);
+                              return (
+                                <option
+                                  key={m.id}
+                                  value={m.id}
+                                  disabled={st.isFull}
+                                >
+                                  {m.full_name} ({m.current_interns}/{m.max_interns} TTS {st.isFull ? '— ĐÃ ĐẦY 5/5' : `— Còn ${st.remaining} chỗ`})
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Card tóm tắt trạng thái Mentor đang chọn */}
+                      {currentSelectedMentor && currentMentorWorkload && (
+                        <div className={`selected-mentor-status-box box--${currentMentorWorkload.colorVariant}`}>
+                          <div className="status-box-header">
+                            <strong>{currentSelectedMentor.full_name}</strong>
+                            <span className="status-box-dept">({currentSelectedMentor.department})</span>
+                          </div>
+                          <div className="status-box-quota">
+                            <span>Đang phụ trách: <strong>{currentSelectedMentor.current_interns}/{currentSelectedMentor.max_interns} TTS</strong></span>
+                            <span className="quota-separator">•</span>
+                            <span>Còn nhận thêm tối đa: <strong className="remaining-count">{currentMentorWorkload.remaining} sinh viên</strong></span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Nút Phân công & Cảnh báo hạn mức */}
+                      <div className="action-button-group">
+                        <button
+                          type="button"
+                          className="btn-submit-assign"
+                          onClick={handleAssignSubmit}
+                          disabled={
+                            submitting ||
+                            !selectedMentorId ||
+                            selectedInternIds.size === 0 ||
+                            currentMentorWorkload?.isFull ||
+                            (selectedInternIds.size > (currentMentorWorkload?.remaining || 0))
+                          }
+                        >
+                          <UserCheck size={16} />
+                          <span>
+                            {submitting
+                              ? 'Đang phân công...'
+                              : selectedInternIds.size > 0
+                              ? `Phân công (${selectedInternIds.size} TTS)`
+                              : 'Phân công'}
+                          </span>
+                        </button>
+
+                        {currentMentorWorkload && selectedInternIds.size > currentMentorWorkload.remaining && (
+                          <div className="assign-quota-warning">
+                            <AlertTriangle size={14} />
+                            <span>Vượt quá hạn mức còn lại ({currentMentorWorkload.remaining} chỗ)!</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* THANH CÔNG CỤ TÌM KIẾM & BỘ ĐẾM */}
+                    <div className="table-filter-bar">
+                      <div className="search-box-wrap">
+                        <Search size={16} className="search-icon" />
+                        <input
+                          type="text"
+                          className="search-input"
+                          placeholder="Tìm kiếm sinh viên theo tên, mã TTS, trường hoặc chuyên ngành..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            className="btn-clear-search"
+                            onClick={() => setSearchQuery('')}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="selection-counter-badge">
+                        <span>Đã chọn: <strong>{selectedInternIds.size}</strong> / {unassignedInterns.length} TTS chờ phân công</span>
+                        {selectedInternIds.size > 0 && (
+                          <button
+                            type="button"
+                            className="btn-deselect-all"
+                            onClick={() => setSelectedInternIds(new Set())}
+                          >
+                            Bỏ chọn
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* BẢNG DANH SÁCH THỰC TẬP SINH CHƯA CÓ MENTOR */}
+                    <div className="table-responsive-wrapper">
+                      <table className="unassigned-interns-table">
+                        <thead>
+                          <tr>
+                            <th style={{ width: '48px', textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                className="btn-checkbox-header"
+                                onClick={handleToggleSelectAll}
+                                title={isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                                disabled={filteredUnassignedInterns.length === 0}
+                              >
+                                {isAllSelected ? (
+                                  <CheckSquare size={18} className="text-primary" />
+                                ) : (
+                                  <Square size={18} className="text-slate" />
+                                )}
+                              </button>
+                            </th>
+                            <th style={{ width: '60px', textAlign: 'center' }}>STT</th>
+                            <th style={{ width: '220px' }}>Họ và tên</th>
+                            <th style={{ minWidth: '220px' }}>Trường Đại học</th>
+                            <th style={{ minWidth: '180px' }}>Chuyên ngành</th>
+                            <th style={{ width: '100px', textAlign: 'center' }}>Điểm GPA</th>
+                            <th style={{ width: '150px', textAlign: 'center' }}>Ngày tiếp nhận</th>
+                            <th style={{ width: '140px', textAlign: 'center' }}>Trạng thái</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredUnassignedInterns.length === 0 ? (
+                            <tr>
+                              <td colSpan={8} className="table-empty-row">
+                                <AlertCircle size={32} className="empty-icon" />
+                                <h4 className="empty-title">Không tìm thấy sinh viên phù hợp</h4>
+                                <p className="empty-subtitle">Thử tìm kiếm với từ khóa khác hoặc xóa ô tìm kiếm.</p>
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredUnassignedInterns.map((intern, index) => {
+                              const isSelected = selectedInternIds.has(intern.id);
+                              return (
+                                <tr
+                                  key={intern.id}
+                                  className={`intern-table-row ${isSelected ? 'row--selected' : ''}`}
+                                  onClick={() => handleToggleIntern(intern.id)}
+                                >
+                                  <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      type="button"
+                                      className="btn-row-checkbox"
+                                      onClick={() => handleToggleIntern(intern.id)}
+                                      aria-label={`Chọn ${intern.full_name}`}
+                                    >
+                                      {isSelected ? (
+                                        <CheckSquare size={18} className="text-primary" />
+                                      ) : (
+                                        <Square size={18} className="text-slate" />
+                                      )}
+                                    </button>
+                                  </td>
+                                  <td style={{ textAlign: 'center' }} className="col-stt">
+                                    {index + 1}
+                                  </td>
+                                  <td>
+                                    <div className="intern-name-cell">
+                                      <strong className="intern-fullname">{intern.full_name}</strong>
+                                      <span className="intern-code-tag">{intern.code}</span>
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <div className="school-cell">
+                                      <GraduationCap size={14} className="cell-icon" />
+                                      <span>{intern.university}</span>
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <span className="major-text">{intern.major}</span>
+                                  </td>
+                                  <td style={{ textAlign: 'center' }}>
+                                    <span className="gpa-pill">{Number(intern.gpa).toFixed(2)}</span>
+                                  </td>
+                                  <td style={{ textAlign: 'center' }} className="col-date">
+                                    {intern.applied_date}
+                                  </td>
+                                  <td style={{ textAlign: 'center' }}>
+                                    <span className="badge-unassigned">Chờ phân công</span>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
           </div>
         </section>
       )}
     </div>
   );
 }
-
