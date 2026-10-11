@@ -180,7 +180,14 @@ export function isApplicantUser(u) {
   }
 
   // 3. Tài khoản định danh Ứng viên (ungvien@ictu.edu.vn hoặc UV0001 hoặc ID 7)
-  if (email.includes('ungvien') || code === 'UV0001' || u.id === 7) {
+  if (
+    email.includes('ungvien') ||
+    code === 'UV0001' ||
+    u.id === 7 ||
+    name === 'nguyễn thu hà' ||
+    name.includes('thu hà') ||
+    role === 'applicant'
+  ) {
     if (status === 'active' && profileStatus !== 'rejected' && profileStatus !== 'pending') {
       return false;
     }
@@ -208,6 +215,30 @@ export function isApplicantUser(u) {
 export function normalizeUserName(u) {
   if (!u) return u;
   const clone = { ...u };
+  const email = (clone.email || '').toLowerCase().trim();
+  const isCandidate =
+    email.includes('ungvien') ||
+    clone.id === 7 ||
+    clone.code === 'UV0001' ||
+    clone.role === 'applicant' ||
+    (clone.full_name && clone.full_name.toLowerCase().includes('thu hà'));
+
+  if (isCandidate) {
+    clone.role = 'intern';
+    clone.code = 'UV0001';
+    clone.email = 'ungvien@ictu.edu.vn';
+    if (
+      !clone.full_name ||
+      clone.full_name.includes('HR') ||
+      clone.full_name.includes('Trần Thị Mai') ||
+      clone.full_name.includes('Admin')
+    ) {
+      clone.full_name = 'Nguyễn Thu Hà';
+    }
+    if (!clone.status) clone.status = 'pending';
+    return clone;
+  }
+
   // Giữ nguyên ID, full_name, email, status từ backend
   // Chỉ gán mã mặc định nếu user thiếu code
   if (!clone.code) {
@@ -265,8 +296,11 @@ export function AuthProvider({ children }) {
           if (meOk && meData) {
             setUser((curr) => {
               if (!curr || (curr.email || '').toLowerCase() !== normalized.email.toLowerCase()) return curr;
+              const isCandidate = (curr.email || '').toLowerCase().includes('ungvien') || curr.id === 7 || curr.code === 'UV0001';
               const next = enrichUserWithPersistedProfile({
                 ...curr,
+                full_name: isCandidate ? 'Nguyễn Thu Hà' : (meData.full_name || curr.full_name),
+                code: isCandidate ? 'UV0001' : curr.code,
                 status: meData.profile_status || meData.status || curr.status,
                 profile_status: meData.profile_status || meData.status || curr.profile_status,
                 phone_number: meData.phone_number || curr.phone_number,

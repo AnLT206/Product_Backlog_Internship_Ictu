@@ -87,32 +87,67 @@ export function readStoredUser() {
     // 4. Phân hệ TTS / Ứng viên (/intern/*)
     if (path.startsWith('/intern')) {
       const lastInternRole = localStorage.getItem('last_portal_intern_role');
-      if (lastInternRole === 'applicant') {
+      const isOnboarded = localStorage.getItem('applicant_onboarded') === 'true';
+      const isCandidateContext =
+        !isOnboarded &&
+        (lastInternRole === 'applicant' ||
+          path === '/intern/upload' ||
+          (!localStorage.getItem('auth_user_intern') && Boolean(localStorage.getItem('auth_user_applicant'))));
+
+      if (isCandidateContext) {
         const appRaw = localStorage.getItem('auth_user_applicant');
-        if (appRaw) return JSON.parse(appRaw);
-      } else if (lastInternRole === 'intern') {
-        const internRaw = localStorage.getItem('auth_user_intern');
-        if (internRaw) return JSON.parse(internRaw);
+        if (appRaw) {
+          const parsed = JSON.parse(appRaw);
+          if (parsed && typeof parsed === 'object') {
+            if (parsed.full_name?.includes('Trần Thị Mai') || parsed.full_name?.includes('HR') || parsed.code?.startsWith('HR')) {
+              parsed.full_name = 'Nguyễn Thu Hà';
+              parsed.code = 'UV0001';
+              parsed.email = 'ungvien@ictu.edu.vn';
+            }
+            return parsed;
+          }
+        }
+        return {
+          id: 7,
+          full_name: 'Nguyễn Thu Hà',
+          code: 'UV0001',
+          email: 'ungvien@ictu.edu.vn',
+          role: 'intern',
+          status: 'pending',
+          university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+          major: 'Công nghệ thông tin',
+        };
       }
 
-      if (path === '/intern/upload') {
-        const appRaw = localStorage.getItem('auth_user_applicant');
-        if (appRaw) return JSON.parse(appRaw);
+      // TTS chính thức
+      const internRaw = localStorage.getItem('auth_user_intern');
+      if (internRaw) {
+        const parsed = JSON.parse(internRaw);
+        if (parsed && typeof parsed === 'object' && !parsed.email?.includes('ungvien') && parsed.role === 'intern') {
+          return parsed;
+        }
       }
 
       const raw = localStorage.getItem('auth_user');
       if (raw) {
         const u = JSON.parse(raw);
-        if (u?.role === 'intern' || (u?.email || '').includes('ungvien')) {
+        if (u?.role === 'intern' && !u.email?.includes('hr@') && !u.code?.startsWith('HR')) {
           return u;
         }
       }
 
-      // Nếu auth_user là role khác (HR/Admin mở tab khác), không ghi đè sang /intern/*
       const appRaw = localStorage.getItem('auth_user_applicant');
       if (appRaw) return JSON.parse(appRaw);
-      const internRaw = localStorage.getItem('auth_user_intern');
-      if (internRaw) return JSON.parse(internRaw);
+      return {
+        id: 5,
+        full_name: 'Nguyễn Văn An',
+        code: 'TTS0001',
+        email: 'intern@ictu.edu.vn',
+        role: 'intern',
+        status: 'active',
+        university: 'Trường Đại học Công nghệ Thông tin và Truyền thông (ICTU)',
+        major: 'Công nghệ thông tin',
+      };
     }
 
     // 5. Mặc định

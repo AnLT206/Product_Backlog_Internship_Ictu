@@ -62,13 +62,13 @@ export default function InternLayout() {
   // Nếu là Ứng viên -> 'Nguyễn Thu Hà' (hoặc user?.full_name)
   // Nếu là HR / Admin đang vào kiểm thử -> cố định hiển thị chuẩn là 'TTS (TTS0001)'
   const displayUserName = isApplicant
-    ? (user?.full_name && !user.full_name.includes('TTS') ? user.full_name : 'Nguyễn Thu Hà')
+    ? (user?.full_name && !user.full_name.includes('TTS') && !user.full_name.includes('HR') && !user.full_name.includes('Trần Thị Mai') ? user.full_name : 'Nguyễn Thu Hà')
     : isActualIntern
     ? (user?.full_name || 'TTS')
     : (user?.full_name || 'TTS (TTS0001)')
 
   const displayUserMeta = isApplicant
-    ? `Mã UV: ${user?.code && user.code !== 'TTS0001' ? user.code : 'UV0001'} · K20-CNTT`
+    ? `Mã UV: ${user?.code && !user.code.startsWith('HR') && !user.code.startsWith('AD') && user.code !== 'TTS0001' ? user.code : 'UV0001'} · K20-CNTT`
     : isActualIntern
     ? `Mã TTS: ${user?.code || 'TTS0001'} · K20-CNTT`
     : `Mã TTS: ${user?.code || 'TTS0001'} · K20-CNTT`

@@ -42,7 +42,7 @@ export function getSavedUserProfile(currentUser) {
     const cleanName = (n) => {
       if (!n) return isApplicant ? 'Nguyễn Thu Hà' : (currentUser?.full_name || 'Nguyễn Văn An')
       const str = String(n).trim()
-      if (str === 'HR' || str === 'Hr') {
+      if (str === 'HR' || str === 'Hr' || str.includes('Trần Thị Mai') || str.includes('HR Manager')) {
         return isApplicant ? 'Nguyễn Thu Hà' : (currentUser?.full_name || 'Nguyễn Văn An')
       }
       if (str.includes('Nguyễn Văn An') && isApplicant) {

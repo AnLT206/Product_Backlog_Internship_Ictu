@@ -95,6 +95,7 @@ function LoginPage() {
       try {
         localStorage.removeItem('applicant_onboarded')
         localStorage.removeItem('applicant_pending_contract')
+        localStorage.setItem('last_portal_intern_role', 'applicant')
         sessionStorage.removeItem('applicant_reject_modal_dismissed')
       } catch {}
     }
@@ -106,7 +107,8 @@ function LoginPage() {
         return
       }
 
-      const roleDest = dashboardPathForRole(result.user.role)
+      const isApplicant = isApplicantAccount || (result.user?.email || '').toLowerCase().includes('ungvien') || result.user?.code === 'UV0001';
+      const roleDest = isApplicant ? '/intern/upload' : dashboardPathForRole(result.user.role)
       let dest = forcedDest || roleDest
       if (!forcedDest && location.state?.from) {
         const fromPath = location.state.from
