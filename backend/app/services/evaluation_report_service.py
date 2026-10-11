@@ -59,7 +59,10 @@ class EvaluationReportService:
     def get_final_evaluation_report(
         self,
         program_id: int | None = None,
+        batch_id: int | None = None,
+        batch: str | None = None,
         university: str | None = None,
+        school: str | None = None,
         grade: str | None = None,
         search: str | None = None,
         academic_year: str | None = None,
@@ -67,17 +70,34 @@ class EvaluationReportService:
     ) -> FinalEvaluationReportResponse:
         """Truy vấn và tổng hợp dữ liệu báo cáo cuối kỳ của TTS gửi trường / ban lãnh đạo."""
 
-        if program_id is not None:
+        target_program_id = program_id if program_id is not None else batch_id
+        target_university = university if university is not None else school
+
+        if target_program_id is not None:
             program_exists = (
                 self.db.query(InternshipProgram)
-                .filter(InternshipProgram.id == program_id, InternshipProgram.is_deleted == False)
+                .filter(InternshipProgram.id == target_program_id, InternshipProgram.is_deleted == False)
                 .first()
             )
             if not program_exists:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Không tìm thấy đợt thực tập với ID {program_id}.",
+                    detail=f"Không tìm thấy đợt thực tập với ID {target_program_id}.",
                 )
+        elif batch and batch.strip():
+            batch_clean = batch.strip()
+            if batch_clean.isdigit():
+                target_program_id = int(batch_clean)
+                program_exists = (
+                    self.db.query(InternshipProgram)
+                    .filter(InternshipProgram.id == target_program_id, InternshipProgram.is_deleted == False)
+                    .first()
+                )
+                if not program_exists:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Không tìm thấy đợt thực tập với ID {target_program_id}.",
+                    )
 
         MentorUser = aliased(User)
 
@@ -107,10 +127,12 @@ class EvaluationReportService:
 
         if intern_id is not None:
             query = query.filter(User.id == intern_id)
-        if program_id is not None:
-            query = query.filter(ProgramMember.program_id == program_id)
-        if university and university.strip():
-            query = query.filter(InternProfile.university.ilike(f"%{university.strip()}%"))
+        if target_program_id is not None:
+            query = query.filter(ProgramMember.program_id == target_program_id)
+        elif batch and batch.strip():
+            query = query.filter(InternshipProgram.name.ilike(f"%{batch.strip()}%"))
+        if target_university and target_university.strip():
+            query = query.filter(InternProfile.university.ilike(f"%{target_university.strip()}%"))
         if academic_year and academic_year.strip():
             query = query.filter(InternProfile.academic_year == academic_year.strip())
         if search and search.strip():
@@ -166,6 +188,11 @@ class EvaluationReportService:
                 unauthorized_leave_days=0,
                 total_working_days=0,
                 attendance_rate=0.0,
+                school=profile.university if profile and profile.university else "Chưa cập nhật",
+                batch=program.name if program else "Chưa phân đợt",
+                gpa=final_score,
+                attendance_sessions="0/0",
+                mentor=mentor.full_name if mentor else None,
             )
             items.append(item)
             intern_ids.append(user.id)
@@ -325,6 +352,11 @@ class EvaluationReportService:
                 if total_days > 0
                 else 0.0
             )
+            it.attendance_sessions = f"{it.present_days + it.late_days}/{total_days}"
+            it.gpa = it.final_score
+            it.school = it.university
+            it.batch = it.program_name
+            it.mentor = it.mentor_name
 
     @staticmethod
     def _summarize_by_university(items: list[FinalEvaluationItem]) -> list[UniversityReportSummary]:
@@ -348,9 +380,16 @@ class EvaluationReportService:
                 UniversityReportSummary(
                     university=uni,
                     intern_count=len(u_items),
+                    total_interns=len(u_items),
                     evaluated_count=len(eval_items),
+                    unevaluated_count=len(u_items) - len(eval_items),
                     average_score=avg_score,
                     average_attendance_rate=avg_att_rate,
+                    excellent_count=sum(1 for i in u_items if i.grade == "Xuất sắc"),
+                    good_count=sum(1 for i in u_items if i.grade == "Giỏi"),
+                    fair_count=sum(1 for i in u_items if i.grade == "Khá"),
+                    average_count=sum(1 for i in u_items if i.grade == "Trung bình"),
+                    poor_count=sum(1 for i in u_items if i.grade == "Yếu"),
                 )
             )
         return summaries
@@ -379,7 +418,9 @@ class EvaluationReportService:
                     program_id=p_id,
                     program_name=p_name,
                     intern_count=len(p_items),
+                    total_interns=len(p_items),
                     evaluated_count=len(eval_items),
+                    unevaluated_count=len(p_items) - len(eval_items),
                     average_score=avg_score,
                     average_attendance_rate=avg_att_rate,
                 )

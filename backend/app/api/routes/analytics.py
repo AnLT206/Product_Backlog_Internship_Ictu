@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_roles
 from app.schemas.analytics import InternSourceAnalyticsResponse
+from app.schemas.evaluation import FinalEvaluationReportResponse
 from app.services.analytics_service import AnalyticsService
 
 router = APIRouter(prefix="/hr/analytics", tags=["hr-analytics"])
@@ -101,3 +102,37 @@ def export_intern_source_report(
         from_date,
         to_date,
     )
+
+
+@reports_router.get(
+    "/final-summary",
+    response_model=FinalEvaluationReportResponse,
+    summary="Báo cáo tổng kết cuối kỳ của thực tập sinh gửi trường / ban lãnh đạo (US-20)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def get_final_summary_report(
+    program_id: int | None = Query(default=None, description="Lọc theo đợt thực tập (ID)"),
+    batch_id: int | None = Query(default=None, description="Bí danh lọc theo đợt thực tập (ID)"),
+    batch: str | None = Query(default=None, description="Lọc theo tên hoặc mã đợt thực tập"),
+    university: str | None = Query(default=None, description="Lọc theo trường đại học"),
+    school: str | None = Query(default=None, description="Bí danh lọc theo trường đại học"),
+    grade: str | None = Query(default=None, description="Lọc theo xếp loại (Xuất sắc, Giỏi, Khá, Trung bình, Yếu)"),
+    search: str | None = Query(default=None, description="Tìm kiếm theo họ tên, email, mã sinh viên"),
+    academic_year: str | None = Query(default=None, description="Lọc theo năm học / niên khóa"),
+    intern_id: int | None = Query(default=None, description="Lọc theo ID thực tập sinh"),
+    db: Session = Depends(get_db),
+) -> FinalEvaluationReportResponse:
+    from app.services.evaluation_report_service import EvaluationReportService
+
+    return EvaluationReportService(db).get_final_evaluation_report(
+        program_id=program_id,
+        batch_id=batch_id,
+        batch=batch,
+        university=university,
+        school=school,
+        grade=grade,
+        search=search,
+        academic_year=academic_year,
+        intern_id=intern_id,
+    )
+

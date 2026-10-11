@@ -395,3 +395,122 @@ def test_final_report_alias_endpoint(eval_report_client):
     assert response.status_code == 200
     body = response.json()
     assert body["total_interns"] == 3
+
+
+# ── Tests for GET /api/hr/reports/final-summary (US-20 API endpoint) ──────────
+
+def test_final_summary_report_endpoint_success(eval_report_client):
+    """Kiểm tra API GET /api/hr/reports/final-summary trả về dữ liệu tổng kết cuối kỳ đầy đủ."""
+    client, _ = eval_report_client
+    response = client.get("/api/hr/reports/final-summary", headers=_hr_headers())
+    assert response.status_code == 200
+    body = response.json()
+
+    assert body["total_interns"] == 3
+    assert body["evaluated_count"] == 2
+    assert body["unevaluated_count"] == 1
+    assert body["average_score"] == 8.5
+    assert len(body["items"]) == 3
+
+    # Kiểm tra các trường mở rộng
+    item1 = next(it for it in body["items"] if it["intern_id"] == 10)
+    assert item1["school"] == "Đại học CNTT & TT (ICTU)"
+    assert item1["batch"] == "Đợt 1 - Hè 2026"
+    assert item1["gpa"] == 9.0
+    assert item1["attendance_sessions"] == "3/4"
+    assert item1["mentor"] == "Mentor One"
+
+    # Kiểm tra thống kê trường & đợt
+    assert len(body["by_university"]) >= 2
+    ictu = next(u for u in body["by_university"] if "ICTU" in u["university"])
+    assert ictu["intern_count"] == 2
+    assert ictu["excellent_count"] == 1
+    assert ictu["good_count"] == 1
+
+
+def test_final_summary_report_filter_by_batch_and_school(eval_report_client):
+    """Lọc GET /api/hr/reports/final-summary theo đợt thực tập (batch/batch_id/program_id) và trường (school/university)."""
+    client, _ = eval_report_client
+
+    # Lọc theo batch_id và school
+    resp1 = client.get(
+        "/api/hr/reports/final-summary",
+        params={"batch_id": 1, "school": "ICTU"},
+        headers=_hr_headers(),
+    )
+    assert resp1.status_code == 200
+    b1 = resp1.json()
+    assert b1["total_interns"] == 2
+    for it in b1["items"]:
+        assert it["program_id"] == 1
+        assert "ICTU" in it["university"]
+
+    # Lọc theo tên batch dạng chuỗi
+    resp2 = client.get(
+        "/api/hr/reports/final-summary",
+        params={"batch": "Đợt 2", "university": "Bách Khoa"},
+        headers=_hr_headers(),
+    )
+    assert resp2.status_code == 200
+    b2 = resp2.json()
+    assert b2["total_interns"] == 1
+    assert b2["items"][0]["intern_id"] == 30
+    assert b2["items"][0]["program_name"] == "Đợt 2 - Thu 2026"
+
+
+def test_final_summary_report_filter_by_grade_and_search(eval_report_client):
+    """Lọc GET /api/hr/reports/final-summary theo xếp loại và từ khóa tìm kiếm."""
+    client, _ = eval_report_client
+
+    # Lọc xếp loại Xuất sắc
+    resp_grade = client.get(
+        "/api/hr/reports/final-summary",
+        params={"grade": "Xuất sắc"},
+        headers=_hr_headers(),
+    )
+    assert resp_grade.status_code == 200
+    b_grade = resp_grade.json()
+    assert b_grade["total_interns"] == 1
+    assert b_grade["items"][0]["grade"] == "Xuất sắc"
+
+    # Lọc tìm kiếm theo mã SV / tên
+    resp_search = client.get(
+        "/api/hr/reports/final-summary",
+        params={"search": "TTS0002"},
+        headers=_hr_headers(),
+    )
+    assert resp_search.status_code == 200
+    b_search = resp_search.json()
+    assert b_search["total_interns"] == 1
+    assert b_search["items"][0]["intern_code"] == "TTS0002"
+
+
+def test_final_summary_report_not_found_program(eval_report_client):
+    """ID đợt thực tập không tồn tại trả về 404."""
+    client, _ = eval_report_client
+    response = client.get(
+        "/api/hr/reports/final-summary",
+        params={"program_id": 99999},
+        headers=_hr_headers(),
+    )
+    assert response.status_code == 404
+
+
+def test_final_summary_report_roles_and_auth(eval_report_client):
+    """Quyền truy cập GET /api/hr/reports/final-summary chỉ dành cho HR và Admin."""
+    client, _ = eval_report_client
+
+    # 401 unauthenticated
+    assert client.get("/api/hr/reports/final-summary").status_code == 401
+
+    # 403 intern
+    intern_h = {"Authorization": f"Bearer {create_access_token(user_id=10, role='intern')}"}
+    assert client.get("/api/hr/reports/final-summary", headers=intern_h).status_code == 403
+
+    # 403 mentor
+    mentor_h = {"Authorization": f"Bearer {create_access_token(user_id=3, role='mentor')}"}
+    assert client.get("/api/hr/reports/final-summary", headers=mentor_h).status_code == 403
+
+    # 200 admin
+    assert client.get("/api/hr/reports/final-summary", headers=_admin_headers()).status_code == 200
+
