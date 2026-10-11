@@ -12,6 +12,49 @@ const AuthContext = createContext(null);
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const DEMO_PROFILES = {
+  admin: {
+    id: 1,
+    full_name: 'Quản trị viên Hệ thống (Admin)',
+    code: 'AD0001',
+    email: 'admin@ictu.edu.vn',
+    role: 'admin',
+    status: 'active',
+  },
+  hr: {
+    id: 2,
+    full_name: 'Trần Thị Mai (HR Manager)',
+    code: 'HR0001',
+    email: 'hr@ictu.edu.vn',
+    role: 'hr',
+    status: 'active',
+  },
+  mentor: {
+    id: 3,
+    full_name: 'Trần Hoàng Quân',
+    code: 'MT0001',
+    email: 'mentor@ictu.edu.vn',
+    role: 'mentor',
+    status: 'active',
+    department: 'Kỹ thuật phần mềm (Software Engineering)',
+  },
+  mentor1: {
+    id: 3,
+    full_name: 'Trần Hoàng Quân',
+    code: 'MT0001',
+    email: 'mentor@ictu.edu.vn',
+    role: 'mentor',
+    status: 'active',
+    department: 'Kỹ thuật phần mềm (Software Engineering)',
+  },
+  mentor2: {
+    id: 4,
+    full_name: 'Phạm Quốc Hướng',
+    code: 'MT0002',
+    email: 'mentor2@ictu.edu.vn',
+    role: 'mentor',
+    status: 'active',
+    department: 'Kiểm thử chất lượng (QA/QC)',
+  },
   intern: {
     id: 5,
     full_name: 'Nguyễn Văn An',
@@ -28,6 +71,70 @@ export const DEMO_PROFILES = {
     bank_account: '999908123456',
     bank_name: 'MB Bank',
   },
+  tts1: {
+    id: 5,
+    full_name: 'Nguyễn Văn An',
+    code: 'TTS0001',
+    email: 'intern@ictu.edu.vn',
+    role: 'intern',
+    status: 'active',
+    university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+    major: 'Công nghệ thông tin',
+    phone: '0912.345.001',
+    phone_number: '0912.345.001',
+    cccd: '001203019876',
+    address: 'Phường Quyết Thắng, TP. Thái Nguyên',
+    bank_account: '999908123456',
+    bank_name: 'MB Bank',
+  },
+  tts2: {
+    id: 6,
+    full_name: 'Lê Hoàng Nam',
+    code: 'TTS0002',
+    email: 'tts02@student.ictu.edu.vn',
+    role: 'intern',
+    status: 'active',
+    university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+    major: 'Kỹ thuật phần mềm',
+    phone: '0912.345.002',
+    phone_number: '0912.345.002',
+    cccd: '001203019877',
+    address: 'Phường Tân Thịnh, TP. Thái Nguyên',
+    bank_account: '999908123457',
+    bank_name: 'Vietcombank',
+  },
+  tts3: {
+    id: 8,
+    full_name: 'Trần Thị Mai Phương',
+    code: 'TTS0003',
+    email: 'tts03@student.ictu.edu.vn',
+    role: 'intern',
+    status: 'active',
+    university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+    major: 'Hệ thống thông tin',
+    phone: '0912.345.003',
+    phone_number: '0912.345.003',
+    cccd: '001203019878',
+    address: 'Phường Hoàng Văn Thụ, TP. Thái Nguyên',
+    bank_account: '999908123458',
+    bank_name: 'BIDV',
+  },
+  tts4: {
+    id: 9,
+    full_name: 'Hoàng Minh Đức',
+    code: 'TTS0004',
+    email: 'tts04@student.ictu.edu.vn',
+    role: 'intern',
+    status: 'active',
+    university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+    major: 'An toàn thông tin',
+    phone: '0912.345.004',
+    phone_number: '0912.345.004',
+    cccd: '001203019879',
+    address: 'Phường Phan Đình Phùng, TP. Thái Nguyên',
+    bank_account: '999908123459',
+    bank_name: 'Techcombank',
+  },
   applicant: {
     id: 7,
     full_name: 'Nguyễn Thu Hà',
@@ -43,31 +150,6 @@ export const DEMO_PROFILES = {
     address: 'Phường Quyết Thắng, TP. Thái Nguyên',
     bank_account: '999908123456',
     bank_name: 'MB Bank',
-  },
-  mentor: {
-    id: 3,
-    full_name: 'Trần Hoàng Quân',
-    code: 'MT0001',
-    email: 'mentor@ictu.edu.vn',
-    role: 'mentor',
-    status: 'active',
-    department: 'Kỹ thuật phần mềm (Software Engineering)',
-  },
-  hr: {
-    id: 2,
-    full_name: 'Trần Thị Mai',
-    code: 'HR0001',
-    email: 'hr@ictu.edu.vn',
-    role: 'hr',
-    status: 'active',
-  },
-  admin: {
-    id: 1,
-    full_name: 'Quản trị viên Hệ thống',
-    code: 'AD0001',
-    email: 'admin@ictu.edu.vn',
-    role: 'admin',
-    status: 'active',
   },
 };
 
@@ -216,10 +298,11 @@ export function normalizeUserName(u) {
   if (!u) return u;
   const clone = { ...u };
   const email = (clone.email || '').toLowerCase().trim();
+  const code = (clone.code || '').toUpperCase().trim();
   const isCandidate =
     email.includes('ungvien') ||
     clone.id === 7 ||
-    clone.code === 'UV0001' ||
+    code === 'UV0001' ||
     clone.role === 'applicant' ||
     (clone.full_name && clone.full_name.toLowerCase().includes('thu hà'));
 
@@ -236,6 +319,78 @@ export function normalizeUserName(u) {
       clone.full_name = 'Nguyễn Thu Hà';
     }
     if (!clone.status) clone.status = 'pending';
+    return clone;
+  }
+
+  // Mentor 2
+  if (email === 'mentor2@ictu.edu.vn' || code === 'MT0002') {
+    clone.role = 'mentor';
+    clone.code = 'MT0002';
+    if (!clone.full_name || clone.full_name === 'Mentor') {
+      clone.full_name = 'Phạm Quốc Hướng';
+    }
+    return clone;
+  }
+
+  // Mentor 1
+  if (email === 'mentor@ictu.edu.vn' || code === 'MT0001') {
+    clone.role = 'mentor';
+    clone.code = 'MT0001';
+    if (!clone.full_name || clone.full_name === 'Mentor') {
+      clone.full_name = 'Trần Hoàng Quân';
+    }
+    return clone;
+  }
+
+  // TTS 2
+  if (email === 'tts02@student.ictu.edu.vn' || code === 'TTS0002') {
+    clone.role = 'intern';
+    clone.code = 'TTS0002';
+    if (!clone.full_name) clone.full_name = 'Lê Hoàng Nam';
+    return clone;
+  }
+
+  // TTS 3
+  if (email === 'tts03@student.ictu.edu.vn' || code === 'TTS0003') {
+    clone.role = 'intern';
+    clone.code = 'TTS0003';
+    if (!clone.full_name) clone.full_name = 'Trần Thị Mai Phương';
+    return clone;
+  }
+
+  // TTS 4
+  if (email === 'tts04@student.ictu.edu.vn' || code === 'TTS0004') {
+    clone.role = 'intern';
+    clone.code = 'TTS0004';
+    if (!clone.full_name) clone.full_name = 'Hoàng Minh Đức';
+    return clone;
+  }
+
+  // TTS 1
+  if (email === 'intern@ictu.edu.vn' || code === 'TTS0001') {
+    clone.role = 'intern';
+    clone.code = 'TTS0001';
+    if (!clone.full_name) clone.full_name = 'Nguyễn Văn An';
+    return clone;
+  }
+
+  // HR
+  if (email === 'hr@ictu.edu.vn' || code === 'HR0001' || clone.role === 'hr') {
+    clone.role = 'hr';
+    clone.code = 'HR0001';
+    if (!clone.full_name || clone.full_name === 'HR') {
+      clone.full_name = 'Trần Thị Mai (HR Manager)';
+    }
+    return clone;
+  }
+
+  // Admin
+  if (email === 'admin@ictu.edu.vn' || code === 'AD0001' || clone.role === 'admin') {
+    clone.role = 'admin';
+    clone.code = 'AD0001';
+    if (!clone.full_name || clone.full_name === 'Admin') {
+      clone.full_name = 'Quản trị viên Hệ thống (Admin)';
+    }
     return clone;
   }
 
@@ -262,6 +417,7 @@ export function AuthProvider({ children }) {
       saveSession({
         access_token:
           stored.access_token ||
+          (typeof window !== 'undefined' && window.sessionStorage ? sessionStorage.getItem(`access_token_${roleKey}`) || sessionStorage.getItem('access_token_current') : null) ||
           localStorage.getItem(`access_token_${roleKey}`) ||
           localStorage.getItem('access_token') ||
           'demo-enterprise-token',
@@ -269,12 +425,23 @@ export function AuthProvider({ children }) {
       });
       return enriched;
     }
-    // Default demo session: xác định đúng vai trò theo ngữ cảnh URL
-    const isApplicantUrl =
-      typeof window !== 'undefined' &&
-      (window.location.pathname === '/intern/upload' ||
-        localStorage.getItem('last_portal_intern_role') === 'applicant');
-    const demo = isApplicantUrl ? DEMO_PROFILES.applicant : DEMO_PROFILES.intern;
+    // Default demo session: xác định đúng vai trò theo ngữ cảnh URL của tab hiện tại
+    const path = typeof window !== 'undefined' ? window.location.pathname : '';
+    let demo = DEMO_PROFILES.intern;
+    if (path.startsWith('/admin')) {
+      demo = DEMO_PROFILES.admin;
+    } else if (path.startsWith('/hr')) {
+      demo = DEMO_PROFILES.hr;
+    } else if (path.startsWith('/mentor')) {
+      demo = DEMO_PROFILES.mentor;
+    } else {
+      const isApplicantUrl =
+        path === '/intern/upload' ||
+        (typeof window !== 'undefined' &&
+          ((window.sessionStorage && sessionStorage.getItem('last_portal_intern_role') === 'applicant') ||
+            localStorage.getItem('last_portal_intern_role') === 'applicant'));
+      demo = isApplicantUrl ? DEMO_PROFILES.applicant : DEMO_PROFILES.intern;
+    }
     const enriched = enrichUserWithPersistedProfile(demo);
     saveSession({ access_token: 'demo-enterprise-token', user: enriched });
     return enriched;
@@ -300,7 +467,7 @@ export function AuthProvider({ children }) {
               const next = enrichUserWithPersistedProfile({
                 ...curr,
                 full_name: isCandidate ? 'Nguyễn Thu Hà' : (meData.full_name || curr.full_name),
-                code: isCandidate ? 'UV0001' : curr.code,
+                code: isCandidate ? 'UV0001' : (meData.code || curr.code),
                 status: meData.profile_status || meData.status || curr.status,
                 profile_status: meData.profile_status || meData.status || curr.profile_status,
                 phone_number: meData.phone_number || curr.phone_number,
@@ -328,8 +495,16 @@ export function AuthProvider({ children }) {
     let demoProfile = null;
     if (normalizedEmail.includes('ungvien')) {
       demoProfile = DEMO_PROFILES.applicant;
+    } else if (normalizedEmail.includes('tts02')) {
+      demoProfile = DEMO_PROFILES.tts2;
+    } else if (normalizedEmail.includes('tts03')) {
+      demoProfile = DEMO_PROFILES.tts3;
+    } else if (normalizedEmail.includes('tts04')) {
+      demoProfile = DEMO_PROFILES.tts4;
     } else if (normalizedEmail.includes('intern') || normalizedEmail.includes('an.nv')) {
       demoProfile = DEMO_PROFILES.intern;
+    } else if (normalizedEmail.includes('mentor2')) {
+      demoProfile = DEMO_PROFILES.mentor2;
     } else if (normalizedEmail.includes('mentor') || normalizedEmail.includes('binh.nv')) {
       demoProfile = DEMO_PROFILES.mentor;
     } else if (normalizedEmail.includes('hr')) {

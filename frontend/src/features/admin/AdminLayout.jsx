@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import EnterpriseAppShell from '../../components/common/EnterpriseAppShell'
+import { useAuth } from '../../context/AuthContext'
 import './AdminDashboardPage.css'
 
 const ADMIN_NAV_ITEMS = [
@@ -12,6 +13,7 @@ const ADMIN_NAV_ITEMS = [
 ]
 
 export default function AdminLayout() {
+  const { user } = useAuth()
   const location = useLocation()
   const activeNav = ADMIN_NAV_ITEMS.find((item) =>
     item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
@@ -34,7 +36,8 @@ export default function AdminLayout() {
       showNotifications={true}
       showTopbarUser={true}
       defaultUserName="Admin"
-      userCardMeta="Root Administrator"
+      customUserName={user?.full_name || 'Quản trị viên Hệ thống (Admin)'}
+      userCardMeta="Root Administrator • AD0001"
     >
       <Outlet />
     </EnterpriseAppShell>

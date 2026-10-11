@@ -20,7 +20,12 @@ const CREDENTIALS_BY_ROLE = {
     { email: 'mentor@ictu.edu.vn', password: 'Mentor@123' },
     { email: 'mentor2@ictu.edu.vn', password: 'Mentor@123' },
   ],
-  intern: [{ email: 'intern@ictu.edu.vn', password: 'Intern@123' }],
+  intern: [
+    { email: 'intern@ictu.edu.vn', password: 'Intern@123' },
+    { email: 'tts02@student.ictu.edu.vn', password: 'Intern@123' },
+    { email: 'tts03@student.ictu.edu.vn', password: 'Intern@123' },
+    { email: 'tts04@student.ictu.edu.vn', password: 'Intern@123' },
+  ],
   applicant: [
     { email: 'ungvien@ictu.edu.vn', password: 'Intern@123' },
     { email: 'ungvien@ictu.edu.vn', password: 'User@123' },
@@ -65,6 +70,10 @@ export async function acquireTokenForRole(role) {
         if (res.ok) {
           const data = await res.json();
           if (data?.access_token) {
+            if (typeof window !== 'undefined' && window.sessionStorage) {
+              sessionStorage.setItem(`access_token_${role}`, data.access_token);
+              sessionStorage.setItem('access_token_current', data.access_token);
+            }
             localStorage.setItem(`access_token_${role}`, data.access_token);
             const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
             const isMatchingPortal =
@@ -91,14 +100,31 @@ export async function acquireTokenForRole(role) {
 }
 
 /**
- * Lấy token phù hợp nhất cho role đã chỉ định từ localStorage.
+ * Lấy token phù hợp nhất cho role đã chỉ định từ sessionStorage (tab) hoặc localStorage.
  */
 export function getTokenForRole(role) {
+  // 1. Kiểm tra session của chính tab hiện tại trước
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    const sessionSpecific = sessionStorage.getItem(`access_token_${role}`);
+    if (sessionSpecific && (getTokenRole(sessionSpecific) === role || (role === 'applicant' && getTokenRole(sessionSpecific) === 'intern'))) {
+      return sessionSpecific;
+    }
+    const sessionCurrent = sessionStorage.getItem('access_token_current');
+    if (sessionCurrent) {
+      const currentRole = getTokenRole(sessionCurrent);
+      if (currentRole === role || currentRole === 'admin' || (role === 'applicant' && currentRole === 'intern')) {
+        return sessionCurrent;
+      }
+    }
+  }
+
+  // 2. Fallback sang localStorage theo role
   const specific = localStorage.getItem(`access_token_${role}`);
   if (specific && (getTokenRole(specific) === role || (role === 'applicant' && getTokenRole(specific) === 'intern'))) {
     return specific;
   }
 
+  // 3. Fallback sang localStorage chung
   const current = localStorage.getItem('access_token');
   if (current) {
     const currentRole = getTokenRole(current);
@@ -125,8 +151,18 @@ export function determineRoleForPath(path) {
     ((path.startsWith('/api/auth/me') || path.startsWith('/api/documents')) && currentPath.startsWith('/intern'))
   ) {
     try {
-      const lastInternRole = localStorage.getItem('last_portal_intern_role');
+      const lastInternRole =
+        (typeof window !== 'undefined' && window.sessionStorage && sessionStorage.getItem('last_portal_intern_role')) ||
+        localStorage.getItem('last_portal_intern_role');
       if (lastInternRole === 'applicant') return 'applicant';
+
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const curTab = sessionStorage.getItem('auth_user_current');
+        if (curTab) {
+          const u = JSON.parse(curTab);
+          if (u?.email === 'ungvien@ictu.edu.vn' || u?.id === 7 || u?.role === 'applicant') return 'applicant';
+        }
+      }
 
       const rawApp = localStorage.getItem('auth_user_applicant');
       if (rawApp) {
@@ -146,6 +182,13 @@ export function determineRoleForPath(path) {
   }
 
   try {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      const curTab = sessionStorage.getItem('auth_user_current');
+      if (curTab) {
+        const u = JSON.parse(curTab);
+        if (u?.role && CREDENTIALS_BY_ROLE[u.role]) return u.role;
+      }
+    }
     const raw = localStorage.getItem('auth_user');
     if (raw) {
       const u = JSON.parse(raw);
@@ -174,7 +217,11 @@ export default async function apiFetch(path, options = {}) {
     path.startsWith('/api/intern') ||
     path.startsWith('/api/departments');
 
-  let token = isAuthRoute ? getTokenForRole(targetRole) : (localStorage.getItem('access_token') ?? '');
+  let token = isAuthRoute
+    ? getTokenForRole(targetRole)
+    : ((typeof window !== 'undefined' && window.sessionStorage ? sessionStorage.getItem('access_token_current') : null) ||
+        localStorage.getItem('access_token') ||
+        '');
 
   if (isAuthRoute) {
     const currentRole = getTokenRole(token);

@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import EnterpriseAppShell from '../../components/common/EnterpriseAppShell'
+import { useAuth } from '../../context/AuthContext'
 import './HrLayout.css'
 
 const HR_NAV_ITEMS = [
@@ -39,6 +40,7 @@ const HR_NAV_ITEMS = [
 ]
 
 export default function HrLayout() {
+  const { user } = useAuth()
   const location = useLocation()
   const activeNav = HR_NAV_ITEMS.find((item) =>
     item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
@@ -59,7 +61,8 @@ export default function HrLayout() {
       showNotifications={false}
       showTopbarUser={false}
       avatarText="HR"
-      userCardMeta="HR Manager • Ban HTDN"
+      customUserName={user?.full_name || 'Trần Thị Mai (HR Manager)'}
+      userCardMeta="HR Manager • Ban HTDN • HR0001"
       defaultUserName="HR"
     >
       <Outlet />

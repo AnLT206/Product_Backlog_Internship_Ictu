@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import EnterpriseAppShell from '../../components/common/EnterpriseAppShell'
+import { useAuth } from '../../context/AuthContext'
 
 const MENTOR_NAV_ITEMS = [
   { to: '/mentor/dashboard', label: 'Danh sách TTS phụ trách', end: true },
@@ -10,6 +11,11 @@ const MENTOR_NAV_ITEMS = [
 ]
 
 export default function MentorLayout() {
+  const { user } = useAuth()
+  const isMentor2 = user?.code === 'MT0002' || user?.email?.includes('mentor2')
+  const mentorName = user?.full_name || (isMentor2 ? 'Phạm Quốc Hướng' : 'Trần Hoàng Quân')
+  const userCardMeta = isMentor2 ? 'QA Lead Engineer • Khoa CNTT' : 'Senior Tech Lead • Khoa CNTT'
+
   return (
     <EnterpriseAppShell
       portalName="Hướng dẫn Chuyên môn"
@@ -21,7 +27,8 @@ export default function MentorLayout() {
       showNotifications={false}
       showTopbarUser={false}
       avatarText="ME"
-      userCardMeta="Senior Tech Lead • Khoa CNTT"
+      customUserName={mentorName}
+      userCardMeta={userCardMeta}
       defaultUserName="Mentor"
     >
       <Outlet />
