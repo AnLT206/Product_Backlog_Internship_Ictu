@@ -96,12 +96,6 @@ export function getSavedUserProfile(currentUser) {
       fallbackPhone = '0912.345.004'
       fallbackCccd = '001203019874'
       fallbackMajor = 'An toàn thông tin'
-    } else if (uid === 10 || email === 'tts05@student.ictu.edu.vn') {
-      fallbackBankName = 'TPBank'
-      fallbackBankAccount = '03988123455'
-      fallbackPhone = '0912.345.005'
-      fallbackCccd = '001203019875'
-      fallbackMajor = 'Khoa học máy tính'
     } else if (isApplicant) {
       fallbackBankName = 'MB Bank'
       fallbackBankAccount = '999908123459'

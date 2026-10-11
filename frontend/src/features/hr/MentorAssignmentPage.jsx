@@ -43,25 +43,7 @@ const INITIAL_MENTORS = [
     email: 'mentor2@ictu.edu.vn',
     department: 'Kiểm thử chất lượng (QA/QC)',
     position: 'QA Lead & Automation Specialist',
-    current_interns: 4, // 4/5 = 80% -> CAM (Warning)
-    max_interns: MAX_INTERNS_PER_MENTOR,
-  },
-  {
-    id: 11,
-    full_name: 'Vũ Đình Tuấn',
-    email: 'tuan.vd@ictu.edu.vn',
-    department: 'Hạ tầng Cloud & DevOps',
-    position: 'DevOps Architect',
-    current_interns: 5, // 5/5 = 100% -> ĐỎ (Danger / Vô hiệu hóa)
-    max_interns: MAX_INTERNS_PER_MENTOR,
-  },
-  {
-    id: 12,
-    full_name: 'Nguyễn Thị Thu Hương',
-    email: 'mentor3@ictu.edu.vn',
-    department: 'Trí tuệ nhân tạo & Data Science',
-    position: 'Data Science Lead',
-    current_interns: 1, // 1/5 = 20% -> XANH (Success)
+    current_interns: 2, // 2/5 = 40% -> XANH (Success)
     max_interns: MAX_INTERNS_PER_MENTOR,
   },
 ];
@@ -293,7 +275,7 @@ export default function MentorAssignmentPage() {
               email: m.email,
               department: m.department || 'Trung tâm Phát triển Phần mềm ICTU',
               position: m.position || 'Mentor Hướng dẫn',
-              current_interns: Math.max(m.intern_count || 0, countInSync),
+              current_interns: countInSync > 0 ? countInSync : (m.intern_count || 0),
               max_interns: MAX_INTERNS_PER_MENTOR,
             };
           });

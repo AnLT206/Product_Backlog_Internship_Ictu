@@ -155,43 +155,6 @@ export const UNIFIED_INTERNS = [
     gpa: 6.5,
     grade: 'Trung bình',
   },
-  {
-    id: 5,
-    intern_id: 5,
-    code: 'TTS0005',
-    full_name: 'Hoàng Thu Trang',
-    email: 'trang.ht@student.ictu.edu.vn',
-    phone: '0985678901',
-    university: 'Trường Đại học Kỹ thuật Công nghiệp',
-    university_code: 'TNU_TECH',
-    major: 'Trí tuệ Nhân tạo & KH Dữ liệu',
-    batch: '2026-FALL',
-    batch_label: 'Khóa K20 - Kỳ Thu 2026',
-    mentor_id: 12,
-    mentor_name: 'Nguyễn Thị Thu Hương',
-    project: 'AI Lab & Data Analytics',
-    applied_date: '05/10/2026',
-
-    // Chuyên cần
-    standard_work_days: 22,
-    actual_work_days: 22,
-    late_count: 0,
-    approved_leave_days: 0,
-    unapproved_leave_days: 0,
-    attendance_status: 'Bình thường',
-    attendance_rate: 100,
-
-    // Phụ cấp & Chi trả
-    base_allowance: 2600000,
-    bonus_penalty: 400000,
-    total_net: 3000000,
-    allowance_status: 'approved',
-    allowance_status_label: 'Đã chi trả',
-
-    // Kết quả học tập
-    gpa: 9.1,
-    grade: 'Xuất sắc',
-  },
 ]
 
 export const UNIFIED_MENTORS = [
@@ -210,25 +173,7 @@ export const UNIFIED_MENTORS = [
     email: 'mentor2@ictu.edu.vn',
     department: 'Kiểm thử chất lượng (QA/QC)',
     position: 'QA Lead & Automation Specialist',
-    current_interns: 4, // 4/5 = 80% (Cam)
-    max_interns: 5,
-  },
-  {
-    id: 11,
-    full_name: 'Vũ Đình Tuấn',
-    email: 'tuan.vd@ictu.edu.vn',
-    department: 'Hạ tầng Cloud & DevOps',
-    position: 'DevOps Architect',
-    current_interns: 5, // 5/5 = 100% (Đỏ)
-    max_interns: 5,
-  },
-  {
-    id: 12,
-    full_name: 'Nguyễn Thị Thu Hương',
-    email: 'mentor3@ictu.edu.vn',
-    department: 'Trí tuệ nhân tạo & Data Science',
-    position: 'Data Science Lead',
-    current_interns: 1, // 1/5 = 20% (Xanh)
+    current_interns: 2, // 2/5 = 40% (Xanh)
     max_interns: 5,
   },
 ]

@@ -106,19 +106,6 @@ export const INITIAL_ALLOWANCE_RECORDS = [
     status: 'pending',
     status_label: 'Chờ chi trả',
   },
-  {
-    id: 5,
-    intern_id: 5,
-    code: 'TTS0005',
-    full_name: 'Đặng Thùy Dung',
-    email: 'dung.dt@ictu.edu.vn',
-    actual_days: 22,
-    base_allowance: 2500000,
-    bonus_penalty: 500000,
-    total_net: 3000000,
-    status: 'approved',
-    status_label: 'Đã chi trả',
-  },
 ];
 
 /* ─────────────────────────────────────────────────────────────────────────────

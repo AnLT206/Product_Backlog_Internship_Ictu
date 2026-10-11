@@ -90,19 +90,6 @@ const INITIAL_REPORT_DATA = [
     attendanceSessions: '22/24',
     mentor: 'Trần Hoàng Quân',
   },
-  {
-    id: 'TTS0005',
-    name: 'Hoàng Thu Trang',
-    school: 'ĐH Kỹ thuật Công nghiệp Thái Nguyên',
-    schoolCode: 'TNU_TECH',
-    major: 'Trí tuệ Nhân tạo & KH Dữ liệu',
-    batch: '2026-FALL',
-    gpa: 9.1,
-    grade: 'Xuất sắc',
-    attendanceRate: 100.0,
-    attendanceSessions: '24/24',
-    mentor: 'Nguyễn Thị Thu Hương',
-  },
 ];
 
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];

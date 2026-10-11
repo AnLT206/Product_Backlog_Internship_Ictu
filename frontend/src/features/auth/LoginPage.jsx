@@ -34,12 +34,6 @@ const QUICK_ACCOUNTS = [
     variant: 'mentor',
   },
   {
-    role: 'Mentor 3 (Hương)',
-    email: 'mentor3@ictu.edu.vn',
-    password: 'Mentor@123',
-    variant: 'mentor',
-  },
-  {
     role: 'TTS 1 (An)',
     email: 'intern@ictu.edu.vn',
     password: 'Intern@123',
@@ -60,12 +54,6 @@ const QUICK_ACCOUNTS = [
   {
     role: 'TTS 4 (Đức)',
     email: 'tts04@student.ictu.edu.vn',
-    password: 'Intern@123',
-    variant: 'intern',
-  },
-  {
-    role: 'TTS 5 (Yến)',
-    email: 'tts05@student.ictu.edu.vn',
     password: 'Intern@123',
     variant: 'intern',
   },
