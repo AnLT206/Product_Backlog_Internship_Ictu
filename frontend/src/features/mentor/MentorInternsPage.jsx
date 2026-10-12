@@ -61,7 +61,10 @@ export default function MentorInternsPage() {
       getMentorTasks(),
     ])
     if (internsRes.ok) {
-      setInterns(internsRes.data?.items ?? [])
+      const items = Array.isArray(internsRes.data)
+        ? internsRes.data
+        : (Array.isArray(internsRes.data?.items) ? internsRes.data.items : [])
+      setInterns(items)
       setInternsError(null)
     } else {
       setInternsError('Không thể tải danh sách thực tập sinh.')

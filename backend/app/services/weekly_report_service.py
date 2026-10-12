@@ -154,9 +154,11 @@ class WeeklyReportService:
         mentor_user: User,
         intern_id: int | None = None,
         status_filter: str | None = None,
+        mentor_id: int | None = None,
     ) -> WeeklyReportListResponse:
         """Mentor xem danh sách báo cáo của các TTS mình quản lý (Task 9)."""
         is_admin = mentor_user.role and mentor_user.role.name == ADMIN_ROLE_NAME
+        target_mentor_id = mentor_id if (is_admin and mentor_id) else (mentor_id or mentor_user.id)
 
         query = self.db.query(WeeklyReport).options(
             joinedload(WeeklyReport.user),
@@ -164,12 +166,12 @@ class WeeklyReportService:
             joinedload(WeeklyReport.feedbacks).joinedload(ReportFeedback.mentor),
         )
 
-        if not is_admin:
+        if not is_admin or mentor_id:
             # Lấy danh sách intern IDs do mentor này hướng dẫn
             managed_intern_ids = [
                 m.intern_user_id
                 for m in self.db.query(ProgramMember)
-                .filter(ProgramMember.mentor_user_id == mentor_user.id)
+                .filter(ProgramMember.mentor_user_id == target_mentor_id)
                 .all()
             ]
             if intern_id is not None and intern_id not in managed_intern_ids:

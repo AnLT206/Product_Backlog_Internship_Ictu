@@ -163,8 +163,11 @@ export default function InternDashboardPage() {
     async function loadLiveTasks() {
       try {
         const res = await apiFetch('/api/intern/tasks')
-        if (isMounted && res?.ok && Array.isArray(res.data)) {
-          const mapped = res.data.map((t) => ({
+        const rawItems = Array.isArray(res?.data)
+          ? res.data
+          : (Array.isArray(res?.data?.items) ? res.data.items : [])
+        if (isMounted && res?.ok && rawItems.length > 0) {
+          const mapped = rawItems.map((t) => ({
             ...t,
             tags: generateTagsFromTitle(t.title),
             subtasks: t.subtasks || [
@@ -564,6 +567,16 @@ export default function InternDashboardPage() {
     }
     notifyInternDataChanged()
     refreshMetrics()
+
+    // Đồng bộ cập nhật lên Backend MySQL (Task 2 & DFD Section 4.4)
+    apiFetch(`/api/intern/tasks/${taskModal.task.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: updatedData.status,
+        progress: updatedData.progress,
+      }),
+    }).catch(() => {})
+
     setTaskModal({ open: false, task: null })
     showToast(`Đã cập nhật tiến độ "${taskModal.task.title}" lên ${updatedData.progress}%!`)
   }

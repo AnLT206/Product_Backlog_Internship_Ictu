@@ -51,6 +51,7 @@ def assign_mentor_direct(payload: AssignMentorBatchPayload, db: Session = Depend
 # 1. MENTOR MENTEES
 # ─────────────────────────────────────────────────────────────────────────────
 @router.get("/mentor/mentees", dependencies=[Depends(require_roles("mentor", "hr", "admin"))])
+@router.get("/mentor/assigned-interns", dependencies=[Depends(require_roles("mentor", "hr", "admin"))])
 def get_mentor_mentees(
     mentor_id: int | None = None,
     current_user: User = Depends(get_current_user),

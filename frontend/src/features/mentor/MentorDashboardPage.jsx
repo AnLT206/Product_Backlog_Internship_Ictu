@@ -180,7 +180,8 @@ export default function MentorDashboardPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const currentMentorId = user?.id || (user?.email?.includes('mentor2') ? 4 : 3)
+  const isMentor2 = user?.code === 'MT0002' || user?.email?.includes('mentor2') || user?.id === 4
+  const currentMentorId = isMentor2 ? 4 : 3
 
   // 5 Tabs trọng tâm: mentees, tasks, reports, evaluations, leave
   const [activeTab, setActiveTab] = useState('mentees') // 'mentees' | 'tasks' | 'reports' | 'evaluations' | 'leave'
@@ -243,22 +244,7 @@ export default function MentorDashboardPage() {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
 
   // ── Chức năng 3: Evaluations state & Rating Scale Form ──
-  const [evaluationsByIntern, setEvaluationsByIntern] = useState({
-    5: {
-      intern_id: 5,
-      intern_name: 'TTS (TTS0001)',
-      q1: 4,
-      q2: 5,
-      q3: 5,
-      q4: 5,
-      q5: 4,
-      strength: 'Tư duy lập trình tốt, chủ động học hỏi Docker & FastAPI. Hoàn thành các task Sprint đúng hạn và có tinh thần trách nhiệm cao.',
-      improvement: 'Cần nâng cao thêm kỹ năng viết Unit Test tự động (Pytest) và tối ưu hóa câu truy vấn CSDL.',
-      recommendation: 'Tuyển dụng chính thức (Khuyên khích)',
-      evaluated_at: '28/09/2026',
-      status: 'evaluated',
-    },
-  })
+  const [evaluationsByIntern, setEvaluationsByIntern] = useState({})
 
   // Modal Đánh giá năng lực cuối kỳ với Thang điểm Rating Scale (Chức năng 3)
   const [evalModal, setEvalModal] = useState(false)
@@ -327,78 +313,89 @@ export default function MentorDashboardPage() {
     async function loadAllData() {
       try {
         const [menteesRes, taskRes, repRes, evalRes] = await Promise.all([
-          fetchMentorMentees(),
-          fetchMentorTasks(),
-          fetchMentorReports(),
+          fetchMentorMentees(currentMentorId),
+          fetchMentorTasks(currentMentorId),
+          fetchMentorReports(currentMentorId),
           fetchMentorEvaluations(),
         ])
 
         // 1. Phân bổ Mentees theo phân công thực tế từ HR (Backend CSDL & Realtime Sync)
-        let resolvedMentees = []
+        const syncState = getRealtimeSyncState()
+        const unassignedSet = new Set(syncState.unassigned_intern_ids || [])
+        const activeLocalAssignments = (syncState.mentorAssignments || []).filter(
+          (m) =>
+            !unassignedSet.has(m.intern_id) &&
+            (m.mentor_id === currentMentorId ||
+              (currentMentorId === 3 && (m.mentor?.includes('Quân') || m.mentor_id === 3)) ||
+              (currentMentorId === 4 && (m.mentor?.includes('Hướng') || m.mentor_id === 4)))
+        )
+
+        let baseMentees = []
         if (menteesRes.ok && Array.isArray(menteesRes.data) && menteesRes.data.length > 0) {
-          const mappedMentees = menteesRes.data.map((m) => ({
-            id: m.id,
-            code: m.code || `TTS000${m.id}`,
-            full_name: m.full_name || 'Thực tập sinh',
-            email: m.email || 'intern@ictu.edu.vn',
-            avatar: m.avatar || getSavedAvatar(m.email, m.id, m.full_name),
-            phone: m.phone || '0912 345 678',
-            major: m.major || 'Công nghệ thông tin',
-            gpa: Number(m.gpa || 3.5),
-            lab: m.program_name || 'R&D Software Engineering',
-            attendance_rate: '98%',
-          }))
-          const syncState = getRealtimeSyncState()
-          const unassignedSet = new Set(syncState.unassigned_intern_ids || [])
-          resolvedMentees = mappedMentees.filter((m) => !unassignedSet.has(m.id))
-          setMentees(resolvedMentees)
-        } else {
-          const syncState = getRealtimeSyncState()
-          const unassignedSet = new Set(syncState.unassigned_intern_ids || [])
-          const myAssignments = (syncState.mentorAssignments || []).filter(
-            (m) =>
-              !unassignedSet.has(m.intern_id) &&
-              (m.mentor_id === currentMentorId ||
-                (currentMentorId === 3 && (m.mentor?.includes('Quân') || m.mentor_id === 3)) ||
-                (currentMentorId === 4 && (m.mentor?.includes('Hướng') || m.mentor_id === 4)))
-          )
-          if (myAssignments.length > 0) {
-            const mapped = myAssignments.map((a) => {
-              const appObj = (syncState.applicants || []).find((ap) => ap.id === a.intern_id)
-              const email = appObj?.email || 'intern@ictu.edu.vn'
-              return {
-                id: a.intern_id,
-                code: appObj?.student_code || a.student_code?.split(' ')[0] || `TTS000${a.intern_id}`,
-                full_name: appObj?.full_name || a.student || `TTS #${a.intern_id}`,
-                email,
-                avatar: appObj?.avatar || getSavedAvatar(email, a.intern_id, appObj?.full_name || a.student),
-                phone: appObj?.phone || '0912 345 678',
-                major: appObj?.major || 'Công nghệ thông tin',
-                gpa: Number(appObj?.gpa || 3.65),
-                lab: a.project || 'R&D Software Engineering',
-                attendance_rate: '98%',
+          baseMentees = menteesRes.data
+            .filter((m) => {
+              if (unassignedSet.has(m.id)) return false
+              const localAssign = (syncState.mentorAssignments || []).find((a) => a.intern_id === m.id)
+              if (localAssign && localAssign.mentor_id && localAssign.mentor_id !== currentMentorId) {
+                return false
               }
+              return true
             })
-            const unique = []
-            const seen = new Set()
-            mapped.forEach((item) => {
-              const key = item.code || item.email || item.full_name
-              if (!seen.has(key)) {
-                seen.add(key)
-                unique.push(item)
-              }
-            })
-            resolvedMentees = unique
-            setMentees(unique)
-          } else {
-            setMentees([])
-          }
+            .map((m) => ({
+              id: m.id,
+              code: m.code || `TTS000${m.id}`,
+              full_name: m.full_name || 'Thực tập sinh',
+              email: m.email || 'intern@ictu.edu.vn',
+              avatar: m.avatar || getSavedAvatar(m.email, m.id, m.full_name),
+              phone: m.phone || '0912 345 678',
+              major: m.major || 'Công nghệ thông tin',
+              gpa: Number(m.gpa || 3.5),
+              lab: m.program_name || 'R&D Software Engineering',
+              attendance_rate: '98%',
+            }))
         }
 
+        activeLocalAssignments.forEach((a) => {
+          if (!baseMentees.some((m) => m.id === a.intern_id)) {
+            const appObj = (syncState.applicants || []).find((ap) => ap.id === a.intern_id)
+            const email = appObj?.email || 'intern@ictu.edu.vn'
+            baseMentees.push({
+              id: a.intern_id,
+              code: appObj?.student_code || a.student_code?.split(' ')[0] || `TTS000${a.intern_id}`,
+              full_name: appObj?.full_name || a.student || `TTS #${a.intern_id}`,
+              email,
+              avatar: appObj?.avatar || getSavedAvatar(email, a.intern_id, appObj?.full_name || a.student),
+              phone: appObj?.phone || '0912 345 678',
+              major: appObj?.major || 'Công nghệ thông tin',
+              gpa: Number(appObj?.gpa || 3.65),
+              lab: a.project || 'R&D Software Engineering',
+              attendance_rate: '98%',
+            })
+          }
+        })
+        const resolvedMentees = baseMentees
+        setMentees(resolvedMentees)
+
         // 2. Nhiệm vụ Tasks: Dữ liệu thực tế từ CSDL MySQL theo intern_id được phân công
+        const rawTaskItems = Array.isArray(taskRes?.data)
+          ? taskRes.data
+          : (Array.isArray(taskRes?.data?.items) ? taskRes.data.items : [])
         let loadedTasks = []
-        if (taskRes.ok && Array.isArray(taskRes.data)) {
-          loadedTasks = [...taskRes.data]
+        if (rawTaskItems.length > 0) {
+          loadedTasks = rawTaskItems.map((t) => {
+            const mentee = resolvedMentees.find((m) => Number(m.id) === Number(t.intern_id))
+            return {
+              id: t.id,
+              title: t.title,
+              description: t.description || '',
+              intern_id: Number(t.intern_id),
+              intern_name: mentee ? `${mentee.full_name} (${mentee.code})` : (t.intern_name || `TTS #${t.intern_id}`),
+              due_at: t.due_at || '2026-10-15',
+              priority: t.priority || 'medium',
+              status: t.status || 'doing',
+              progress: t.progress !== undefined ? t.progress : 0,
+            }
+          })
         }
         try {
           const rawTasks = localStorage.getItem('intern_sprint1_tasks_v1')
@@ -429,26 +426,39 @@ export default function MentorDashboardPage() {
           }
         } catch {}
 
-        if (taskRes.ok || loadedTasks.length > 0) {
-          setTasks(loadedTasks)
-        }
+        setTasks(loadedTasks)
 
         // 3. Báo cáo tuần: Kết hợp API và dữ liệu thực từ trang Thực tập sinh (intern_report_history)
+        const rawReportItems = Array.isArray(repRes?.data)
+          ? repRes.data
+          : (Array.isArray(repRes?.data?.items) ? repRes.data.items : [])
         let mergedReports = []
-        if (repRes.ok && Array.isArray(repRes.data)) {
-          mergedReports = repRes.data.map((r) => ({
-            ...r,
-            intern_name: r.intern_name || 'TTS (TTS0001)',
-            week_range: r.week_title || r.week_range || `Báo cáo Tuần ${r.id}`,
-            summary: r.tasks_done || r.summary || 'Đang cập nhật',
-            plan: r.plan || 'Tiếp tục hoàn thiện các task Sprint theo phân công',
-            file_name: r.file_name || 'BaoCaoTuan.docx',
-            file_size: '1.4 MB',
-            status: (r.status === 'reviewed' || r.status === 'graded' || r.mentor_feedback) ? 'reviewed' : 'pending',
-          }))
+        if (rawReportItems.length > 0) {
+          mergedReports = rawReportItems.map((r) => {
+            const mentee = resolvedMentees.find((m) => Number(m.id) === Number(r.user_id || r.intern_id))
+            const firstFeedback = Array.isArray(r.feedbacks) && r.feedbacks.length > 0 ? r.feedbacks[0] : null
+            const feedbackText = r.mentor_feedback || r.feedback || firstFeedback?.comment || ''
+            const feedbackScore = r.score !== undefined && r.score !== null ? Number(r.score) : (firstFeedback?.score ? Number(firstFeedback.score) : null)
+            const isReviewed = r.status === 'reviewed' || r.status === 'graded' || !!feedbackText
+            return {
+              ...r,
+              id: r.id,
+              intern_id: r.user_id || r.intern_id || (mentee?.id || 5),
+              intern_name: mentee ? `${mentee.full_name} (${mentee.code})` : (r.user_name || r.intern_name || 'Thực tập sinh'),
+              week_range: r.week_number ? `Tuần ${String(r.week_number).padStart(2, '0')}` : (r.week_title || r.week_range || `Báo cáo Tuần ${r.id}`),
+              summary: r.content || r.tasks_done || r.summary || 'Đang cập nhật',
+              issues: r.difficulties || r.issues || 'Không có khó khăn lớn.',
+              plan: r.next_week_plan || r.plan || 'Tiếp tục hoàn thiện các task Sprint theo phân công',
+              mentor_feedback: feedbackText,
+              feedback: feedbackText,
+              score: feedbackScore,
+              status: isReviewed ? 'reviewed' : 'pending',
+              file_name: r.file_name || 'BaoCaoTuan.docx',
+              file_size: r.file_size || '1.4 MB',
+            }
+          })
         }
 
-        // Đọc thêm báo cáo nộp thực từ intern_report_history
         try {
           const raw = localStorage.getItem('intern_report_history')
           if (raw) {
@@ -457,12 +467,13 @@ export default function MentorDashboardPage() {
               localReps.forEach((lr, idx) => {
                 const repId = lr.id || (idx + 300)
                 const exists = mergedReports.some((mr) => mr.id === repId)
-                if (!exists) {
+                if (!exists && resolvedMentees.some((m) => Number(m.id) === Number(lr.intern_id))) {
+                  const targetMentee = resolvedMentees.find((m) => Number(m.id) === Number(lr.intern_id))
                   mergedReports.push({
                     id: repId,
-                    intern_id: lr.intern_id || 5,
-                    intern_name: lr.intern_name || 'TTS (TTS0001)',
-                    intern_major: lr.intern_major || 'Công nghệ Thông tin',
+                    intern_id: lr.intern_id,
+                    intern_name: `${targetMentee.full_name} (${targetMentee.code})`,
+                    intern_major: lr.intern_major || targetMentee.major || 'Công nghệ Thông tin',
                     week_range: lr.week || lr.week_range || (lr.report_time ? `Báo cáo ngày ${lr.report_time}` : `Báo cáo Tuần ${idx + 1}`),
                     submitted_at: lr.report_time || lr.submitted_at || lr.submittedDate || '28/09/2026 16:45',
                     summary: lr.summary || lr.contentSummary || lr.content || lr.task_name || 'Đã hoàn thành các nhiệm vụ tuần.',
@@ -481,32 +492,32 @@ export default function MentorDashboardPage() {
           }
         } catch {}
 
-        if (mergedReports.length > 0) {
-          setReports(mergedReports)
-        }
+        setReports(mergedReports)
 
         // 4. Bảng điểm đánh giá
         if (evalRes.ok && Array.isArray(evalRes.data) && evalRes.data.length > 0) {
           const map = {}
           evalRes.data.forEach((e) => {
-            map[e.intern_id] = {
-              intern_id: e.intern_id,
-              intern_name: e.name,
-              q1: 4,
-              q2: 5,
-              q3: 5,
-              q4: 5,
-              q5: 4,
-              strength: e.mentor_note?.split('|')[0]?.replace('[Ưu điểm]:', '').trim() || 'Thái độ tốt, tiếp thu nhanh.',
-              improvement: e.mentor_note?.split('|')[1]?.replace('[Cần cải thiện]:', '').trim() || 'Rèn luyện thêm tư duy giải thuật.',
-              recommendation: 'Tuyển dụng chính thức (Khuyên khích)',
-              evaluated_at: 'Gần đây',
-              finalScore: e.final_score,
-              letterGrade: e.letter_grade,
-              status: 'evaluated',
+            if (resolvedMentees.some((m) => Number(m.id) === Number(e.intern_id))) {
+              map[e.intern_id] = {
+                intern_id: e.intern_id,
+                intern_name: e.name,
+                q1: 4,
+                q2: 5,
+                q3: 5,
+                q4: 5,
+                q5: 4,
+                strength: e.mentor_note?.split('|')[0]?.replace('[Ưu điểm]:', '').trim() || 'Thái độ tốt, tiếp thu nhanh.',
+                improvement: e.mentor_note?.split('|')[1]?.replace('[Cần cải thiện]:', '').trim() || 'Rèn luyện thêm tư duy giải thuật.',
+                recommendation: 'Tuyển dụng chính thức (Khuyên khích)',
+                evaluated_at: 'Gần đây',
+                finalScore: e.final_score,
+                letterGrade: e.letter_grade,
+                status: 'evaluated',
+              }
             }
           })
-          setEvaluationsByIntern((prev) => ({ ...prev, ...map }))
+          setEvaluationsByIntern(map)
         }
 
         // 5. Đơn xin nghỉ phép của TTS (Đồng bộ từ CSDL / localStorage)
@@ -585,7 +596,7 @@ export default function MentorDashboardPage() {
       window.removeEventListener('ictu_profile_updated', handleDataChanged)
       window.removeEventListener('ictu_avatar_changed', handleDataChanged)
     }
-  }, [])
+  }, [currentMentorId])
 
   function showToast(message, type = 'success') {
     setToast({ message, type })

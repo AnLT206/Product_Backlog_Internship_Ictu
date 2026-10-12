@@ -7,12 +7,16 @@
 import apiFetch from './client'
 
 /* ── MENTOR PORTAL ── */
-export async function fetchMentorMentees() {
-  return apiFetch('/api/mentor/mentees', { method: 'GET' })
+export async function fetchMentorMentees(mentorId = null) {
+  return apiFetch(`/api/mentor/mentees${mentorId ? `?mentor_id=${mentorId}` : ''}`, { method: 'GET' })
 }
 
-export async function fetchMentorTasks() {
-  return apiFetch('/api/mentor/tasks', { method: 'GET' })
+export async function fetchMentorTasks(mentorId = null, internId = null) {
+  const query = new URLSearchParams()
+  if (mentorId) query.set('mentor_id', mentorId)
+  if (internId) query.set('intern_id', internId)
+  const qs = query.toString()
+  return apiFetch(`/api/mentor/tasks${qs ? `?${qs}` : ''}`, { method: 'GET' })
 }
 
 export async function createMentorTask(task) {
@@ -35,8 +39,12 @@ export async function deleteMentorTask(taskId) {
   })
 }
 
-export async function fetchMentorReports() {
-  return apiFetch('/api/mentor/reports', { method: 'GET' })
+export async function fetchMentorReports(mentorId = null, internId = null) {
+  const query = new URLSearchParams()
+  if (mentorId) query.set('mentor_id', mentorId)
+  if (internId) query.set('intern_id', internId)
+  const qs = query.toString()
+  return apiFetch(`/api/mentor/reports${qs ? `?${qs}` : ''}`, { method: 'GET' })
 }
 
 export async function gradeMentorReport(reportId, score, mentor_feedback) {

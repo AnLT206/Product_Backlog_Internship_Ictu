@@ -414,6 +414,11 @@ export function getRealtimeSyncState() {
           seenAssigned.add(m.intern_id);
           return true;
         });
+        // Xóa bất kỳ intern_id nào khỏi unassigned_intern_ids nếu intern đó đang có mặt trong mentorAssignments
+        if (parsed.unassigned_intern_ids && Array.isArray(parsed.unassigned_intern_ids)) {
+          const currentlyAssigned = new Set(parsed.mentorAssignments.map((m) => m.intern_id));
+          parsed.unassigned_intern_ids = parsed.unassigned_intern_ids.filter((id) => !currentlyAssigned.has(id));
+        }
         const unassignedSet = new Set(parsed.unassigned_intern_ids || []);
         for (const defAssign of DEFAULT_INITIAL_DATA.mentorAssignments) {
           if (!unassignedSet.has(defAssign.intern_id) && !parsed.mentorAssignments.some((m) => m.intern_id === defAssign.intern_id)) {

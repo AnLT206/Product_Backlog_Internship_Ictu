@@ -77,6 +77,7 @@ def get_my_weekly_report(
 )
 def list_mentor_reports(
     intern_id: int | None = Query(None, description="Lọc theo ID thực tập sinh cụ thể"),
+    mentor_id: int | None = Query(None, description="Lọc theo ID Mentor cụ thể"),
     status_filter: Literal["submitted", "reviewed", "draft"] | None = Query(
         None, alias="status", description="Lọc theo trạng thái báo cáo"
     ),
@@ -88,6 +89,7 @@ def list_mentor_reports(
         mentor_user=current_user,
         intern_id=intern_id,
         status_filter=status_filter,
+        mentor_id=mentor_id,
     )
 
 

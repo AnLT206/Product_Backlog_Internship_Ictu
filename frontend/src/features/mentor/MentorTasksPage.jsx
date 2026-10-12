@@ -79,7 +79,10 @@ export default function MentorTasksPage() {
   /* ── Load interns for filter ── */
   async function loadInterns() {
     const { ok, data } = await getAssignedInterns()
-    if (ok) setInterns(data?.items ?? [])
+    if (ok) {
+      const items = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : [])
+      setInterns(items)
+    }
   }
 
   /* ── Load tasks ── */

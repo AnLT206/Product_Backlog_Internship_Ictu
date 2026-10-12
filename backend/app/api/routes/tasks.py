@@ -44,6 +44,7 @@ def create_task_for_intern(
 )
 def list_mentor_tasks(
     intern_id: int | None = Query(default=None, description="Lọc theo ID thực tập sinh"),
+    mentor_id: int | None = Query(default=None, description="Lọc theo ID Mentor"),
     status_filter: Literal["todo", "doing", "done", "canceled"] | None = Query(
         default=None, alias="status", description="Lọc theo trạng thái công việc"
     ),
@@ -54,6 +55,7 @@ def list_mentor_tasks(
         current_user=current_user,
         intern_id=intern_id,
         status_filter=status_filter,
+        mentor_id=mentor_id,
     )
 
 

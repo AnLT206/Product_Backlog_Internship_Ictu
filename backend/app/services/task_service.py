@@ -97,6 +97,25 @@ class TaskService:
         self.db.commit()
         self.db.refresh(new_task)
 
+        # Sync to InternTask if exists
+        try:
+            from app.models.intern_task import InternTask
+            due_str = str(payload.due_at) if payload.due_at else "2026-10-15"
+            it = InternTask(
+                id=new_task.id,
+                intern_id=payload.intern_id,
+                title=new_task.title,
+                description=new_task.description,
+                due_at=due_str,
+                priority="medium",
+                status=new_task.status,
+                progress=new_task.progress,
+            )
+            self.db.add(it)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+
         # Load relationships
         new_task = (
             self.db.query(Task)
@@ -150,6 +169,18 @@ class TaskService:
 
         self.db.commit()
         self.db.refresh(task)
+
+        # Sync to InternTask if exists
+        try:
+            from app.models.intern_task import InternTask
+            it = self.db.query(InternTask).filter(InternTask.id == task.id).first()
+            if it:
+                it.status = task.status
+                it.progress = task.progress
+                self.db.commit()
+        except Exception:
+            self.db.rollback()
+
         return self._to_task_response(task)
 
     def list_tasks_for_mentor(
@@ -157,6 +188,7 @@ class TaskService:
         current_user: User,
         intern_id: int | None = None,
         status_filter: str | None = None,
+        mentor_id: int | None = None,
     ) -> TaskListResponse:
         """Lấy danh sách công việc mà Mentor đã giao."""
         query = (
@@ -164,8 +196,9 @@ class TaskService:
             .options(joinedload(Task.mentor), joinedload(Task.intern))
         )
         is_admin = current_user.role and current_user.role.name == ADMIN_ROLE_NAME
-        if not is_admin:
-            query = query.filter(Task.mentor_id == current_user.id)
+        target_mentor_id = mentor_id if (is_admin and mentor_id) else (mentor_id or current_user.id)
+        if not is_admin or mentor_id:
+            query = query.filter(Task.mentor_id == target_mentor_id)
 
         if intern_id:
             query = query.filter(Task.intern_id == intern_id)
