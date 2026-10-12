@@ -151,8 +151,10 @@ CREATE TABLE IF NOT EXISTS `program_members` (
     `program_id` INT NOT NULL,
     `intern_user_id` INT NOT NULL,
     `mentor_user_id` INT NULL,
+    `status` ENUM('in_progress', 'completed', 'dropped_out', 'failed') NOT NULL DEFAULT 'in_progress',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY `uq_program_intern` (`program_id`, `intern_user_id`),
+    INDEX `idx_program_members_status` (`status`),
     CONSTRAINT `fk_pm_program` FOREIGN KEY (`program_id`) REFERENCES `internship_programs` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_pm_intern` FOREIGN KEY (`intern_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_pm_mentor` FOREIGN KEY (`mentor_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL

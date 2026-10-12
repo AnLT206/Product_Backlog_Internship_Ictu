@@ -136,3 +136,18 @@ def get_final_summary_report(
         intern_id=intern_id,
     )
 
+
+@router.get(
+    "/completion-rate",
+    summary="Thống kê số lượng thực tập sinh theo trạng thái và tỷ lệ hoàn thành (US-33)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def get_completion_rate_analytics(
+    program_id: int | None = Query(default=None, description="Lọc theo ID kỳ thực tập cụ thể (tùy chọn)"),
+    db: Session = Depends(get_db),
+):
+    from app.services.program_service import ProgramService
+
+    return ProgramService(db).get_completion_stats(program_id=program_id)
+
+

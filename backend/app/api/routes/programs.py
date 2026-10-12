@@ -5,6 +5,7 @@ from app.api.deps import get_db, require_roles
 from app.schemas.program import (
     ProgramAssignRequest,
     ProgramAssignResponse,
+    ProgramCompletionStatsResponse,
     ProgramCreateRequest,
     ProgramPeriodRequest,
     ProgramResponse,
@@ -40,6 +41,19 @@ def create_program(
     db: Session = Depends(get_db),
 ) -> ProgramResponse:
     return ProgramService(db).create_program(payload)
+
+
+@router.get(
+    "/completion-stats",
+    response_model=ProgramCompletionStatsResponse,
+    summary="Thống kê số lượng thực tập sinh theo trạng thái và tỷ lệ hoàn thành (US-33)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def get_completion_stats(
+    program_id: int | None = Query(default=None, description="Lọc theo ID kỳ thực tập cụ thể (tùy chọn)"),
+    db: Session = Depends(get_db),
+) -> ProgramCompletionStatsResponse:
+    return ProgramService(db).get_completion_stats(program_id=program_id)
 
 
 @router.get(
