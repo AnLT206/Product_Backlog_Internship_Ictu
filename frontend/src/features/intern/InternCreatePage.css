@@ -428,12 +428,47 @@
   color: #8a8d91;
 }
 
-/* ── 2-column row (SĐT + ngày sinh; năm + GPA) ── */
+/* ── 2-column row (SĐT + ngày sinh; năm + GPA; MK + Giới tính) ── */
 .intern-create-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 16px;
 }
+
+/* ── Password input wrapper & toggle button ── */
+.intern-create-password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.intern-create-password-wrap input {
+  padding-right: 44px !important;
+}
+
+.intern-create-password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 8px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.intern-create-password-toggle:hover {
+  color: var(--fb-blue, #1877f2);
+  background-color: #f1f5f9;
+}
+
 
 /* ── error state ── */
 .intern-create-form .form-group--error input,

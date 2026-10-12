@@ -22,6 +22,7 @@
  */
 
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { createIntern, uploadInternCv, buildToast } from '../../api/interns';
 import { syncApplicantSubmission } from '../../utils/realtimeSync';
 import './InternCreatePage.css';
@@ -68,12 +69,12 @@ const PHONE_REGEX = /^(0[0-9]{8,10}|\+84[0-9]{8,10})$/;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 /* ─────────────────────────────────────────────
-   Initial form state — field spec §4.3 (Nhóm B) + email (Nhóm A)
-   KHÔNG có password/confirm_password (xem TODO ở đầu file).
+   Initial form state — field spec §4.3 (Nhóm B) + email & password (Nhóm A)
 ───────────────────────────────────────────── */
 const INITIAL_FORM = {
   full_name:     '',   // users.full_name (bắt buộc)
   email:         '',   // users.email (bắt buộc)
+  password:      '',   // users.password (bắt buộc — HR tự tạo)
   phone_number:  '',   // intern_profiles.phone_number (tuỳ chọn)
   dob:           '',   // intern_profiles.dob YYYY-MM-DD (tuỳ chọn)
   gender:        '',   // intern_profiles.gender (tuỳ chọn)
@@ -106,6 +107,16 @@ function validateForm(form) {
     errors.email = 'Vui lòng nhập email.';
   } else if (!EMAIL_REGEX.test(email)) {
     errors.email = 'Email không đúng định dạng.';
+  }
+
+  /* password — bắt buộc (HR tự thiết lập), 6–128 ký tự */
+  const password = form.password ? form.password.trim() : '';
+  if (!password) {
+    errors.password = 'Vui lòng nhập mật khẩu khởi tạo.';
+  } else if (password.length < 6) {
+    errors.password = 'Mật khẩu phải có ít nhất 6 ký tự.';
+  } else if (password.length > 128) {
+    errors.password = 'Mật khẩu không được vượt quá 128 ký tự.';
   }
 
   /* phone_number — tuỳ chọn, nếu có phải đúng format */
@@ -197,6 +208,7 @@ function InternCreatePage() {
   const [errors, setErrors]   = useState({});
   const [loading, setLoading] = useState(false);
   const [toast, setToast]     = useState(null); // { type: 'success'|'error', message: string }
+  const [showPassword, setShowPassword] = useState(false);
 
   // State upload CV ứng viên
   const [cvFile, setCvFile]       = useState(null);
@@ -306,6 +318,7 @@ function InternCreatePage() {
         setForm(INITIAL_FORM);
         setCvFile(null);
         setCvError('');
+        setShowPassword(false);
       } else if (status === 409) {
         // Email trùng
         const msg = data?.detail ?? 'Email đã được sử dụng trong hệ thống.';
@@ -478,28 +491,63 @@ function InternCreatePage() {
                   </div>
                 </div>
 
-                {/* Giới tính */}
-                <div className={`form-group${errors.gender ? ' form-group--error' : ''}`}>
-                  <label htmlFor="hr-ic-gender">Giới tính</label>
-                  <select
-                    id="hr-ic-gender"
-                    name="gender"
-                    value={form.gender}
-                    onChange={handleChange}
-                    aria-describedby={errors.gender ? 'err-ic-gender' : undefined}
-                  >
-                    <option value="">-- Chọn giới tính --</option>
-                    {GENDER_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.gender && (
-                    <span id="err-ic-gender" className="form-error" role="alert">
-                      {errors.gender}
-                    </span>
-                  )}
+                {/* Hàng 3: Mật khẩu khởi tạo + Giới tính */}
+                <div className="intern-create-row">
+                  <div className={`form-group${errors.password ? ' form-group--error' : ''}`}>
+                    <label htmlFor="hr-ic-password">
+                      Mật khẩu khởi tạo <span className="intern-create-required" aria-hidden="true">*</span>
+                    </label>
+                    <div className="intern-create-password-wrap">
+                      <input
+                        id="hr-ic-password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Tối thiểu 6 ký tự"
+                        autoComplete="new-password"
+                        value={form.password}
+                        onChange={handleChange}
+                        aria-required="true"
+                        aria-describedby={errors.password ? 'err-ic-password' : undefined}
+                      />
+                      <button
+                        type="button"
+                        className="intern-create-password-toggle"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                        aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    {errors.password && (
+                      <span id="err-ic-password" className="form-error" role="alert">
+                        {errors.password}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className={`form-group${errors.gender ? ' form-group--error' : ''}`}>
+                    <label htmlFor="hr-ic-gender">Giới tính</label>
+                    <select
+                      id="hr-ic-gender"
+                      name="gender"
+                      value={form.gender}
+                      onChange={handleChange}
+                      aria-describedby={errors.gender ? 'err-ic-gender' : undefined}
+                    >
+                      <option value="">-- Chọn giới tính --</option>
+                      {GENDER_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.gender && (
+                      <span id="err-ic-gender" className="form-error" role="alert">
+                        {errors.gender}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Địa chỉ */}
