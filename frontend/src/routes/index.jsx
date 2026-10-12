@@ -20,6 +20,7 @@ import ProgramListPage from '../features/programs/ProgramListPage.jsx'
 import ProgramFormPage from '../features/programs/ProgramFormPage.jsx'
 import MentorAssignmentPage from '../features/hr/MentorAssignmentPage.jsx'
 import CompletionRatePage from '../features/hr/CompletionRatePage.jsx'
+import CandidateSourceAnalyticsPage from '../features/hr/CandidateSourceAnalyticsPage.jsx'
 import HrLayout from '../features/hr/HrLayout.jsx'
 import HrDashboardPage from '../features/hr/HrDashboardPage.jsx'
 import HrAttendancePage from '../features/hr/HrAttendancePage.jsx'
@@ -95,6 +96,7 @@ export default function AppRoutes() {
           <Route path="mentors/assign" element={<Navigate to="/hr/mentor-assignment" replace />} />
           <Route path="mentor-assignment" element={<MentorAssignmentPage />} />
           <Route path="completion-rate" element={<CompletionRatePage />} />
+          <Route path="candidate-source" element={<CandidateSourceAnalyticsPage />} />
           <Route path="attendance" element={<HrAttendancePage />} />
           <Route path="attendance-report" element={<Navigate to="/hr/attendance?tab=report" replace />} />
           <Route path="work-schedule" element={<Navigate to="/hr/attendance?tab=schedule" replace />} />

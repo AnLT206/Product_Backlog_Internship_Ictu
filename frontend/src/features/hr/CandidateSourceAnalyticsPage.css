@@ -1,0 +1,657 @@
+/* ==========================================================================
+   CandidateSourceAnalyticsPage.css
+   Giao diện Dashboard phân tích nguồn ứng viên (HR)
+   Đồng bộ toàn diện với Design System: HrDashboardPage & CompletionRatePage
+   Prefix "csa-" để tránh xung đột CSS toàn cục.
+   ========================================================================== */
+
+.csa-page {
+  --csa-blue:       #1877f2;
+  --csa-blue-hover: #166fe5;
+  --csa-blue-soft:  #eff6ff;
+  --csa-ink:        #0f172a;
+  --csa-body:       #1e293b;
+  --csa-muted:      #64748b;
+  --csa-line:       #e2e8f0;
+  --csa-bg:         #f8fafc;
+  --csa-card-bg:    #ffffff;
+  --csa-font:       'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-family: var(--csa-font);
+  color: var(--csa-body);
+  padding: 4px 0 32px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.csa-page *,
+.csa-page *::before,
+.csa-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── 1. HERO HEADER CARD ── */
+.csa-hero-card {
+  background: var(--csa-card-bg);
+  border-radius: 14px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.csa-hero-main {
+  flex: 1;
+  min-width: 280px;
+}
+
+.csa-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--csa-muted);
+  margin-bottom: 8px;
+}
+
+.csa-breadcrumb-link {
+  color: var(--csa-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.csa-breadcrumb-link:hover {
+  color: var(--csa-blue);
+}
+
+.csa-breadcrumb-sep {
+  color: #cbd5e1;
+}
+
+.csa-breadcrumb-current {
+  color: var(--csa-ink);
+  font-weight: 650;
+}
+
+.csa-hero-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  background: #eff6ff;
+  color: var(--csa-blue);
+  font-size: 11px;
+  font-weight: 750;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  border: 1px solid #dbeafe;
+}
+
+.csa-hero-title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--csa-ink);
+}
+
+.csa-hero-desc {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--csa-muted);
+  line-height: 1.5;
+}
+
+.csa-hero-aside {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.csa-info-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  background: #f8fafc;
+  border: 1px solid var(--csa-line);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.csa-info-icon {
+  color: var(--csa-blue);
+  flex-shrink: 0;
+}
+
+/* ── 2. KPI METRICS (3 CARDS) ── */
+.csa-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.csa-kpi-card {
+  background: var(--csa-card-bg);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--csa-line);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.csa-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+}
+
+.csa-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.csa-kpi-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--csa-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.csa-kpi-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.csa-kpi-icon--blue   { background: #eff6ff; color: #2563eb; }
+.csa-kpi-icon--green  { background: #ecfdf5; color: #16a34a; }
+.csa-kpi-icon--purple { background: #f5f3ff; color: #7c3aed; }
+
+.csa-kpi-body {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.csa-kpi-val {
+  font-size: 28px;
+  font-weight: 850;
+  color: var(--csa-ink);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.csa-kpi-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.csa-kpi-tag--blue   { background: #eff6ff; color: #1d4ed8; }
+.csa-kpi-tag--green  { background: #ecfdf5; color: #15803d; }
+.csa-kpi-tag--purple { background: #f5f3ff; color: #6d28d9; }
+
+.csa-kpi-hint {
+  font-size: 12px;
+  color: var(--csa-muted);
+  line-height: 1.4;
+}
+
+/* ── 3. CHARTS GRID (2 CARDS) ── */
+.csa-charts-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.csa-chart-card {
+  background: var(--csa-card-bg);
+  border-radius: 14px;
+  border: 1px solid var(--csa-line);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.csa-chart-card-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #ffffff;
+}
+
+.csa-chart-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.csa-chart-header-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.csa-chart-header-icon--blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.csa-chart-header-icon--purple {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.csa-chart-title {
+  margin: 0 0 3px;
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--csa-ink);
+}
+
+.csa-chart-desc {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--csa-muted);
+}
+
+.csa-chart-pill {
+  font-size: 11px;
+  font-weight: 650;
+  padding: 4px 10px;
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.csa-chart-card-body {
+  padding: 22px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ── 4. BAR CHART (THEO TRƯỜNG) ── */
+.csa-bar-chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.csa-bar-scale {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 170px;
+  padding-right: 75px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  border-bottom: 1px dashed #e2e8f0;
+  padding-bottom: 6px;
+}
+
+.csa-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.csa-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.csa-bar-row:hover,
+.csa-bar-row.is-active {
+  background: #f8fafc;
+}
+
+.csa-bar-label-wrap {
+  width: 170px;
+  min-width: 170px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.csa-bar-rank {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.csa-bar-name {
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--csa-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.csa-bar-track-wrap {
+  flex: 1;
+  min-width: 100px;
+}
+
+.csa-bar-track {
+  width: 100%;
+  height: 18px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.csa-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  min-width: 8px;
+}
+
+.csa-bar-fill-glow {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+}
+
+.csa-bar-row:hover .csa-bar-fill,
+.csa-bar-row.is-active .csa-bar-fill {
+  background: linear-gradient(90deg, #2563eb 0%, #1e40af 100%);
+}
+
+.csa-bar-val-wrap {
+  width: 75px;
+  min-width: 75px;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.25;
+}
+
+.csa-bar-count {
+  font-size: 13.5px;
+  font-weight: 750;
+  color: var(--csa-ink);
+}
+
+.csa-bar-count small {
+  font-size: 10.5px;
+  color: var(--csa-muted);
+  font-weight: 600;
+}
+
+.csa-bar-percent {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--csa-muted);
+}
+
+/* ── 5. PIE CHART (THEO NGÀNH) ── */
+.csa-pie-chart-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+}
+
+.csa-pie-graphic-wrap {
+  position: relative;
+  width: 190px;
+  height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.csa-pie-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(0deg);
+  overflow: visible;
+}
+
+.csa-pie-slice {
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform-origin: 120px 120px;
+}
+
+.csa-pie-slice.is-hovered {
+  opacity: 0.95;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+}
+
+.csa-pie-center-title {
+  font-size: 18px;
+  font-weight: 850;
+  fill: var(--csa-ink);
+  font-family: var(--csa-font);
+}
+
+.csa-pie-center-sub {
+  font-size: 9.5px;
+  font-weight: 600;
+  fill: var(--csa-muted);
+  font-family: var(--csa-font);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.csa-pie-legend {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 14px;
+}
+
+.csa-legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.csa-legend-item:hover,
+.csa-legend-item.is-hovered {
+  background: #f8fafc;
+}
+
+.csa-legend-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.csa-legend-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.csa-legend-name {
+  font-weight: 600;
+  color: var(--csa-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.csa-legend-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.csa-legend-count {
+  font-weight: 700;
+  color: var(--csa-body);
+}
+
+.csa-legend-percent {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--csa-muted);
+  min-width: 40px;
+  text-align: right;
+}
+
+.csa-empty-chart {
+  padding: 32px;
+  text-align: center;
+  color: var(--csa-muted);
+  font-size: 13px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px dashed var(--csa-line);
+}
+
+/* ── 6. RESPONSIVE BREAKPOINTS ── */
+@media (max-width: 1120px) {
+  .csa-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .csa-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .csa-hero-card {
+    padding: 16px;
+  }
+
+  .csa-hero-title {
+    font-size: 19px;
+  }
+
+  .csa-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .csa-chart-card-header {
+    padding: 14px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .csa-chart-card-body {
+    padding: 16px;
+  }
+
+  .csa-bar-scale {
+    padding-left: 120px;
+    padding-right: 60px;
+  }
+
+  .csa-bar-label-wrap {
+    width: 120px;
+    min-width: 120px;
+  }
+
+  .csa-bar-name {
+    font-size: 12.5px;
+  }
+
+  .csa-bar-val-wrap {
+    width: 60px;
+    min-width: 60px;
+  }
+
+  .csa-bar-count {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .csa-bar-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .csa-bar-label-wrap {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .csa-bar-scale {
+    display: none;
+  }
+
+  .csa-bar-track-wrap {
+    flex: 1;
+  }
+
+  .csa-bar-val-wrap {
+    width: auto;
+    min-width: auto;
+  }
+}
