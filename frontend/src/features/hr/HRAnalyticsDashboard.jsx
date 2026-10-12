@@ -18,6 +18,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import './HRAnalyticsDashboard.css';
+import { getRealtimeSyncState, subscribeRealtimeEvents } from '../../utils/realtimeSync';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    MOCK DATA & FILTER OPTIONS
@@ -37,13 +38,13 @@ const SCHOOL_OPTIONS = [
   { value: 'UET', label: 'ĐH Công nghệ - ĐHQGHN' },
 ];
 
-const INITIAL_REPORT_DATA = [
+export const INITIAL_REPORT_DATA = [
   {
     id: 'TTS0001',
     name: 'Nguyễn Văn An',
     school: 'ĐH CNTT & Truyền thông (ICTU)',
     schoolCode: 'ICTU',
-    major: 'Kỹ thuật Phần mềm',
+    major: 'Công nghệ thông tin',
     batch: '2026-FALL',
     gpa: 8.8,
     grade: 'Xuất sắc',
@@ -56,7 +57,7 @@ const INITIAL_REPORT_DATA = [
     name: 'Lê Hoàng Nam',
     school: 'ĐH CNTT & Truyền thông (ICTU)',
     schoolCode: 'ICTU',
-    major: 'Kỹ thuật Phần mềm',
+    major: 'Kỹ thuật phần mềm',
     batch: '2026-FALL',
     gpa: 8.2,
     grade: 'Giỏi',
@@ -66,31 +67,108 @@ const INITIAL_REPORT_DATA = [
   },
   {
     id: 'TTS0003',
-    name: 'Trần Thị Bình',
+    name: 'Trần Thị Mai Phương',
     school: 'ĐH CNTT & Truyền thông (ICTU)',
     schoolCode: 'ICTU',
-    major: 'Công nghệ Thông tin',
+    major: 'Hệ thống thông tin',
     batch: '2026-FALL',
     gpa: 8.4,
     grade: 'Giỏi',
     attendanceRate: 100.0,
     attendanceSessions: '24/24',
-    mentor: 'Phạm Quốc Hướng',
+    mentor: 'Trần Hoàng Quân',
   },
   {
     id: 'TTS0004',
-    name: 'Phạm Minh Đức',
-    school: 'ĐH Kỹ thuật Công nghiệp Thái Nguyên',
-    schoolCode: 'TNU_TECH',
-    major: 'Khoa học Máy tính',
+    name: 'Hoàng Minh Đức',
+    school: 'ĐH CNTT & Truyền thông (ICTU)',
+    schoolCode: 'ICTU',
+    major: 'An toàn thông tin',
     batch: '2026-FALL',
     gpa: 7.6,
     grade: 'Khá',
     attendanceRate: 91.6,
     attendanceSessions: '22/24',
-    mentor: 'Trần Hoàng Quân',
+    mentor: 'Phạm Quốc Hướng',
   },
 ];
+
+/**
+ * Trích xuất danh sách báo cáo thực tập sinh đồng bộ đa phân hệ từ Realtime Sync
+ */
+export function buildAnalyticsReportList() {
+  try {
+    const syncState = getRealtimeSyncState();
+    const applicants = syncState?.applicants || [];
+    const approved = applicants.filter(
+      (a) =>
+        a.status === 'approved' ||
+        a.status === 'active' ||
+        (a.student_code && a.student_code.startsWith('TTS'))
+    );
+
+    if (approved.length > 0) {
+      const assignments = syncState?.mentorAssignments || [];
+      const unassignedSet = new Set(syncState?.unassigned_intern_ids || []);
+
+      const list = approved.map((a, index) => {
+        const studentCode = a.student_code || `TTS000${index + 1}`;
+        const fallback =
+          INITIAL_REPORT_DATA.find((r) => r.id === studentCode || r.name === a.full_name) || {};
+
+        let mentorName = fallback.mentor || 'Chưa phân công';
+        if (unassignedSet.has(a.id)) {
+          mentorName = 'Chưa phân công';
+        } else {
+          const assign = assignments.find(
+            (asg) =>
+              asg.intern_id === a.id ||
+              (asg.student_code && asg.student_code.includes(studentCode)) ||
+              asg.student === a.full_name
+          );
+          if (assign?.mentor) {
+            mentorName = assign.mentor;
+          }
+        }
+
+        let school = a.university || fallback.school || 'ĐH CNTT & Truyền thông (ICTU)';
+        if (school.includes('Công nghệ Thông tin & Truyền thông') || school === 'ICTU') {
+          school = 'ĐH CNTT & Truyền thông (ICTU)';
+        }
+
+        let schoolCode = 'ICTU';
+        if (school.includes('Kỹ thuật Công nghiệp') || school.includes('TNU_TECH')) schoolCode = 'TNU_TECH';
+        else if (school.includes('Bách Khoa') || school.includes('HUST')) schoolCode = 'HUST';
+        else if (school.includes('Công nghệ - ĐHQGHN') || school.includes('UET')) schoolCode = 'UET';
+
+        const gpa = fallback.gpa !== undefined ? fallback.gpa : (Number(a.gpa) > 4 ? Number(a.gpa) : 8.0);
+        const grade = fallback.grade || (gpa >= 8.5 ? 'Xuất sắc' : gpa >= 8.0 ? 'Giỏi' : 'Khá');
+        const attendanceRate = fallback.attendanceRate !== undefined ? fallback.attendanceRate : 96.0;
+        const attendanceSessions = fallback.attendanceSessions || '24/24';
+
+        return {
+          id: studentCode,
+          name: a.full_name,
+          school,
+          schoolCode,
+          major: a.major || fallback.major || 'Công nghệ thông tin',
+          batch: a.batch || fallback.batch || '2026-FALL',
+          gpa,
+          grade,
+          attendanceRate,
+          attendanceSessions,
+          mentor: mentorName,
+        };
+      });
+
+      list.sort((x, y) => (x.id || '').localeCompare(y.id || ''));
+      return list;
+    }
+  } catch (err) {
+    console.warn('Lỗi đọc dữ liệu realtime trong HRAnalyticsDashboard:', err);
+  }
+  return INITIAL_REPORT_DATA;
+}
 
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
 
@@ -579,15 +657,33 @@ export default function HRAnalyticsDashboard() {
     setTimeout(() => setToast(null), 3800);
   }, []);
 
-  // Khởi tạo và nạp dữ liệu ban đầu
+  // Khởi tạo và nạp dữ liệu ban đầu từ Realtime Sync
   useEffect(() => {
     setLoading(true);
-    const timer = setTimeout(() => {
-      setReportList(INITIAL_REPORT_DATA);
+    const updateReports = () => {
+      const data = buildAnalyticsReportList();
+      setReportList(data);
       setLoading(false);
-    }, 300);
+    };
 
-    return () => clearTimeout(timer);
+    const timer = setTimeout(updateReports, 200);
+
+    const unsubscribe = subscribeRealtimeEvents(() => {
+      updateReports();
+    });
+
+    const handleStorage = (e) => {
+      if (e.key === 'ictu_internship_sync_state') {
+        updateReports();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
   // Cập nhật giá trị bộ lọc

@@ -38,10 +38,10 @@ const INITIAL_FORM = {
 }
 
 const FALLBACK_INTERNS = [
-  { id: 1, intern_name: 'Nguyễn Văn An', intern_email: 'an.nv@ictu.edu.vn', intern_code: 'TTS-001' },
-  { id: 2, intern_name: 'Trần Thị Bình', intern_email: 'binh.tt@ictu.edu.vn', intern_code: 'TTS-002' },
-  { id: 3, intern_name: 'Lê Hoàng Cường', intern_email: 'cuong.lh@ictu.edu.vn', intern_code: 'TTS-003' },
-  { id: 4, intern_name: 'Phạm Minh Đức', intern_email: 'duc.pm@ictu.edu.vn', intern_code: 'TTS-004' },
+  { id: 1, intern_name: 'Nguyễn Văn An', intern_email: 'intern@ictu.edu.vn', intern_code: 'TTS-001' },
+  { id: 2, intern_name: 'Lê Hoàng Nam', intern_email: 'tts02@student.ictu.edu.vn', intern_code: 'TTS-002' },
+  { id: 3, intern_name: 'Trần Thị Mai Phương', intern_email: 'tts03@student.ictu.edu.vn', intern_code: 'TTS-003' },
+  { id: 4, intern_name: 'Hoàng Minh Đức', intern_email: 'tts04@student.ictu.edu.vn', intern_code: 'TTS-004' },
 ]
 
 export default function MeetingCreateModal({

@@ -9,20 +9,20 @@
 export const UNIFIED_INTERNS = [
   {
     id: 1,
-    intern_id: 1,
+    intern_id: 5,
     code: 'TTS0001',
     full_name: 'Nguyễn Văn An',
-    email: 'an.nv@student.ictu.edu.vn',
+    email: 'intern@ictu.edu.vn',
     phone: '0981234567',
     university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
     university_code: 'ICTU',
-    major: 'Kỹ thuật Phần mềm',
+    major: 'Công nghệ thông tin',
     batch: '2026-FALL',
     batch_label: 'Khóa K20 - Kỳ Thu 2026',
     mentor_id: 3,
     mentor_name: 'Trần Hoàng Quân',
     project: 'Core API Microservice & Web Portal',
-    applied_date: '02/10/2026',
+    applied_date: '28/09/2026',
 
     // Chuyên cần tháng 10/2026 (Tính đến 12/10 có 8 ngày làm việc)
     standard_work_days: 22,
@@ -31,7 +31,7 @@ export const UNIFIED_INTERNS = [
     approved_leave_days: 0,
     unapproved_leave_days: 0,
     attendance_status: 'Bình thường',
-    attendance_rate: 100,
+    attendance_rate: 98.5,
 
     // Phụ cấp & Chi trả (Kỳ 10/2026 chưa kết thúc -> Chờ chi trả)
     base_allowance: 2500000,
@@ -46,20 +46,20 @@ export const UNIFIED_INTERNS = [
   },
   {
     id: 2,
-    intern_id: 2,
+    intern_id: 6,
     code: 'TTS0002',
-    full_name: 'Trần Thị Bình',
-    email: 'binh.tt@student.ictu.edu.vn',
+    full_name: 'Lê Hoàng Nam',
+    email: 'tts02@student.ictu.edu.vn',
     phone: '0982345678',
     university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
     university_code: 'ICTU',
-    major: 'Công nghệ Thông tin',
+    major: 'Kỹ thuật phần mềm',
     batch: '2026-FALL',
     batch_label: 'Khóa K20 - Kỳ Thu 2026',
     mentor_id: 4,
     mentor_name: 'Phạm Quốc Hướng',
     project: 'Frontend Web & Mobile App',
-    applied_date: '02/10/2026',
+    applied_date: '27/09/2026',
 
     // Chuyên cần
     standard_work_days: 22,
@@ -68,44 +68,7 @@ export const UNIFIED_INTERNS = [
     approved_leave_days: 0,
     unapproved_leave_days: 0,
     attendance_status: 'Bình thường',
-    attendance_rate: 100,
-
-    // Phụ cấp & Chi trả (Kỳ 10/2026 chưa kết thúc -> Chờ chi trả)
-    base_allowance: 2500000,
-    bonus_penalty: 500000,
-    total_net: 3000000,
-    allowance_status: 'pending',
-    allowance_status_label: 'Chờ chi trả',
-
-    // Kết quả học tập
-    gpa: 8.4,
-    grade: 'Giỏi',
-  },
-  {
-    id: 3,
-    intern_id: 3,
-    code: 'TTS0003',
-    full_name: 'Lê Hoàng Nam',
-    email: 'nam.lh@student.ictu.edu.vn',
-    phone: '0983456789',
-    university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
-    university_code: 'ICTU',
-    major: 'Hệ thống Thông tin',
-    batch: '2026-FALL',
-    batch_label: 'Khóa K20 - Kỳ Thu 2026',
-    mentor_id: 11,
-    mentor_name: 'Vũ Đình Tuấn',
-    project: 'DevOps & Cloud Infrastructure',
-    applied_date: '03/10/2026',
-
-    // Chuyên cần: Đi muộn 3 lần -> Bôi vàng cảnh báo
-    standard_work_days: 22,
-    actual_work_days: 7,
-    late_count: 3,
-    approved_leave_days: 1,
-    unapproved_leave_days: 0,
-    attendance_status: 'Cảnh báo đi muộn',
-    attendance_rate: 87.5,
+    attendance_rate: 95.8,
 
     // Phụ cấp & Chi trả (Kỳ 10/2026 chưa kết thúc -> Chờ chi trả)
     base_allowance: 2500000,
@@ -115,45 +78,82 @@ export const UNIFIED_INTERNS = [
     allowance_status_label: 'Chờ chi trả',
 
     // Kết quả học tập
-    gpa: 7.6,
-    grade: 'Khá',
+    gpa: 8.2,
+    grade: 'Giỏi',
   },
   {
-    id: 4,
-    intern_id: 4,
-    code: 'TTS0004',
-    full_name: 'Phạm Minh Đức',
-    email: 'duc.pm@student.ictu.edu.vn',
-    phone: '0984567890',
-    university: 'Trường Đại học Sư phạm Kỹ thuật',
-    university_code: 'HCMUTE',
-    major: 'Khoa học Máy tính',
+    id: 3,
+    intern_id: 8,
+    code: 'TTS0003',
+    full_name: 'Trần Thị Mai Phương',
+    email: 'tts03@student.ictu.edu.vn',
+    phone: '0983456789',
+    university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+    university_code: 'ICTU',
+    major: 'Hệ thống thông tin',
     batch: '2026-FALL',
     batch_label: 'Khóa K20 - Kỳ Thu 2026',
     mentor_id: 3,
     mentor_name: 'Trần Hoàng Quân',
-    project: 'Automation Testing Lab',
-    applied_date: '04/10/2026',
+    project: 'Enterprise Data Dashboard & BI',
+    applied_date: '26/09/2026',
 
-    // Chuyên cần: Nghỉ không phép 2 ngày -> Bôi đỏ kỷ luật
+    // Chuyên cần
     standard_work_days: 22,
-    actual_work_days: 6,
-    late_count: 1,
-    approved_leave_days: 1,
-    unapproved_leave_days: 2,
-    attendance_status: 'Vi phạm kỷ luật',
-    attendance_rate: 75.0,
+    actual_work_days: 8,
+    late_count: 0,
+    approved_leave_days: 0,
+    unapproved_leave_days: 0,
+    attendance_status: 'Bình thường',
+    attendance_rate: 100.0,
 
     // Phụ cấp & Chi trả (Kỳ 10/2026 chưa kết thúc -> Chờ chi trả)
-    base_allowance: 2200000,
-    bonus_penalty: -200000,
+    base_allowance: 2000000,
+    bonus_penalty: 0,
     total_net: 2000000,
     allowance_status: 'pending',
     allowance_status_label: 'Chờ chi trả',
 
     // Kết quả học tập
-    gpa: 6.5,
-    grade: 'Trung bình',
+    gpa: 8.4,
+    grade: 'Giỏi',
+  },
+  {
+    id: 4,
+    intern_id: 9,
+    code: 'TTS0004',
+    full_name: 'Hoàng Minh Đức',
+    email: 'tts04@student.ictu.edu.vn',
+    phone: '0984567890',
+    university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+    university_code: 'ICTU',
+    major: 'An toàn thông tin',
+    batch: '2026-FALL',
+    batch_label: 'Khóa K20 - Kỳ Thu 2026',
+    mentor_id: 4,
+    mentor_name: 'Phạm Quốc Hướng',
+    project: 'Security Infrastructure, SSO & Pentest Web API',
+    applied_date: '25/09/2026',
+
+    // Chuyên cần
+    standard_work_days: 22,
+    actual_work_days: 8,
+    late_count: 0,
+    approved_leave_days: 0,
+    unapproved_leave_days: 0,
+    attendance_status: 'Bình thường',
+    attendance_rate: 91.6,
+
+    // Phụ cấp & Chi trả (Kỳ 10/2026 chưa kết thúc -> Chờ chi trả)
+    base_allowance: 2200000,
+    bonus_penalty: 200000,
+    total_net: 2400000,
+    allowance_status: 'pending',
+    allowance_status_label: 'Chờ chi trả',
+
+    // Kết quả học tập
+    gpa: 7.6,
+    grade: 'Khá',
   },
 ]
 
