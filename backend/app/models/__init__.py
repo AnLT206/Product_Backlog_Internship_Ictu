@@ -29,6 +29,7 @@ from app.models.university_report import UniversityReport
 from app.models.system_setting import SystemSetting
 from app.models.backup_record import BackupRecord
 from app.models.support_ticket import SupportTicket
+from app.models.mentor_intern import MentorIntern
 
 __all__ = [
     "Allowance",
@@ -65,4 +66,5 @@ __all__ = [
     "SystemSetting",
     "BackupRecord",
     "SupportTicket",
+    "MentorIntern",
 ]

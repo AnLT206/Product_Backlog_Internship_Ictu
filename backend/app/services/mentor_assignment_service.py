@@ -129,6 +129,32 @@ class MentorAssignmentService:
                     )
                 member.mentor_user_id = mentor.id
 
+        # Đồng bộ quan hệ phân công vào bảng InternProfile (mentor_id) và MentorIntern (US-30)
+        from app.models.intern_profile import InternProfile
+        from app.models.mentor_intern import MentorIntern
+
+        for intern in interns:
+            profile = (
+                self.db.query(InternProfile)
+                .filter(InternProfile.user_id == intern.id)
+                .first()
+            )
+            if profile:
+                profile.mentor_id = mentor.id
+            else:
+                profile = InternProfile(user_id=intern.id, mentor_id=mentor.id)
+                self.db.add(profile)
+
+            mi = (
+                self.db.query(MentorIntern)
+                .filter(MentorIntern.intern_id == intern.id)
+                .first()
+            )
+            if mi:
+                mi.mentor_id = mentor.id
+            else:
+                self.db.add(MentorIntern(mentor_id=mentor.id, intern_id=intern.id))
+
         self.db.commit()
 
         return MentorAssignResponse(
