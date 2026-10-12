@@ -34,6 +34,10 @@ const HR_NAV_ITEMS = [
     label: 'Báo cáo & Thống kê KPI',
   },
   {
+    to: '/hr/candidate-source',
+    label: 'Phân tích nguồn ứng viên',
+  },
+  {
     to: '/hr/tickets',
     label: 'Yêu cầu hỗ trợ (Tickets)',
   },
