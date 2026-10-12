@@ -24,6 +24,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { getSystemLogs } from '../../api/admin';
+import { subscribeRealtimeEvents } from '../../utils/realtimeSync';
 import './SystemLogsPage.css';
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -47,19 +48,32 @@ function countByAction(logs) {
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Helper: định dạng ISO datetime → hiển thị thân thiện (2 dòng)
-   (giữ nguyên từ task 1)
+   Hỗ trợ cả ISO string, khoảng trắng và fallback trích xuất từ description
    ───────────────────────────────────────────────────────────────────────── */
 
-function formatDatetime(isoStr) {
-  if (!isoStr) return { date: '—', time: '' };
-  const d = new Date(isoStr);
-  const date = d.toLocaleDateString('vi-VN', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-  });
-  const time = d.toLocaleTimeString('vi-VN', {
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-  });
-  return { date, time };
+function formatDatetime(isoStr, desc = '') {
+  if (isoStr) {
+    const normalised = typeof isoStr === 'string' && isoStr.includes(' ') && !isoStr.includes('T')
+      ? isoStr.replace(' ', 'T')
+      : isoStr;
+    const d = new Date(normalised);
+    if (!isNaN(d.getTime())) {
+      const date = d.toLocaleDateString('vi-VN', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+      });
+      const time = d.toLocaleTimeString('vi-VN', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+      });
+      return { date, time };
+    }
+  }
+  if (desc) {
+    const match = desc.match(/\[(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2}:\d{2})\]/);
+    if (match) {
+      return { date: match[1], time: match[2] };
+    }
+  }
+  return { date: '—', time: '' };
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -145,10 +159,26 @@ function SystemLogsPage() {
     }
   }
 
-  /* ── Effect: gọi lại khi currentPage hoặc appliedUserId thay đổi ──
-     setState KHÔNG đặt trong thân useEffect — chỉ gọi loadLogs()      */
+  /* ── Effect: gọi lại khi currentPage hoặc appliedUserId thay đổi và lắng nghe sự kiện thời gian thực ── */
   useEffect(() => {
     void loadLogs(currentPage, appliedUserId);
+
+    const unsub = subscribeRealtimeEvents(() => {
+      void loadLogs(currentPage, appliedUserId);
+    });
+
+    const handleSync = () => {
+      void loadLogs(currentPage, appliedUserId);
+    };
+
+    window.addEventListener('admin_users_updated', handleSync);
+    window.addEventListener('admin_system_logs_updated', handleSync);
+
+    return () => {
+      unsub();
+      window.removeEventListener('admin_users_updated', handleSync);
+      window.removeEventListener('admin_system_logs_updated', handleSync);
+    };
   }, [currentPage, appliedUserId]);
 
   /* ── Tự ẩn toast sau 5 giây ── */
@@ -337,7 +367,7 @@ function SystemLogsPage() {
                 ) : (
                   /* Danh sách log — render y chang task 1 */
                   logs.map((log) => {
-                    const { date, time } = formatDatetime(log.created_at);
+                    const { date, time } = formatDatetime(log.created_at, log.description);
                     return (
                       <tr
                         key={log.id}
@@ -352,7 +382,7 @@ function SystemLogsPage() {
                         tabIndex={0}
                         role="button"
                         aria-label={`Xem chi tiết truy vết #${log.id}`}
-                        title="Nhấp vào dòng để xem chi tiết nhật ký"
+                        title={log.description || 'Nhấp vào dòng để xem chi tiết nhật ký'}
                       >
                         {/* id - hiển thị mã truy vết */}
                         <td className="col-id">
@@ -527,8 +557,8 @@ function SystemLogsPage() {
                   <span className="sys-logs-modal__label">Thời gian ghi nhận</span>
                   <div className="sys-logs-modal__value">
                     <span className="sys-logs-modal__val-text">
-                      {selectedLog.created_at
-                        ? `${formatDatetime(selectedLog.created_at).date} ${formatDatetime(selectedLog.created_at).time}`
+                      {selectedLog.created_at || selectedLog.description
+                        ? `${formatDatetime(selectedLog.created_at, selectedLog.description).date} ${formatDatetime(selectedLog.created_at, selectedLog.description).time}`
                         : '—'}
                     </span>
                   </div>
@@ -634,6 +664,14 @@ function SystemLogsPage() {
                   <span className="sys-logs-modal__label">Trình duyệt & Thiết bị (User Agent)</span>
                   <div className="sys-logs-modal__value sys-logs-modal__value--ua">
                     {selectedLog.user_agent || '—'}
+                  </div>
+                </div>
+
+                {/* Chi tiết hoạt động / Nội dung truy vết */}
+                <div className="sys-logs-modal__field sys-logs-modal__field--full">
+                  <span className="sys-logs-modal__label">Chi tiết hoạt động thực hiện (Audit Description)</span>
+                  <div className="sys-logs-modal__value" style={{ wordBreak: 'break-word', fontWeight: 600, color: 'var(--text-main, #0f172a)' }}>
+                    {selectedLog.description || `${selectedLog.action} tại ${selectedLog.resource || selectedLog.path}`}
                   </div>
                 </div>
               </div>

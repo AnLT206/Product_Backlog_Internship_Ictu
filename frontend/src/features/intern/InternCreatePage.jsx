@@ -24,7 +24,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { createIntern, uploadInternCv, buildToast } from '../../api/interns';
-import { syncApplicantSubmission } from '../../utils/realtimeSync';
+import { syncApplicantSubmission, emitRealtimeEvent } from '../../utils/realtimeSync';
 import './InternCreatePage.css';
 
 /* ─────────────────────────────────────────────
@@ -307,6 +307,21 @@ function InternCreatePage() {
           });
         } catch {
           // ignore realtime sync failure
+        }
+
+        // Đồng bộ dữ liệu sang Admin Dashboard & Nhật ký truy vết an ninh
+        try {
+          emitRealtimeEvent('admin_audit_log_created', {
+            type: 'CREATE',
+            action: 'CREATE',
+            actor: 'HR',
+            target: `${form.full_name.trim()} (${form.email.trim().toLowerCase()})`,
+            timestamp: Date.now(),
+          });
+          window.dispatchEvent(new CustomEvent('admin_users_updated'));
+          window.dispatchEvent(new CustomEvent('admin_system_logs_updated'));
+        } catch {
+          // ignore broadcast failure
         }
 
         if (cvFile && !cvUploadOk) {

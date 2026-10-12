@@ -73,3 +73,4 @@ describe('HRAnalyticsDashboard Component Test Suite', () => {
     expect(reports.find((r) => r.id === 'TTS0004').major).toBe('An toàn thông tin');
   });
 });
+

@@ -6,6 +6,7 @@ from fastapi import (
     Depends,
     File,
     Query,
+    Request,
     UploadFile,
     status,
 )
@@ -81,9 +82,14 @@ def get_intern_filter_options(
 )
 def create_intern(
     payload: InternCreateRequest,
+    request: Request,
     db: Session = Depends(get_db),
 ) -> InternRegisterResponse:
-    return InternService(db).create_intern(payload)
+    res = InternService(db).create_intern(payload)
+    request.state.custom_log_description = (
+        f"HR tạo mới tài khoản thực tập sinh: {res.full_name} ({res.email})"
+    )
+    return res
 
 
 @router.post(

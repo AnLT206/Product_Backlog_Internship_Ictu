@@ -187,10 +187,21 @@ export default function AdminDashboardPage() {
 
       let timeStr = '—'
       if (log.created_at) {
-        const d = new Date(log.created_at)
-        const date = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-        const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-        timeStr = `${time} (${date})`
+        const normalised = typeof log.created_at === 'string' && log.created_at.includes(' ') && !log.created_at.includes('T')
+          ? log.created_at.replace(' ', 'T')
+          : log.created_at
+        const d = new Date(normalised)
+        if (!isNaN(d.getTime())) {
+          const date = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+          const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+          timeStr = `${time} (${date})`
+        }
+      }
+      if (timeStr === '—' && log.description) {
+        const match = log.description.match(/\[(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2}:\d{2})\]/)
+        if (match) {
+          timeStr = `${match[2]} (${match[1]})`
+        }
       }
 
       return {

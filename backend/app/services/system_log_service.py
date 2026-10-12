@@ -23,6 +23,10 @@ class SystemLogService:
     ) -> SystemLogListResponse:
         query = self.db.query(SystemLog)
 
+        bind_url = str(getattr(self.db.bind, "url", "")) if getattr(self.db, "bind", None) else ""
+        if bind_url and bind_url not in ("sqlite://", "sqlite:///:memory:"):
+            query = query.filter(SystemLog.ip_address != "testclient")
+
         if action is not None:
             query = query.filter(SystemLog.action == action)
         if user_id is not None:
@@ -47,6 +51,9 @@ class SystemLogService:
                 item.description = getattr(row, "description", None) or derive_action_description(
                     row.method, row.path, row.role, row.created_at
                 )
+            elif not item.description.endswith("]") and row.created_at:
+                ts_str = row.created_at.strftime("%d/%m/%Y %H:%M:%S")
+                item.description = f"{item.description} [{ts_str}]"
             items.append(item)
 
         return SystemLogListResponse(
