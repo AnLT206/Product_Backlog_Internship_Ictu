@@ -5,8 +5,8 @@ import { dashboardPathForRole } from '../../api/auth'
 import { useAuth, isApplicantUser } from '../../context/AuthContext'
 import './LoginPage.css'
 
-// Cấu hình hiển thị nút đăng nhập nhanh
-const SHOW_QUICK_LOGIN = true
+// Cấu hình hiển thị nút đăng nhập nhanh (đổi thành true nếu muốn hiển thị lại)
+const SHOW_QUICK_LOGIN = false
 
 const QUICK_ACCOUNTS = [
   {
