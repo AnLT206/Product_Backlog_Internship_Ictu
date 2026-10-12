@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class MentorAssignInternsRequest(BaseModel):
@@ -36,6 +36,31 @@ class MentorBulkAssignRequest(MentorAssignInternsRequest):
     mentor_id: int = Field(..., gt=0, description="ID của Mentor nhận phân công")
 
 
+class HRAssignMentorRequest(BaseModel):
+    """Body API POST /api/hr/assign-mentor phân công 1 hoặc nhiều TTS cho Mentor."""
+
+    mentor_id: int = Field(..., gt=0, description="ID của Mentor phụ trách")
+    intern_ids: list[int] = Field(default_factory=list, description="Danh sách ID thực tập sinh cần gán")
+    intern_id: int | None = Field(default=None, gt=0, description="ID của một thực tập sinh cụ thể (nếu gán đơn lẻ)")
+    program_id: int | None = Field(default=None, description="ID kỳ thực tập (tùy chọn)")
+
+    @field_validator("intern_ids")
+    @classmethod
+    def validate_intern_ids(cls, v: list[int]) -> list[int]:
+        for item in v:
+            if not isinstance(item, int) or item <= 0:
+                raise ValueError("Mỗi intern_id phải là số nguyên dương hợp lệ.")
+        return list(dict.fromkeys(v))
+
+    @model_validator(mode="after")
+    def merge_intern_ids(self) -> HRAssignMentorRequest:
+        if self.intern_id is not None and self.intern_id not in self.intern_ids:
+            self.intern_ids.append(self.intern_id)
+        if not self.intern_ids:
+            raise ValueError("Vui lòng cung cấp ít nhất một thực tập sinh qua intern_id hoặc intern_ids.")
+        return self
+
+
 class AssignedInternItem(BaseModel):
     """Chi tiết thực tập sinh được phân công cho Mentor."""
 
@@ -65,3 +90,16 @@ class MentorAssignResponse(BaseModel):
     assigned_count: int
     intern_ids: list[int]
     message: str
+
+
+class HRAssignMentorResponse(BaseModel):
+    """Kết quả API POST /api/hr/assign-mentor."""
+
+    success: bool = True
+    mentor_id: int
+    mentor_name: str | None = None
+    intern_ids: list[int]
+    assigned_count: int
+    intern_count: int
+    message: str
+
