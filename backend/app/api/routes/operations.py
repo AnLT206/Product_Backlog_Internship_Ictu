@@ -29,22 +29,6 @@ from app.schemas.operations import (
 router = APIRouter(tags=["operations"])
 
 
-class AssignMentorBatchPayload(BaseModel):
-    mentor_id: int
-    intern_ids: list[int]
-
-
-@router.post("/hr/assign-mentor", dependencies=[Depends(require_roles("hr", "admin"))])
-def assign_mentor_direct(payload: AssignMentorBatchPayload, db: Session = Depends(get_db)) -> dict[str, Any]:
-    """Phân công Mentor cho danh sách Thực tập sinh (Batch Assignment)."""
-    from app.services.mentor_service import MentorService
-    res = MentorService(db).assign_interns(payload.mentor_id, payload.intern_ids)
-    return {
-        "success": True,
-        "mentor_id": payload.mentor_id,
-        "intern_count": getattr(res, "intern_count", len(payload.intern_ids)),
-        "message": f"Đã phân công thành công {len(payload.intern_ids)} thực tập sinh cho Mentor!",
-    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

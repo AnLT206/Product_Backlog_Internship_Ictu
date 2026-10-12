@@ -26,6 +26,7 @@ class InternCreateRequest(BaseModel):
     academic_year: str | None = Field(default=None, max_length=50)
     gpa: Decimal | None = Field(default=None, ge=0, le=4)
     address: str | None = Field(default=None, max_length=255)
+    mentor_id: int | None = Field(default=None, description="ID của Mentor phụ trách (tùy chọn)")
     status: Literal["pending", "active"] = "pending"
 
     @field_validator("full_name")
@@ -81,6 +82,8 @@ class InternListItem(BaseModel):
     gpa: Decimal | None = None
     address: str | None = None
     avatar: str | None = None
+    mentor_id: int | None = None
+    mentor_name: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -131,6 +134,7 @@ class InternUpdateRequest(BaseModel):
     academic_year: str | None = Field(default=None, max_length=50)
     gpa: Decimal | None = Field(default=None, ge=0, le=4)
     address: str | None = Field(default=None, max_length=255)
+    mentor_id: int | None = Field(default=None, description="ID của Mentor phụ trách (tùy chọn)")
 
     @field_validator("full_name")
     @classmethod

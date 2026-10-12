@@ -9,6 +9,8 @@ from app.api.deps import get_current_user, get_db, require_roles
 from app.models.user import User
 from app.schemas.mentor_assignment import (
     AssignedInternListResponse,
+    HRAssignMentorRequest,
+    HRAssignMentorResponse,
     MentorAssignInternsRequest,
     MentorAssignResponse,
     MentorBulkAssignRequest,
@@ -19,6 +21,35 @@ router = APIRouter(tags=["mentor-assignments"])
 
 
 # ── HR / Admin Assignment Endpoints ──────────────────────────────────────────
+
+@router.post(
+    "/hr/assign-mentor",
+    response_model=HRAssignMentorResponse,
+    status_code=status.HTTP_200_OK,
+    summary="HR phân công một hoặc nhiều TTS cho một Mentor (POST /api/hr/assign-mentor)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def assign_mentor(
+    payload: HRAssignMentorRequest,
+    db: Session = Depends(get_db),
+) -> HRAssignMentorResponse:
+    """HR/Admin gán một hoặc nhiều thực tập sinh cho một Mentor phụ trách."""
+    res = MentorAssignmentService(db).assign_interns_to_mentor(
+        mentor_id=payload.mentor_id,
+        intern_ids=payload.intern_ids,
+        program_id=payload.program_id,
+        auto_assign_open_program=True,
+    )
+    return HRAssignMentorResponse(
+        success=True,
+        mentor_id=res.mentor_id,
+        mentor_name=res.mentor_name,
+        intern_ids=res.intern_ids,
+        assigned_count=res.assigned_count,
+        intern_count=res.assigned_count,
+        message=res.message,
+    )
+
 
 @router.post(
     "/hr/mentors/{mentor_id}/assign-interns",

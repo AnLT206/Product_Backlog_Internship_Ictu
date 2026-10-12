@@ -80,3 +80,52 @@ class ProgramAssignResponse(BaseModel):
     intern_ids: list[int]
     mentor_id: int | None = None
     message: str
+
+
+class InternStatusSummary(BaseModel):
+    """Tổng hợp số lượng TTS theo 4 trạng thái và các tỷ lệ tương ứng (US-33)."""
+
+    total: int = Field(default=0, description="Tổng số thực tập sinh")
+    in_progress: int = Field(default=0, description="Số lượng đang thực tập")
+    completed: int = Field(default=0, description="Số lượng đã hoàn thành")
+    dropped_out: int = Field(default=0, description="Số lượng bỏ cuộc")
+    failed: int = Field(default=0, description="Số lượng không đạt")
+    not_completed: int = Field(default=0, description="Tổng số không hoàn thành (bỏ cuộc + không đạt)")
+    completion_rate: float = Field(default=0.0, description="Tỷ lệ hoàn thành (%)")
+    dropout_rate: float = Field(default=0.0, description="Tỷ lệ bỏ cuộc (%)")
+    failure_rate: float = Field(default=0.0, description="Tỷ lệ không đạt (%)")
+    in_progress_rate: float = Field(default=0.0, description="Tỷ lệ đang thực tập (%)")
+
+
+class ProgramCompletionItem(BaseModel):
+    """Chi tiết trạng thái và tỷ lệ hoàn thành theo từng kỳ thực tập."""
+
+    id: int
+    name: str
+    department: str
+    total: int = 0
+    completed: int = 0
+    in_progress: int = 0
+    dropped_out: int = 0
+    failed: int = 0
+    not_completed: int = 0
+    completion_rate: float = 0.0
+
+
+class PreviousPeriodSummary(BaseModel):
+    """Thông tin kỳ thực tập liền trước để so sánh chênh lệch tỷ lệ."""
+
+    id: int
+    name: str
+    total: int = 0
+    completed: int = 0
+    completion_rate: float = 0.0
+
+
+class ProgramCompletionStatsResponse(BaseModel):
+    """Phản hồi API thống kê tỷ lệ hoàn thành chương trình thực tập (US-33)."""
+
+    summary: InternStatusSummary
+    previous_period: PreviousPeriodSummary | None = None
+    programs: list[ProgramCompletionItem] = Field(default_factory=list)
+

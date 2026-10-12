@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from fastapi import HTTPException, status
+from sqlalchemy import and_, case, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -9,8 +10,12 @@ from app.models.program_member import ProgramMember
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.program import (
+    InternStatusSummary,
+    PreviousPeriodSummary,
     ProgramAssignRequest,
     ProgramAssignResponse,
+    ProgramCompletionItem,
+    ProgramCompletionStatsResponse,
     ProgramCreateRequest,
     ProgramPeriodRequest,
     ProgramResponse,
@@ -315,3 +320,187 @@ class ProgramService:
                 detail="Không tìm thấy chương trình thực tập.",
             )
         return row
+
+    def get_completion_stats(
+        self, program_id: int | None = None
+    ) -> ProgramCompletionStatsResponse:
+        """[BE] Thiết lập câu truy vấn tính toán số lượng thực tập sinh theo trạng thái (US-33).
+
+        Trạng thái:
+        - Đang thực tập (in_progress)
+        - Đã hoàn thành (completed)
+        - Bỏ cuộc (dropped_out)
+        - Không đạt (failed)
+
+        Tính toán các tỷ lệ tương ứng (completion_rate, dropout_rate, failure_rate, in_progress_rate),
+        xử lý an toàn khi chia cho 0, thống kê theo từng kỳ và so sánh với kỳ trước.
+        """
+        # 1. Nếu chỉ định program_id, kiểm tra tồn tại
+        target_program: InternshipProgram | None = None
+        if program_id is not None:
+            target_program = (
+                self.db.query(InternshipProgram)
+                .filter(InternshipProgram.id == program_id, InternshipProgram.is_deleted.is_(False))
+                .first()
+            )
+            if not target_program:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Không tìm thấy kỳ thực tập có ID {program_id}.",
+                )
+
+        # 2. Câu truy vấn tổng hợp trạng thái (Tổng quan hoặc theo kỳ cụ thể)
+        summary_query = (
+            self.db.query(
+                func.count(ProgramMember.id).label("total"),
+                func.count(case((ProgramMember.status == "in_progress", ProgramMember.id))).label("in_progress"),
+                func.count(case((ProgramMember.status == "completed", ProgramMember.id))).label("completed"),
+                func.count(case((ProgramMember.status == "dropped_out", ProgramMember.id))).label("dropped_out"),
+                func.count(case((ProgramMember.status == "failed", ProgramMember.id))).label("failed"),
+            )
+            .join(
+                InternshipProgram,
+                and_(
+                    InternshipProgram.id == ProgramMember.program_id,
+                    InternshipProgram.is_deleted.is_(False),
+                ),
+            )
+        )
+        if program_id is not None:
+            summary_query = summary_query.filter(ProgramMember.program_id == program_id)
+
+        sum_row = summary_query.one()
+        total = sum_row.total or 0
+        in_progress = sum_row.in_progress or 0
+        completed = sum_row.completed or 0
+        dropped_out = sum_row.dropped_out or 0
+        failed = sum_row.failed or 0
+        not_completed = dropped_out + failed
+
+        # Xử lý an toàn tránh chia cho 0
+        completion_rate = round((completed / total) * 100, 2) if total > 0 else 0.0
+        dropout_rate = round((dropped_out / total) * 100, 2) if total > 0 else 0.0
+        failure_rate = round((failed / total) * 100, 2) if total > 0 else 0.0
+        in_progress_rate = round((in_progress / total) * 100, 2) if total > 0 else 0.0
+
+        summary = InternStatusSummary(
+            total=total,
+            in_progress=in_progress,
+            completed=completed,
+            dropped_out=dropped_out,
+            failed=failed,
+            not_completed=not_completed,
+            completion_rate=completion_rate,
+            dropout_rate=dropout_rate,
+            failure_rate=failure_rate,
+            in_progress_rate=in_progress_rate,
+        )
+
+        # 3. Câu truy vấn chi tiết từng chương trình (GROUP BY theo từng kỳ)
+        prog_rows = (
+            self.db.query(
+                InternshipProgram.id,
+                InternshipProgram.name,
+                InternshipProgram.department,
+                InternshipProgram.start_date,
+                func.count(ProgramMember.id).label("total"),
+                func.count(case((ProgramMember.status == "in_progress", ProgramMember.id))).label("in_progress"),
+                func.count(case((ProgramMember.status == "completed", ProgramMember.id))).label("completed"),
+                func.count(case((ProgramMember.status == "dropped_out", ProgramMember.id))).label("dropped_out"),
+                func.count(case((ProgramMember.status == "failed", ProgramMember.id))).label("failed"),
+            )
+            .outerjoin(
+                ProgramMember,
+                ProgramMember.program_id == InternshipProgram.id,
+            )
+            .filter(InternshipProgram.is_deleted.is_(False))
+            .group_by(
+                InternshipProgram.id,
+                InternshipProgram.name,
+                InternshipProgram.department,
+                InternshipProgram.start_date,
+            )
+            .order_by(
+                InternshipProgram.start_date.desc(),
+                InternshipProgram.id.desc(),
+            )
+            .all()
+        )
+
+        programs_list: list[ProgramCompletionItem] = []
+        for p in prog_rows:
+            p_total = p.total or 0
+            p_comp = p.completed or 0
+            p_inp = p.in_progress or 0
+            p_drop = p.dropped_out or 0
+            p_fail = p.failed or 0
+            p_not_comp = p_drop + p_fail
+            p_rate = round((p_comp / p_total) * 100, 2) if p_total > 0 else 0.0
+
+            programs_list.append(
+                ProgramCompletionItem(
+                    id=p.id,
+                    name=p.name,
+                    department=p.department,
+                    total=p_total,
+                    completed=p_comp,
+                    in_progress=p_inp,
+                    dropped_out=p_drop,
+                    failed=p_fail,
+                    not_completed=p_not_comp,
+                    completion_rate=p_rate,
+                )
+            )
+
+        # 4. Xác định kỳ trước (previous_period) để so sánh chênh lệch
+        previous_period: PreviousPeriodSummary | None = None
+        if target_program is not None:
+            # Tìm kỳ thực tập có ngày bắt đầu trước kỳ đang xét
+            prev_prog = (
+                self.db.query(InternshipProgram)
+                .filter(
+                    InternshipProgram.is_deleted.is_(False),
+                    InternshipProgram.id != target_program.id,
+                    InternshipProgram.start_date <= target_program.start_date,
+                )
+                .order_by(InternshipProgram.start_date.desc(), InternshipProgram.id.desc())
+                .first()
+            )
+        else:
+            # Nếu lấy toàn cục, lấy kỳ thứ 2 trong danh sách để so sánh với kỳ mới nhất
+            prev_prog = None
+            if len(prog_rows) >= 2:
+                prev_prog_id = prog_rows[1].id
+                prev_prog = (
+                    self.db.query(InternshipProgram)
+                    .filter(InternshipProgram.id == prev_prog_id)
+                    .first()
+                )
+
+        if prev_prog:
+            prev_row = (
+                self.db.query(
+                    func.count(ProgramMember.id).label("total"),
+                    func.count(case((ProgramMember.status == "completed", ProgramMember.id))).label("completed"),
+                )
+                .filter(ProgramMember.program_id == prev_prog.id)
+                .one()
+            )
+            prev_total = prev_row.total or 0
+            prev_comp = prev_row.completed or 0
+            prev_rate = round((prev_comp / prev_total) * 100, 2) if prev_total > 0 else 0.0
+
+            previous_period = PreviousPeriodSummary(
+                id=prev_prog.id,
+                name=prev_prog.name,
+                total=prev_total,
+                completed=prev_comp,
+                completion_rate=prev_rate,
+            )
+
+        return ProgramCompletionStatsResponse(
+            summary=summary,
+            previous_period=previous_period,
+            programs=programs_list,
+        )
+

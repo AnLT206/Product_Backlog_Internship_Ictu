@@ -28,6 +28,7 @@ class MentorAssignmentService:
         mentor_id: int,
         intern_ids: list[int],
         program_id: int | None = None,
+        auto_assign_open_program: bool = False,
     ) -> MentorAssignResponse:
         """Phân công đơn lẻ hoặc hàng loạt TTS cho một Mentor (Task 6)."""
         # 1. Kiểm tra Mentor hợp lệ
@@ -122,12 +123,66 @@ class MentorAssignmentService:
                     .order_by(ProgramMember.id.desc())
                     .first()
                 )
-                if not member:
+                if member:
+                    member.mentor_user_id = mentor.id
+                elif auto_assign_open_program:
+                    fallback_program = (
+                        self.db.query(InternshipProgram)
+                        .filter(InternshipProgram.status == "open", InternshipProgram.deleted_at.is_(None))
+                        .order_by(InternshipProgram.id.desc())
+                        .first()
+                    )
+                    if not fallback_program:
+                        fallback_program = (
+                            self.db.query(InternshipProgram)
+                            .filter(InternshipProgram.deleted_at.is_(None))
+                            .order_by(InternshipProgram.id.desc())
+                            .first()
+                        )
+                    if fallback_program:
+                        new_member = ProgramMember(
+                            program_id=fallback_program.id,
+                            intern_user_id=intern.id,
+                            mentor_user_id=mentor.id,
+                        )
+                        self.db.add(new_member)
+                    else:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Thực tập sinh '{intern.full_name}' (ID: {intern.id}) chưa thuộc kỳ thực tập nào và hệ thống chưa có kỳ mở.",
+                        )
+                else:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Thực tập sinh '{intern.full_name}' (ID: {intern.id}) chưa thuộc kỳ thực tập nào. Vui lòng chỉ định program_id.",
                     )
-                member.mentor_user_id = mentor.id
+                member = member  # noop
+
+        # Đồng bộ quan hệ phân công vào bảng InternProfile (mentor_id) và MentorIntern (US-30)
+        from app.models.intern_profile import InternProfile
+        from app.models.mentor_intern import MentorIntern
+
+        for intern in interns:
+            profile = (
+                self.db.query(InternProfile)
+                .filter(InternProfile.user_id == intern.id)
+                .first()
+            )
+            if profile:
+                profile.mentor_id = mentor.id
+            else:
+                profile = InternProfile(user_id=intern.id, mentor_id=mentor.id)
+                self.db.add(profile)
+
+            mi = (
+                self.db.query(MentorIntern)
+                .filter(MentorIntern.intern_id == intern.id)
+                .first()
+            )
+            if mi:
+                mi.mentor_id = mentor.id
+            else:
+                self.db.add(MentorIntern(mentor_id=mentor.id, intern_id=intern.id))
 
         self.db.commit()
 

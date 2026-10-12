@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS `user_profiles` (
 CREATE TABLE IF NOT EXISTS `intern_profiles` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT NOT NULL UNIQUE,
+    `mentor_id` INT NULL,
     `status` ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
     `phone_number` VARCHAR(20) NULL,
     `dob` DATE NULL,
@@ -55,9 +56,11 @@ CREATE TABLE IF NOT EXISTS `intern_profiles` (
     `address` VARCHAR(255) NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_intern_profiles_mentor_id` (`mentor_id`),
     INDEX `idx_intern_profiles_university` (`university`),
     INDEX `idx_intern_profiles_major` (`major`),
-    CONSTRAINT `fk_intern_profiles_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+    CONSTRAINT `fk_intern_profiles_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_intern_profiles_mentor` FOREIGN KEY (`mentor_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `documents` (
@@ -148,8 +151,10 @@ CREATE TABLE IF NOT EXISTS `program_members` (
     `program_id` INT NOT NULL,
     `intern_user_id` INT NOT NULL,
     `mentor_user_id` INT NULL,
+    `status` ENUM('in_progress', 'completed', 'dropped_out', 'failed') NOT NULL DEFAULT 'in_progress',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY `uq_program_intern` (`program_id`, `intern_user_id`),
+    INDEX `idx_program_members_status` (`status`),
     CONSTRAINT `fk_pm_program` FOREIGN KEY (`program_id`) REFERENCES `internship_programs` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_pm_intern` FOREIGN KEY (`intern_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_pm_mentor` FOREIGN KEY (`mentor_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
@@ -395,3 +400,16 @@ CREATE TABLE IF NOT EXISTS `meeting_attendees` (
     INDEX `idx_ma_meeting_id` (`meeting_id`),
     INDEX `idx_ma_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `mentor_interns` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `mentor_id` INT NOT NULL,
+    `intern_id` INT NOT NULL,
+    `assigned_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_mentor_interns_mentor` (`mentor_id`),
+    INDEX `idx_mentor_interns_intern` (`intern_id`),
+    CONSTRAINT `uq_mentor_intern` UNIQUE (`mentor_id`, `intern_id`),
+    CONSTRAINT `fk_mentor_interns_mentor` FOREIGN KEY (`mentor_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_mentor_interns_intern` FOREIGN KEY (`intern_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

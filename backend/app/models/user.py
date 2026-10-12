@@ -39,4 +39,10 @@ class User(Base):
         uselist=False,
         cascade="all, delete-orphan",
         passive_deletes=True,
+        foreign_keys="[InternProfile.user_id]",
     )
+    mentored_intern_profiles: Mapped[list[InternProfile]] = relationship(
+        back_populates="mentor",
+        foreign_keys="[InternProfile.mentor_id]",
+    )
+

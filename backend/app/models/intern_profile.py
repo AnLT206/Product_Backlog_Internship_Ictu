@@ -18,6 +18,9 @@ class InternProfile(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    mentor_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     status: Mapped[str] = mapped_column(
         Enum("pending", "approved", "rejected", name="intern_profile_status"),
         default="pending",
@@ -43,4 +46,6 @@ class InternProfile(Base):
         DateTime, server_default=func.now(), onupdate=func.now()
     )
 
-    user: Mapped[User] = relationship(back_populates="intern_profile")
+    user: Mapped[User] = relationship(foreign_keys=[user_id], back_populates="intern_profile")
+    mentor: Mapped[User | None] = relationship(foreign_keys=[mentor_id], back_populates="mentored_intern_profiles")
+

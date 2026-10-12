@@ -439,7 +439,7 @@ export function AuthProvider({ children }) {
     }
     // Default demo session: xác định đúng vai trò theo ngữ cảnh URL của tab hiện tại
     const path = typeof window !== 'undefined' ? window.location.pathname : '';
-    let demo = DEMO_PROFILES.intern;
+    let demo;
     if (path.startsWith('/admin')) {
       demo = DEMO_PROFILES.admin;
     } else if (path.startsWith('/hr')) {

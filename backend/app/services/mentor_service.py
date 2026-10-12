@@ -251,6 +251,22 @@ class MentorService:
                 )
                 self.db.add(new_member)
 
+        # Đồng bộ quan hệ phân công vào InternProfile và MentorIntern
+        from app.models.mentor_intern import MentorIntern
+
+        for i_id in intern_ids:
+            profile = self.db.query(InternProfile).filter(InternProfile.user_id == i_id).first()
+            if profile:
+                profile.mentor_id = mentor_id
+            else:
+                self.db.add(InternProfile(user_id=i_id, mentor_id=mentor_id))
+
+            mi = self.db.query(MentorIntern).filter(MentorIntern.intern_id == i_id).first()
+            if mi:
+                mi.mentor_id = mentor_id
+            else:
+                self.db.add(MentorIntern(mentor_id=mentor_id, intern_id=i_id))
+
         self.db.commit()
 
         profile = self.db.query(UserProfile).filter(UserProfile.user_id == mentor_id).first()

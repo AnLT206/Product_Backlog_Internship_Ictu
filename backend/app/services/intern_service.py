@@ -59,8 +59,22 @@ class InternService:
             self.db.add(user)
             self.db.flush()
 
+            if payload.mentor_id is not None:
+                mentor = (
+                    self.db.query(User)
+                    .join(Role, User.role_id == Role.id)
+                    .filter(User.id == payload.mentor_id, Role.name == "mentor")
+                    .first()
+                )
+                if not mentor:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Không tìm thấy Mentor với ID {payload.mentor_id}.",
+                    )
+
             profile = InternProfile(
                 user_id=user.id,
+                mentor_id=payload.mentor_id,
                 phone_number=payload.phone_number,
                 dob=payload.dob,
                 gender=payload.gender or "other",
@@ -71,6 +85,9 @@ class InternService:
                 address=payload.address,
             )
             self.db.add(profile)
+            if payload.mentor_id is not None:
+                from app.models.mentor_intern import MentorIntern
+                self.db.add(MentorIntern(mentor_id=payload.mentor_id, intern_id=user.id))
             self.db.commit()
             self.db.refresh(user)
             self.db.refresh(profile)
@@ -222,6 +239,8 @@ class InternService:
                 gpa=u.intern_profile.gpa if u.intern_profile else None,
                 address=u.intern_profile.address if u.intern_profile else None,
                 avatar=u.intern_profile.avatar if u.intern_profile else None,
+                mentor_id=u.intern_profile.mentor_id if u.intern_profile else None,
+                mentor_name=u.intern_profile.mentor.full_name if (u.intern_profile and u.intern_profile.mentor) else None,
                 created_at=u.created_at,
                 updated_at=u.updated_at,
             )
@@ -418,6 +437,9 @@ class InternService:
             academic_year=profile.academic_year if profile else None,
             gpa=profile.gpa if profile else None,
             address=profile.address if profile else None,
+            avatar=profile.avatar if profile else None,
+            mentor_id=profile.mentor_id if profile else None,
+            mentor_name=profile.mentor.full_name if (profile and profile.mentor) else None,
             created_at=user.created_at,
             updated_at=user.updated_at,
             documents=docs,
@@ -444,6 +466,29 @@ class InternService:
 
         if payload.full_name is not None:
             user.full_name = payload.full_name
+
+        if payload.mentor_id is not None:
+            mentor = (
+                self.db.query(User)
+                .join(Role, User.role_id == Role.id)
+                .filter(User.id == payload.mentor_id, Role.name == "mentor")
+                .first()
+            )
+            if not mentor:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Không tìm thấy Mentor với ID {payload.mentor_id}.",
+                )
+            from app.models.mentor_intern import MentorIntern
+            mi = (
+                self.db.query(MentorIntern)
+                .filter(MentorIntern.intern_id == intern_id)
+                .first()
+            )
+            if mi:
+                mi.mentor_id = payload.mentor_id
+            else:
+                self.db.add(MentorIntern(mentor_id=payload.mentor_id, intern_id=intern_id))
 
         data = payload.model_dump(exclude_unset=True, exclude={"full_name"})
         for field, value in data.items():
