@@ -377,7 +377,7 @@ export function getRealtimeSyncState() {
         const ALLOWED_IDS = new Set([5, 6, 7, 8, 9]);
         const VALID_INTERN_IDS = new Set([5, 6, 8, 9]);
 
-        // 1. Chuẩn hóa danh sách applicants: Chỉ giữ đúng 4 TTS và 1 Ứng viên
+        // 1. Chuẩn hóa danh sách applicants: Chỉ giữ đúng 4 TTS, 1 Ứng viên và hồ sơ mới do HR tạo
         parsed.applicants = parsed.applicants.filter((a) => {
           const email = (a.email || '').toLowerCase().trim();
           const role = (a.role || '').toLowerCase().trim();
@@ -386,7 +386,7 @@ export function getRealtimeSyncState() {
           if (email.startsWith('hr') && email.endsWith('@ictu.edu.vn') && !email.includes('student')) return false;
           if (email.startsWith('admin') && email.endsWith('@ictu.edu.vn')) return false;
           if (email.startsWith('mentor') && email.endsWith('@ictu.edu.vn')) return false;
-          return ALLOWED_IDS.has(a.id);
+          return ALLOWED_IDS.has(Number(a.id)) || Number(a.id) > 9 || typeof a.id === 'string';
         });
 
         // Đảm bảo đầy đủ 4 TTS chính thức có mặt
@@ -396,17 +396,17 @@ export function getRealtimeSyncState() {
           }
         }
 
-        // 2. Chuẩn hóa danh sách hợp đồng: Chỉ giữ hợp đồng của 4 TTS chính thức
-        parsed.contracts = (parsed.contracts || []).filter((c) => VALID_INTERN_IDS.has(c.intern_id));
+        // 2. Chuẩn hóa danh sách hợp đồng: Chỉ giữ hợp đồng của 4 TTS chính thức và hồ sơ mới
+        parsed.contracts = (parsed.contracts || []).filter((c) => VALID_INTERN_IDS.has(Number(c.intern_id)) || Number(c.intern_id) > 9);
         for (const defCon of DEFAULT_INITIAL_DATA.contracts) {
           if (!parsed.contracts.some((c) => c.intern_id === defCon.intern_id)) {
             parsed.contracts.push(defCon);
           }
         }
 
-        // 3. Chuẩn hóa danh sách phân công Mentor: Chỉ giữ đúng các phân công thuộc 4 TTS (IDs: 5, 6, 8, 9)
+        // 3. Chuẩn hóa danh sách phân công Mentor: Chỉ giữ đúng các phân công thuộc 4 TTS và hồ sơ mới
         parsed.mentorAssignments = (parsed.mentorAssignments || []).filter(
-          (m) => VALID_INTERN_IDS.has(m.intern_id) && (m.mentor_id === 3 || m.mentor_id === 4)
+          (m) => (VALID_INTERN_IDS.has(Number(m.intern_id)) || Number(m.intern_id) > 9) && (m.mentor_id === 3 || m.mentor_id === 4)
         );
         const seenAssigned = new Set();
         parsed.mentorAssignments = parsed.mentorAssignments.filter((m) => {
@@ -629,7 +629,7 @@ export function subscribeRealtimeEvents(callback) {
 /**
  * 1. Ứng viên nộp CV / hồ sơ mới hoặc nộp lại (từ trang Ứng viên / Intern Upload)
  */
-export function syncApplicantSubmission({ applicantId, fullName, email, phone, cvFileName, major, gpa }) {
+export function syncApplicantSubmission({ applicantId, fullName, email, phone, cvFileName, major, gpa, university, academicYear, address, gender }) {
   const state = getRealtimeSyncState();
   const existingIdx = state.applicants.findIndex(
     (a) => a.id === applicantId || (email && a.email?.toLowerCase() === email.toLowerCase())
@@ -646,10 +646,14 @@ export function syncApplicantSubmission({ applicantId, fullName, email, phone, c
   if (existingIdx >= 0) {
     state.applicants[existingIdx] = {
       ...state.applicants[existingIdx],
-      cv_file: cvFileName || state.applicants[existingIdx].cv_file,
+      cv_file: cvFileName !== undefined ? cvFileName : state.applicants[existingIdx].cv_file,
       phone: phone || state.applicants[existingIdx].phone,
       major: major || state.applicants[existingIdx].major,
       gpa: gpa || state.applicants[existingIdx].gpa,
+      university: university || state.applicants[existingIdx].university,
+      academic_year: academicYear || state.applicants[existingIdx].academic_year,
+      address: address || state.applicants[existingIdx].address,
+      gender: gender || state.applicants[existingIdx].gender,
       applied_at: nowStr,
       status: 'pending', // Reset về pending để HR thẩm định
       reject_reason: undefined,
@@ -662,10 +666,14 @@ export function syncApplicantSubmission({ applicantId, fullName, email, phone, c
       student_code: `TTS00${state.applicants.length + 1}`,
       email: email || 'ungvien.moi@ictu.edu.vn',
       phone: phone || '0987.654.321',
-      faculty: 'Khoa Công nghệ Thông tin',
+      faculty: major || 'Khoa Công nghệ Thông tin',
+      university: university || 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
       major: major || 'Công nghệ thông tin',
+      academic_year: academicYear || 'Năm 4',
+      address: address || '',
+      gender: gender || 'male',
       gpa: gpa || '3.50',
-      cv_file: cvFileName || 'CV_UngVien_Moi.pdf',
+      cv_file: cvFileName || null,
       app_file: 'Đơn_xin_thực_tập.pdf',
       contract_file: null,
       applied_at: nowStr,

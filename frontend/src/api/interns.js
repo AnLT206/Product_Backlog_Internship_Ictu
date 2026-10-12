@@ -154,11 +154,26 @@ export async function uploadInternCv(internId, file) {
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await fetch(`${BASE_URL}/api/hr/interns/${internId}/cv`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: formData,
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}/api/hr/interns/${internId}/cv`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if ((res.status === 401 || res.status === 403)) {
+      const freshToken = await acquireTokenForRole('hr');
+      if (freshToken) {
+        res = await fetch(`${BASE_URL}/api/hr/interns/${internId}/cv`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${freshToken}` },
+          body: formData,
+        });
+      }
+    }
+  } catch {
+    return { ok: false, status: 0, data: { detail: 'Không thể kết nối đến máy chủ.' } };
+  }
 
   let data;
   try {

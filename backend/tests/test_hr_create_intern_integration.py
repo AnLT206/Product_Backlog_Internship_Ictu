@@ -92,3 +92,24 @@ def test_hr_create_intern_rejects_invalid_email(integration_client):
         headers=headers,
     )
     assert response.status_code == 422
+
+
+def test_hr_create_intern_without_password(integration_client):
+    token = create_access_token(user_id=1, role="hr")
+    headers = {"Authorization": f"Bearer {token}"}
+    payload = {
+        "full_name": "Dũng Vũ",
+        "email": "dungvu.test@example.com",
+        "university": "ICTU",
+        "major": "CNTT",
+    }
+    response = integration_client.post(
+        "/api/hr/interns",
+        json=payload,
+        headers=headers,
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["email"] == payload["email"]
+    assert body["full_name"] == payload["full_name"]
+

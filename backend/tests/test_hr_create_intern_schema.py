@@ -27,3 +27,12 @@ def test_hr_create_intern_rejects_invalid_email():
 def test_hr_create_intern_rejects_empty_email():
     with pytest.raises(ValidationError):
         InternCreateRequest(**_base(email=""))
+
+
+def test_hr_create_intern_default_password():
+    payload = InternCreateRequest(
+        full_name="Dũng Vũ",
+        email="dvu14206vhd78@gmail.com",
+    )
+    assert payload.password == "Intern@123"
+

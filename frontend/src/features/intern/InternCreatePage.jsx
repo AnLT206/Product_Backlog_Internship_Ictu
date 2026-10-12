@@ -23,6 +23,7 @@
 
 import { useState } from 'react';
 import { createIntern, uploadInternCv, buildToast } from '../../api/interns';
+import { syncApplicantSubmission } from '../../utils/realtimeSync';
 import './InternCreatePage.css';
 
 /* ─────────────────────────────────────────────
@@ -169,6 +170,7 @@ function buildPayload(form) {
   const payload = {
     full_name: form.full_name.trim(),
     email:     form.email.trim().toLowerCase(),
+    password:  form.password || 'Intern@123',
   };
 
   if (form.phone_number.trim()) {
@@ -216,10 +218,10 @@ function InternCreatePage() {
 
   function validateAndSetCv(file) {
     if (!file) return;
-    const allowedExtensions = ['.pdf', '.doc', '.docx'];
+    const allowedExtensions = ['.pdf', '.docx'];
     const ext = '.' + file.name.split('.').pop().toLowerCase();
     if (!allowedExtensions.includes(ext)) {
-      setCvError('Chỉ chấp nhận file định dạng PDF, DOC hoặc DOCX.');
+      setCvError('Chỉ chấp nhận file định dạng PDF hoặc DOCX.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -274,6 +276,25 @@ function InternCreatePage() {
           } catch {
             cvUploadOk = false;
           }
+        }
+
+        // Đồng bộ dữ liệu realtime vào hệ thống và các portal liên quan
+        try {
+          syncApplicantSubmission({
+            applicantId: data?.id,
+            fullName: form.full_name.trim(),
+            email: form.email.trim().toLowerCase(),
+            phone: form.phone_number.trim(),
+            cvFileName: cvFile ? cvFile.name : null,
+            university: form.university.trim(),
+            major: form.major.trim(),
+            academicYear: form.academic_year,
+            address: form.address.trim(),
+            gender: form.gender,
+            gpa: form.gpa !== '' ? String(form.gpa) : '3.50',
+          });
+        } catch {
+          // ignore realtime sync failure
         }
 
         if (cvFile && !cvUploadOk) {
@@ -629,7 +650,7 @@ function InternCreatePage() {
                 >
                   <input
                     type="file"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,.docx"
                     onChange={handleCvChange}
                     aria-label="Tải lên file CV ứng viên"
                   />

@@ -105,6 +105,10 @@ def derive_action_description(method: str, path: str, role: str | None, timestam
             desc = "HR phê duyệt tiếp nhận hồ sơ thực tập sinh"
         elif "reject" in p:
             desc = "HR từ chối hồ sơ ứng viên"
+        elif "cv" in p:
+            desc = "HR tải lên CV ứng viên / thực tập sinh"
+        elif "contract" in p:
+            desc = "HR tải lên hợp đồng thực tập sinh"
         elif m == "POST":
             desc = "HR tạo mới hồ sơ thực tập sinh"
         elif m in ("PUT", "PATCH"):

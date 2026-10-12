@@ -12,7 +12,12 @@ class InternCreateRequest(BaseModel):
 
     full_name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr = Field(..., description="Email đăng nhập TTS — bắt buộc, hợp lệ")
-    password: str = Field(..., min_length=6, max_length=128)
+    password: str = Field(
+        default="Intern@123",
+        min_length=6,
+        max_length=128,
+        description="Mật khẩu khởi tạo (mặc định: Intern@123 nếu HR không truyền)",
+    )
     phone_number: str | None = Field(default=None, max_length=20)
     dob: date | None = None
     gender: Literal["male", "female", "other"] | None = None
