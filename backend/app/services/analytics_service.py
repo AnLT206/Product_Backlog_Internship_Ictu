@@ -5,6 +5,7 @@ from io import BytesIO
 from pathlib import Path
 from xml.sax.saxutils import escape
 
+from fastapi import HTTPException, status
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from reportlab.lib import colors
@@ -15,12 +16,21 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-from sqlalchemy import func
+from sqlalchemy import and_, case, func
 from sqlalchemy.orm import Session
 
 from app.models.intern_profile import InternProfile
+from app.models.internship_program import InternshipProgram
 from app.models.program_member import ProgramMember
-from app.schemas.analytics import InternSourceAnalyticsResponse, StatItem
+from app.schemas.analytics import (
+    ComparisonKPI,
+    CompletionRateAnalyticsResponse,
+    InternSourceAnalyticsResponse,
+    KPICardItem,
+    PeriodSummaryItem,
+    ProgramBatchCompletionItem,
+    StatItem,
+)
 
 
 XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -376,3 +386,285 @@ class AnalyticsService:
         if bold_name not in registered:
             pdfmetrics.registerFont(TTFont(bold_name, str(bold_path)))
         return regular_name, bold_name
+
+    def get_completion_rate_analytics(
+        self,
+        program_id: int | None = None,
+        department: str | None = None,
+        from_date: date | None = None,
+        to_date: date | None = None,
+    ) -> CompletionRateAnalyticsResponse:
+        """API trả về các chỉ số KPI và tỷ lệ % hoàn thành chương trình của từng đợt (US-33)."""
+        target_program: InternshipProgram | None = None
+        if program_id is not None:
+            target_program = (
+                self.db.query(InternshipProgram)
+                .filter(InternshipProgram.id == program_id, InternshipProgram.is_deleted.is_(False))
+                .first()
+            )
+            if not target_program:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Không tìm thấy kỳ thực tập có ID {program_id}.",
+                )
+
+        # 1. Base query cho summary
+        summary_query = (
+            self.db.query(
+                func.count(ProgramMember.id).label("total"),
+                func.count(case((ProgramMember.status == "in_progress", ProgramMember.id))).label("in_progress"),
+                func.count(case((ProgramMember.status == "completed", ProgramMember.id))).label("completed"),
+                func.count(case((ProgramMember.status == "dropped_out", ProgramMember.id))).label("dropped_out"),
+                func.count(case((ProgramMember.status == "failed", ProgramMember.id))).label("failed"),
+            )
+            .join(
+                InternshipProgram,
+                and_(
+                    InternshipProgram.id == ProgramMember.program_id,
+                    InternshipProgram.is_deleted.is_(False),
+                ),
+            )
+        )
+
+        if program_id is not None:
+            summary_query = summary_query.filter(ProgramMember.program_id == program_id)
+        if department and department.strip():
+            summary_query = summary_query.filter(InternshipProgram.department == department.strip())
+        if from_date:
+            summary_query = summary_query.filter(InternshipProgram.start_date >= from_date)
+        if to_date:
+            summary_query = summary_query.filter(InternshipProgram.start_date <= to_date)
+
+        sum_row = summary_query.one()
+        total = sum_row.total or 0
+        in_progress = sum_row.in_progress or 0
+        completed = sum_row.completed or 0
+        dropped_out = sum_row.dropped_out or 0
+        failed = sum_row.failed or 0
+        not_completed = dropped_out + failed
+
+        completion_rate = round((completed / total) * 100, 2) if total > 0 else 0.0
+        dropout_rate = round((dropped_out / total) * 100, 2) if total > 0 else 0.0
+        failure_rate = round((failed / total) * 100, 2) if total > 0 else 0.0
+        in_progress_rate = round((in_progress / total) * 100, 2) if total > 0 else 0.0
+        not_completed_rate = round((not_completed / total) * 100, 2) if total > 0 else 0.0
+
+        summary = {
+            "total": total,
+            "in_progress": in_progress,
+            "completed": completed,
+            "dropped_out": dropped_out,
+            "failed": failed,
+            "not_completed": not_completed,
+            "completion_rate": completion_rate,
+            "dropout_rate": dropout_rate,
+            "failure_rate": failure_rate,
+            "in_progress_rate": in_progress_rate,
+            "not_completed_rate": not_completed_rate,
+        }
+
+        # 2. Tạo danh sách thẻ KPI
+        kpis = [
+            KPICardItem(
+                key="total",
+                label="Tổng thực tập sinh",
+                value=total,
+                rate=100.0 if total > 0 else 0.0,
+                hint="Toàn bộ TTS trong bộ lọc",
+                tone="primary",
+            ),
+            KPICardItem(
+                key="completed",
+                label="Đã hoàn thành",
+                value=completed,
+                rate=completion_rate,
+                hint="Kết thúc chương trình thành công",
+                tone="success",
+            ),
+            KPICardItem(
+                key="in_progress",
+                label="Đang thực hiện",
+                value=in_progress,
+                rate=in_progress_rate,
+                hint="Hiện đang trong chương trình",
+                tone="warn",
+            ),
+            KPICardItem(
+                key="not_completed",
+                label="Không hoàn thành",
+                value=not_completed,
+                rate=not_completed_rate,
+                hint="Bỏ cuộc hoặc không đạt",
+                tone="danger",
+            ),
+        ]
+
+        # 3. Danh sách tỷ lệ hoàn thành theo từng đợt (programs)
+        prog_query = (
+            self.db.query(
+                InternshipProgram.id,
+                InternshipProgram.name,
+                InternshipProgram.department,
+                InternshipProgram.start_date,
+                InternshipProgram.end_date,
+                InternshipProgram.status,
+                func.count(ProgramMember.id).label("total"),
+                func.count(case((ProgramMember.status == "in_progress", ProgramMember.id))).label("in_progress"),
+                func.count(case((ProgramMember.status == "completed", ProgramMember.id))).label("completed"),
+                func.count(case((ProgramMember.status == "dropped_out", ProgramMember.id))).label("dropped_out"),
+                func.count(case((ProgramMember.status == "failed", ProgramMember.id))).label("failed"),
+            )
+            .outerjoin(
+                ProgramMember,
+                ProgramMember.program_id == InternshipProgram.id,
+            )
+            .filter(InternshipProgram.is_deleted.is_(False))
+        )
+
+        if program_id is not None:
+            prog_query = prog_query.filter(InternshipProgram.id == program_id)
+        if department and department.strip():
+            prog_query = prog_query.filter(InternshipProgram.department == department.strip())
+        if from_date:
+            prog_query = prog_query.filter(InternshipProgram.start_date >= from_date)
+        if to_date:
+            prog_query = prog_query.filter(InternshipProgram.start_date <= to_date)
+
+        prog_rows = (
+            prog_query.group_by(
+                InternshipProgram.id,
+                InternshipProgram.name,
+                InternshipProgram.department,
+                InternshipProgram.start_date,
+                InternshipProgram.end_date,
+                InternshipProgram.status,
+            )
+            .order_by(
+                InternshipProgram.start_date.desc(),
+                InternshipProgram.id.desc(),
+            )
+            .all()
+        )
+
+        programs_list: list[ProgramBatchCompletionItem] = []
+        for p in prog_rows:
+            p_total = p.total or 0
+            p_comp = p.completed or 0
+            p_inp = p.in_progress or 0
+            p_drop = p.dropped_out or 0
+            p_fail = p.failed or 0
+            p_not_comp = p_drop + p_fail
+            p_rate = round((p_comp / p_total) * 100, 2) if p_total > 0 else 0.0
+
+            programs_list.append(
+                ProgramBatchCompletionItem(
+                    id=p.id,
+                    name=p.name,
+                    department=p.department,
+                    start_date=str(p.start_date) if p.start_date else None,
+                    end_date=str(p.end_date) if p.end_date else None,
+                    status=p.status or "open",
+                    total=p_total,
+                    completed=p_comp,
+                    in_progress=p_inp,
+                    dropped_out=p_drop,
+                    failed=p_fail,
+                    not_completed=p_not_comp,
+                    completion_rate=p_rate,
+                )
+            )
+
+        # 4. Tính toán kỳ trước và đối tượng so sánh
+        previous_period: PeriodSummaryItem | None = None
+        if target_program is not None:
+            prev_prog = (
+                self.db.query(InternshipProgram)
+                .filter(
+                    InternshipProgram.is_deleted.is_(False),
+                    InternshipProgram.id != target_program.id,
+                    InternshipProgram.start_date <= target_program.start_date,
+                )
+                .order_by(InternshipProgram.start_date.desc(), InternshipProgram.id.desc())
+                .first()
+            )
+        else:
+            prev_prog = None
+            if len(prog_rows) >= 2:
+                prev_prog_id = prog_rows[1].id
+                prev_prog = (
+                    self.db.query(InternshipProgram)
+                    .filter(InternshipProgram.id == prev_prog_id)
+                    .first()
+                )
+
+        if prev_prog:
+            prev_row = (
+                self.db.query(
+                    func.count(ProgramMember.id).label("total"),
+                    func.count(case((ProgramMember.status == "completed", ProgramMember.id))).label("completed"),
+                )
+                .filter(ProgramMember.program_id == prev_prog.id)
+                .one()
+            )
+            prev_total = prev_row.total or 0
+            prev_comp = prev_row.completed or 0
+            prev_rate = round((prev_comp / prev_total) * 100, 2) if prev_total > 0 else 0.0
+
+            previous_period = PeriodSummaryItem(
+                id=prev_prog.id,
+                name=prev_prog.name,
+                total=prev_total,
+                completed=prev_comp,
+                completion_rate=prev_rate,
+            )
+
+        # So sánh chênh lệch
+        if previous_period is not None:
+            prev_r = previous_period.completion_rate
+            diff = round(completion_rate - prev_r, 2)
+            if diff > 0:
+                trend = "up"
+                arrow = "↑"
+                badge_text = f"+{diff}%"
+                text = f"↑ +{diff}% so với đợt trước"
+            elif diff < 0:
+                trend = "down"
+                arrow = "↓"
+                badge_text = f"{diff}%"
+                text = f"↓ {diff}% so với đợt trước"
+            else:
+                trend = "same"
+                arrow = "→"
+                badge_text = "0%"
+                text = "→ 0% so với đợt trước"
+
+            comparison = ComparisonKPI(
+                has_previous=True,
+                current_rate=completion_rate,
+                previous_rate=prev_r,
+                diff=diff,
+                trend=trend,
+                arrow=arrow,
+                text=text,
+                badge_text=badge_text,
+            )
+        else:
+            comparison = ComparisonKPI(
+                has_previous=False,
+                current_rate=completion_rate,
+                previous_rate=0.0,
+                diff=0.0,
+                trend="same",
+                arrow="→",
+                text="Chưa có dữ liệu so sánh",
+                badge_text="Chưa có dữ liệu so sánh",
+            )
+
+        return CompletionRateAnalyticsResponse(
+            summary=summary,
+            kpis=kpis,
+            comparison=comparison,
+            previous_period=previous_period,
+            programs=programs_list,
+        )
+

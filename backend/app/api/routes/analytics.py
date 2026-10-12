@@ -6,12 +6,16 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_roles
-from app.schemas.analytics import InternSourceAnalyticsResponse
+from app.schemas.analytics import (
+    CompletionRateAnalyticsResponse,
+    InternSourceAnalyticsResponse,
+)
 from app.schemas.evaluation import FinalEvaluationReportResponse
 from app.services.analytics_service import AnalyticsService
 
 router = APIRouter(prefix="/hr/analytics", tags=["hr-analytics"])
 reports_router = APIRouter(prefix="/hr/reports", tags=["hr-reports"])
+stats_router = APIRouter(prefix="/hr/stats", tags=["hr-stats"])
 
 
 def _stream_sources_export(
@@ -139,15 +143,44 @@ def get_final_summary_report(
 
 @router.get(
     "/completion-rate",
-    summary="Thống kê số lượng thực tập sinh theo trạng thái và tỷ lệ hoàn thành (US-33)",
+    response_model=CompletionRateAnalyticsResponse,
+    summary="Chỉ số KPI và tỷ lệ % hoàn thành chương trình của từng đợt (US-33)",
     dependencies=[Depends(require_roles("hr", "admin"))],
 )
 def get_completion_rate_analytics(
     program_id: int | None = Query(default=None, description="Lọc theo ID kỳ thực tập cụ thể (tùy chọn)"),
+    department: str | None = Query(default=None, description="Lọc theo phòng ban/bộ phận"),
+    from_date: date | None = Query(default=None, description="Lọc theo ngày bắt đầu kỳ thực tập từ"),
+    to_date: date | None = Query(default=None, description="Lọc theo ngày bắt đầu kỳ thực tập đến"),
     db: Session = Depends(get_db),
-):
-    from app.services.program_service import ProgramService
+) -> CompletionRateAnalyticsResponse:
+    return AnalyticsService(db).get_completion_rate_analytics(
+        program_id=program_id,
+        department=department,
+        from_date=from_date,
+        to_date=to_date,
+    )
 
-    return ProgramService(db).get_completion_stats(program_id=program_id)
+
+@stats_router.get(
+    "/completion-rate",
+    response_model=CompletionRateAnalyticsResponse,
+    summary="Alias chỉ số KPI và tỷ lệ % hoàn thành chương trình (spec contract)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def get_completion_rate_stats(
+    program_id: int | None = Query(default=None, description="Lọc theo ID kỳ thực tập cụ thể"),
+    department: str | None = Query(default=None, description="Lọc theo phòng ban/bộ phận"),
+    from_date: date | None = Query(default=None, description="Lọc theo ngày bắt đầu kỳ thực tập từ"),
+    to_date: date | None = Query(default=None, description="Lọc theo ngày bắt đầu kỳ thực tập đến"),
+    db: Session = Depends(get_db),
+) -> CompletionRateAnalyticsResponse:
+    return AnalyticsService(db).get_completion_rate_analytics(
+        program_id=program_id,
+        department=department,
+        from_date=from_date,
+        to_date=to_date,
+    )
+
 
 
