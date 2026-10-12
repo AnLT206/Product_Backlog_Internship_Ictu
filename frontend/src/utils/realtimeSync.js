@@ -414,8 +414,9 @@ export function getRealtimeSyncState() {
           seenAssigned.add(m.intern_id);
           return true;
         });
+        const unassignedSet = new Set(parsed.unassigned_intern_ids || []);
         for (const defAssign of DEFAULT_INITIAL_DATA.mentorAssignments) {
-          if (!parsed.mentorAssignments.some((m) => m.intern_id === defAssign.intern_id)) {
+          if (!unassignedSet.has(defAssign.intern_id) && !parsed.mentorAssignments.some((m) => m.intern_id === defAssign.intern_id)) {
             parsed.mentorAssignments.push(defAssign);
           }
         }
@@ -1200,6 +1201,10 @@ export function syncContractRecordCreated(contract) {
 export function syncMentorAssignment(mentorId, mentorName, internIds, projectName = 'Dự án Phát triển Hệ thống') {
   const state = getRealtimeSyncState();
 
+  if (state.unassigned_intern_ids) {
+    state.unassigned_intern_ids = state.unassigned_intern_ids.filter((id) => !internIds.includes(id));
+  }
+
   // Bỏ các phân công cũ của mentor này nếu sinh viên không còn nằm trong internIds
   state.mentorAssignments = state.mentorAssignments.filter(
     (m) => m.mentor_id !== mentorId || internIds.includes(m.intern_id)
@@ -1247,6 +1252,12 @@ export function syncMentorAssignment(mentorId, mentorName, internIds, projectNam
 export function syncUnassignMentor(internId) {
   const state = getRealtimeSyncState();
   state.mentorAssignments = (state.mentorAssignments || []).filter((m) => m.intern_id !== internId);
+  if (!state.unassigned_intern_ids) {
+    state.unassigned_intern_ids = [];
+  }
+  if (!state.unassigned_intern_ids.includes(internId)) {
+    state.unassigned_intern_ids.push(internId);
+  }
   saveRealtimeSyncState(state);
   emitRealtimeEvent(SYNC_EVENTS.MENTOR_ASSIGNED, {
     internId,
@@ -1259,6 +1270,9 @@ export function syncUnassignMentor(internId) {
  */
 export function syncReassignMentor(internId, newMentorId, newMentorName, projectName = 'Dự án Phát triển Hệ thống') {
   const state = getRealtimeSyncState();
+  if (state.unassigned_intern_ids) {
+    state.unassigned_intern_ids = state.unassigned_intern_ids.filter((id) => id !== internId);
+  }
   const internObj = (state.applicants || []).find((a) => a.id === internId);
   const studentName = internObj?.full_name || `TTS #${internId}`;
   const studentCode = internObj?.student_code || `TTS000${internId}`;

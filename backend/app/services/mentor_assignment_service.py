@@ -191,6 +191,16 @@ class MentorAssignmentService:
 
         member = query.first()
         if not member:
+            # Fallback: Tìm bản ghi phân công của TTS với bất kỳ Mentor nào
+            fallback_query = self.db.query(ProgramMember).filter(
+                ProgramMember.intern_user_id == intern_id,
+                ProgramMember.mentor_user_id.isnot(None),
+            )
+            if program_id is not None:
+                fallback_query = fallback_query.filter(ProgramMember.program_id == program_id)
+            member = fallback_query.first()
+
+        if not member:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Không tìm thấy liên kết phân công giữa Mentor và thực tập sinh này.",

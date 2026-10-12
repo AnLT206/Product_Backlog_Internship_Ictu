@@ -344,6 +344,8 @@ export default function MentorAssignmentPage() {
           const rawIntern = rawItems.find((r) => r.id === i.id);
           return {
             ...i,
+            mentor_id: null,
+            mentor_name: null,
             full_name: rawIntern?.full_name || i.full_name,
             code: rawIntern?.code || rawIntern?.student_code || i.code,
             email: rawIntern?.email || i.email,

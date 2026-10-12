@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import {
   Users,
   CheckSquare,
@@ -177,36 +178,15 @@ function syncReportFeedbackToInternStorage(reportId, score, feedback) {
 export default function MentorDashboardPage() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const currentMentorId = user?.id || (user?.email?.includes('mentor2') ? 4 : 3)
 
   // 5 Tabs trọng tâm: mentees, tasks, reports, evaluations, leave
   const [activeTab, setActiveTab] = useState('mentees') // 'mentees' | 'tasks' | 'reports' | 'evaluations' | 'leave'
   const [toast, setToast] = useState(null)
 
-  // ── Danh sách Mentees do Mentor phụ trách (Đồng bộ chuẩn xác từ HR gồm TTS0001 & TTS0002) ──
-  const [mentees, setMentees] = useState([
-    {
-      id: 5,
-      code: 'TTS0001',
-      full_name: 'TTS',
-      email: 'intern@ictu.edu.vn',
-      phone: '0987 654 321',
-      major: 'Công nghệ thông tin',
-      gpa: 3.65,
-      lab: 'R&D Software Engineering',
-      attendance_rate: '98%',
-    },
-    {
-      id: 6,
-      code: 'TTS0002',
-      full_name: 'Lê Hoàng Nam',
-      email: 'tts02@student.ictu.edu.vn',
-      phone: '0912 888 999',
-      major: 'Kỹ thuật phần mềm',
-      gpa: 3.52,
-      lab: 'R&D Software Engineering',
-      attendance_rate: '96%',
-    },
-  ])
+  // ── Danh sách Mentees do Mentor phụ trách ──
+  const [mentees, setMentees] = useState([])
 
   // ── Đơn xin nghỉ phép của TTS (Đồng bộ thời gian thực từ HR & TTS) ──
   const [leaveRequests, setLeaveRequests] = useState([])
@@ -389,11 +369,19 @@ export default function MentorDashboardPage() {
             lab: m.program_name || 'R&D Software Engineering',
             attendance_rate: '98%',
           }))
-          setMentees(mappedMentees)
+          const syncState = getRealtimeSyncState()
+          const unassignedSet = new Set(syncState.unassigned_intern_ids || [])
+          const finalMentees = mappedMentees.filter((m) => !unassignedSet.has(m.id))
+          setMentees(finalMentees)
         } else {
           const syncState = getRealtimeSyncState()
+          const unassignedSet = new Set(syncState.unassigned_intern_ids || [])
           const myAssignments = (syncState.mentorAssignments || []).filter(
-            (m) => m.mentor_id === 3 || m.mentor === 'Mentor'
+            (m) =>
+              !unassignedSet.has(m.intern_id) &&
+              (m.mentor_id === currentMentorId ||
+                (currentMentorId === 3 && (m.mentor?.includes('Quân') || m.mentor_id === 3)) ||
+                (currentMentorId === 4 && (m.mentor?.includes('Hướng') || m.mentor_id === 4)))
           )
           if (myAssignments.length > 0) {
             const mapped = myAssignments.map((a) => {
@@ -422,6 +410,8 @@ export default function MentorDashboardPage() {
               }
             })
             setMentees(unique)
+          } else {
+            setMentees([])
           }
         }
 
