@@ -94,7 +94,7 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
   const [currentStep, setCurrentStep] = useState('unsubmitted');
 
   // File CV đã được gửi lên hệ thống thành công
-  const [, setCvFile] = useState(null);
+  const [cvFile, setCvFile] = useState(null);
   const [cvSubmissionDate, setCvSubmissionDate] = useState(null);
 
   // Trạng thái Modal Hợp đồng lao động khi HR duyệt & gửi hợp đồng
@@ -214,7 +214,7 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
 
       // 2. Kiểm tra quyết định duyệt của HR
       let resolvedDecision = null;
-      if (serverDocStatus === 'rejected' || user?.profile_status === 'rejected' || user?.status === 'rejected') {
+      if (serverDocStatus === 'rejected') {
         resolvedDecision = {
           status: 'rejected',
           reason: serverDocReason || user?.reject_reason || 'CV của bạn không đạt đủ yêu cầu, bạn hãy dành thêm thời gian để chuẩn bị lại CV cho lần tiếp theo nhé!',
@@ -253,21 +253,23 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
         }
       }
 
-      if (!resolvedDecision) {
-        if (user?.profile_status === 'approved' || user?.status === 'approved') {
+      if (!resolvedDecision && hasCvOnServer) {
+        if (user?.profile_status === 'rejected' || user?.status === 'rejected') {
+          resolvedDecision = {
+            status: 'rejected',
+            reason: user?.reject_reason || 'CV của bạn không đạt đủ yêu cầu, bạn hãy dành thêm thời gian để chuẩn bị lại CV cho lần tiếp theo nhé!',
+          };
+        } else if (user?.profile_status === 'approved' || user?.status === 'approved') {
           resolvedDecision = { status: 'approved', reason: '' };
         }
       }
 
+      const hasUploadedCv = Boolean(hasCvOnServer || cvFile);
       const isRejected = resolvedDecision?.status === 'rejected';
       const isApproved = resolvedDecision?.status === 'approved';
 
       if (isMounted) {
-        if (isApproved) {
-          setCurrentStep('approved');
-          setShowRejectModal(false);
-          setRejectReason('');
-        } else if (isRejected) {
+        if (isRejected) {
           setCurrentStep('rejected');
           setRejectReason(resolvedDecision?.reason || 'Hồ sơ chưa đáp ứng đủ yêu cầu tiếp nhận thực tập đợt này.');
           const isDismissed = sessionStorage.getItem('applicant_reject_modal_dismissed') === 'true';
@@ -278,6 +280,18 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
           try {
             localStorage.removeItem('applicant_pending_contract');
           } catch {}
+        } else if (isApproved) {
+          setCurrentStep('approved');
+          setShowRejectModal(false);
+          setRejectReason('');
+        } else if (!hasUploadedCv) {
+          setCurrentStep('unsubmitted');
+          setShowRejectModal(false);
+          setRejectReason('');
+        } else {
+          setCurrentStep('applied');
+          setShowRejectModal(false);
+          setRejectReason('');
         }
       }
 
@@ -473,7 +487,7 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
 
   // Lộ trình 6 giai đoạn: cập nhật đồng bộ trạng thái thực tế từ HR
   const isRejected = currentStep === 'rejected';
-  const roadmapStages = getInternshipRoadmap(Boolean(cvSubmissionDate), isRejected, rejectReason);
+  const roadmapStages = getInternshipRoadmap(Boolean(cvSubmissionDate || cvFile), isRejected, rejectReason);
 
   return (
     <div className="iad-container">

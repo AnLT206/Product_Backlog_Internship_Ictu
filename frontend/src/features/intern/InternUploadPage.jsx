@@ -188,15 +188,18 @@ export default function InternUploadPage() {
 
       // 2. Xác định quyết định duyệt / từ chối của HR
       let resolvedDecision = null;
-      if (serverDocStatus === 'rejected' || user?.profile_status === 'rejected' || user?.status === 'rejected') {
+
+      // a) Nếu có quyết định thực tế từ tài liệu trên server
+      if (serverDocStatus === 'rejected') {
         resolvedDecision = {
           status: 'rejected',
-          reason: serverDocReason || user?.reject_reason || 'CV của bạn không đạt đủ yêu cầu, bạn hãy dành thêm thời gian để chuẩn bị lại CV cho lần tiếp theo nhé!',
+          reason: serverDocReason || 'CV của bạn không đạt đủ yêu cầu, bạn hãy dành thêm thời gian để chuẩn bị lại CV cho lần tiếp theo nhé!',
         };
       } else if (serverDocStatus === 'approved') {
         resolvedDecision = { status: 'approved', reason: '' };
       }
 
+      // b) Nếu có quyết định từ HR đã được lưu (applicant_decision_status)
       if (!resolvedDecision) {
         try {
           const decRaw = localStorage.getItem('applicant_decision_status');
@@ -213,6 +216,7 @@ export default function InternUploadPage() {
         } catch {}
       }
 
+      // c) Nếu có đồng bộ từ syncStore
       if (!resolvedDecision && syncMatch) {
         if (syncMatch.status === 'rejected') {
           resolvedDecision = { status: 'rejected', reason: syncMatch.reject_reason || '' };
@@ -221,8 +225,14 @@ export default function InternUploadPage() {
         }
       }
 
-      if (!resolvedDecision) {
-        if (user?.profile_status === 'approved' || user?.status === 'approved') {
+      // d) Quyết định từ profile user (CHỈ KHI ứng viên đã có CV trên hệ thống)
+      if (!resolvedDecision && hasCvOnServer) {
+        if (user?.profile_status === 'rejected' || user?.status === 'rejected') {
+          resolvedDecision = {
+            status: 'rejected',
+            reason: user?.reject_reason || 'CV của bạn không đạt đủ yêu cầu, bạn hãy dành thêm thời gian để chuẩn bị lại CV cho lần tiếp theo nhé!',
+          };
+        } else if (user?.profile_status === 'approved' || user?.status === 'approved') {
           resolvedDecision = { status: 'approved', reason: '' };
         }
       }
@@ -753,8 +763,11 @@ export default function InternUploadPage() {
     return d;
   };
 
+  const hasUploadedCv = Boolean(cvFile || cvSubmissionDate);
+  const isCandidateRejected = currentStep === 'rejected';
+
   const isCandidateApproved =
-    currentStep !== 'rejected' &&
+    !isCandidateRejected &&
     (currentStep === 'approved' ||
       currentStep === 'onboarded' ||
       user?.profile_status === 'approved');
@@ -778,20 +791,20 @@ export default function InternUploadPage() {
     {
       id: 'interview',
       label: 'Phỏng vấn',
-      desc: currentStep === 'rejected' ? 'Không tiến hành' : 'Trao đổi chuyên môn với Mentor',
+      desc: isCandidateRejected ? 'Không tiến hành' : 'Trao đổi chuyên môn với Mentor',
       date: cvSubmissionDate
         ? formatVnDate(addDays(cvSubmissionDate, 7))
         : 'Dự kiến',
     },
     {
       id: 'approved',
-      label: currentStep === 'rejected' ? 'Chưa tiếp nhận' : isCandidateApproved ? 'Đã phê duyệt' : 'Kết quả duyệt',
-      desc: currentStep === 'rejected'
+      label: isCandidateRejected ? 'Chưa tiếp nhận' : isCandidateApproved ? 'Đã phê duyệt' : 'Kết quả duyệt',
+      desc: isCandidateRejected
         ? 'Hồ sơ chưa đạt tiêu chuẩn đợt này'
         : isCandidateApproved
         ? 'Đã tiếp nhận chính thức vào kỳ thực tập'
         : 'Ký hợp đồng & tiếp nhận',
-      date: currentStep === 'rejected'
+      date: isCandidateRejected
         ? (cvSubmissionDate ? formatVnDate(new Date()) : 'Chưa tiếp nhận')
         : isCandidateApproved
         ? (cvSubmissionDate ? formatVnDate(addDays(cvSubmissionDate, 10)) : formatVnDate(new Date()))
@@ -800,14 +813,14 @@ export default function InternUploadPage() {
   ];
 
   const getStepStatus = (stepId) => {
-    if (!cvSubmissionDate || currentStep === 'unsubmitted') {
-      if (stepId === 'applied') return 'active';
+    if (isCandidateRejected) {
+      if (stepId === 'applied' || stepId === 'reviewing') return 'completed';
+      if (stepId === 'approved') return 'rejected';
       return 'pending';
     }
 
-    if (currentStep === 'rejected') {
-      if (stepId === 'applied' || stepId === 'reviewing') return 'completed';
-      if (stepId === 'approved') return 'rejected';
+    if (!cvSubmissionDate || currentStep === 'unsubmitted' || !hasUploadedCv) {
+      if (stepId === 'applied') return 'active';
       return 'pending';
     }
 
@@ -933,8 +946,8 @@ export default function InternUploadPage() {
         </div>
       </section>
 
-      {/* Banner thông báo kết quả khi bị từ chối */}
-      {currentStep === 'rejected' && (
+      {/* Banner thông báo kết quả khi bị từ chối (CHỈ hiển thị khi đã nộp CV và bị từ chối) */}
+      {isCandidateRejected && (
         <section
           style={{
             background: '#FEF2F2',
@@ -1320,7 +1333,7 @@ export default function InternUploadPage() {
                 </button>
               )}
 
-              {currentStep === 'rejected' && (
+              {isCandidateRejected && (
                 <button
                   type="button"
                   onClick={handleTriggerReapply}
