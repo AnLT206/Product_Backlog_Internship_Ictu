@@ -63,8 +63,11 @@ export function getSavedUserProfile(currentUser) {
     const cleanCode = (c) => {
       if (!c) return isApplicant ? 'UV0001' : 'TTS0001'
       const str = String(c).trim()
-      if (str.includes('HR') || str.includes('AD') || (str.includes('TTS') && isApplicant)) {
+      if (str.includes('HR') || str.includes('AD')) {
         return isApplicant ? 'UV0001' : 'TTS0001'
+      }
+      if (str.includes('TTS') && isApplicant) {
+        return str.replace('TTS', 'UV')
       }
       return str
     }

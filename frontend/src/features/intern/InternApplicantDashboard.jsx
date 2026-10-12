@@ -594,8 +594,10 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
           <div className="iad-hero__cards">
             <div className="iad-hero__info-card">
               <div className="iad-hero__info-card-label">Mã ứng viên</div>
-              <div className="iad-hero__info-card-value">{user?.code || 'TTS9999'}</div>
-              <div className="iad-hero__info-card-sub">Khoa Công nghệ Thông tin - ICTU</div>
+              <div className="iad-hero__info-card-value">
+                {user?.code ? (user.code.startsWith('TTS') ? user.code.replace('TTS', 'UV') : user.code) : 'UV0001'}
+              </div>
+              <div className="iad-hero__info-card-sub">{user?.major || 'Khoa Công nghệ Thông tin - ICTU'}</div>
             </div>
 
             {!isContractConfirmed && currentStep !== 'rejected' && pendingContract && (

@@ -181,7 +181,15 @@ export function getPersistedUserProfile(email) {
 
 export function enrichUserWithPersistedProfile(userObj) {
   if (!userObj) return userObj;
-  const isCandidate = (userObj.email || '').toLowerCase().includes('ungvien') || (userObj.code || '') === 'UV0001';
+  const isCandidate =
+    (userObj.email || '').toLowerCase().includes('ungvien') ||
+    (userObj.code || '') === 'UV0001' ||
+    userObj.status === 'pending' ||
+    userObj.status === 'rejected' ||
+    userObj.status === 'unsubmitted' ||
+    userObj.profile_status === 'pending' ||
+    userObj.profile_status === 'rejected' ||
+    userObj.role === 'applicant';
   const persisted = getPersistedUserProfile(userObj.email);
   let resolvedStatus = userObj.status;
   let resolvedProfileStatus = userObj.profile_status || userObj.status;
@@ -240,12 +248,24 @@ export function isApplicantUser(u) {
   const status = (u.status || '').toLowerCase().trim();
   const profileStatus = (u.profile_status || '').toLowerCase().trim();
 
-  // 1. Nếu người dùng đã hoàn thành ký hợp đồng (onboarded), chắc chắn là Thực tập sinh chính thức
+  // 1. Nếu tài khoản có trạng thái pending, rejected hoặc unsubmitted -> Luôn là Ứng viên (chưa duyệt / chưa chính thức)
+  if (
+    status === 'pending' ||
+    status === 'rejected' ||
+    status === 'unsubmitted' ||
+    profileStatus === 'pending' ||
+    profileStatus === 'rejected' ||
+    role === 'applicant'
+  ) {
+    return true;
+  }
+
+  // 2. Nếu người dùng đã hoàn thành ký hợp đồng (onboarded), chắc chắn là Thực tập sinh chính thức
   if (typeof window !== 'undefined' && localStorage.getItem('applicant_onboarded') === 'true') {
     return false;
   }
 
-  // 2. Các tài khoản TTS chính thức cụ thể (TTS0001 - TTS0005, v.v.)
+  // 3. Các tài khoản TTS chính thức cụ thể (TTS0001 - TTS0004...) khi không bị pending/rejected
   if (code.startsWith('TTS') && code !== 'TTS9999') {
     return false;
   }
@@ -261,14 +281,16 @@ export function isApplicantUser(u) {
     return false;
   }
 
-  // 3. Tài khoản định danh Ứng viên (ungvien@ictu.edu.vn hoặc UV0001 hoặc ID 7)
+  // 4. Tài khoản định danh Ứng viên (ungvien@ictu.edu.vn hoặc UV0001 hoặc ID 7)
   if (
     email.includes('ungvien') ||
     code === 'UV0001' ||
+    code === 'TTS9999' ||
     u.id === 7 ||
     name === 'nguyễn thu hà' ||
     name.includes('thu hà') ||
-    role === 'applicant'
+    name === 'ứng viên' ||
+    name.includes('ứng viên')
   ) {
     if (status === 'active' && profileStatus !== 'rejected' && profileStatus !== 'pending') {
       return false;
@@ -276,22 +298,12 @@ export function isApplicantUser(u) {
     return true;
   }
 
-  // 4. Các tài khoản đã active / approved khác
+  // 5. Các tài khoản đã active / approved khác
   if (status === 'active' || status === 'approved' || profileStatus === 'approved') {
     return false;
   }
 
-  return (
-    role === 'applicant' ||
-    status === 'pending' ||
-    status === 'unsubmitted' ||
-    status === 'rejected' ||
-    profileStatus === 'pending' ||
-    profileStatus === 'rejected' ||
-    code === 'TTS9999' ||
-    name === 'ứng viên' ||
-    name.includes('ứng viên')
-  );
+  return false;
 }
 
 export function normalizeUserName(u) {

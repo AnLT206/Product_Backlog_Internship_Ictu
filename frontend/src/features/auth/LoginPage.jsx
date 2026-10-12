@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import logoApp from '../../assets/logo_app.png'
 import { dashboardPathForRole } from '../../api/auth'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth, isApplicantUser } from '../../context/AuthContext'
 import './LoginPage.css'
 
 // Cấu hình hiển thị nút đăng nhập nhanh
@@ -107,8 +107,16 @@ function LoginPage() {
         return
       }
 
-      const isApplicant = isApplicantAccount || (result.user?.email || '').toLowerCase().includes('ungvien') || result.user?.code === 'UV0001';
-      const roleDest = isApplicant ? '/intern/upload' : dashboardPathForRole(result.user.role)
+      const isApplicant =
+        isApplicantAccount ||
+        isApplicantUser(result.user) ||
+        (result.user?.email || '').toLowerCase().includes('ungvien') ||
+        result.user?.code === 'UV0001' ||
+        result.user?.status === 'pending' ||
+        result.user?.status === 'rejected' ||
+        result.user?.profile_status === 'pending' ||
+        result.user?.profile_status === 'rejected';
+      const roleDest = isApplicant ? '/intern/dashboard' : dashboardPathForRole(result.user.role)
       let dest = forcedDest || roleDest
       if (!forcedDest && location.state?.from) {
         const fromPath = location.state.from

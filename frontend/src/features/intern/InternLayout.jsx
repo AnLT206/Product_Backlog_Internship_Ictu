@@ -23,27 +23,16 @@ const APPLICANT_NAV_ITEMS = [
 export default function InternLayout() {
   const { user } = useAuth()
   const location = useLocation()
-  // Xác định chính xác tài khoản TTS chính thức
-  const isActualIntern = Boolean(
-    user &&
-    !isApplicantUser(user) &&
-    (user.role === 'intern' ||
-      user.code?.startsWith('TTS') ||
-      user.email?.startsWith('tts') ||
-      user.email?.startsWith('an.nv') ||
-      user.email === 'intern@ictu.edu.vn') &&
-    user.code !== 'TTS9999' &&
-    user.code !== 'UV0001' &&
-    !user.email?.includes('ungvien') &&
-    user.id !== 7
+  // Xác định vai trò: Ứng viên (chờ duyệt/ký hợp đồng) vs Thực tập sinh chính thức
+  const isApplicant = Boolean(
+    user && (
+      isApplicantUser(user) ||
+      (typeof window !== 'undefined' &&
+        localStorage.getItem('last_portal_intern_role') === 'applicant' &&
+        localStorage.getItem('applicant_onboarded') !== 'true')
+    )
   )
-
-  const isApplicant = !isActualIntern && (
-    isApplicantUser(user) ||
-    (typeof window !== 'undefined' &&
-      localStorage.getItem('last_portal_intern_role') === 'applicant' &&
-      localStorage.getItem('applicant_onboarded') !== 'true')
-  )
+  const isActualIntern = Boolean(user && !isApplicant)
 
   // Nếu là ứng viên, cho phép truy cập: /intern/upload, /intern/dashboard, /intern/roadmap, /intern/profile
   const allowedApplicantPaths = ['/intern/upload', '/intern/dashboard', '/intern/roadmap', '/intern/profile']
@@ -57,20 +46,15 @@ export default function InternLayout() {
 
   const navItems = isApplicant ? APPLICANT_NAV_ITEMS : INTERN_NAV_ITEMS
 
-  // Tên hiển thị người dùng:
-  // Nếu là tài khoản TTS thực tế -> hiển thị tên thật của TTS
-  // Nếu là Ứng viên -> 'Nguyễn Thu Hà' (hoặc user?.full_name)
-  // Nếu là HR / Admin đang vào kiểm thử -> cố định hiển thị chuẩn là 'TTS (TTS0001)'
-  const displayUserName = isApplicant
-    ? (user?.full_name && !user.full_name.includes('TTS') && !user.full_name.includes('HR') && !user.full_name.includes('Trần Thị Mai') ? user.full_name : 'Nguyễn Thu Hà')
-    : isActualIntern
-    ? (user?.full_name || 'TTS')
-    : (user?.full_name || 'TTS (TTS0001)')
+  // Tên hiển thị người dùng
+  const displayUserName = user?.full_name || (isApplicant ? 'Ứng viên' : 'Thực tập sinh')
+
+  const displayUserCode = user?.code
+    ? (isApplicant && user.code.startsWith('TTS') ? user.code.replace('TTS', 'UV') : user.code)
+    : (isApplicant ? 'UV0001' : 'TTS0001')
 
   const displayUserMeta = isApplicant
-    ? `Mã UV: ${user?.code && !user.code.startsWith('HR') && !user.code.startsWith('AD') && user.code !== 'TTS0001' ? user.code : 'UV0001'} · K20-CNTT`
-    : isActualIntern
-    ? `Mã TTS: ${user?.code || 'TTS0001'} · K20-CNTT`
+    ? `Mã UV: ${displayUserCode} · K20-CNTT`
     : `Mã TTS: ${user?.code || 'TTS0001'} · K20-CNTT`
 
   // Breadcrumb chuẩn theo từng trang của TTS

@@ -27,7 +27,12 @@ export function saveSession({ access_token, user }) {
     (user.email || '').toLowerCase().includes('ungvien') ||
     (user.code || '').toUpperCase() === 'UV0001' ||
     user.id === 7 ||
-    user.role === 'applicant';
+    user.role === 'applicant' ||
+    user.status === 'pending' ||
+    user.status === 'rejected' ||
+    user.status === 'unsubmitted' ||
+    user.profile_status === 'pending' ||
+    user.profile_status === 'rejected';
   const roleKey = isApp ? 'applicant' : (user.role || 'intern');
 
   // Tab-level storage (sessionStorage) để cô lập tuyệt đối giữa các tab khi F5
@@ -238,7 +243,12 @@ export function readStoredUser() {
         ((tabUser.email || '').toLowerCase().includes('ungvien') ||
           tabUser.code === 'UV0001' ||
           tabUser.id === 7 ||
-          tabUser.role === 'applicant');
+          tabUser.role === 'applicant' ||
+          tabUser.status === 'pending' ||
+          tabUser.status === 'rejected' ||
+          tabUser.status === 'unsubmitted' ||
+          tabUser.profile_status === 'pending' ||
+          tabUser.profile_status === 'rejected');
 
       const isCandidateContext =
         !isOnboarded &&
