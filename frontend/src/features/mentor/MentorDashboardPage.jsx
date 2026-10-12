@@ -97,6 +97,7 @@ function syncTaskToInternStorage(newTaskItem) {
     }
     const internTaskObj = {
       id: newTaskItem.id || Date.now(),
+      intern_id: newTaskItem.intern_id,
       title: newTaskItem.title,
       description: newTaskItem.description,
       due_at: newTaskItem.due_at,
@@ -192,31 +193,8 @@ export default function MentorDashboardPage() {
   const [leaveRequests, setLeaveRequests] = useState([])
   const [leaveFilterStatus, setLeaveFilterStatus] = useState('all')
 
-  // ── Chức năng 1: Tasks state & Filters ──
-  const [tasks, setTasks] = useState([
-    {
-      id: 101,
-      title: 'Phát triển REST API Quản lý Hồ sơ Thực tập sinh',
-      description: 'Thiết kế endpoint POST /api/hr/interns và GET /api/hr/interns có filter trường, ngành.',
-      intern_id: 5,
-      intern_name: 'TTS (TTS0001)',
-      due_at: '2026-10-02',
-      priority: 'high',
-      status: 'doing',
-      progress: 70,
-    },
-    {
-      id: 103,
-      title: 'Nghiên cứu tài liệu Software Specification v2.1',
-      description: 'Đọc hiểu flow chart Mermaid, sequence diagram và quy tắc phân quyền JWT.',
-      intern_id: 5,
-      intern_name: 'TTS (TTS0001)',
-      due_at: '2026-09-24',
-      priority: 'medium',
-      status: 'done',
-      progress: 100,
-    },
-  ])
+  // ── Chức năng 1: Tasks state & Filters (Dữ liệu thực từ CSDL MySQL & API) ──
+  const [tasks, setTasks] = useState([])
   const [taskFilterIntern, setTaskFilterIntern] = useState('all')
   const [taskFilterStatus, setTaskFilterStatus] = useState('all')
 
@@ -224,7 +202,7 @@ export default function MentorDashboardPage() {
   const [taskModal, setTaskModal] = useState(false)
   const [isSubmittingTask, setIsSubmittingTask] = useState(false)
   const [newTask, setNewTask] = useState({
-    intern_id: 5,
+    intern_id: '',
     title: '',
     description: '',
     due_at: '2026-10-15',
@@ -356,6 +334,7 @@ export default function MentorDashboardPage() {
         ])
 
         // 1. Phân bổ Mentees theo phân công thực tế từ HR (Backend CSDL & Realtime Sync)
+        let resolvedMentees = []
         if (menteesRes.ok && Array.isArray(menteesRes.data) && menteesRes.data.length > 0) {
           const mappedMentees = menteesRes.data.map((m) => ({
             id: m.id,
@@ -371,8 +350,8 @@ export default function MentorDashboardPage() {
           }))
           const syncState = getRealtimeSyncState()
           const unassignedSet = new Set(syncState.unassigned_intern_ids || [])
-          const finalMentees = mappedMentees.filter((m) => !unassignedSet.has(m.id))
-          setMentees(finalMentees)
+          resolvedMentees = mappedMentees.filter((m) => !unassignedSet.has(m.id))
+          setMentees(resolvedMentees)
         } else {
           const syncState = getRealtimeSyncState()
           const unassignedSet = new Set(syncState.unassigned_intern_ids || [])
@@ -409,15 +388,16 @@ export default function MentorDashboardPage() {
                 unique.push(item)
               }
             })
+            resolvedMentees = unique
             setMentees(unique)
           } else {
             setMentees([])
           }
         }
 
-        // 2. Nhiệm vụ Tasks: Kết hợp API CSDL và intern_sprint1_tasks_v1 từ TTS
+        // 2. Nhiệm vụ Tasks: Dữ liệu thực tế từ CSDL MySQL theo intern_id được phân công
         let loadedTasks = []
-        if (taskRes.ok && Array.isArray(taskRes.data) && taskRes.data.length > 0) {
+        if (taskRes.ok && Array.isArray(taskRes.data)) {
           loadedTasks = [...taskRes.data]
         }
         try {
@@ -430,13 +410,14 @@ export default function MentorDashboardPage() {
                 if (existing) {
                   existing.progress = lt.progress !== undefined ? lt.progress : existing.progress
                   existing.status = lt.status || existing.status
-                } else {
+                } else if (lt.intern_id && resolvedMentees.some((m) => Number(m.id) === Number(lt.intern_id))) {
+                  const targetMentee = resolvedMentees.find((m) => Number(m.id) === Number(lt.intern_id))
                   loadedTasks.push({
                     id: lt.id,
                     title: lt.title,
                     description: lt.description || '',
-                    intern_id: 5,
-                    intern_name: 'TTS (TTS0001)',
+                    intern_id: Number(lt.intern_id),
+                    intern_name: `${targetMentee.full_name} (${targetMentee.code})`,
                     due_at: lt.due_at || '2026-10-15',
                     priority: lt.priority || 'medium',
                     status: lt.status || 'doing',
@@ -448,7 +429,7 @@ export default function MentorDashboardPage() {
           }
         } catch {}
 
-        if (loadedTasks.length > 0) {
+        if (taskRes.ok || loadedTasks.length > 0) {
           setTasks(loadedTasks)
         }
 
@@ -616,7 +597,7 @@ export default function MentorDashboardPage() {
   // ─────────────────────────────────────────────────────────────────────────────
   function handleOpenCreateTaskModal(preferredInternId = null) {
     setTaskErrors({})
-    const defaultInternId = preferredInternId || mentees[0]?.id || 5
+    const defaultInternId = preferredInternId || mentees[0]?.id || ''
     setNewTask({
       intern_id: defaultInternId,
       title: '',
@@ -1016,7 +997,7 @@ export default function MentorDashboardPage() {
 
   // Bộ lọc danh sách Tasks
   const filteredTasks = tasks.filter((t) => {
-    if (taskFilterIntern !== 'all' && t.intern_id !== Number(taskFilterIntern)) return false
+    if (taskFilterIntern !== 'all' && Number(t.intern_id) !== Number(taskFilterIntern)) return false
     if (taskFilterStatus !== 'all' && t.status !== taskFilterStatus) return false
     return true
   })
@@ -1242,8 +1223,8 @@ export default function MentorDashboardPage() {
 
               <div className="mentor-mentee-cards-stack">
                 {mentees.map((mentee) => {
-                  // Tìm task gần nhất của mentee này (ưu tiên task đang thực hiện)
-                  const menteeTasks = tasks.filter((t) => t.intern_id === mentee.id || t.intern_id == null)
+                  // Tìm task gần nhất của mentee này theo đúng intern_id được phân công
+                  const menteeTasks = tasks.filter((t) => Number(t.intern_id) === Number(mentee.id))
                   const latestTask = menteeTasks.find((t) => t.status === 'doing') || menteeTasks.find((t) => t.status === 'review') || menteeTasks[0]
                   const menteeReports = reports.filter((r) => r.intern_id === mentee.id)
                   const hasPendingReport = menteeReports.some((r) => r.status === 'pending' || !r.mentor_feedback)
@@ -1294,18 +1275,16 @@ export default function MentorDashboardPage() {
                         </div>
                       </div>
 
-                      {/* Box nhiệm vụ gần nhất */}
-                      <div className="mentee-task-box">
-                        <div className="mentee-task-header">
-                          <span className="task-box-label">Task gần nhất:</span>
-                          <span className="task-box-due">
-                            {latestTask ? `Hạn chót: ${latestTask.due_at}` : 'Chưa có task'}
-                          </span>
-                        </div>
-                        <h4 className="task-box-name">
-                          {latestTask ? latestTask.title : 'Chưa có nhiệm vụ Sprint nào được giao cho sinh viên này.'}
-                        </h4>
-                        {latestTask ? (
+                      {/* Box nhiệm vụ gần nhất: Chỉ hiển thị khi TTS đã có task thực tế */}
+                      {latestTask ? (
+                        <div className="mentee-task-box">
+                          <div className="mentee-task-header">
+                            <span className="task-box-label">Task gần nhất:</span>
+                            <span className="task-box-due">
+                              Hạn chót: {latestTask.due_at}
+                            </span>
+                          </div>
+                          <h4 className="task-box-name">{latestTask.title}</h4>
                           <div className="task-box-progress-row">
                             <div className="progress-bar-track">
                               <div
@@ -1315,18 +1294,8 @@ export default function MentorDashboardPage() {
                             </div>
                             <span className="task-box-pct">{latestTask.progress}% hoàn thiện</span>
                           </div>
-                        ) : (
-                          <button
-                            type="button"
-                            className="mentor-btn mentor-btn--outline mentor-btn--sm"
-                            style={{ marginTop: '6px' }}
-                            onClick={() => handleOpenCreateTaskModal(mentee.id)}
-                          >
-                            <Plus size={12} />
-                            <span>Giao task đầu tiên</span>
-                          </button>
-                        )}
-                      </div>
+                        </div>
+                      ) : null}
 
                       {/* Các nút hành động tập trung vào 3 chức năng chính */}
                       <div className="mentee-card-actions">
