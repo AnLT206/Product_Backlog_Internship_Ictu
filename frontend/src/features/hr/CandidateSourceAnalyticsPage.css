@@ -118,22 +118,132 @@
   gap: 12px;
 }
 
-.csa-info-pill {
-  display: inline-flex;
+/* ── Filter Dropdown ── */
+.csa-filter-box {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
+  gap: 10px;
   background: #f8fafc;
   border: 1px solid var(--csa-line);
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #475569;
+  padding: 6px 14px;
+  border-radius: 10px;
+  transition: border-color 0.15s ease;
 }
 
-.csa-info-icon {
+.csa-filter-box:hover {
+  border-color: #cbd5e1;
+}
+
+.csa-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--csa-muted);
+  white-space: nowrap;
+}
+
+.csa-filter-icon {
   color: var(--csa-blue);
   flex-shrink: 0;
+}
+
+.csa-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.csa-filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: transparent;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--csa-ink);
+  cursor: pointer;
+  padding-right: 22px;
+  padding-left: 2px;
+  font-family: inherit;
+  outline: none;
+  transition: color 0.15s ease;
+}
+
+.csa-filter-select:hover {
+  color: var(--csa-blue);
+}
+
+.csa-select-chevron {
+  position: absolute;
+  right: 2px;
+  pointer-events: none;
+  color: var(--csa-muted);
+}
+
+.csa-filter-spin {
+  color: var(--csa-blue);
+  animation: csaSpin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes csaSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Error Banner ── */
+.csa-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.05);
+}
+
+.csa-error-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.csa-error-icon {
+  flex-shrink: 0;
+  color: #dc2626;
+}
+
+.csa-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.csa-retry-btn:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.csa-empty-icon {
+  color: #94a3b8;
+  margin-bottom: 8px;
 }
 
 /* ── 2. KPI METRICS (3 CARDS) ── */
