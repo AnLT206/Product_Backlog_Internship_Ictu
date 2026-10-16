@@ -1738,4 +1738,111 @@
   transform: translateY(0);
 }
 
+/* ── WORKFLOW 3 GIAI ĐOẠN ── */
+.iad-card--workflow {
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+}
+
+.iad-workflow-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #2563eb;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.iad-workflow-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #2563eb;
+  box-shadow: 0 0 6px #2563eb;
+}
+
+.iad-workflow-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.iad-workflow-box {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.iad-workflow-box.is-active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.12);
+}
+
+.iad-workflow-box.is-completed {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+
+.iad-workflow-box__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iad-workflow-step-num {
+  font-size: 12px;
+  font-weight: 800;
+  background: #e2e8f0;
+  color: #334155;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.iad-workflow-box.is-active .iad-workflow-step-num {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.iad-workflow-box.is-completed .iad-workflow-step-num {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.iad-workflow-box__header h4 {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.iad-workflow-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #475569;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.iad-workflow-list em {
+  font-style: normal;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+
 

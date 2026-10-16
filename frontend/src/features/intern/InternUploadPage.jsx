@@ -60,6 +60,7 @@ export default function InternUploadPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [selectedDocType, setSelectedDocType] = useState('cv'); // 'cv' | 'application'
   const fileInputRef = useRef(null);
 
   // Trạng thái Modal Hợp đồng lao động khi HR duyệt & gửi hợp đồng
@@ -555,9 +556,9 @@ export default function InternUploadPage() {
 
     const now = new Date();
     try {
-      const res = await uploadDocument(stagedFile.file, 'cv');
+      const res = await uploadDocument(stagedFile.file, selectedDocType);
       if (!res.ok) {
-        const errorDetail = res.data?.detail || 'Không thể lưu CV lên hệ thống máy chủ.';
+        const errorDetail = res.data?.detail || 'Không thể lưu tài liệu lên hệ thống máy chủ.';
         throw new Error(typeof errorDetail === 'string' ? errorDetail : JSON.stringify(errorDetail));
       }
       const docData = res.data;
@@ -1022,16 +1023,62 @@ export default function InternUploadPage() {
         </section>
       )}
 
-      {/* 2. KHU VỰC TẢI LÊN CV / HỒ SƠ ỨNG TUYỂN - ẢNH 1 */}
+      {/* 2. KHU VỰC TẢI LÊN TÀI LIỆU: CV & ĐƠN THỰC TẬP CHÍNH THỨC - GIAI ĐOẠN 2 */}
       <section className="iad-card" id="upload-cv-section">
         <div className="iad-card__head">
           <div>
-            <h3 className="iad-card__title">Tài Liệu & CV Ứng Tuyển</h3>
+            <div className="iad-workflow-badge" style={{ marginBottom: '6px' }}>
+              <span className="iad-workflow-badge-dot"></span>
+              Giai đoạn 2: Quản lý hồ sơ thực tập sinh
+            </div>
+            <h3 className="iad-card__title">Tài Liệu &amp; CV Ứng Tuyển</h3>
             <p className="iad-card__desc">
-              Tải lên bản cập nhật mới nhất của CV / Portfolio cá nhân để Hội đồng tuyển dụng đánh giá.
+              TTS upload CV và đơn thực tập chính thức (có xác nhận của Trường/Khoa) để hoàn thiện hồ sơ thực tập sinh.
             </p>
           </div>
-          <span style={{ fontSize: 12.5, color: '#64748b' }}>Tối đa 1 file (5 MB)</span>
+          <span style={{ fontSize: 12.5, color: '#64748b' }}>Tối đa 5 MB / file (.PDF, .DOC, .DOCX)</span>
+        </div>
+
+        {/* Bộ chọn loại tài liệu upload */}
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setSelectedDocType('cv')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: selectedDocType === 'cv' ? '2px solid #2563EB' : '1px solid #CBD5E1',
+              backgroundColor: selectedDocType === 'cv' ? '#EFF6FF' : '#FFFFFF',
+              color: selectedDocType === 'cv' ? '#1D4ED8' : '#475569',
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>📄 1. CV ứng tuyển / chính thức</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedDocType('application')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: selectedDocType === 'application' ? '2px solid #2563EB' : '1px solid #CBD5E1',
+              backgroundColor: selectedDocType === 'application' ? '#EFF6FF' : '#FFFFFF',
+              color: selectedDocType === 'application' ? '#1D4ED8' : '#475569',
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>📝 2. Đơn thực tập chính thức (Xác nhận từ Nhà trường)</span>
+          </button>
         </div>
 
         {/* Input file duy nhất, độc lập và luôn mounted để kích hoạt ở mọi tình huống */}

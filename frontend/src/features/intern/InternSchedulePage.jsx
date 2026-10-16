@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../../context/AuthContext'
 import './InternDashboardPage.css'
 import './InternSchedulePage.css'
 
@@ -649,6 +650,7 @@ function ClockIcon({ size = 14.5, className = 'timeline-clock-icon' }) {
 }
 
 export default function InternSchedulePage() {
+  const { user } = useAuth()
   const [viewMode, setViewMode] = useState('calendar') // 'calendar' | 'list'
   const [selectedFilter, setSelectedFilter] = useState('all') // 'all' | 'shift' | 'review' | 'deadline' | 'training'
   const [showPastInList, setShowPastInList] = useState(false) // Ẩn các sự kiện của ngày đã qua theo mặc định
@@ -764,6 +766,33 @@ export default function InternSchedulePage() {
 
   return (
     <div className="schedule-container">
+      {/* ── BANNER GIAI ĐOẠN 3: QUẢN LÝ CHƯƠNG TRÌNH THỰC TẬP & MENTOR HƯỚNG DẪN ── */}
+      <div className="schedule-mentorship-banner">
+        <div className="schedule-mentorship-content">
+          <div className="schedule-mentorship-badge">
+            <span className="mentorship-badge-dot"></span>
+            Giai đoạn 3: Quản lý chương trình thực tập • Đã tiếp nhận & Sẵn sàng
+          </div>
+          <div className="schedule-mentorship-grid">
+            <div className="schedule-mentorship-item">
+              <span className="mentorship-label">Chương trình thực tập:</span>
+              <strong className="mentorship-val">Chương trình Thực tập Kỹ thuật Phần mềm & AI 2026</strong>
+              <span className="mentorship-sub">Phòng ban: Trung tâm Phát triển Phần mềm ICTU</span>
+            </div>
+            <div className="schedule-mentorship-item">
+              <span className="mentorship-label">Lịch thực tập chính thức:</span>
+              <strong className="mentorship-val">01/10/2026 – 31/12/2026 (12 tuần)</strong>
+              <span className="mentorship-sub">Tiến độ kỳ thực tập: Tuần 2 / Sprint 2</span>
+            </div>
+            <div className="schedule-mentorship-item schedule-mentorship-item--mentor">
+              <span className="mentorship-label">Mentor hướng dẫn phụ trách:</span>
+              <strong className="mentorship-val">{user?.mentor_name || 'ThS. Đỗ Duy Thảo (Lead Tech Architect)'}</strong>
+              <span className="mentorship-sub">Email: {user?.mentor_email || 'ddt@ictu.edu.vn'} • Họp Review 1-1 hàng tuần</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ── HEADER TIÊU ĐỀ & CHUYỂN ĐỔI CHẾ ĐỘ XEM ── */}
       <div className="schedule-header">
         <div className="schedule-header-left">

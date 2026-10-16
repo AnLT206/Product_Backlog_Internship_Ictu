@@ -23,22 +23,29 @@ Nguồn yêu cầu: [Product Backlog — Google Sheets](https://docs.google.com/
 | **Mentor** | Giao việc, phản hồi báo cáo, đánh giá |
 | **Thực tập sinh** | Đăng ký, nộp hồ sơ, chấm công, báo cáo, xem lịch & quyền lợi |
 
+## Quy trình nghiệp vụ 3 giai đoạn cốt lõi
+
+Quy trình hoạt động của hệ thống được chuẩn hóa thành 3 giai đoạn trước khi TTS bước vào kỳ thực tập chính thức:
+- **Giai đoạn 1: Tiếp nhận & Xét duyệt (Epic 2)**: TTS nộp hồ sơ trực tuyến → HR xét duyệt → Gửi email kết quả (Trúng tuyển/Từ chối) → Ký kết hợp đồng tiếp nhận số.
+- **Giai đoạn 2: Quản lý hồ sơ thực tập sinh (Epic 1)**: Khởi tạo hồ sơ chính thức → TTS nộp CV & Đơn thực tập chính thức → HR thẩm định tài liệu (Hợp lệ / Yêu cầu bổ sung) → Lưu trữ hồ sơ & Lọc theo Trường/Ngành.
+- **Giai đoạn 3: Quản lý chương trình thực tập (Epic 3 & Epic 7)**: Tạo chương trình theo phòng ban → Thiết lập ngày bắt đầu/kết thúc → Phân công TTS vào nhóm → Gán Mentor hướng dẫn → TTS truy cập cổng xem Lịch cá nhân & Mentor → Hoàn tất tiếp nhận & sẵn sàng thực tập.
+
 ## Phạm vi chức năng (Epic)
 
-| # | Epic | Số US |
-| --- | ---: | ---: |
-| 1 | Quản lý hồ sơ thực tập sinh | 5 |
-| 2 | Tiếp nhận và xét duyệt | 5 |
-| 3 | Quản lý chương trình thực tập | 4 |
-| 4 | Quản lý công việc & đánh giá | 6 |
-| 5 | Quản lý chấm công & thời gian | 4 |
-| 6 | Quản lý hỗ trợ & quyền lợi | 4 |
-| 7 | Quản lý mentor & phòng ban | 3 |
-| 8 | Báo cáo & thống kê | 3 |
-| 9 | Tích hợp & thông báo | 4 |
-| 10 | Quản trị hệ thống | 4 |
+| # | Epic | Ánh xạ quy trình chuẩn | Số US |
+| --- | --- | --- | ---: |
+| 1 | Quản lý hồ sơ thực tập sinh | **Giai đoạn 2** (Khởi tạo hồ sơ, upload tài liệu, thẩm định, lọc) | 5 |
+| 2 | Tiếp nhận và xét duyệt | **Giai đoạn 1** (Đăng ký, duyệt/từ chối, email, hợp đồng tiếp nhận) | 5 |
+| 3 | Quản lý chương trình thực tập | **Giai đoạn 3** (Chương trình phòng ban, lịch thực tập, phân nhóm) | 4 |
+| 4 | Quản lý công việc & đánh giá | Thực thi kỳ thực tập (Task Kanban, báo cáo tuần, đánh giá) | 6 |
+| 5 | Quản lý chấm công & thời gian | Thực thi kỳ thực tập (Check-in GPS/QR, chuyên cần, nghỉ phép) | 4 |
+| 6 | Quản lý hỗ trợ & quyền lợi | Quyền lợi TTS (Tính phụ cấp hàng tháng, ticket hỗ trợ) | 4 |
+| 7 | Quản lý mentor & phòng ban | **Giai đoạn 3** (Gán Mentor hướng dẫn 1-1, tải công việc) | 3 |
+| 8 | Báo cáo & thống kê | Tổng kết & Đánh giá (Báo cáo Trường/Khoa, tỷ lệ hoàn thành) | 3 |
+| 9 | Tích hợp & thông báo | Hạ tầng hệ thống (Email tự động SMTP, thông báo in-app) | 4 |
+| 10 | Quản trị hệ thống | Quản trị nền tảng (Phân quyền RBAC, sao lưu dữ liệu, system logs) | 4 |
 
-Chi tiết từng story: [product-backlog.md](product-backlog.md).
+Chi tiết từng story: [product-backlog.md](product-backlog.md). Chi tiết sơ đồ luồng: [flow.md](flow.md).
 
 ## Stack kỹ thuật hiện tại
 

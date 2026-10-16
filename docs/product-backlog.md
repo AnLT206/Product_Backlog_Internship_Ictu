@@ -2,7 +2,48 @@
 
 Nguồn: [Google Sheets](https://docs.google.com/spreadsheets/d/1jF0gj_Em33a7TeNolltgRWrO9OiZoeYr/edit?gid=405766727#gid=405766727)
 
-Tóm tắt Epic: [overview.md](overview.md)
+Tóm tắt Epic: [overview.md](overview.md) | Sơ đồ luồng: [flow.md](flow.md)
+
+---
+
+## Ánh xạ quy trình chuẩn 3 giai đoạn (Sơ đồ luồng hệ thống)
+
+```text
+[Bắt đầu: Sinh viên đăng ký]
+  │
+  ▼
+【Giai đoạn 1: Tiếp nhận & Xét duyệt】 (Epic 2)
+  TTS đăng ký & nộp hồ sơ (US 6) → HR kiểm tra hồ sơ (US 7)
+    → HR duyệt?
+        ├─ Từ chối → Hệ thống gửi email từ chối (US 8) → [Kết thúc]
+        └─ Đồng ý  → Hệ thống gửi email trúng tuyển (US 8)
+                     → HR tải lên hợp đồng thực tập (US 9)
+                     → TTS xem & xác nhận hợp đồng (US 10)
+  │
+  ▼
+【Giai đoạn 2: Quản lý hồ sơ thực tập sinh】 (Epic 1)
+  Hệ thống/HR khởi tạo hồ sơ TTS chính thức (US 1)
+    → TTS upload CV & đơn thực tập chính thức (US 4)
+    → HR xem & duyệt tài liệu hồ sơ (US 5)
+    → Tài liệu hợp lệ?
+        ├─ Cần bổ sung → HR yêu cầu cập nhật/chỉnh sửa (US 5) → [Quay lại upload]
+        └─ Hợp lệ     → HR cập nhật thông tin & lưu trữ đầy đủ (US 2)
+                        → HR tìm kiếm/lọc TTS theo Trường/Ngành (US 3)
+  │
+  ▼
+【Giai đoạn 3: Quản lý chương trình thực tập】 (Epic 3 & Epic 7)
+  HR tạo chương trình thực tập theo phòng ban (US 11)
+    → HR thiết lập lịch: Ngày bắt đầu & Kết thúc (US 13)
+    → HR phân công thực tập sinh vào chương trình/nhóm (US 11)
+    → HR gắn Mentor hướng dẫn cho TTS (US 12, US 30)
+    → TTS truy cập cổng thông tin xem Lịch cá nhân & Mentor (US 14)
+  │
+  ▼
+[Hoàn tất tiếp nhận & sẵn sàng thực tập]
+```
+
+---
+
 
 ### 1. Quản lý hồ sơ thực tập sinh
 

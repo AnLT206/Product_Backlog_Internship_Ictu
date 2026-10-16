@@ -614,6 +614,85 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
         </div>
       </section>
 
+      {/* SƠ ĐỒ LUỒNG HOẠT ĐỘNG HỆ THỐNG 3 GIAI ĐOẠN CHUẨN */}
+      <section className="iad-card iad-card--workflow">
+        <div className="iad-card__head">
+          <div>
+            <div className="iad-workflow-badge">
+              <span className="iad-workflow-badge-dot"></span>
+              Sơ Đồ Quy Trình Hoạt Động Hệ Thống Chuẩn
+            </div>
+            <h3 className="iad-card__title" style={{ marginTop: '6px' }}>
+              Quy Trình Tiếp Nhận &amp; Quản Lý Thực Tập 3 Giai Đoạn
+            </h3>
+            <p className="iad-card__desc">
+              Chu trình chuẩn hóa từ đăng ký xét tuyển ban đầu đến phân công chương trình &amp; mentor hướng dẫn
+            </p>
+          </div>
+        </div>
+
+        <div className="iad-workflow-steps">
+          {/* Giai đoạn 1 */}
+          <div
+            className={`iad-workflow-box ${
+              currentStep === 'unsubmitted' ||
+              currentStep === 'applied' ||
+              currentStep === 'reviewing' ||
+              currentStep === 'interview'
+                ? 'is-active'
+                : isContractConfirmed || currentStep === 'approved' || currentStep === 'onboarded'
+                ? 'is-completed'
+                : ''
+            }`}
+          >
+            <div className="iad-workflow-box__header">
+              <span className="iad-workflow-step-num">01</span>
+              <h4>Giai đoạn 1: Tiếp nhận &amp; Xét duyệt</h4>
+            </div>
+            <ul className="iad-workflow-list">
+              <li>TTS đăng ký tài khoản &amp; nộp hồ sơ trực tuyến</li>
+              <li>HR xem &amp; kiểm tra hồ sơ ứng viên</li>
+              <li>HR duyệt: <em>Từ chối</em> (gửi email từ chối, kết thúc) hoặc <em>Đồng ý</em> (gửi email trúng tuyển)</li>
+              <li>HR tải lên hợp đồng &amp; TTS xem, xác nhận hợp đồng</li>
+            </ul>
+          </div>
+
+          {/* Giai đoạn 2 */}
+          <div
+            className={`iad-workflow-box ${
+              (isContractConfirmed || currentStep === 'approved' || currentStep === 'onboarded') && !isRejected
+                ? 'is-active'
+                : ''
+            }`}
+          >
+            <div className="iad-workflow-box__header">
+              <span className="iad-workflow-step-num">02</span>
+              <h4>Giai đoạn 2: Quản lý hồ sơ TTS</h4>
+            </div>
+            <ul className="iad-workflow-list">
+              <li>Hệ thống/HR khởi tạo hồ sơ TTS chính thức</li>
+              <li>TTS upload CV &amp; đơn thực tập chính thức hoàn thiện hồ sơ</li>
+              <li>HR xem &amp; duyệt tài liệu: <em>Cần bổ sung</em> (yêu cầu sửa) hoặc <em>Hợp lệ</em></li>
+              <li>HR cập nhật thông tin cá nhân &amp; lưu trữ hồ sơ đầy đủ (Lọc Trường/Ngành)</li>
+            </ul>
+          </div>
+
+          {/* Giai đoạn 3 */}
+          <div className="iad-workflow-box">
+            <div className="iad-workflow-box__header">
+              <span className="iad-workflow-step-num">03</span>
+              <h4>Giai đoạn 3: Quản lý chương trình</h4>
+            </div>
+            <ul className="iad-workflow-list">
+              <li>HR tạo chương trình thực tập theo phòng ban</li>
+              <li>HR thiết lập lịch: Ngày bắt đầu &amp; kết thúc</li>
+              <li>HR phân công TTS vào chương trình / nhóm</li>
+              <li>HR gắn Mentor hướng dẫn &amp; TTS xem Lịch, Mentor trên cổng</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* 1. LỘ TRÌNH THỰC TẬP CHUẨN MỰC (INTERNSHIP ROADMAP) */}
       <section className="iad-card">
         <div className="iad-card__head">

@@ -47,98 +47,182 @@ Số hóa tuyển chọn → quản lý → đánh giá thực tập sinh; TTS c
 | `hr` | HR | `/hr/dashboard` |
 | `admin` | Admin | `/admin/dashboard` |
 
-### 1.3. Luồng hoạt động chính (end-to-end)
+### 1.3. Luồng hoạt động chính (end-to-end) theo sơ đồ quy trình chuẩn
 
-#### 1.3.1. Sơ đồ tổng quan vòng đời thực tập sinh
+Hệ thống vận hành theo quy trình 3 giai đoạn chuẩn hóa từ tiếp nhận đến sẵn sàng thực tập:
+
+#### 1.3.1. Sơ đồ tổng quan 3 giai đoạn nghiệp vụ
 
 ```mermaid
 flowchart TD
-    Start([Bắt đầu]) --> Register[TTS đăng ký + nộp hồ sơ + upload CV/đơn]
-    Register --> Pending[users.status = pending]
+    Start(["Bắt đầu: Sinh viên đăng ký"]):::startEndClass --> P1_Step1
 
-    Pending --> HRReview{HR xét duyệt}
-    HRReview -->|Từ chối| Rejected[status = inactive]
-    Rejected --> EmailReject[Gửi email thông báo]
-    EmailReject --> EndReject([Kết thúc - không nhận])
+    %% Giai đoạn 1
+    subgraph Phase1 ["Giai đoạn 1: Tiếp nhận & Xét duyệt"]
+        P1_Step1["TTS đăng ký tài khoản & nộp hồ sơ trực tuyến"]:::processClass
+        P1_Step2["HR xem & kiểm tra hồ sơ ứng viên"]:::processClass
+        P1_Decision{"HR duyệt hồ sơ?"}:::decisionClass
 
-    HRReview -->|Duyệt| Active[status = active]
-    Active --> EmailOk[Gửi email thông báo]
-    EmailOk --> ContractHR[HR upload hợp đồng]
-    ContractHR --> ContractTTS{TTS xác nhận hợp đồng?}
-    ContractTTS -->|Chưa| WaitContract[Chờ xác nhận]
-    WaitContract --> ContractTTS
-    ContractTTS -->|Đã xác nhận| Assign[HR tạo chương trình + gán mentor]
+        P1_RejectEmail["Hệ thống gửi email thông báo từ chối"]:::rejectClass
+        P1_RejectEnd(["Kết thúc quy trình"]):::startEndClass
 
-    Assign --> Parallel{Giai đoạn thực tập}
+        P1_ApproveEmail["Hệ thống gửi email thông báo trúng tuyển"]:::approveClass
+        P1_UploadContract["HR tải lên hợp đồng thực tập"]:::processClass
+        P1_ConfirmContract["TTS xem & xác nhận hợp đồng trên hệ thống"]:::processClass
 
-    Parallel --> Attend[TTS: Check-in / Check-out / Nghỉ phép]
-    Parallel --> Tasks[Mentor giao việc → TTS cập nhật tiến độ]
-    Parallel --> Reports[TTS nộp báo cáo tuần → Mentor phản hồi]
-    Parallel --> Support[TTS gửi hỗ trợ / HR phụ cấp]
+        P1_Step1 --> P1_Step2
+        P1_Step2 --> P1_Decision
+        P1_Decision -->|Từ chối| P1_RejectEmail
+        P1_RejectEmail --> P1_RejectEnd
+        P1_Decision -->|Đồng ý| P1_ApproveEmail
+        P1_ApproveEmail --> P1_UploadContract
+        P1_UploadContract --> P1_ConfirmContract
+    end
 
-    Attend --> Eval
-    Tasks --> Eval
-    Reports --> Eval
-    Support --> Eval
+    %% Giai đoạn 2
+    subgraph Phase2 ["Giai đoạn 2: Quản lý hồ sơ thực tập sinh"]
+        P2_InitProfile["Hệ thống/HR khởi tạo hồ sơ thực tập sinh chính thức"]:::processClass
+        P2_UploadDocs["TTS upload CV & đơn thực tập chính thức để hoàn thiện hồ sơ"]:::processClass
+        P2_ReviewDocs["HR xem & duyệt tài liệu hồ sơ của TTS"]:::processClass
+        P2_Decision{"Tài liệu hợp lệ?"}:::decisionClass
 
-    Eval[Mentor đánh giá kỹ năng & thái độ]
-    Eval --> Summary[HR tổng hợp + xuất báo cáo Excel/PDF]
-    Summary --> EndOk([Kết thúc chương trình])
+        P2_RequestSupplement["HR yêu cầu TTS cập nhật/chỉnh sửa hồ sơ"]:::processClass
+        P2_SaveProfile["HR cập nhật thông tin cá nhân & lưu trữ hồ sơ đầy đủ"]:::approveClass
+        P2_FilterInterns["HR có thể tìm kiếm/lọc TTS theo Trường/Ngành"]:::processClass
+
+        P2_InitProfile --> P2_UploadDocs
+        P2_UploadDocs --> P2_ReviewDocs
+        P2_ReviewDocs --> P2_Decision
+
+        P2_Decision -->|Cần bổ sung| P2_RequestSupplement
+        P2_RequestSupplement -->|"Sửa đổi tài liệu"| P2_UploadDocs
+
+        P2_Decision -->|Hợp lệ| P2_SaveProfile
+        P2_SaveProfile --> P2_FilterInterns
+    end
+
+    %% Giai đoạn 3
+    subgraph Phase3 ["Giai đoạn 3: Quản lý chương trình thực tập"]
+        P3_CreateProgram["HR tạo chương trình thực tập theo phòng ban"]:::processClass
+        P3_SetSchedule["HR thiết lập lịch thực tập: Ngày bắt đầu & Kết thúc"]:::processClass
+        P3_AssignInterns["HR phân công thực tập sinh vào chương trình/nhóm"]:::processClass
+        P3_AssignMentor["HR gắn Mentor hướng dẫn cho TTS"]:::processClass
+        P3_InternPortal["TTS truy cập cổng thông tin xem Lịch thực tập cá nhân & Mentor"]:::processClass
+
+        P3_CreateProgram --> P3_SetSchedule
+        P3_SetSchedule --> P3_AssignInterns
+        P3_AssignInterns --> P3_AssignMentor
+        P3_AssignMentor --> P3_InternPortal
+    end
+
+    P1_ConfirmContract --> P2_InitProfile
+    P2_FilterInterns --> P3_CreateProgram
+    P3_InternPortal --> Finish(["Hoàn tất tiếp nhận & sẵn sàng thực tập"]):::startEndClass
+
+    classDef startEndClass fill:#f472b6,stroke:#db2777,stroke-width:2px,color:#ffffff,font-weight:bold;
+    classDef processClass fill:#bae6fd,stroke:#0284c7,stroke-width:1.5px,color:#0f172a;
+    classDef decisionClass fill:#fef08a,stroke:#ca8a04,stroke-width:2px,color:#713f12,font-weight:bold;
+    classDef approveClass fill:#bbf7d0,stroke:#16a34a,stroke-width:1.5px,color:#14532d;
+    classDef rejectClass fill:#fecdd3,stroke:#e11d48,stroke-width:1.5px,color:#881337;
 ```
 
-#### 1.3.2. Sơ đồ theo vai trò (ai làm gì)
+#### 1.3.2. Sơ đồ tương tác theo vai trò (Sequence Diagram)
 
 ```mermaid
 sequenceDiagram
-    actor TTS as Thực tập sinh
-    actor HR as HR
-    actor Mentor as Mentor
-    participant Sys as Hệ thống
+    actor TTS as Sinh viên / TTS
+    actor HR as Nhân sự (HR)
+    participant Sys as Hệ thống (BE/Mail/DB)
+    actor Mentor as Mentor hướng dẫn
 
-    TTS->>Sys: Đăng ký / nộp hồ sơ
-    Sys-->>HR: Hồ sơ pending
-    HR->>Sys: Duyệt hoặc Từ chối
-    Sys-->>TTS: Email kết quả
-
-    alt Được duyệt
-        HR->>Sys: Upload hợp đồng
-        TTS->>Sys: Xác nhận hợp đồng
-        HR->>Sys: Tạo chương trình + gán Mentor
-        Sys-->>Mentor: Nhận TTS được phân công
-
-        loop Trong kỳ thực tập
-            TTS->>Sys: Chấm công / báo cáo / cập nhật task
-            Mentor->>Sys: Giao việc / phản hồi / đánh giá
-            HR->>Sys: Duyệt nghỉ phép / phụ cấp / hỗ trợ
-        end
-
-        Mentor->>Sys: Đánh giá cuối kỳ
-        HR->>Sys: Thống kê + xuất báo cáo
+    %% GIAI ĐOẠN 1
+    Note over TTS,Sys: Giai đoạn 1: Tiếp nhận & Xét duyệt
+    TTS->>Sys: 1. Đăng ký tài khoản & nộp CV trực tuyến
+    HR->>Sys: 2. Xem & kiểm tra hồ sơ ứng viên
+    alt HR duyệt: Từ chối
+        HR->>Sys: 3a. Quyết định Từ chối hồ sơ
+        Sys-->>TTS: Gửi email thông báo từ chối (Kết thúc quy trình)
+    else HR duyệt: Đồng ý
+        HR->>Sys: 3b. Quyết định Duyệt hồ sơ
+        Sys-->>TTS: Gửi email thông báo trúng tuyển
+        HR->>Sys: 4. Tải lên Hợp đồng thực tập
+        TTS->>Sys: 5. Xem & xác nhận hợp đồng trên hệ thống
     end
+
+    %% GIAI ĐOẠN 2
+    Note over TTS,HR: Giai đoạn 2: Quản lý hồ sơ thực tập sinh
+    Sys->>Sys: 6. Khởi tạo hồ sơ TTS chính thức (active, mã TTS00xx)
+    loop Hoàn thiện tài liệu hồ sơ
+        TTS->>Sys: 7. Upload CV & Đơn thực tập chính thức
+        HR->>Sys: 8. Xem & duyệt tài liệu hồ sơ
+        alt Tài liệu cần bổ sung
+            HR->>Sys: 9a. Yêu cầu TTS cập nhật/chỉnh sửa hồ sơ
+            Sys-->>TTS: Thông báo lý do & yêu cầu upload lại
+        else Tài liệu hợp lệ
+            HR->>Sys: 9b. Duyệt tài liệu hợp lệ
+        end
+    end
+    HR->>Sys: 10. Cập nhật thông tin cá nhân & lưu trữ hồ sơ đầy đủ
+    HR->>Sys: 11. Tìm kiếm / lọc TTS theo Trường/Ngành
+
+    %% GIAI ĐOẠN 3
+    Note over HR,Mentor: Giai đoạn 3: Quản lý chương trình thực tập
+    HR->>Sys: 12. Tạo chương trình thực tập theo phòng ban
+    HR->>Sys: 13. Thiết lập lịch thực tập: Ngày bắt đầu & Kết thúc
+    HR->>Sys: 14. Phân công TTS vào chương trình / nhóm
+    HR->>Sys: 15. Gắn Mentor hướng dẫn cho TTS
+    Sys-->>Mentor: Thông báo danh sách TTS phụ trách
+    TTS->>Sys: 16. Truy cập cổng thông tin xem Lịch thực tập cá nhân & Mentor
+    Note over TTS,Mentor: Hoàn tất tiếp nhận & sẵn sàng thực tập!
 ```
 
-#### 1.3.3. Sơ đồ trạng thái tài khoản TTS
+#### 1.3.3. Sơ đồ chuyển đổi trạng thái hồ sơ & tài khoản
 
 ```mermaid
 stateDiagram-v2
-    [*] --> pending: Đăng ký thành công
-    pending --> active: HR duyệt
-    pending --> inactive: HR từ chối / Admin khóa
-    active --> inactive: Admin khóa / kết thúc & vô hiệu hóa
-    inactive --> active: Admin mở lại (nếu cho phép)
-    active --> [*]: Hoàn thành chương trình (logic nghiệp vụ)
+    [*] --> Pending_Screening: Đăng ký & nộp CV ban đầu
+    Pending_Screening --> Rejected_End: HR Từ chối (gửi email từ chối)
+    Rejected_End --> [*]: Kết thúc quy trình
+
+    Pending_Screening --> Approved_WaitingContract: HR Duyệt (gửi email trúng tuyển)
+    Approved_WaitingContract --> Contract_Signed: HR upload HĐ & TTS xác nhận HĐ
+
+    Contract_Signed --> Official_Profile_Created: Khởi tạo hồ sơ TTS chính thức
+    Official_Profile_Created --> Docs_Pending_Review: TTS upload CV & Đơn chính thức
+
+    Docs_Pending_Review --> Docs_Need_Supplement: HR yêu cầu bổ sung/chỉnh sửa
+    Docs_Need_Supplement --> Docs_Pending_Review: TTS upload lại tài liệu
+
+    Docs_Pending_Review --> Docs_Valid_Stored: HR duyệt hợp lệ & lưu trữ hồ sơ
+    Docs_Valid_Stored --> Assigned_Program_Mentor: Phân công chương trình & gắn Mentor
+    Assigned_Program_Mentor --> Ready_For_Internship: Xem Lịch & Mentor (Sẵn sàng thực tập)
+    Ready_For_Internship --> [*]: Bước vào kỳ thực tập
 ```
 
-#### 1.3.4. Tóm tắt chữ (đối chiếu nhanh)
+#### 1.3.4. Tóm tắt đối chiếu nhanh 3 giai đoạn
 
 ```text
-TTS đăng ký (pending)
-    → HR duyệt (active) / từ chối (inactive)
-    → HR upload hợp đồng → TTS xác nhận
-    → HR tạo chương trình + gán mentor
-    → TTS chấm công / làm task / báo cáo
-    → Mentor phản hồi / đánh giá
-    → HR thống kê + xuất báo cáo
+GIAI ĐOẠN 1: TIẾP NHẬN & XÉT DUYỆT
+  TTS đăng ký & nộp CV trực tuyến
+    → HR kiểm tra hồ sơ
+    → HR duyệt?
+        ├─ Từ chối → Email thông báo từ chối → [KẾT THÚC]
+        └─ Đồng ý  → Email thông báo trúng tuyển → HR tải hợp đồng → TTS xác nhận hợp đồng
+
+GIAI ĐOẠN 2: QUẢN LÝ HỒ SƠ THỰC TẬP SINH
+  Hệ thống/HR khởi tạo hồ sơ TTS chính thức
+    → TTS upload CV & Đơn thực tập chính thức
+    → HR duyệt tài liệu?
+        ├─ Cần bổ sung → HR yêu cầu sửa → TTS upload lại
+        └─ Hợp lệ → HR cập nhật thông tin & lưu trữ đầy đủ → Tìm kiếm/lọc theo Trường/Ngành
+
+GIAI ĐOẠN 3: QUẢN LÝ CHƯƠNG TRÌNH THỰC TẬP
+  HR tạo chương trình thực tập theo phòng ban
+    → HR thiết lập ngày bắt đầu & kết thúc
+    → HR phân công TTS vào chương trình/nhóm
+    → HR gắn Mentor hướng dẫn cho TTS
+    → TTS xem Lịch thực tập cá nhân & Mentor trên cổng thông tin
+    → [HOÀN TẤT TIẾP NHẬN & SẴN SÀNG THỰC TẬP]
 ```
 
 ### 1.4. Kiến trúc đề xuất cho team
