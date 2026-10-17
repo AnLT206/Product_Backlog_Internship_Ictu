@@ -11,6 +11,7 @@ from app.models.role import Role
 from app.models.schedule import Schedule
 from app.models.system_log import SystemLog
 from app.models.attendance import Attendance
+from app.models.attendance_raw_log import AttendanceRawLog
 from app.models.allowance_history import AllowanceHistory
 from app.models.allowance import Allowance
 from app.models.meeting import Meeting, MeetingAttendee
@@ -35,6 +36,7 @@ __all__ = [
     "Allowance",
     "AllowanceHistory",
     "Attendance",
+    "AttendanceRawLog",
     "Department",
     "Document",
     "Evaluation",
