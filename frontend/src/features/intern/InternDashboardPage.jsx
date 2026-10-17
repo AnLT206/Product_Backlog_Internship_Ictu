@@ -6,6 +6,7 @@ import TaskProgressModal from './components/TaskProgressModal'
 import { useInternMetrics, notifyInternDataChanged, formatVND, getStoredTasks } from './utils/internMetrics'
 import { emitRealtimeEvent, SYNC_EVENTS } from '../../utils/realtimeSync'
 import apiFetch from '../../api/client'
+import InternMentorGroupSection from './components/InternMentorGroupSection'
 import './InternDashboardPage.css'
 
 function generateTagsFromTitle(title) {
@@ -954,6 +955,9 @@ export default function InternDashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* ── 2.5. KHỐI "MENTOR CỦA TÔI" VÀ "NHÓM THỰC TẬP" NỔI BẬT (Story 14) ── */}
+      <InternMentorGroupSection onShowToast={showToast} />
 
       {/* ── 3. BẢNG NHIỆM VỤ CÁ NHÂN (FULL WIDTH) ── */}
       <section className="intern-panel" style={{ marginTop: '20px' }}>
