@@ -18,6 +18,10 @@ const HR_NAV_ITEMS = [
     label: 'Kỳ thực tập tuyển dụng',
   },
   {
+    to: '/hr/intern-group-assignment',
+    label: 'Phân công thực tập sinh',
+  },
+  {
     to: '/hr/mentor-assignment',
     label: 'Điều phối & Gán Mentor',
   },

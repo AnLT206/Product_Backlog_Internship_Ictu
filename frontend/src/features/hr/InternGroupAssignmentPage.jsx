@@ -1,0 +1,794 @@
+import { useState, useMemo } from 'react';
+import {
+  Users,
+  UserCheck,
+  CheckSquare,
+  Square,
+  Search,
+  Building,
+  GraduationCap,
+  Sparkles,
+  Layers,
+  FolderKanban,
+  CheckCircle2,
+  AlertCircle,
+  RotateCcw,
+  UserMinus,
+  Filter,
+} from 'lucide-react';
+import {
+  MOCK_PROGRAMS,
+  MOCK_DEPARTMENTS,
+  MOCK_GROUPS,
+  MOCK_UNASSIGNED_INTERNS,
+  MOCK_ASSIGNED_GROUP_MEMBERS,
+} from './mockGroupAssignmentData';
+import './InternGroupAssignmentPage.css';
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   HELPER: Tạo ký tự viết tắt từ họ tên (Avatar Initials)
+   ───────────────────────────────────────────────────────────────────────────── */
+function getInitials(fullName) {
+  const trimmed = (fullName ?? '').trim();
+  if (!trimmed) return '?';
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+export default function InternGroupAssignmentPage() {
+  /* ───────────────────────────────────────────────────────────────────────────
+     DATA & FORM STATE (MOCK DATA DÀNH CHO TASK 1 - DỄ DÀNG THAY BẰNG API Ở TASK 2)
+     ─────────────────────────────────────────────────────────────────────────── */
+  const [programs] = useState(MOCK_PROGRAMS);
+  const [departments] = useState(MOCK_DEPARTMENTS);
+  const [groups] = useState(MOCK_GROUPS);
+
+  // Danh sách TTS chờ phân nhóm và danh sách đã phân nhóm
+  const [unassignedInterns, setUnassignedInterns] = useState(MOCK_UNASSIGNED_INTERNS);
+  const [assignedMembers, setAssignedMembers] = useState(MOCK_ASSIGNED_GROUP_MEMBERS);
+
+  // State Form chọn phân nhóm (Khu vực A)
+  const [selectedProgramId, setSelectedProgramId] = useState('');
+  const [selectedDeptId, setSelectedDeptId] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState('');
+
+  // State Checkbox chọn TTS (Khu vực B & C)
+  const [selectedInternIds, setSelectedInternIds] = useState(new Set());
+
+  // State bộ lọc và tìm kiếm
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterMajor, setFilterMajor] = useState('');
+  const [filterUni, setFilterUni] = useState('');
+
+  // Tab xem danh sách thành viên đã phân nhóm (Khu vực D)
+  const [viewAssignedGroupFilter, setViewAssignedGroupFilter] = useState('ALL');
+
+  // Toast thông báo phản hồi thao tác
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
+  /* ───────────────────────────────────────────────────────────────────────────
+     COMPUTED: Danh sách nhóm phù hợp với Chương trình / Phòng ban đã chọn
+     ─────────────────────────────────────────────────────────────────────────── */
+  const availableGroups = useMemo(() => {
+    return groups.filter((g) => {
+      const matchDept = !selectedDeptId || g.department_id === selectedDeptId;
+      const matchPrg = !selectedProgramId || g.program_id === selectedProgramId;
+      return matchDept && matchPrg;
+    });
+  }, [groups, selectedDeptId, selectedProgramId]);
+
+  // Thông tin chi tiết của nhóm đang được chọn trong Form
+  const currentSelectedGroup = useMemo(() => {
+    return groups.find((g) => g.id === selectedGroupId) || null;
+  }, [groups, selectedGroupId]);
+
+  const currentSelectedProgram = useMemo(() => {
+    return programs.find((p) => p.id === selectedProgramId) || null;
+  }, [programs, selectedProgramId]);
+
+  const currentSelectedDepartment = useMemo(() => {
+    return departments.find((d) => d.id === selectedDeptId) || null;
+  }, [departments, selectedDeptId]);
+
+  /* ───────────────────────────────────────────────────────────────────────────
+     COMPUTED: Lọc danh sách TTS chờ phân công
+     ─────────────────────────────────────────────────────────────────────────── */
+  const filteredUnassignedInterns = useMemo(() => {
+    return unassignedInterns.filter((intern) => {
+      const q = searchQuery.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        intern.full_name.toLowerCase().includes(q) ||
+        intern.code.toLowerCase().includes(q) ||
+        intern.email.toLowerCase().includes(q) ||
+        intern.university.toLowerCase().includes(q) ||
+        intern.major.toLowerCase().includes(q);
+
+      const matchMajor = !filterMajor || intern.major === filterMajor;
+      const matchUni = !filterUni || intern.university === filterUni;
+
+      return matchSearch && matchMajor && matchUni;
+    });
+  }, [unassignedInterns, searchQuery, filterMajor, filterUni]);
+
+  // Danh sách trường & chuyên ngành cho bộ lọc
+  const uniqueUniversities = useMemo(() => {
+    return Array.from(new Set(unassignedInterns.map((i) => i.university))).filter(Boolean);
+  }, [unassignedInterns]);
+
+  const uniqueMajors = useMemo(() => {
+    return Array.from(new Set(unassignedInterns.map((i) => i.major))).filter(Boolean);
+  }, [unassignedInterns]);
+
+  /* ───────────────────────────────────────────────────────────────────────────
+     CHECKBOX HANDLERS (KHU VỰC B & C)
+     ─────────────────────────────────────────────────────────────────────────── */
+  // Kiểm tra đã chọn tất cả hàng đang hiển thị hay chưa
+  const isAllSelected = useMemo(() => {
+    if (filteredUnassignedInterns.length === 0) return false;
+    return filteredUnassignedInterns.every((i) => selectedInternIds.has(i.id));
+  }, [filteredUnassignedInterns, selectedInternIds]);
+
+  // Bật/tắt chọn tất cả
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedInternIds((prev) => {
+        const next = new Set(prev);
+        filteredUnassignedInterns.forEach((i) => next.delete(i.id));
+        return next;
+      });
+    } else {
+      setSelectedInternIds((prev) => {
+        const next = new Set(prev);
+        filteredUnassignedInterns.forEach((i) => next.add(i.id));
+        return next;
+      });
+    }
+  };
+
+  // Bật/tắt chọn từng thực tập sinh
+  const handleToggleSelectOne = (internId) => {
+    setSelectedInternIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(internId)) {
+        next.delete(internId);
+      } else {
+        next.add(internId);
+      }
+      return next;
+    });
+  };
+
+  // Bỏ chọn tất cả
+  const handleDeselectAll = () => {
+    setSelectedInternIds(new Set());
+  };
+
+  /* ───────────────────────────────────────────────────────────────────────────
+     HÀNH ĐỘNG PHÂN CÔNG VÀO NHÓM (KHU VỰC A)
+     ─────────────────────────────────────────────────────────────────────────── */
+  const handleAssignToGroup = (e) => {
+    e.preventDefault();
+    if (!selectedProgramId || !selectedDeptId || !selectedGroupId) {
+      showToast('Vui lòng chọn đầy đủ Chương trình, Phòng ban và Nhóm dự án.', 'error');
+      return;
+    }
+
+    if (selectedInternIds.size === 0) {
+      showToast('Vui lòng tích chọn ít nhất 1 thực tập sinh trong bảng.', 'error');
+      return;
+    }
+
+    const targetGroup = currentSelectedGroup;
+    const targetProgram = currentSelectedProgram;
+    const targetDept = currentSelectedDepartment;
+
+    // Lấy các TTS được chọn từ danh sách unassigned
+    const internsToAssign = unassignedInterns.filter((i) => selectedInternIds.has(i.id));
+
+    // Tạo các bản ghi thành viên nhóm mới
+    const newMembers = internsToAssign.map((intern) => ({
+      id: intern.id,
+      code: intern.code,
+      full_name: intern.full_name,
+      email: intern.email,
+      university: intern.university,
+      major: intern.major,
+      group_id: targetGroup.id,
+      group_name: targetGroup.name,
+      department_id: targetDept.id,
+      department_name: targetDept.name,
+      program_id: targetProgram.id,
+      program_name: targetProgram.name,
+      role_in_group: `Thành viên / ${intern.major}`,
+      assigned_date: new Date().toLocaleDateString('vi-VN'),
+    }));
+
+    // Cập nhật state
+    setAssignedMembers((prev) => [...newMembers, ...prev]);
+    setUnassignedInterns((prev) => prev.filter((i) => !selectedInternIds.has(i.id)));
+    setSelectedInternIds(new Set());
+
+    showToast(
+      `Đã phân công thành công ${newMembers.length} thực tập sinh vào "${targetGroup.name}"!`,
+      'success'
+    );
+  };
+
+  /* ───────────────────────────────────────────────────────────────────────────
+     HÀNH ĐỘNG HỦY PHÂN NHÓM (KHU VỰC D)
+     ─────────────────────────────────────────────────────────────────────────── */
+  const handleUnassignMember = (member) => {
+    // Đưa thành viên trở lại bảng chờ phân công
+    const restoredIntern = {
+      id: member.id,
+      code: member.code,
+      full_name: member.full_name,
+      email: member.email,
+      phone: '0988 888 999',
+      university: member.university,
+      major: member.major,
+      gpa: 3.8,
+      current_program: member.program_name,
+      preferred_department: member.department_name,
+      status: 'Chờ phân nhóm',
+    };
+
+    setAssignedMembers((prev) => prev.filter((m) => m.id !== member.id));
+    setUnassignedInterns((prev) => [restoredIntern, ...prev]);
+
+    showToast(`Đã hủy phân nhóm cho thực tập sinh ${member.full_name}.`, 'success');
+  };
+
+  /* ───────────────────────────────────────────────────────────────────────────
+     COMPUTED: Lọc danh sách thành viên đã phân nhóm (Khu vực D)
+     ─────────────────────────────────────────────────────────────────────────── */
+  const filteredAssignedMembers = useMemo(() => {
+    if (viewAssignedGroupFilter === 'ALL') {
+      return assignedMembers;
+    }
+    return assignedMembers.filter((m) => m.group_id === viewAssignedGroupFilter);
+  }, [assignedMembers, viewAssignedGroupFilter]);
+
+  // Kiểm tra điều kiện enable nút "Phân công"
+  const isAssignButtonDisabled =
+    !selectedProgramId ||
+    !selectedDeptId ||
+    !selectedGroupId ||
+    selectedInternIds.size === 0;
+
+  return (
+    <div className="intern-group-assign-page">
+      {/* Toast Alert */}
+      {toast && (
+        <div
+          className={`assign-toast assign-toast--${toast.type}`}
+          role="status"
+          aria-live="polite"
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle2 size={18} className="toast-icon" />
+          ) : (
+            <AlertCircle size={18} className="toast-icon" />
+          )}
+          <span>{toast.message}</span>
+        </div>
+      )}
+
+      {/* ── HEADER TRANG ── */}
+      <header className="page-header-container">
+        <div className="page-header-info">
+          <div className="page-tag-badge">
+            <Sparkles size={14} />
+            <span>Phân hệ Quản trị & Điều phối Nhân sự</span>
+          </div>
+          <h1 className="page-title">Phân công thực tập sinh</h1>
+          <p className="page-subtitle">
+            Phân công thực tập sinh vào chương trình và nhóm theo phòng ban.
+          </p>
+        </div>
+
+        {/* Thống kê nhanh */}
+        <div className="quick-stats-bar">
+          <div className="quick-stat-item">
+            <span className="stat-label">Chờ phân nhóm</span>
+            <span className="stat-value text-amber">{unassignedInterns.length}</span>
+          </div>
+          <div className="quick-stat-divider" />
+          <div className="quick-stat-item">
+            <span className="stat-label">Đã phân nhóm</span>
+            <span className="stat-value text-blue">{assignedMembers.length}</span>
+          </div>
+          <div className="quick-stat-divider" />
+          <div className="quick-stat-item">
+            <span className="stat-label">Số nhóm dự án</span>
+            <span className="stat-value text-emerald">{groups.length}</span>
+          </div>
+        </div>
+      </header>
+
+      {/* ── KHU VỰC A: FORM / PANEL CHỌN PHÂN NHÓM ── */}
+      <section className="assign-form-panel" aria-labelledby="form-panel-heading">
+        <div className="panel-header">
+          <div className="panel-header-icon">
+            <FolderKanban size={20} />
+          </div>
+          <div>
+            <h2 id="form-panel-heading" className="panel-title">
+              1. Chọn Chương trình, Phòng ban và Nhóm tiếp nhận
+            </h2>
+            <p className="panel-desc">
+              Lựa chọn đúng đích phân công trước khi thực hiện gắn các thực tập sinh đã chọn ở bảng bên dưới.
+            </p>
+          </div>
+        </div>
+
+        <form className="assign-form-grid" onSubmit={handleAssignToGroup}>
+          {/* Trường 1: Chương trình thực tập */}
+          <div className="form-group">
+            <label htmlFor="program-select" className="form-label">
+              <Layers size={15} />
+              <span>Chương trình thực tập <strong className="required-mark">*</strong></span>
+            </label>
+            <div className="select-container">
+              <select
+                id="program-select"
+                aria-label="Chọn Chương trình thực tập"
+                className="form-select"
+                value={selectedProgramId}
+                onChange={(e) => {
+                  setSelectedProgramId(e.target.value);
+                  setSelectedGroupId(''); // Reset nhóm khi đổi chương trình
+                }}
+              >
+                <option value="">-- Chọn Chương trình thực tập --</option>
+                {programs.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Trường 2: Phòng ban */}
+          <div className="form-group">
+            <label htmlFor="department-select" className="form-label">
+              <Building size={15} />
+              <span>Phòng ban <strong className="required-mark">*</strong></span>
+            </label>
+            <div className="select-container">
+              <select
+                id="department-select"
+                aria-label="Chọn Phòng ban tiếp nhận"
+                className="form-select"
+                value={selectedDeptId}
+                onChange={(e) => {
+                  setSelectedDeptId(e.target.value);
+                  setSelectedGroupId(''); // Reset nhóm khi đổi phòng ban
+                }}
+              >
+                <option value="">-- Chọn Phòng ban tiếp nhận --</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Trường 3: Nhóm (Group) */}
+          <div className="form-group">
+            <label htmlFor="group-select" className="form-label">
+              <Users size={15} />
+              <span>Nhóm dự án <strong className="required-mark">*</strong></span>
+            </label>
+            <div className="select-container">
+              <select
+                id="group-select"
+                aria-label="Chọn Nhóm tiếp nhận"
+                className="form-select"
+                value={selectedGroupId}
+                onChange={(e) => setSelectedGroupId(e.target.value)}
+                disabled={!selectedDeptId && !selectedProgramId}
+              >
+                <option value="">
+                  {!selectedDeptId && !selectedProgramId
+                    ? '-- Vui lòng chọn Chương trình hoặc Phòng ban trước --'
+                    : availableGroups.length === 0
+                    ? '-- Không có nhóm nào thuộc tiêu chí trên --'
+                    : '-- Chọn Nhóm tiếp nhận --'}
+                </option>
+                {availableGroups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name} (Đã có: {g.current_slots}/{g.max_slots})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Nút Phân công */}
+          <div className="form-action-group">
+            <button
+              type="submit"
+              className="btn-assign-action"
+              disabled={isAssignButtonDisabled}
+              title={
+                isAssignButtonDisabled
+                  ? 'Vui lòng chọn đầy đủ Chương trình, Phòng ban, Nhóm và tích chọn ít nhất 1 TTS'
+                  : 'Tiến hành phân công thực tập sinh vào nhóm'
+              }
+            >
+              <UserCheck size={16} />
+              <span>
+                {selectedInternIds.size > 0
+                  ? `Phân công (${selectedInternIds.size} TTS)`
+                  : 'Phân công'}
+              </span>
+            </button>
+          </div>
+        </form>
+
+        {/* Khung tóm tắt thông tin Nhóm đang chọn */}
+        {currentSelectedGroup && (
+          <div className="group-info-card">
+            <div className="group-info-item">
+              <span className="info-title">Nhóm đang chọn:</span>
+              <strong className="info-value">{currentSelectedGroup.name}</strong>
+            </div>
+            <div className="group-info-item">
+              <span className="info-title">Người phụ trách:</span>
+              <span className="info-value">{currentSelectedGroup.lead_name}</span>
+            </div>
+            <div className="group-info-item">
+              <span className="info-title">Sức chứa tối đa:</span>
+              <span className="info-badge">
+                {currentSelectedGroup.current_slots} / {currentSelectedGroup.max_slots} thành viên
+              </span>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── KHU VỰC B & C: BẢNG DANH SÁCH THỰC TẬP SINH & BỘ ĐẾM SỐ LƯỢNG ĐÃ CHỌN ── */}
+      <section className="interns-table-section" aria-labelledby="table-section-heading">
+        <div className="section-header-row">
+          <div>
+            <h2 id="table-section-heading" className="section-title">
+              2. Danh sách thực tập sinh chờ phân công ({unassignedInterns.length})
+            </h2>
+            <p className="section-desc">
+              Tích chọn checkbox để chọn thực tập sinh muốn phân công vào nhóm theo phòng ban.
+            </p>
+          </div>
+
+          {/* KHU VỰC C: THÔNG TIN SỐ LƯỢNG ĐÃ CHỌN */}
+          <div className="selection-counter-card">
+            <div className="counter-pill">
+              <CheckSquare size={16} />
+              <span>
+                Đã chọn: <strong className="counter-number">{selectedInternIds.size}</strong> thực tập sinh
+              </span>
+            </div>
+            {selectedInternIds.size > 0 && (
+              <button
+                type="button"
+                className="btn-deselect"
+                onClick={handleDeselectAll}
+                title="Bỏ chọn toàn bộ"
+              >
+                <RotateCcw size={13} />
+                <span>Bỏ chọn</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Thanh công cụ tìm kiếm và bộ lọc */}
+        <div className="table-filter-bar">
+          <div className="search-box">
+            <Search size={16} className="search-icon" />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Tìm kiếm theo họ tên, mã TTS, email, trường hoặc chuyên ngành..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="btn-clear-search"
+                onClick={() => setSearchQuery('')}
+                title="Xóa tìm kiếm"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          <div className="filters-cluster">
+            {/* Bộ lọc chuyên ngành */}
+            <div className="filter-select-wrap">
+              <Filter size={14} className="filter-icon" />
+              <select
+                className="filter-select"
+                value={filterMajor}
+                onChange={(e) => setFilterMajor(e.target.value)}
+                aria-label="Lọc theo chuyên ngành"
+              >
+                <option value="">Tất cả chuyên ngành</option>
+                {uniqueMajors.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Bộ lọc trường đại học */}
+            <div className="filter-select-wrap">
+              <GraduationCap size={14} className="filter-icon" />
+              <select
+                className="filter-select"
+                value={filterUni}
+                onChange={(e) => setFilterUni(e.target.value)}
+                aria-label="Lọc theo trường đại học"
+              >
+                <option value="">Tất cả trường</option>
+                {uniqueUniversities.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Bảng danh sách TTS có checkbox */}
+        <div className="table-responsive-wrapper">
+          <table className="interns-selection-table">
+            <thead>
+              <tr>
+                <th style={{ width: '46px', textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn-header-checkbox"
+                    onClick={handleToggleSelectAll}
+                    title={isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                    disabled={filteredUnassignedInterns.length === 0}
+                    aria-label={isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                  >
+                    {isAllSelected ? (
+                      <CheckSquare size={18} className="checkbox-icon checked" />
+                    ) : (
+                      <Square size={18} className="checkbox-icon" />
+                    )}
+                  </button>
+                </th>
+                <th style={{ width: '100px', textAlign: 'center' }}>Mã TTS</th>
+                <th style={{ width: '220px' }}>Họ và tên</th>
+                <th style={{ width: '240px' }}>Email & Điện thoại</th>
+                <th style={{ width: '250px' }}>Trường & Chuyên ngành</th>
+                <th style={{ width: '220px' }}>Chương trình hiện tại</th>
+                <th style={{ width: '200px' }}>Phòng ban nguyện vọng</th>
+                <th style={{ width: '130px', textAlign: 'center' }}>Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUnassignedInterns.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="table-empty-cell">
+                    <div className="empty-state-content">
+                      <Users size={32} className="empty-icon" />
+                      <p className="empty-text">Không tìm thấy thực tập sinh nào phù hợp với bộ lọc</p>
+                      <button
+                        type="button"
+                        className="btn-reset-filters"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setFilterMajor('');
+                          setFilterUni('');
+                        }}
+                      >
+                        Đặt lại bộ lọc
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredUnassignedInterns.map((intern) => {
+                  const isSelected = selectedInternIds.has(intern.id);
+                  return (
+                    <tr
+                      key={intern.id}
+                      className={isSelected ? 'is-row-selected' : ''}
+                      onClick={() => handleToggleSelectOne(intern.id)}
+                    >
+                      <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          className="btn-row-checkbox"
+                          onClick={() => handleToggleSelectOne(intern.id)}
+                          aria-label={`Chọn ${intern.full_name}`}
+                        >
+                          {isSelected ? (
+                            <CheckSquare size={18} className="checkbox-icon checked" />
+                          ) : (
+                            <Square size={18} className="checkbox-icon" />
+                          )}
+                        </button>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="intern-code-badge">{intern.code}</span>
+                      </td>
+                      <td>
+                        <div className="intern-name-cell">
+                          <div className="intern-avatar-circle">
+                            {getInitials(intern.full_name)}
+                          </div>
+                          <div>
+                            <div className="intern-name-text">{intern.full_name}</div>
+                            <span className="intern-gpa-badge">GPA: {intern.gpa}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="intern-contact-cell">
+                          <span className="intern-email-text">{intern.email}</span>
+                          <span className="intern-phone-text">{intern.phone}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="intern-edu-cell">
+                          <span className="intern-major-text">{intern.major}</span>
+                          <span className="intern-uni-text">{intern.university}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="program-tag">{intern.current_program}</span>
+                      </td>
+                      <td>
+                        <span className="department-tag">{intern.preferred_department}</span>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="status-badge status-pending">{intern.status}</span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* ── KHU VỰC D: KHU VỰC THÀNH VIÊN ĐÃ PHÂN NHÓM ── */}
+      <section className="assigned-members-section" aria-labelledby="assigned-heading">
+        <div className="section-header-row">
+          <div>
+            <h2 id="assigned-heading" className="section-title">
+              3. Danh sách thành viên trong nhóm ({filteredAssignedMembers.length})
+            </h2>
+            <p className="section-desc">
+              Theo dõi danh sách thực tập sinh đã được phân bổ thành công vào từng nhóm dự án và phòng ban.
+            </p>
+          </div>
+
+          {/* Lọc theo nhóm */}
+          <div className="filter-group-dropdown-wrap">
+            <label htmlFor="assigned-group-filter" className="group-filter-label">
+              Xem theo nhóm:
+            </label>
+            <select
+              id="assigned-group-filter"
+              className="group-filter-select"
+              value={viewAssignedGroupFilter}
+              onChange={(e) => setViewAssignedGroupFilter(e.target.value)}
+            >
+              <option value="ALL">-- Tất cả các nhóm ({assignedMembers.length} TTS) --</option>
+              {groups.map((g) => {
+                const count = assignedMembers.filter((m) => m.group_id === g.id).length;
+                return (
+                  <option key={g.id} value={g.id}>
+                    {g.name} ({count} thành viên)
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        </div>
+
+        {/* Bảng thành viên đã phân nhóm */}
+        <div className="table-responsive-wrapper">
+          <table className="assigned-members-table">
+            <thead>
+              <tr>
+                <th style={{ width: '50px', textAlign: 'center' }}>STT</th>
+                <th style={{ width: '100px', textAlign: 'center' }}>Mã TTS</th>
+                <th style={{ width: '220px' }}>Họ và tên</th>
+                <th style={{ width: '220px' }}>Email liên hệ</th>
+                <th style={{ width: '240px' }}>Nhóm dự án</th>
+                <th style={{ width: '220px' }}>Phòng ban trực thuộc</th>
+                <th style={{ width: '200px' }}>Vai trò trong nhóm</th>
+                <th style={{ width: '120px', textAlign: 'center' }}>Ngày gán</th>
+                <th style={{ width: '100px', textAlign: 'center' }}>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAssignedMembers.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="table-empty-cell">
+                    <div className="empty-state-content">
+                      <Users size={32} className="empty-icon" />
+                      <p className="empty-text">Chưa có thành viên nào trong nhóm này</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredAssignedMembers.map((member, index) => (
+                  <tr key={member.id}>
+                    <td style={{ textAlign: 'center', color: '#64748b' }}>{index + 1}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span className="intern-code-badge">{member.code}</span>
+                    </td>
+                    <td>
+                      <div className="intern-name-cell">
+                        <div className="intern-avatar-circle avatar-assigned">
+                          {getInitials(member.full_name)}
+                        </div>
+                        <div>
+                          <div className="intern-name-text">{member.full_name}</div>
+                          <span className="intern-uni-text">{member.major}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="intern-email-text">{member.email}</span>
+                    </td>
+                    <td>
+                      <span className="assigned-group-pill">{member.group_name}</span>
+                    </td>
+                    <td>
+                      <span className="assigned-dept-text">{member.department_name}</span>
+                    </td>
+                    <td>
+                      <span className="role-tag">{member.role_in_group}</span>
+                    </td>
+                    <td style={{ textAlign: 'center', fontSize: '13px', color: '#64748b' }}>
+                      {member.assigned_date}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        type="button"
+                        className="btn-remove-member"
+                        onClick={() => handleUnassignMember(member)}
+                        title="Hủy phân nhóm và đưa lại danh sách chờ"
+                      >
+                        <UserMinus size={14} />
+                        <span>Gỡ</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
