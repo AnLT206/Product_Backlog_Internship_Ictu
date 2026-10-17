@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Users,
   UserCheck,
@@ -16,13 +16,20 @@ import {
   UserMinus,
   Filter,
 } from 'lucide-react';
+import { getPrograms, assignInternsToProgram } from '../../api/programs';
 import {
-  MOCK_PROGRAMS,
-  MOCK_DEPARTMENTS,
-  MOCK_GROUPS,
-  MOCK_UNASSIGNED_INTERNS,
-  MOCK_ASSIGNED_GROUP_MEMBERS,
-} from './mockGroupAssignmentData';
+  getDepartments,
+  getMentors,
+  assignMentor,
+  unassignInternFromMentor,
+} from '../../api/mentors';
+import { getInterns } from '../../api/interns';
+import {
+  syncMentorAssignment,
+  syncUnassignMentor,
+  getRealtimeSyncState,
+  subscribeRealtimeEvents,
+} from '../../utils/realtimeSync';
 import './InternGroupAssignmentPage.css';
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -40,15 +47,21 @@ function getInitials(fullName) {
 
 export default function InternGroupAssignmentPage() {
   /* ───────────────────────────────────────────────────────────────────────────
-     DATA & FORM STATE (MOCK DATA DÀNH CHO TASK 1 - DỄ DÀNG THAY BẰNG API Ở TASK 2)
+     DATA & API STATE
      ─────────────────────────────────────────────────────────────────────────── */
-  const [programs] = useState(MOCK_PROGRAMS);
-  const [departments] = useState(MOCK_DEPARTMENTS);
-  const [groups] = useState(MOCK_GROUPS);
+  const [programs, setPrograms] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [mentors, setMentors] = useState([]);
+  const [groups, setGroups] = useState([]);
 
   // Danh sách TTS chờ phân nhóm và danh sách đã phân nhóm
-  const [unassignedInterns, setUnassignedInterns] = useState(MOCK_UNASSIGNED_INTERNS);
-  const [assignedMembers, setAssignedMembers] = useState(MOCK_ASSIGNED_GROUP_MEMBERS);
+  const [unassignedInterns, setUnassignedInterns] = useState([]);
+  const [assignedMembers, setAssignedMembers] = useState([]);
+
+  // Loading & Error states
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
 
   // State Form chọn phân nhóm (Khu vực A)
   const [selectedProgramId, setSelectedProgramId] = useState('');
@@ -69,36 +82,178 @@ export default function InternGroupAssignmentPage() {
   // Toast thông báo phản hồi thao tác
   const [toast, setToast] = useState(null);
 
-  const showToast = (message, type = 'success') => {
+  const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => {
       setToast(null);
     }, 4000);
-  };
+  }, []);
 
   /* ───────────────────────────────────────────────────────────────────────────
-     COMPUTED: Danh sách nhóm phù hợp với Chương trình / Phòng ban đã chọn
+     TẢI DỮ LIỆU TỪ BACKEND API
      ─────────────────────────────────────────────────────────────────────────── */
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const [programsRes, deptsRes, mentorsRes, internsRes] = await Promise.all([
+        getPrograms(),
+        getDepartments(),
+        getMentors(),
+        getInterns({ page_size: 100 }),
+      ]);
+
+      // 1. Xử lý danh sách Kỳ thực tập
+      let loadedPrograms = [];
+      if (programsRes.ok && Array.isArray(programsRes.data)) {
+        loadedPrograms = programsRes.data.filter((p) => !p.is_deleted);
+      }
+      setPrograms(loadedPrograms);
+
+      // 2. Xử lý danh sách Phòng ban
+      let loadedDepts = [];
+      if (deptsRes.ok && Array.isArray(deptsRes.data)) {
+        loadedDepts = deptsRes.data;
+      }
+      setDepartments(loadedDepts);
+
+      // 3. Xử lý danh sách Mentors và cấu trúc Nhóm
+      let loadedMentors = [];
+      if (mentorsRes.ok && Array.isArray(mentorsRes.data)) {
+        loadedMentors = mentorsRes.data;
+      }
+      setMentors(loadedMentors);
+
+      // Tạo danh sách nhóm dựa trên Mentors và phòng ban
+      const mappedGroups = loadedMentors.map((m) => {
+        const foundDept = loadedDepts.find((d) => d.id === m.department_id);
+        const deptName = m.department || (foundDept ? foundDept.name : 'Toàn cơ quan');
+        const groupTitle = m.position
+          ? `Nhóm ${m.position} (${m.full_name})`
+          : `Nhóm ${m.full_name}`;
+
+        return {
+          id: String(m.id),
+          mentor_id: m.id,
+          name: groupTitle,
+          lead_name: m.full_name,
+          email: m.email,
+          department_id: m.department_id ? String(m.department_id) : '',
+          department_name: deptName,
+          current_slots: m.intern_count || 0,
+          max_slots: 5,
+        };
+      });
+      setGroups(mappedGroups);
+
+      // 4. Xử lý danh sách Thực tập sinh (chờ phân công vs đã phân công)
+      let rawInterns = [];
+      if (internsRes.ok) {
+        rawInterns = Array.isArray(internsRes.data)
+          ? internsRes.data
+          : (internsRes.data?.items || []);
+      }
+
+      // Đọc trạng thái đồng bộ realtime nếu có
+      const syncState = getRealtimeSyncState();
+      const realtimeAssignments = syncState.mentorAssignments || [];
+      const realtimeAssignmentMap = new Map();
+      realtimeAssignments.forEach((a) => {
+        realtimeAssignmentMap.set(Number(a.intern_id), a);
+      });
+
+      const unassigned = [];
+      const assigned = [];
+
+      rawInterns.forEach((intern) => {
+        const syncAssign = realtimeAssignmentMap.get(Number(intern.id));
+        const mentorId = syncAssign ? syncAssign.mentor_id : intern.mentor_id;
+        const mentorName = syncAssign ? syncAssign.mentor : intern.mentor_name;
+
+        const assignedMentorObj = loadedMentors.find((m) => m.id === mentorId);
+        const assignedGroupObj = mappedGroups.find((g) => g.mentor_id === mentorId);
+
+        const internData = {
+          id: intern.id,
+          code: intern.code || `TTS${String(intern.id).padStart(4, '0')}`,
+          full_name: intern.full_name || 'Thực tập sinh',
+          email: intern.email,
+          phone: intern.phone_number || '0988 888 999',
+          university: intern.university || 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+          major: intern.major || 'Công nghệ thông tin',
+          gpa: intern.gpa ? Number(intern.gpa) : 3.5,
+          current_program: syncAssign?.project || 'Kỳ thực tập chuẩn',
+          preferred_department: assignedMentorObj?.department || 'Chưa xếp phòng ban',
+          status: mentorId ? 'Đã phân nhóm' : (intern.status === 'active' ? 'Chờ phân nhóm' : intern.status),
+          mentor_id: mentorId,
+          mentor_name: mentorName || assignedMentorObj?.full_name,
+        };
+
+        if (mentorId) {
+          assigned.push({
+            ...internData,
+            group_id: assignedGroupObj ? assignedGroupObj.id : String(mentorId),
+            group_name: assignedGroupObj ? assignedGroupObj.name : `Nhóm ${mentorName || 'Mentor'}`,
+            department_name: assignedMentorObj?.department || 'Trung tâm Phát triển Phần mềm',
+            program_name: syncAssign?.project || 'Kỳ thực tập doanh nghiệp',
+            role_in_group: `Thành viên / ${intern.major || 'Thực tập sinh'}`,
+            assigned_date: syncAssign?.assigned_at
+              ? new Date(syncAssign.assigned_at).toLocaleDateString('vi-VN')
+              : new Date().toLocaleDateString('vi-VN'),
+          });
+        } else {
+          unassigned.push(internData);
+        }
+      });
+
+      setUnassignedInterns(unassigned);
+      setAssignedMembers(assigned);
+    } catch (err) {
+      console.error('Lỗi khi tải dữ liệu phân công từ API:', err);
+      setFetchError('Không thể tải dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Gọi API ban đầu và lắng nghe sự kiện đồng bộ thời gian thực
+  useEffect(() => {
+    loadData();
+    const unsub = subscribeRealtimeEvents(() => {
+      loadData();
+    });
+    return () => {
+      unsub();
+    };
+  }, [loadData]);
+
+  /* ───────────────────────────────────────────────────────────────────────────
+     COMPUTED: Danh sách nhóm phù hợp với Phòng ban / Chương trình
+     ─────────────────────────────────────────────────────────────────────────── */
+  const currentSelectedDepartment = useMemo(() => {
+    return departments.find((d) => String(d.id) === String(selectedDeptId)) || null;
+  }, [departments, selectedDeptId]);
+
+  const currentSelectedProgram = useMemo(() => {
+    return programs.find((p) => String(p.id) === String(selectedProgramId)) || null;
+  }, [programs, selectedProgramId]);
+
   const availableGroups = useMemo(() => {
     return groups.filter((g) => {
-      const matchDept = !selectedDeptId || g.department_id === selectedDeptId;
-      const matchPrg = !selectedProgramId || g.program_id === selectedProgramId;
-      return matchDept && matchPrg;
+      if (!selectedDeptId) return true;
+      const matchId = String(g.department_id) === String(selectedDeptId);
+      const matchName =
+        currentSelectedDepartment &&
+        g.department_name &&
+        g.department_name.toLowerCase().includes(currentSelectedDepartment.name.toLowerCase());
+      return matchId || matchName;
     });
-  }, [groups, selectedDeptId, selectedProgramId]);
+  }, [groups, selectedDeptId, currentSelectedDepartment]);
 
   // Thông tin chi tiết của nhóm đang được chọn trong Form
   const currentSelectedGroup = useMemo(() => {
-    return groups.find((g) => g.id === selectedGroupId) || null;
+    return groups.find((g) => String(g.id) === String(selectedGroupId)) || null;
   }, [groups, selectedGroupId]);
-
-  const currentSelectedProgram = useMemo(() => {
-    return programs.find((p) => p.id === selectedProgramId) || null;
-  }, [programs, selectedProgramId]);
-
-  const currentSelectedDepartment = useMemo(() => {
-    return departments.find((d) => d.id === selectedDeptId) || null;
-  }, [departments, selectedDeptId]);
 
   /* ───────────────────────────────────────────────────────────────────────────
      COMPUTED: Lọc danh sách TTS chờ phân công
@@ -133,13 +288,11 @@ export default function InternGroupAssignmentPage() {
   /* ───────────────────────────────────────────────────────────────────────────
      CHECKBOX HANDLERS (KHU VỰC B & C)
      ─────────────────────────────────────────────────────────────────────────── */
-  // Kiểm tra đã chọn tất cả hàng đang hiển thị hay chưa
   const isAllSelected = useMemo(() => {
     if (filteredUnassignedInterns.length === 0) return false;
     return filteredUnassignedInterns.every((i) => selectedInternIds.has(i.id));
   }, [filteredUnassignedInterns, selectedInternIds]);
 
-  // Bật/tắt chọn tất cả
   const handleToggleSelectAll = () => {
     if (isAllSelected) {
       setSelectedInternIds((prev) => {
@@ -156,7 +309,6 @@ export default function InternGroupAssignmentPage() {
     }
   };
 
-  // Bật/tắt chọn từng thực tập sinh
   const handleToggleSelectOne = (internId) => {
     setSelectedInternIds((prev) => {
       const next = new Set(prev);
@@ -169,18 +321,17 @@ export default function InternGroupAssignmentPage() {
     });
   };
 
-  // Bỏ chọn tất cả
   const handleDeselectAll = () => {
     setSelectedInternIds(new Set());
   };
 
   /* ───────────────────────────────────────────────────────────────────────────
-     HÀNH ĐỘNG PHÂN CÔNG VÀO NHÓM (KHU VỰC A)
+     HÀNH ĐỘNG GỌI API PHÂN CÔNG VÀO NHÓM (KHU VỰC A)
      ─────────────────────────────────────────────────────────────────────────── */
-  const handleAssignToGroup = (e) => {
+  const handleAssignToGroup = async (e) => {
     e.preventDefault();
     if (!selectedProgramId || !selectedDeptId || !selectedGroupId) {
-      showToast('Vui lòng chọn đầy đủ Chương trình, Phòng ban và Nhóm dự án.', 'error');
+      showToast('Vui lòng chọn đầy đủ Chương trình, Phòng ban và Nhóm tiếp nhận.', 'error');
       return;
     }
 
@@ -190,64 +341,87 @@ export default function InternGroupAssignmentPage() {
     }
 
     const targetGroup = currentSelectedGroup;
-    const targetProgram = currentSelectedProgram;
-    const targetDept = currentSelectedDepartment;
+    const internIdsArray = Array.from(selectedInternIds).map((id) => Number(id));
+    const targetMentorId = targetGroup ? Number(targetGroup.mentor_id) : null;
+    const targetProgramId = Number(selectedProgramId);
 
-    // Lấy các TTS được chọn từ danh sách unassigned
-    const internsToAssign = unassignedInterns.filter((i) => selectedInternIds.has(i.id));
+    setSubmitting(true);
+    try {
+      // 1. Gọi API Backend phân công TTS vào Kỳ thực tập và Mentor phụ trách nhóm
+      let assignResult = null;
+      if (targetProgramId && !isNaN(targetProgramId)) {
+        assignResult = await assignInternsToProgram(targetProgramId, {
+          intern_ids: internIdsArray,
+          mentor_id: targetMentorId,
+        });
+      }
 
-    // Tạo các bản ghi thành viên nhóm mới
-    const newMembers = internsToAssign.map((intern) => ({
-      id: intern.id,
-      code: intern.code,
-      full_name: intern.full_name,
-      email: intern.email,
-      university: intern.university,
-      major: intern.major,
-      group_id: targetGroup.id,
-      group_name: targetGroup.name,
-      department_id: targetDept.id,
-      department_name: targetDept.name,
-      program_id: targetProgram.id,
-      program_name: targetProgram.name,
-      role_in_group: `Thành viên / ${intern.major}`,
-      assigned_date: new Date().toLocaleDateString('vi-VN'),
-    }));
+      // 2. Đồng bộ quan hệ Mentor nếu cần
+      if (targetMentorId) {
+        await assignMentor({
+          mentor_id: targetMentorId,
+          intern_ids: internIdsArray,
+          program_id: targetProgramId || undefined,
+        });
+      }
 
-    // Cập nhật state
-    setAssignedMembers((prev) => [...newMembers, ...prev]);
-    setUnassignedInterns((prev) => prev.filter((i) => !selectedInternIds.has(i.id)));
-    setSelectedInternIds(new Set());
+      // 3. Phát sự kiện đồng bộ thời gian thực cross-tab
+      if (targetMentorId && targetGroup) {
+        syncMentorAssignment(
+          targetMentorId,
+          targetGroup.lead_name,
+          internIdsArray,
+          currentSelectedProgram?.name || targetGroup.name
+        );
+      }
 
-    showToast(
-      `Đã phân công thành công ${newMembers.length} thực tập sinh vào "${targetGroup.name}"!`,
-      'success'
-    );
+      // 4. Thông báo thành công và làm mới dữ liệu
+      setSelectedInternIds(new Set());
+      const successMessage =
+        assignResult?.data?.message ||
+        `Đã phân công thành công ${internIdsArray.length} thực tập sinh vào "${targetGroup.name}"!`;
+      showToast(successMessage, 'success');
+
+      // Tải lại dữ liệu mới nhất từ API để hiển thị ngay lập tức
+      await loadData();
+    } catch (err) {
+      console.error('Lỗi khi gọi API phân công:', err);
+      const errMsg =
+        err?.response?.data?.detail ||
+        err?.message ||
+        'Không thể phân công thực tập sinh. Vui lòng kiểm tra lại.';
+      showToast(errMsg, 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   /* ───────────────────────────────────────────────────────────────────────────
-     HÀNH ĐỘNG HỦY PHÂN NHÓM (KHU VỰC D)
+     HÀNH ĐỘNG GỌI API HỦY PHÂN NHÓM (KHU VỰC D)
      ─────────────────────────────────────────────────────────────────────────── */
-  const handleUnassignMember = (member) => {
-    // Đưa thành viên trở lại bảng chờ phân công
-    const restoredIntern = {
-      id: member.id,
-      code: member.code,
-      full_name: member.full_name,
-      email: member.email,
-      phone: '0988 888 999',
-      university: member.university,
-      major: member.major,
-      gpa: 3.8,
-      current_program: member.program_name,
-      preferred_department: member.department_name,
-      status: 'Chờ phân nhóm',
-    };
+  const handleUnassignMember = async (member) => {
+    const mentorId = member.mentor_id || member.group_id;
+    if (!mentorId) {
+      showToast('Không xác định được Mentor phụ trách nhóm.', 'error');
+      return;
+    }
 
-    setAssignedMembers((prev) => prev.filter((m) => m.id !== member.id));
-    setUnassignedInterns((prev) => [restoredIntern, ...prev]);
-
-    showToast(`Đã hủy phân nhóm cho thực tập sinh ${member.full_name}.`, 'success');
+    try {
+      const res = await unassignInternFromMentor(mentorId, member.id, member.program_id);
+      if (res.ok) {
+        syncUnassignMentor(member.id);
+        showToast(
+          res.data?.message || `Đã hủy phân nhóm cho thực tập sinh ${member.full_name}.`,
+          'success'
+        );
+        await loadData();
+      } else {
+        showToast(res.data?.detail || 'Không thể hủy phân nhóm.', 'error');
+      }
+    } catch (err) {
+      console.error('Lỗi khi hủy phân nhóm:', err);
+      showToast('Đã xảy ra lỗi khi hủy phân nhóm.', 'error');
+    }
   };
 
   /* ───────────────────────────────────────────────────────────────────────────
@@ -257,11 +431,11 @@ export default function InternGroupAssignmentPage() {
     if (viewAssignedGroupFilter === 'ALL') {
       return assignedMembers;
     }
-    return assignedMembers.filter((m) => m.group_id === viewAssignedGroupFilter);
+    return assignedMembers.filter((m) => String(m.group_id) === String(viewAssignedGroupFilter));
   }, [assignedMembers, viewAssignedGroupFilter]);
 
-  // Kiểm tra điều kiện enable nút "Phân công"
   const isAssignButtonDisabled =
+    submitting ||
     !selectedProgramId ||
     !selectedDeptId ||
     !selectedGroupId ||
@@ -317,6 +491,19 @@ export default function InternGroupAssignmentPage() {
         </div>
       </header>
 
+      {/* Thông báo lỗi tải dữ liệu nếu có */}
+      {fetchError && (
+        <div className="error-banner-container" role="alert">
+          <div className="error-banner-content">
+            <AlertCircle size={16} />
+            <span>{fetchError}</span>
+          </div>
+          <button type="button" className="error-retry-btn" onClick={loadData}>
+            Tải lại
+          </button>
+        </div>
+      )}
+
       {/* ── KHU VỰC A: FORM / PANEL CHỌN PHÂN NHÓM ── */}
       <section className="assign-form-panel" aria-labelledby="form-panel-heading">
         <div className="panel-header">
@@ -348,13 +535,13 @@ export default function InternGroupAssignmentPage() {
                 value={selectedProgramId}
                 onChange={(e) => {
                   setSelectedProgramId(e.target.value);
-                  setSelectedGroupId(''); // Reset nhóm khi đổi chương trình
+                  setSelectedGroupId('');
                 }}
               >
                 <option value="">-- Chọn Chương trình thực tập --</option>
                 {programs.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {p.name} {p.status === 'closed' ? '(Đã đóng)' : ''}
                   </option>
                 ))}
               </select>
@@ -375,7 +562,7 @@ export default function InternGroupAssignmentPage() {
                 value={selectedDeptId}
                 onChange={(e) => {
                   setSelectedDeptId(e.target.value);
-                  setSelectedGroupId(''); // Reset nhóm khi đổi phòng ban
+                  setSelectedGroupId('');
                 }}
               >
                 <option value="">-- Chọn Phòng ban tiếp nhận --</option>
@@ -433,7 +620,9 @@ export default function InternGroupAssignmentPage() {
             >
               <UserCheck size={16} />
               <span>
-                {selectedInternIds.size > 0
+                {submitting
+                  ? 'Đang phân công...'
+                  : selectedInternIds.size > 0
                   ? `Phân công (${selectedInternIds.size} TTS)`
                   : 'Phân công'}
               </span>
@@ -560,119 +749,126 @@ export default function InternGroupAssignmentPage() {
 
         {/* Bảng danh sách TTS có checkbox */}
         <div className="table-responsive-wrapper">
-          <table className="interns-selection-table">
-            <thead>
-              <tr>
-                <th style={{ width: '46px', textAlign: 'center' }}>
-                  <button
-                    type="button"
-                    className="btn-header-checkbox"
-                    onClick={handleToggleSelectAll}
-                    title={isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
-                    disabled={filteredUnassignedInterns.length === 0}
-                    aria-label={isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
-                  >
-                    {isAllSelected ? (
-                      <CheckSquare size={18} className="checkbox-icon checked" />
-                    ) : (
-                      <Square size={18} className="checkbox-icon" />
-                    )}
-                  </button>
-                </th>
-                <th style={{ width: '100px', textAlign: 'center' }}>Mã TTS</th>
-                <th style={{ width: '220px' }}>Họ và tên</th>
-                <th style={{ width: '240px' }}>Email & Điện thoại</th>
-                <th style={{ width: '250px' }}>Trường & Chuyên ngành</th>
-                <th style={{ width: '220px' }}>Chương trình hiện tại</th>
-                <th style={{ width: '200px' }}>Phòng ban nguyện vọng</th>
-                <th style={{ width: '130px', textAlign: 'center' }}>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUnassignedInterns.length === 0 ? (
+          {loading ? (
+            <div className="loading-state-container">
+              <span className="loading-spinner" />
+              <span>Đang tải danh sách thực tập sinh từ hệ thống...</span>
+            </div>
+          ) : (
+            <table className="interns-selection-table">
+              <thead>
                 <tr>
-                  <td colSpan={8} className="table-empty-cell">
-                    <div className="empty-state-content">
-                      <Users size={32} className="empty-icon" />
-                      <p className="empty-text">Không tìm thấy thực tập sinh nào phù hợp với bộ lọc</p>
-                      <button
-                        type="button"
-                        className="btn-reset-filters"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setFilterMajor('');
-                          setFilterUni('');
-                        }}
-                      >
-                        Đặt lại bộ lọc
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredUnassignedInterns.map((intern) => {
-                  const isSelected = selectedInternIds.has(intern.id);
-                  return (
-                    <tr
-                      key={intern.id}
-                      className={isSelected ? 'is-row-selected' : ''}
-                      onClick={() => handleToggleSelectOne(intern.id)}
+                  <th style={{ width: '46px', textAlign: 'center' }}>
+                    <button
+                      type="button"
+                      className="btn-header-checkbox"
+                      onClick={handleToggleSelectAll}
+                      title={isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                      disabled={filteredUnassignedInterns.length === 0}
+                      aria-label={isAllSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
                     >
-                      <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                      {isAllSelected ? (
+                        <CheckSquare size={18} className="checkbox-icon checked" />
+                      ) : (
+                        <Square size={18} className="checkbox-icon" />
+                      )}
+                    </button>
+                  </th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>Mã TTS</th>
+                  <th style={{ width: '220px' }}>Họ và tên</th>
+                  <th style={{ width: '240px' }}>Email & Điện thoại</th>
+                  <th style={{ width: '250px' }}>Trường & Chuyên ngành</th>
+                  <th style={{ width: '220px' }}>Chương trình hiện tại</th>
+                  <th style={{ width: '200px' }}>Phòng ban nguyện vọng</th>
+                  <th style={{ width: '130px', textAlign: 'center' }}>Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUnassignedInterns.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="table-empty-cell">
+                      <div className="empty-state-content">
+                        <Users size={32} className="empty-icon" />
+                        <p className="empty-text">Không tìm thấy thực tập sinh nào phù hợp với bộ lọc</p>
                         <button
                           type="button"
-                          className="btn-row-checkbox"
-                          onClick={() => handleToggleSelectOne(intern.id)}
-                          aria-label={`Chọn ${intern.full_name}`}
+                          className="btn-reset-filters"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setFilterMajor('');
+                            setFilterUni('');
+                          }}
                         >
-                          {isSelected ? (
-                            <CheckSquare size={18} className="checkbox-icon checked" />
-                          ) : (
-                            <Square size={18} className="checkbox-icon" />
-                          )}
+                          Đặt lại bộ lọc
                         </button>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span className="intern-code-badge">{intern.code}</span>
-                      </td>
-                      <td>
-                        <div className="intern-name-cell">
-                          <div className="intern-avatar-circle">
-                            {getInitials(intern.full_name)}
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUnassignedInterns.map((intern) => {
+                    const isSelected = selectedInternIds.has(intern.id);
+                    return (
+                      <tr
+                        key={intern.id}
+                        className={isSelected ? 'is-row-selected' : ''}
+                        onClick={() => handleToggleSelectOne(intern.id)}
+                      >
+                        <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            className="btn-row-checkbox"
+                            onClick={() => handleToggleSelectOne(intern.id)}
+                            aria-label={`Chọn ${intern.full_name}`}
+                          >
+                            {isSelected ? (
+                              <CheckSquare size={18} className="checkbox-icon checked" />
+                            ) : (
+                              <Square size={18} className="checkbox-icon" />
+                            )}
+                          </button>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span className="intern-code-badge">{intern.code}</span>
+                        </td>
+                        <td>
+                          <div className="intern-name-cell">
+                            <div className="intern-avatar-circle">
+                              {getInitials(intern.full_name)}
+                            </div>
+                            <div>
+                              <div className="intern-name-text">{intern.full_name}</div>
+                              <span className="intern-gpa-badge">GPA: {intern.gpa}</span>
+                            </div>
                           </div>
-                          <div>
-                            <div className="intern-name-text">{intern.full_name}</div>
-                            <span className="intern-gpa-badge">GPA: {intern.gpa}</span>
+                        </td>
+                        <td>
+                          <div className="intern-contact-cell">
+                            <span className="intern-email-text">{intern.email}</span>
+                            <span className="intern-phone-text">{intern.phone}</span>
                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="intern-contact-cell">
-                          <span className="intern-email-text">{intern.email}</span>
-                          <span className="intern-phone-text">{intern.phone}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="intern-edu-cell">
-                          <span className="intern-major-text">{intern.major}</span>
-                          <span className="intern-uni-text">{intern.university}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="program-tag">{intern.current_program}</span>
-                      </td>
-                      <td>
-                        <span className="department-tag">{intern.preferred_department}</span>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span className="status-badge status-pending">{intern.status}</span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                        </td>
+                        <td>
+                          <div className="intern-edu-cell">
+                            <span className="intern-major-text">{intern.major}</span>
+                            <span className="intern-uni-text">{intern.university}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="program-tag">{intern.current_program}</span>
+                        </td>
+                        <td>
+                          <span className="department-tag">{intern.preferred_department}</span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span className="status-badge status-pending">{intern.status}</span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </section>
 
@@ -701,7 +897,7 @@ export default function InternGroupAssignmentPage() {
             >
               <option value="ALL">-- Tất cả các nhóm ({assignedMembers.length} TTS) --</option>
               {groups.map((g) => {
-                const count = assignedMembers.filter((m) => m.group_id === g.id).length;
+                const count = assignedMembers.filter((m) => String(m.group_id) === String(g.id)).length;
                 return (
                   <option key={g.id} value={g.id}>
                     {g.name} ({count} thành viên)
@@ -714,79 +910,86 @@ export default function InternGroupAssignmentPage() {
 
         {/* Bảng thành viên đã phân nhóm */}
         <div className="table-responsive-wrapper">
-          <table className="assigned-members-table">
-            <thead>
-              <tr>
-                <th style={{ width: '50px', textAlign: 'center' }}>STT</th>
-                <th style={{ width: '100px', textAlign: 'center' }}>Mã TTS</th>
-                <th style={{ width: '220px' }}>Họ và tên</th>
-                <th style={{ width: '220px' }}>Email liên hệ</th>
-                <th style={{ width: '240px' }}>Nhóm dự án</th>
-                <th style={{ width: '220px' }}>Phòng ban trực thuộc</th>
-                <th style={{ width: '200px' }}>Vai trò trong nhóm</th>
-                <th style={{ width: '120px', textAlign: 'center' }}>Ngày gán</th>
-                <th style={{ width: '100px', textAlign: 'center' }}>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAssignedMembers.length === 0 ? (
+          {loading ? (
+            <div className="loading-state-container">
+              <span className="loading-spinner" />
+              <span>Đang tải danh sách thành viên...</span>
+            </div>
+          ) : (
+            <table className="assigned-members-table">
+              <thead>
                 <tr>
-                  <td colSpan={9} className="table-empty-cell">
-                    <div className="empty-state-content">
-                      <Users size={32} className="empty-icon" />
-                      <p className="empty-text">Chưa có thành viên nào trong nhóm này</p>
-                    </div>
-                  </td>
+                  <th style={{ width: '50px', textAlign: 'center' }}>STT</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>Mã TTS</th>
+                  <th style={{ width: '220px' }}>Họ và tên</th>
+                  <th style={{ width: '220px' }}>Email liên hệ</th>
+                  <th style={{ width: '240px' }}>Nhóm dự án</th>
+                  <th style={{ width: '220px' }}>Phòng ban trực thuộc</th>
+                  <th style={{ width: '200px' }}>Vai trò trong nhóm</th>
+                  <th style={{ width: '120px', textAlign: 'center' }}>Ngày gán</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>Thao tác</th>
                 </tr>
-              ) : (
-                filteredAssignedMembers.map((member, index) => (
-                  <tr key={member.id}>
-                    <td style={{ textAlign: 'center', color: '#64748b' }}>{index + 1}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span className="intern-code-badge">{member.code}</span>
-                    </td>
-                    <td>
-                      <div className="intern-name-cell">
-                        <div className="intern-avatar-circle avatar-assigned">
-                          {getInitials(member.full_name)}
-                        </div>
-                        <div>
-                          <div className="intern-name-text">{member.full_name}</div>
-                          <span className="intern-uni-text">{member.major}</span>
-                        </div>
+              </thead>
+              <tbody>
+                {filteredAssignedMembers.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="table-empty-cell">
+                      <div className="empty-state-content">
+                        <Users size={32} className="empty-icon" />
+                        <p className="empty-text">Chưa có thành viên nào trong nhóm này</p>
                       </div>
                     </td>
-                    <td>
-                      <span className="intern-email-text">{member.email}</span>
-                    </td>
-                    <td>
-                      <span className="assigned-group-pill">{member.group_name}</span>
-                    </td>
-                    <td>
-                      <span className="assigned-dept-text">{member.department_name}</span>
-                    </td>
-                    <td>
-                      <span className="role-tag">{member.role_in_group}</span>
-                    </td>
-                    <td style={{ textAlign: 'center', fontSize: '13px', color: '#64748b' }}>
-                      {member.assigned_date}
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <button
-                        type="button"
-                        className="btn-remove-member"
-                        onClick={() => handleUnassignMember(member)}
-                        title="Hủy phân nhóm và đưa lại danh sách chờ"
-                      >
-                        <UserMinus size={14} />
-                        <span>Gỡ</span>
-                      </button>
-                    </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredAssignedMembers.map((member, index) => (
+                    <tr key={member.id}>
+                      <td style={{ textAlign: 'center', color: '#64748b' }}>{index + 1}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="intern-code-badge">{member.code}</span>
+                      </td>
+                      <td>
+                        <div className="intern-name-cell">
+                          <div className="intern-avatar-circle avatar-assigned">
+                            {getInitials(member.full_name)}
+                          </div>
+                          <div>
+                            <div className="intern-name-text">{member.full_name}</div>
+                            <span className="intern-uni-text">{member.major}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="intern-email-text">{member.email}</span>
+                      </td>
+                      <td>
+                        <span className="assigned-group-pill">{member.group_name}</span>
+                      </td>
+                      <td>
+                        <span className="assigned-dept-text">{member.department_name}</span>
+                      </td>
+                      <td>
+                        <span className="role-tag">{member.role_in_group}</span>
+                      </td>
+                      <td style={{ textAlign: 'center', fontSize: '13px', color: '#64748b' }}>
+                        {member.assigned_date}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn-remove-member"
+                          onClick={() => handleUnassignMember(member)}
+                          title="Hủy phân nhóm và đưa lại danh sách chờ"
+                        >
+                          <UserMinus size={14} />
+                          <span>Gỡ</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </section>
     </div>

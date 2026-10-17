@@ -115,15 +115,30 @@ export async function assignMentor({ mentor_id, intern_ids }) {
 }
 
 /**
+ * Lấy danh sách thực tập sinh đã phân công cho mentor (HR / Admin only).
+ * Route: GET /api/hr/mentors/:mentorId/assigned-interns
+ *
+ * @param {number|string} mentorId
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function getAssignedInternsByMentor(mentorId) {
+  return apiFetch(`/api/hr/mentors/${mentorId}/assigned-interns`, {
+    method: 'GET',
+  });
+}
+
+/**
  * Hủy phân công một thực tập sinh khỏi mentor (HR / Admin only).
  * Route: DELETE /api/hr/mentors/:mentorId/assigned-interns/:internId
  *
  * @param {number|string} mentorId
  * @param {number|string} internId
+ * @param {number|string|null} [programId=null]
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
  */
-export async function unassignInternFromMentor(mentorId, internId) {
-  return apiFetch(`/api/hr/mentors/${mentorId}/assigned-interns/${internId}`, {
+export async function unassignInternFromMentor(mentorId, internId, programId = null) {
+  const qs = programId ? `?program_id=${programId}` : '';
+  return apiFetch(`/api/hr/mentors/${mentorId}/assigned-interns/${internId}${qs}`, {
     method: 'DELETE',
   });
 }

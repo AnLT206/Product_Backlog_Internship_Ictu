@@ -112,6 +112,21 @@ export async function openProgram(id) {
 }
 
 /**
+ * Gán thực tập sinh vào kỳ thực tập và nhóm chuyên môn (HR / Admin only).
+ * Route: POST /api/hr/programs/:id/assign
+ *
+ * @param {number|string} programId
+ * @param {{ intern_ids: number[], mentor_id?: number|null }} body
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function assignInternsToProgram(programId, body) {
+  return apiFetch(`/api/hr/programs/${programId}/assign`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
  * Lấy dữ liệu thống kê tỷ lệ hoàn thành chương trình thực tập và so sánh đợt trước.
  *
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
