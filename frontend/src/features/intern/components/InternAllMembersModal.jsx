@@ -1,6 +1,26 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Users, Mail, Phone, GraduationCap, X } from 'lucide-react';
 import { getInitials } from '../mockMentorGroupData';
+
+function MemberAvatarModal({ member }) {
+  const [imgError, setImgError] = useState(false);
+  const showImg = member.avatar_url && !imgError;
+
+  return (
+    <div className="modal-member-avatar" title={member.full_name || 'Thành viên'}>
+      {showImg ? (
+        <img
+          src={member.avatar_url}
+          alt={member.full_name || 'Thành viên'}
+          className="modal-member-avatar-img"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        getInitials(member.full_name)
+      )}
+    </div>
+  );
+}
 
 export default function InternAllMembersModal({ isOpen, onClose, group, members = [] }) {
   // Lắng nghe phím Escape để đóng modal
@@ -66,9 +86,7 @@ export default function InternAllMembersModal({ isOpen, onClose, group, members 
                   className={`modal-member-row ${isMe ? 'is-current-user' : ''}`}
                 >
                   <div className="modal-member-left">
-                    <div className="modal-member-avatar" title={member.full_name}>
-                      {getInitials(member.full_name)}
-                    </div>
+                    <MemberAvatarModal member={member} />
                     <div className="modal-member-meta">
                       <div className="modal-member-name-row">
                         <h4 className="modal-member-name">{member.full_name}</h4>

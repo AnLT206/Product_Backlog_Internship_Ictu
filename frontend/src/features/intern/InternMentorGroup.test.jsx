@@ -1,14 +1,16 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import InternMentorGroupSection from './components/InternMentorGroupSection';
 import InternMentorCard from './components/InternMentorCard';
 import InternGroupCard from './components/InternGroupCard';
 import InternAllMembersModal from './components/InternAllMembersModal';
+import { getMyMentorGroup } from '../../api/interns';
 import {
   MOCK_MENTOR,
   MOCK_GROUP,
   MOCK_GROUP_MEMBERS,
-} from './mockMentorGroupData';
+  getInitials,
+} from './mentorGroupMock';
 
 describe('Intern Mentor & Group UI Test Suite (Story: Mentor của tôi & Nhóm thực tập)', () => {
   beforeEach(() => {
@@ -68,6 +70,23 @@ describe('Intern Mentor & Group UI Test Suite (Story: Mentor của tôi & Nhóm 
         screen.getByText(/Bạn hiện chưa được phân công Mentor hướng dẫn/i)
       ).toBeInTheDocument();
       expect(screen.getByText(/Chờ HR phân công/i)).toBeInTheDocument();
+    });
+
+    it('Xử lý an toàn khi Mentor thiếu thông tin email hoặc số điện thoại', () => {
+      const partialMentor = {
+        id: 99,
+        full_name: 'Nguyễn Văn Hướng Dẫn',
+        position: 'Mentor',
+        department: 'Ban Đào tạo',
+        email: null,
+        phone: null,
+        avatar_url: null,
+      };
+
+      render(<InternMentorCard mentor={partialMentor} />);
+
+      expect(screen.getByText('Chưa có email')).toBeInTheDocument();
+      expect(screen.getByText('Chưa có SĐT')).toBeInTheDocument();
     });
   });
 
@@ -211,44 +230,105 @@ describe('Intern Mentor & Group UI Test Suite (Story: Mentor của tôi & Nhóm 
   });
 
   /* ───────────────────────────────────────────────────────────────────────────
-     4. KIỂM THỬ SECTION TOÀN BỘ VÀ TOOLBAR CHUYỂN TRẠNG THÁI (PREVIEW SWITCHER)
+     4. KIỂM THỬ API SERVICE getMyMentorGroup VÀ CÁC SCENARIO
      ─────────────────────────────────────────────────────────────────────────── */
-  describe('4. Section tổng hợp & Chuyển đổi trạng thái (InternMentorGroupSection)', () => {
-    it('Render đồng thời cả Mentor Card và Group Card trong cùng giao diện', () => {
-      render(<InternMentorGroupSection />);
-
-      // Cả 2 khối đều xuất hiện trên Dashboard
-      expect(screen.getByRole('region', { name: 'Mentor của tôi' })).toBeInTheDocument();
-      expect(screen.getByRole('region', { name: 'Nhóm thực tập' })).toBeInTheDocument();
+  describe('4. Frontend API Service (getMyMentorGroup)', () => {
+    it('getMyMentorGroup trả về dữ liệu đầy đủ theo chuẩn Response { ok, status, data }', async () => {
+      const res = await getMyMentorGroup();
+      expect(res.ok).toBe(true);
+      expect(res.status).toBe(200);
+      expect(res.data.mentor).toBeDefined();
+      expect(res.data.mentor.full_name).toBe('Trần Hoàng Quân');
+      expect(res.data.group).toBeDefined();
+      expect(res.data.members).toHaveLength(6);
     });
 
-    it('Toolbar cho phép chuyển đổi và kiểm tra các trạng thái giao diện (Section 12)', () => {
+    it('getMyMentorGroup xử lý scenario no-mentor', async () => {
+      const res = await getMyMentorGroup({ scenario: 'no-mentor' });
+      expect(res.ok).toBe(true);
+      expect(res.data.mentor).toBeNull();
+      expect(res.data.group).toBeDefined();
+    });
+
+    it('getMyMentorGroup xử lý scenario no-group', async () => {
+      const res = await getMyMentorGroup({ scenario: 'no-group' });
+      expect(res.ok).toBe(true);
+      expect(res.data.group).toBeNull();
+      expect(res.data.members).toEqual([]);
+    });
+
+    it('getMyMentorGroup xử lý scenario error', async () => {
+      const res = await getMyMentorGroup({ scenario: 'error' });
+      expect(res.ok).toBe(false);
+      expect(res.status).toBe(500);
+      expect(res.error).toBeDefined();
+    });
+  });
+
+  /* ───────────────────────────────────────────────────────────────────────────
+     5. KIỂM THỬ SECTION TỔNG HỢP VÀ CÁC STATE (LOADING / ERROR / PREVIEW)
+     ─────────────────────────────────────────────────────────────────────────── */
+  describe('5. Section tổng hợp & Tích hợp API State (InternMentorGroupSection)', () => {
+    it('Render đồng thời cả Mentor Card và Group Card trong cùng giao diện', async () => {
       render(<InternMentorGroupSection />);
 
-      // Ban đầu ở trạng thái "Đầy đủ" (Trần Hoàng Quân xuất hiện ở cả Mentor Card và Group Card)
-      expect(screen.getAllByText('Trần Hoàng Quân').length).toBe(2);
-      expect(screen.getByText(/Nhóm Frontend React/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByRole('region', { name: 'Mentor của tôi' })).toBeInTheDocument();
+        expect(screen.getByRole('region', { name: 'Nhóm thực tập' })).toBeInTheDocument();
+      });
+    });
+
+    it('Toolbar cho phép chuyển đổi và kiểm tra các trạng thái giao diện', async () => {
+      render(<InternMentorGroupSection />);
+
+      // Ban đầu ở trạng thái "Đầy đủ"
+      await waitFor(() => {
+        expect(screen.getAllByText('Trần Hoàng Quân').length).toBe(2);
+        expect(screen.getByText(/Nhóm Frontend React/i)).toBeInTheDocument();
+      });
 
       // Chuyển sang: "Chưa có Mentor"
       const noMentorBtn = screen.getByRole('button', { name: /Chưa có Mentor/i });
       fireEvent.click(noMentorBtn);
 
-      expect(screen.getByText(/Chưa phân công người hướng dẫn/i)).toBeInTheDocument();
-      // Nhóm thực tập vẫn hiển thị
-      expect(screen.getByText(/Nhóm Frontend React/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(/Chưa phân công người hướng dẫn/i)).toBeInTheDocument();
+        expect(screen.getByText(/Nhóm Frontend React/i)).toBeInTheDocument();
+      });
 
       // Chuyển sang: "Chưa có Nhóm"
       const noGroupBtn = screen.getByRole('button', { name: /Chưa có Nhóm/i });
       fireEvent.click(noGroupBtn);
 
-      expect(screen.getByText(/Chưa tham gia nhóm thực tập/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(/Chưa tham gia nhóm thực tập/i)).toBeInTheDocument();
+      });
+
+      // Chuyển sang: "Lỗi tải"
+      const errorBtn = screen.getByRole('button', { name: /Lỗi tải/i });
+      fireEvent.click(errorBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Không thể tải thông tin/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Thử lại/i })).toBeInTheDocument();
+      });
 
       // Quay lại: "Đầy đủ"
       const fullBtn = screen.getByRole('button', { name: /Đầy đủ/i });
       fireEvent.click(fullBtn);
 
-      expect(screen.getAllByText('Trần Hoàng Quân').length).toBe(2);
-      expect(screen.getByText(/Nhóm Frontend React/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getAllByText('Trần Hoàng Quân').length).toBe(2);
+        expect(screen.getByText(/Nhóm Frontend React/i)).toBeInTheDocument();
+      });
+    });
+
+    it('Hàm getInitials trả về chữ cái đầu in hoa chuẩn', () => {
+      expect(getInitials('Trần Hoàng Quân')).toBe('TQ');
+      expect(getInitials('Nguyễn Văn An')).toBe('NA');
+      expect(getInitials('Admin')).toBe('AD');
+      expect(getInitials('')).toBe('?');
+      expect(getInitials(null)).toBe('?');
     });
   });
 });
