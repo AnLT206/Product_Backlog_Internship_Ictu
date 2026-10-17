@@ -12,6 +12,7 @@ import SystemLogsPage from '../features/admin/SystemLogsPage.jsx'
 import AdminSettingsPage from '../features/admin/AdminSettingsPage.jsx'
 import AdminBackupPage from '../features/admin/AdminBackupPage.jsx'
 import AdminInternQrPage from '../features/admin/AdminInternQrPage.jsx'
+import RealtimeAttendanceMonitorPage from '../features/attendance/RealtimeAttendanceMonitorPage.jsx'
 import RequireAuth from './RequireAuth.jsx'
 
 import InternListPage from '../features/intern/InternListPage.jsx'
@@ -73,6 +74,7 @@ export default function AppRoutes() {
           <Route path="users" element={<UsersPage />} />
           <Route path="users/new" element={<CreateAccountPage />} />
           <Route path="intern-qr" element={<AdminInternQrPage />} />
+          <Route path="attendance-monitor" element={<RealtimeAttendanceMonitorPage />} />
           <Route path="roles" element={<PermissionMatrixPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
           <Route path="system-logs" element={<SystemLogsPage />} />
@@ -102,6 +104,7 @@ export default function AppRoutes() {
           <Route path="completion-rate" element={<CompletionRatePage />} />
           <Route path="candidate-source" element={<CandidateSourceAnalyticsPage />} />
           <Route path="attendance" element={<HrAttendancePage />} />
+          <Route path="attendance-monitor" element={<RealtimeAttendanceMonitorPage />} />
           <Route path="attendance-report" element={<Navigate to="/hr/attendance?tab=report" replace />} />
           <Route path="work-schedule" element={<Navigate to="/hr/attendance?tab=schedule" replace />} />
           <Route path="allowances" element={<Navigate to="/hr/attendance?tab=allowance" replace />} />

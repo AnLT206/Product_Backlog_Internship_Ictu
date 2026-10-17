@@ -587,6 +587,13 @@ export default function AdminDashboardPage() {
             </div>
             <div className="admin-header-actions">
               <Link
+                to="/admin/attendance-monitor"
+                className="admin-btn admin-btn--outline"
+              >
+                <Radio size={14} className="stream-icon-pulse" />
+                <span>Giám sát Realtime</span>
+              </Link>
+              <Link
                 to="/admin/intern-qr"
                 className="admin-btn admin-btn--primary"
               >

@@ -30,6 +30,10 @@ const HR_NAV_ITEMS = [
     label: 'Chấm công & Phụ cấp',
   },
   {
+    to: '/hr/attendance-monitor',
+    label: 'Giám sát Chấm công Realtime',
+  },
+  {
     to: '/hr/contracts',
     label: 'Hợp đồng thực tập',
   },
