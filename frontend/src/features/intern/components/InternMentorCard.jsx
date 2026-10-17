@@ -14,6 +14,7 @@ import { getInitials } from '../mockMentorGroupData';
 
 export default function InternMentorCard({ mentor, onShowToast }) {
   const [copied, setCopied] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   // Xử lý sao chép email nhanh
   const handleCopyEmail = (email) => {
@@ -47,6 +48,7 @@ export default function InternMentorCard({ mentor, onShowToast }) {
   }
 
   const isOnline = mentor.status === 'online';
+  const showAvatarImg = mentor.avatar_url && !avatarError;
 
   return (
     <div className="intern-mentor-card" role="region" aria-label="Mentor của tôi">
@@ -71,14 +73,15 @@ export default function InternMentorCard({ mentor, onShowToast }) {
       {/* ── MENTOR PROFILE BODY ── */}
       <div className="mentor-profile-body">
         <div className="mentor-avatar-wrap">
-          {mentor.avatar_url ? (
+          {showAvatarImg ? (
             <img
               src={mentor.avatar_url}
-              alt={mentor.full_name}
+              alt={mentor.full_name || 'Mentor'}
               className="mentor-avatar-img"
+              onError={() => setAvatarError(true)}
             />
           ) : (
-            <div className="mentor-avatar-circle" title={mentor.full_name}>
+            <div className="mentor-avatar-circle" title={mentor.full_name || 'Mentor'}>
               {getInitials(mentor.full_name)}
             </div>
           )}
@@ -86,61 +89,69 @@ export default function InternMentorCard({ mentor, onShowToast }) {
         </div>
 
         <div className="mentor-info-col">
-          <h3 className="mentor-name" title={mentor.full_name}>
-            {mentor.full_name}
+          <h3 className="mentor-name" title={mentor.full_name || ''}>
+            {mentor.full_name || 'Người hướng dẫn'}
           </h3>
-          <span className="mentor-role-badge" title={mentor.position}>
-            {mentor.position}
-          </span>
-          <span className="mentor-dept-name" title={mentor.department}>
-            <Building size={14} />
-            <span>{mentor.department}</span>
-          </span>
+          {mentor.position && (
+            <span className="mentor-role-badge" title={mentor.position}>
+              {mentor.position}
+            </span>
+          )}
+          {mentor.department && (
+            <span className="mentor-dept-name" title={mentor.department}>
+              <Building size={14} />
+              <span>{mentor.department}</span>
+            </span>
+          )}
         </div>
       </div>
 
       {/* ── CONTACT CLUSTER ── */}
       <div className="mentor-contact-cluster">
         {/* Email */}
-        <div className="contact-row-item">
-          <div className="contact-label-group">
-            <Mail size={14} />
-            <span>Email:</span>
+        {mentor.email && (
+          <div className="contact-row-item">
+            <div className="contact-label-group">
+              <Mail size={14} />
+              <span>Email:</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <a
+                href={`mailto:${mentor.email}`}
+                className="contact-value-link"
+                title={`Gửi email tới ${mentor.email}`}
+              >
+                {mentor.email}
+              </a>
+              <button
+                type="button"
+                className="copy-mini-btn"
+                onClick={() => handleCopyEmail(mentor.email)}
+                title="Sao chép email"
+                aria-label="Sao chép email mentor"
+              >
+                {copied ? <Check size={13} style={{ color: '#16A34A' }} /> : <Copy size={13} />}
+              </button>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <a
-              href={`mailto:${mentor.email}`}
-              className="contact-value-link"
-              title={`Gửi email tới ${mentor.email}`}
-            >
-              {mentor.email}
-            </a>
-            <button
-              type="button"
-              className="copy-mini-btn"
-              onClick={() => handleCopyEmail(mentor.email)}
-              title="Sao chép email"
-              aria-label="Sao chép email mentor"
-            >
-              {copied ? <Check size={13} style={{ color: '#16A34A' }} /> : <Copy size={13} />}
-            </button>
-          </div>
-        </div>
+        )}
 
         {/* Số điện thoại */}
-        <div className="contact-row-item">
-          <div className="contact-label-group">
-            <Phone size={14} />
-            <span>Điện thoại:</span>
+        {mentor.phone && (
+          <div className="contact-row-item">
+            <div className="contact-label-group">
+              <Phone size={14} />
+              <span>Điện thoại:</span>
+            </div>
+            <a
+              href={`tel:${mentor.phone}`}
+              className="contact-value-link"
+              title={`Gọi điện tới ${mentor.phone}`}
+            >
+              {mentor.phone}
+            </a>
           </div>
-          <a
-            href={`tel:${mentor.phone}`}
-            className="contact-value-link"
-            title={`Gọi điện tới ${mentor.phone}`}
-          >
-            {mentor.phone}
-          </a>
-        </div>
+        )}
 
         {/* Văn phòng làm việc */}
         {mentor.office_location && (
@@ -158,24 +169,49 @@ export default function InternMentorCard({ mentor, onShowToast }) {
 
       {/* ── ACTION BUTTONS CLUSTER (LIÊN HỆ NHANH) ── */}
       <div className="mentor-actions-row">
-        <a
-          href={`mailto:${mentor.email}`}
-          className="mentor-action-btn mentor-action-btn--email"
-          title={`Soạn thư gửi tới ${mentor.email}`}
-        >
-          <Mail size={15} />
-          <span>Gửi Email</span>
-        </a>
+        {mentor.email ? (
+          <a
+            href={`mailto:${mentor.email}`}
+            className="mentor-action-btn mentor-action-btn--email"
+            title={`Soạn thư gửi tới ${mentor.email}`}
+          >
+            <Mail size={15} />
+            <span>Gửi Email</span>
+          </a>
+        ) : (
+          <button
+            type="button"
+            className="mentor-action-btn mentor-action-btn--disabled"
+            disabled
+            title="Chưa có thông tin email"
+          >
+            <Mail size={15} />
+            <span>Chưa có email</span>
+          </button>
+        )}
 
-        <a
-          href={`tel:${mentor.phone}`}
-          className="mentor-action-btn mentor-action-btn--call"
-          title={`Gọi điện cho ${mentor.full_name}`}
-        >
-          <Phone size={15} />
-          <span>Gọi điện</span>
-        </a>
+        {mentor.phone ? (
+          <a
+            href={`tel:${mentor.phone}`}
+            className="mentor-action-btn mentor-action-btn--call"
+            title={`Gọi điện cho ${mentor.full_name || 'Mentor'}`}
+          >
+            <Phone size={15} />
+            <span>Gọi điện</span>
+          </a>
+        ) : (
+          <button
+            type="button"
+            className="mentor-action-btn mentor-action-btn--disabled"
+            disabled
+            title="Chưa có số điện thoại"
+          >
+            <Phone size={15} />
+            <span>Chưa có SĐT</span>
+          </button>
+        )}
       </div>
     </div>
   );
 }
+

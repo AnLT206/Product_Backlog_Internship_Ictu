@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Users,
   Building,
@@ -9,6 +10,26 @@ import {
   Briefcase,
 } from 'lucide-react';
 import { getInitials } from '../mockMentorGroupData';
+
+function MemberAvatarMini({ member }) {
+  const [imgError, setImgError] = useState(false);
+  const showImg = member.avatar_url && !imgError;
+
+  return (
+    <div className="member-avatar-mini" title={member.full_name}>
+      {showImg ? (
+        <img
+          src={member.avatar_url}
+          alt={member.full_name || 'TTS'}
+          className="member-avatar-img-mini"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        getInitials(member.full_name)
+      )}
+    </div>
+  );
+}
 
 export default function InternGroupCard({ group, members = [], onViewAllMembers }) {
   // Trạng thái: Chưa được đưa vào nhóm thực tập
@@ -127,11 +148,9 @@ export default function InternGroupCard({ group, members = [], onViewAllMembers 
                   <div
                     key={member.id}
                     className={`member-card-pill ${isMe ? 'is-me' : ''}`}
-                    title={`${member.full_name} (${member.role || 'Thực tập sinh'}) - ${member.email}`}
+                    title={`${member.full_name} (${member.role || 'Thực tập sinh'}) - ${member.email || ''}`}
                   >
-                    <div className="member-avatar-mini">
-                      {getInitials(member.full_name)}
-                    </div>
+                    <MemberAvatarMini member={member} />
                     <div className="member-detail-info">
                       <div className="member-name-row">
                         <span className="member-name-text">{member.full_name}</span>
