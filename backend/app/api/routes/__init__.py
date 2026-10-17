@@ -24,6 +24,7 @@ from app.api.routes import (
     tasks,
     weekly_reports,
     work_schedules,
+    intern_portal,
 )
 
 api_router = APIRouter(prefix="/api")
@@ -56,5 +57,6 @@ api_router.include_router(admin.router)
 api_router.include_router(admin.users_router)
 api_router.include_router(admin.settings_router)
 api_router.include_router(work_schedules.router)
+api_router.include_router(intern_portal.router)
 api_router.include_router(operations.router)
 
