@@ -1,0 +1,770 @@
+/* ── AdminInternQrPage.css ── */
+
+.admin-qr-page {
+  --admin-primary: #1877f2;
+  --admin-primary-hover: #166fe5;
+  --admin-primary-soft: #e7f3ff;
+  --admin-ink: #1a2332;
+  --admin-muted: #64748b;
+  --admin-line: #e2e8f0;
+  --admin-success: #10b981;
+  --admin-warning: #f59e0b;
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ── KPI Grid ── */
+.admin-qr-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-qr-kpi-card {
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-md, 8px);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-qr-kpi-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.admin-qr-kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-qr-kpi-icon--blue {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.admin-qr-kpi-icon--green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.admin-qr-kpi-icon--amber {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.admin-qr-kpi-icon--purple {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+.admin-qr-kpi-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-qr-kpi-value {
+  font-size: 1.4rem;
+  font-weight: 750;
+  color: var(--admin-ink);
+  line-height: 1.2;
+}
+
+.admin-qr-kpi-label {
+  font-size: 0.8rem;
+  color: var(--admin-muted);
+  margin-top: 2px;
+}
+
+/* ── Toolbar & Bộ lọc ── */
+.admin-qr-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-md, 8px);
+}
+
+.admin-qr-toolbar__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.admin-qr-search-box {
+  position: relative;
+  min-width: 260px;
+  max-width: 380px;
+  flex: 1;
+}
+
+.admin-qr-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--admin-muted);
+  pointer-events: none;
+}
+
+.admin-qr-search-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px 0 36px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-sm, 6px);
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--admin-ink);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-qr-search-input:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+}
+
+.admin-qr-select {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-sm, 6px);
+  background: #fff;
+  font: inherit;
+  font-size: 0.84rem;
+  color: var(--admin-ink);
+  outline: none;
+  cursor: pointer;
+}
+
+.admin-qr-select:focus {
+  border-color: var(--admin-primary);
+}
+
+.admin-qr-status-pills {
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: var(--radius-sm, 6px);
+  gap: 2px;
+}
+
+.admin-qr-pill-btn {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--admin-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-qr-pill-btn:hover {
+  color: var(--admin-ink);
+}
+
+.admin-qr-pill-btn.is-active {
+  background: #fff;
+  color: var(--admin-primary);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+/* ── Selection Action Bar ── */
+.admin-qr-selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--admin-primary-soft);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-md, 8px);
+  color: var(--admin-ink);
+  font-size: 0.86rem;
+}
+
+.selection-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Bảng thực tập sinh & QR ── */
+.admin-qr-table-card {
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.admin-qr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.admin-qr-badge--success {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.admin-qr-badge--warning {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.admin-qr-code-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  color: #475569;
+  background: #f8fafc;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-qr-actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.admin-btn--sm {
+  height: 30px;
+  padding: 0 9px;
+  font-size: 0.76rem;
+}
+
+.admin-btn--primary {
+  background: var(--admin-primary);
+  color: #fff;
+}
+
+.admin-btn--primary:hover:not(:disabled) {
+  background: var(--admin-primary-hover);
+}
+
+.admin-btn--outline {
+  background: #fff;
+  border-color: var(--admin-line);
+  color: var(--admin-ink);
+}
+
+.admin-btn--outline:hover:not(:disabled) {
+  border-color: #b6d4fe;
+  background: var(--admin-primary-soft);
+  color: var(--admin-primary);
+}
+
+.admin-btn--ghost {
+  background: transparent;
+  color: var(--admin-muted);
+}
+
+.admin-btn--ghost:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: var(--admin-ink);
+}
+
+.admin-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── DESIGN THẺ NHẬN DIỆN INTERN QR CARD (PVC STANDARD) ── */
+.intern-qr-card {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  font-family: inherit;
+  color: #1e293b;
+}
+
+.intern-qr-card__header {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+  color: #ffffff;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px solid #38bdf8;
+}
+
+.intern-qr-card__brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.intern-qr-card__org {
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #38bdf8;
+}
+
+.intern-qr-card__subtitle {
+  font-size: 0.68rem;
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+.intern-qr-card__badge-type {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #e0f2fe;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.intern-qr-card__body {
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.intern-qr-card__profile {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+}
+
+.intern-qr-card__avatar-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.intern-qr-card__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.intern-qr-card__avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #3b82f6;
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.intern-qr-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.intern-qr-card__name {
+  font-size: 1.05rem;
+  font-weight: 750;
+  color: #0f172a;
+  margin: 0;
+}
+
+.intern-qr-card__code-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: #1e40af;
+  background: #eff6ff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin: 2px 0;
+  width: fit-content;
+}
+
+.intern-qr-card__detail {
+  font-size: 0.75rem;
+  color: #475569;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.intern-qr-card__detail strong {
+  color: #334155;
+}
+
+.intern-qr-card__qr-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.intern-qr-card__qr-frame {
+  padding: 8px;
+  background: #ffffff;
+  border: 2px solid #0f172a;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.intern-qr-card__payload-tag {
+  font-size: 0.65rem;
+  color: #64748b;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.intern-qr-card__footer {
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.intern-qr-card__instruction {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.68rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.intern-qr-card__security-mark {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #10b981;
+  background: #ecfdf5;
+  border: 1px dashed #6ee7b7;
+  padding: 3px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.06em;
+}
+
+/* ── MODAL STYLES ── */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.admin-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  border: none;
+  cursor: pointer;
+  backdrop-filter: blur(2px);
+}
+
+.admin-modal-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 540px;
+  background: #ffffff;
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: adminModalEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes adminModalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.admin-modal-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--admin-line);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.intern-qr-modal__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.intern-qr-modal__title-row h2 {
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: var(--admin-ink);
+  margin: 0;
+}
+
+.admin-modal-subtitle {
+  font-size: 0.8rem;
+  color: var(--admin-muted);
+  margin: 4px 0 0 0;
+}
+
+.admin-modal-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--admin-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.admin-modal-close-btn:hover {
+  background: #f1f5f9;
+  color: var(--admin-ink);
+}
+
+.admin-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #f8fafc;
+}
+
+.intern-qr-card-preview-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.intern-qr-modal__meta-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid var(--admin-line);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm, 6px);
+}
+
+.meta-strip-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--admin-muted);
+}
+
+.meta-strip-item code {
+  color: var(--admin-ink);
+  font-weight: 600;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.admin-modal-foot {
+  padding: 14px 20px;
+  border-top: 1px solid var(--admin-line);
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.intern-qr-modal__footer-tip {
+  font-size: 0.74rem;
+  color: var(--admin-muted);
+}
+
+.admin-modal-foot-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── MODAL IN HÀNG LOẠT ── */
+.batch-print-modal {
+  max-width: 680px;
+}
+
+.batch-print-preview-list {
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 6px;
+}
+
+/* ── PRINT ISOLATION (@media print) ── */
+@media print {
+  /* Ẩn toàn bộ giao diện hệ thống: sidebar, topbar, modal backdrops, v.v. */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Chỉ hiển thị khu vực thẻ in đã được chỉ định */
+  .printable-target-card,
+  .printable-target-card *,
+  .printable-batch-area,
+  .printable-batch-area * {
+    visibility: visible;
+  }
+
+  .printable-target-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0;
+    padding: 0;
+    background: #ffffff !important;
+  }
+
+  .printable-batch-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  .printable-batch-card-item {
+    page-break-after: always;
+    break-after: page;
+    margin-bottom: 20mm;
+    display: flex;
+    justify-content: center;
+  }
+
+  .intern-qr-card {
+    box-shadow: none !important;
+    border: 1px solid #94a3b8 !important;
+    max-width: 440px !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1024px) {
+  .admin-qr-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-qr-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-qr-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-qr-search-box {
+    max-width: 100%;
+  }
+
+  .intern-qr-card__body {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .intern-qr-card__profile {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .admin-modal-foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-modal-foot-actions {
+    justify-content: flex-end;
+  }
+}

@@ -585,14 +585,15 @@ export default function AdminDashboardPage() {
               <h2>Điều phối Cổng Chấm công IoT & Cấu hình FastHRM</h2>
               <p>Quản lý đầu đọc thẻ QR phần cứng tại cổng phòng Lab và thông số tích hợp FastHRM API.</p>
             </div>
-            <button
-              type="button"
-              className="admin-btn admin-btn--primary"
-              onClick={() => setPrintQrModal(true)}
-            >
-              <Printer size={15} />
-              <span>In thẻ QR Thực tập sinh</span>
-            </button>
+            <div className="admin-header-actions">
+              <Link
+                to="/admin/intern-qr"
+                className="admin-btn admin-btn--primary"
+              >
+                <QrCode size={15} />
+                <span>Quản lý & In mã QR TTS</span>
+              </Link>
+            </div>
           </div>
 
           <div className="hrm-grid-layout">
