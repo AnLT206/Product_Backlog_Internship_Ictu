@@ -11,6 +11,7 @@ import PermissionMatrixPage from '../features/admin/PermissionMatrixPage.jsx'
 import SystemLogsPage from '../features/admin/SystemLogsPage.jsx'
 import AdminSettingsPage from '../features/admin/AdminSettingsPage.jsx'
 import AdminBackupPage from '../features/admin/AdminBackupPage.jsx'
+import AdminInternQrPage from '../features/admin/AdminInternQrPage.jsx'
 import RequireAuth from './RequireAuth.jsx'
 
 import InternListPage from '../features/intern/InternListPage.jsx'
@@ -71,6 +72,7 @@ export default function AppRoutes() {
           <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="users/new" element={<CreateAccountPage />} />
+          <Route path="intern-qr" element={<AdminInternQrPage />} />
           <Route path="roles" element={<PermissionMatrixPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
           <Route path="system-logs" element={<SystemLogsPage />} />
