@@ -27,6 +27,8 @@ Thumbs.db
 htmlcov/
 .mypy_cache/
 .ruff_cache/
+*.db
+*.sqlite
 
 # Build
 dist/
