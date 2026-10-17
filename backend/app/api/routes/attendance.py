@@ -2,10 +2,11 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, require_roles
+from app.models.attendance_raw_log import AttendanceRawLog
 from app.models.user import User
 from app.schemas.attendance import (
     AttendanceCheckInRequest,
@@ -15,8 +16,17 @@ from app.schemas.attendance import (
     AttendanceResponse,
     AttendanceTodayStatusResponse,
 )
+from app.schemas.attendance_raw_log import (
+    AttendanceRawLogBatchCreate,
+    AttendanceRawLogBatchResponse,
+    AttendanceRawLogCreate,
+    AttendanceRawLogResponse,
+    ProcessRawLogsRequest,
+    ProcessRawLogsResponse,
+)
 from app.services.attendance_report_service import AttendanceReportService
 from app.services.attendance_service import AttendanceService
+from app.services.raw_log_processor import RawLogProcessorService
 
 router = APIRouter(tags=["attendance"])
 
@@ -236,3 +246,80 @@ def list_all_intern_attendance(
         to_date=to_date,
         intern_id=intern_id,
     )
+
+
+# ── Peripheral Device Scanner & Raw Logs Ingestion (SCRUM-242, SCRUM-243) ──
+
+@router.post(
+    "/attendance/raw-logs",
+    response_model=AttendanceRawLogResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Tiếp nhận 1 bản ghi quét mã QR/thẻ từ thiết bị ngoại vi và lưu tạm vào Attendance_Raw_Logs (SCRUM-242)",
+    dependencies=[Depends(require_roles("admin", "hr", "intern"))],
+)
+def ingest_raw_log(
+    payload: AttendanceRawLogCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> AttendanceRawLogResponse:
+    client_ip = request.client.host if request.client else None
+    return RawLogProcessorService(db).ingest_single_log(payload, client_ip=client_ip)
+
+
+@router.post(
+    "/attendance/raw-logs/batch",
+    response_model=AttendanceRawLogBatchResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Tiếp nhận hàng loạt bản ghi quét mã QR/thẻ theo lô từ thiết bị ngoại vi (SCRUM-242)",
+    dependencies=[Depends(require_roles("admin", "hr"))],
+)
+def ingest_raw_logs_batch(
+    payload: AttendanceRawLogBatchCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> AttendanceRawLogBatchResponse:
+    client_ip = request.client.host if request.client else None
+    return RawLogProcessorService(db).ingest_batch_logs(payload, client_ip=client_ip)
+
+
+@router.get(
+    "/attendance/raw-logs",
+    response_model=list[AttendanceRawLogResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Tra cứu danh sách log thô quét mã từ thiết bị ngoại vi",
+    dependencies=[Depends(require_roles("admin", "hr"))],
+)
+def list_raw_logs(
+    device_id: str | None = Query(default=None, description="Lọc theo mã thiết bị quét"),
+    user_code: str | None = Query(default=None, description="Lọc theo mã nhân viên/TTS"),
+    is_processed: bool | None = Query(default=None, description="Lọc theo trạng thái đã phân tích"),
+    limit: int = Query(default=50, ge=1, le=200, description="Số lượng bản ghi tối đa"),
+    db: Session = Depends(get_db),
+) -> list[AttendanceRawLogResponse]:
+    query = db.query(AttendanceRawLog)
+    if device_id:
+        query = query.filter(AttendanceRawLog.device_id == device_id)
+    if user_code:
+        query = query.filter(AttendanceRawLog.user_code == user_code)
+    if is_processed is not None:
+        query = query.filter(AttendanceRawLog.is_processed == is_processed)
+    
+    records = query.order_by(AttendanceRawLog.scan_time.desc()).limit(limit).all()
+    processor = RawLogProcessorService(db)
+    return [processor._to_log_response(r) for r in records]
+
+
+@router.post(
+    "/attendance/process-raw-logs",
+    response_model=ProcessRawLogsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Kích hoạt giải thuật phân tích log quét thẻ thô để tính giờ Check-in/Check-out chuẩn xác vào bảng Attendance (SCRUM-243)",
+    dependencies=[Depends(require_roles("admin", "hr"))],
+)
+def process_raw_logs(
+    payload: ProcessRawLogsRequest | None = None,
+    db: Session = Depends(get_db),
+) -> ProcessRawLogsResponse:
+    req = payload or ProcessRawLogsRequest()
+    return RawLogProcessorService(db).process_raw_logs(req)
+
