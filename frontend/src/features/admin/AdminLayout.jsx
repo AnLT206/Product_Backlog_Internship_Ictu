@@ -7,6 +7,7 @@ const ADMIN_NAV_ITEMS = [
   { to: '/admin/dashboard', label: 'Tổng quan & Giám sát Hệ thống', end: true },
   { to: '/admin/users', label: 'Quản lý Tài khoản & Định danh', permission: 'admin_users' },
   { to: '/admin/intern-qr', label: 'Mã QR Thẻ Chấm công', permission: 'admin_users' },
+  { to: '/admin/attendance-monitor', label: 'Giám sát Chấm công Realtime', permission: 'admin_users' },
   { to: '/admin/roles', label: 'Ma trận Phân quyền (RBAC)', permission: 'admin_roles' },
   { to: '/admin/settings', label: 'Cấu hình Tham số & SSO/LDAP', permission: 'admin_users' },
   { to: '/admin/system-logs', label: 'Nhật ký Truy vết (Audit Log)', badge: '24', permission: 'admin_audit_logs' },

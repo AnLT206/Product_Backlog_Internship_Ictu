@@ -1,0 +1,219 @@
+/* ── RealtimeAttendanceMonitorPage.css ── */
+
+.realtime-monitor-page {
+  --admin-primary: #1877f2;
+  --admin-primary-hover: #166fe5;
+  --admin-primary-soft: #e7f3ff;
+  --admin-ink: #1a2332;
+  --admin-muted: #64748b;
+  --admin-line: #e2e8f0;
+  --admin-success: #10b981;
+  --admin-warning: #f59e0b;
+  --admin-danger: #ef4444;
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ── Live Stream Connection Header Strip ── */
+.realtime-stream-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.realtime-stream-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.live-pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+}
+
+.live-pulse-dot--connected {
+  background-color: var(--admin-success);
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: liveDotPulse 2s infinite;
+}
+
+.live-pulse-dot--connecting {
+  background-color: var(--admin-warning);
+  animation: liveDotPulse 1.2s infinite;
+}
+
+.live-pulse-dot--disconnected {
+  background-color: var(--admin-danger);
+}
+
+.live-pulse-dot--reconnecting {
+  background-color: #f97316;
+  animation: liveDotPulse 1s infinite;
+}
+
+@keyframes liveDotPulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.realtime-status-text {
+  font-size: 0.84rem;
+  font-weight: 650;
+  color: var(--admin-ink);
+}
+
+.realtime-status-sub {
+  font-size: 0.74rem;
+  color: var(--admin-muted);
+}
+
+.realtime-stream-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Banner Mất kết nối / Tạm dừng ── */
+.realtime-alert-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.84rem;
+  animation: bannerSlideDown 0.2s ease-out;
+}
+
+.realtime-alert-banner--danger {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.realtime-alert-banner--warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+@keyframes bannerSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── KPI Grid ── */
+.realtime-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* ── Bảng dữ liệu sự kiện quẹt thẻ ── */
+.realtime-event-row {
+  transition: background-color 0.4s ease;
+}
+
+.realtime-event-row.is-new-event {
+  background-color: #f0fdf4 !important;
+  animation: newEventFlash 2.5s ease-out;
+}
+
+@keyframes newEventFlash {
+  0% {
+    background-color: #bbf7d0;
+  }
+  50% {
+    background-color: #dcfce7;
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.badge-new-pulse {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  background: #10b981;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 750;
+  border-radius: 4px;
+  margin-left: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Chi tiết modal ── */
+.event-detail-field {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.event-detail-field__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--admin-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Responsive Breakpoints ── */
+@media (max-width: 1200px) {
+  .realtime-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .realtime-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .realtime-stream-strip {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .realtime-stream-controls {
+    justify-content: flex-end;
+  }
+}

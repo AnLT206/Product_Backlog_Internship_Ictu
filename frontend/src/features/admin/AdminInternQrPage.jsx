@@ -13,6 +13,7 @@ import {
   Cpu,
   Layers,
   X,
+  Activity,
 } from 'lucide-react'
 import {
   fetchInternQrList,
@@ -221,6 +222,13 @@ export default function AdminInternQrPage() {
         </div>
 
         <div className="admin-header-actions">
+          <Link
+            to="/admin/attendance-monitor"
+            className="admin-btn admin-btn--outline"
+          >
+            <Activity size={15} />
+            <span>Giám sát Realtime</span>
+          </Link>
           <button
             type="button"
             className="admin-btn admin-btn--outline"
