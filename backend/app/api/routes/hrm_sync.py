@@ -11,16 +11,42 @@ from app.models.system_log import SystemLog
 from app.models.user import User
 from app.schemas.hrm_sync import (
     HrmPersonnelItem,
+    HrmReconciliationPreviewRequest,
+    HrmReconciliationPreviewResponse,
     HrmStatusResponse,
     HrmSyncActionResponse,
     HrmSyncLogResponse,
     HrmSyncRequest,
     HrmWebhookPayload,
+    ReconciliationSummary,
 )
+from app.services.hrm_data_mapper import HrmDataMapper
 from app.services.hrm_sync_service import HrmCronScheduler, HrmSyncService
 
 router = APIRouter(prefix="/admin/hrm", tags=["admin-hrm"])
 webhook_router = APIRouter(prefix="/webhooks/hrm", tags=["webhooks"])
+
+
+@router.post(
+    "/preview",
+    response_model=HrmReconciliationPreviewResponse,
+    summary="Xem trước Data Mapping và Đối soát trùng lặp tài khoản (Dry-run Preview)",
+    dependencies=[Depends(require_roles("admin"))],
+)
+def preview_hrm_reconciliation(
+    payload: HrmReconciliationPreviewRequest,
+    db: Session = Depends(get_db),
+) -> HrmReconciliationPreviewResponse:
+    """
+    Xem trước kết quả phân tích trùng lặp, ánh xạ dữ liệu và kế hoạch hành động
+    (tạo mới, cập nhật, hợp nhất, bỏ qua, cảnh báo xung đột) mà không commit vào Database.
+    """
+    service = HrmSyncService(db)
+    return service.preview_reconciliation(
+        items=payload.items,
+        raw_data=payload.raw_data,
+        conflict_strategy=payload.conflict_strategy,
+    )
 
 
 @router.get(
@@ -64,11 +90,45 @@ def trigger_hrm_sync(
     service = HrmSyncService(db)
 
     source = payload.source if payload and payload.source else "FastHRM"
+    conflict_strategy = payload.conflict_strategy if payload else "update"
+
+    # Xử lý danh sách nhân sự (hỗ trợ cả items chuẩn và raw_data tự động mapping)
+    items_to_sync: list[HrmPersonnelItem] = []
     if payload and payload.items:
-        log = service.sync_personnel(payload.items, sync_type="manual", source=source)
+        items_to_sync.extend(payload.items)
+    if payload and payload.raw_data:
+        mapped_items, _ = HrmDataMapper.map_batch(payload.raw_data)
+        items_to_sync.extend(mapped_items)
+
+    if items_to_sync:
+        log = service.sync_personnel(
+            items_to_sync,
+            sync_type="manual",
+            source=source,
+            conflict_strategy=conflict_strategy,
+        )
     else:
         endpoint = payload.api_endpoint if payload else None
-        log = service.sync_from_api(endpoint_override=endpoint, source=source, sync_type="manual")
+        log = service.sync_from_api(
+            endpoint_override=endpoint,
+            source=source,
+            sync_type="manual",
+            conflict_strategy=conflict_strategy,
+        )
+
+    # Thống kê tổng hợp đối soát
+    reconciliation_summary = None
+    if log.details and isinstance(log.details, dict):
+        reconciliation_summary = ReconciliationSummary(
+            total_input=log.total_records,
+            to_create=log.created_users,
+            to_update=log.updated_users,
+            to_skip=log.details.get("skipped", 0),
+            conflicts_count=log.details.get("conflicts_count", 0),
+            mentors_count=log.mentors_synced,
+            hr_count=log.hr_synced,
+            interns_count=log.interns_synced,
+        )
 
     # Record to SystemLog
     try:
@@ -78,7 +138,7 @@ def trigger_hrm_sync(
                 action="UPDATE",
                 method="POST",
                 path="/api/admin/hrm/sync",
-                resource=f"Đồng bộ HRM thủ công ({log.created_users} tạo mới, {log.updated_users} cập nhật, {log.mentors_synced} mentors)",
+                resource=f"Đồng bộ HRM ({log.created_users} tạo mới, {log.updated_users} cập nhật, {log.mentors_synced} mentors, chiến lược: {conflict_strategy})",
                 status_code=200,
             )
         )
@@ -88,9 +148,15 @@ def trigger_hrm_sync(
 
     message = (
         f"Đồng bộ thành công {log.total_records} bản ghi ({log.created_users} người dùng mới, "
-        f"{log.updated_users} cập nhật, {log.mentors_synced} mentor liên kết)."
+        f"{log.updated_users} cập nhật, {log.mentors_synced} mentor liên kết, chiến lược '{conflict_strategy}')."
     )
-    return HrmSyncActionResponse(success=True, message=message, log=HrmSyncLogResponse.model_validate(log))
+    return HrmSyncActionResponse(
+        success=True,
+        message=message,
+        log=HrmSyncLogResponse.model_validate(log),
+        reconciliation=reconciliation_summary,
+    )
+
 
 
 @router.post(

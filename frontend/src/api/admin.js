@@ -374,6 +374,18 @@ export async function triggerHrmSync(payload = {}) {
 }
 
 /**
+ * Xem trước kết quả Data Mapping và Đối soát trùng lặp tài khoản (Dry-run Preview).
+ * POST /api/admin/hrm/preview
+ * @param {{ conflict_strategy?: 'update'|'merge'|'skip', items?: Array, raw_data?: Array }} payload
+ */
+export async function previewHrmReconciliation(payload = {}) {
+  return apiFetch('/api/admin/hrm/preview', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
  * Bật/tắt tiến trình lập lịch Cron Job đồng bộ HRM.
  * POST /api/admin/hrm/scheduler/toggle?active=true|false
  */
@@ -382,6 +394,7 @@ export async function toggleHrmScheduler(active = true) {
     method: 'POST',
   });
 }
+
 
 
 /* ─────────────────────────────────────────────

@@ -21,10 +21,15 @@ from app.models.system_setting import SystemSetting
 from app.models.user import User
 from app.models.user_profile import UserProfile
 from app.schemas.hrm_sync import (
+    ConflictStrategy,
     HrmPersonnelItem,
+    HrmReconciliationPreviewResponse,
     HrmStatusResponse,
     HrmWebhookPayload,
+    ReconciliationSummary,
 )
+from app.services.hrm_data_mapper import HrmDataMapper
+from app.services.hrm_reconciliation_service import HrmReconciliationService
 from app.utils.hash_password import hash_password
 
 logger = logging.getLogger(__name__)
@@ -82,6 +87,7 @@ DEFAULT_MOCK_HRM_ITEMS = [
 class HrmSyncService:
     def __init__(self, db: Session) -> None:
         self.db = db
+        self.reconciliation_service = HrmReconciliationService(db)
 
     def _get_setting(self, key: str, default: str = "") -> str:
         row = self.db.query(SystemSetting).filter(SystemSetting.key == key).first()
@@ -127,11 +133,41 @@ class HrmSyncService:
             .all()
         )
 
+    def preview_reconciliation(
+        self,
+        items: list[HrmPersonnelItem] | None = None,
+        raw_data: list[dict[str, Any]] | None = None,
+        conflict_strategy: ConflictStrategy = "update",
+    ) -> HrmReconciliationPreviewResponse:
+        """
+        Xem trước kết quả Data Mapping và Đối soát trùng lặp mà không commit vào Database.
+        """
+        final_items: list[HrmPersonnelItem] = list(items or [])
+        mapping_errors: list[dict[str, Any]] = []
+
+        if raw_data:
+            mapped_items, map_errs = HrmDataMapper.map_batch(raw_data)
+            final_items.extend(mapped_items)
+            mapping_errors.extend(map_errs)
+
+        summary, details = self.reconciliation_service.analyze_reconciliation(
+            final_items, conflict_strategy=conflict_strategy
+        )
+
+        return HrmReconciliationPreviewResponse(
+            success=True,
+            conflict_strategy=conflict_strategy,
+            summary=summary,
+            details=details,
+            mapping_errors=mapping_errors,
+        )
+
     def sync_personnel(
         self,
         items: list[HrmPersonnelItem],
         sync_type: str = "manual",
         source: str = "FastHRM",
+        conflict_strategy: ConflictStrategy = "update",
     ) -> HrmSyncLog:
         now = datetime.utcnow()
         log = HrmSyncLog(
@@ -151,175 +187,43 @@ class HrmSyncService:
         self.db.commit()
         self.db.refresh(log)
 
-        # Pre-cache roles
-        roles_by_name: dict[str, Role] = {r.name.lower(): r for r in self.db.query(Role).all()}
-        fallback_role = roles_by_name.get("mentor") or list(roles_by_name.values())[0]
+        # Sử dụng Reconciliation Service thực thi đối soát & đồng bộ
+        counts, error_items = self.reconciliation_service.execute_sync_with_reconciliation(
+            items=items,
+            conflict_strategy=conflict_strategy,
+            source=source,
+        )
 
-        created_users = 0
-        updated_users = 0
-        failed_records = 0
-        mentors_synced = 0
-        hr_synced = 0
-        interns_synced = 0
-        error_details: list[dict[str, Any]] = []
+        # Cập nhật kết quả đồng bộ
+        created_users = counts["created_users"]
+        updated_users = counts["updated_users"]
+        failed_records = counts["failed_records"]
+        skipped_users = counts["skipped_users"]
 
-        for item in items:
-            try:
-                target_role = roles_by_name.get(item.role.lower(), fallback_role)
-
-                # Department handling
-                dept = None
-                if item.department_name and item.department_name.strip():
-                    dept_name = item.department_name.strip()
-                    dept = self.db.query(Department).filter(Department.name == dept_name).first()
-                    if not dept:
-                        dept = Department(name=dept_name, description=f"Đồng bộ từ {source}")
-                        self.db.add(dept)
-                        self.db.flush()
-
-                # User lookup by email or code
-                user = self.db.query(User).filter(User.email == item.email.strip()).first()
-                if not user and item.employee_code:
-                    user = self.db.query(User).filter(User.code == item.employee_code.strip()).first()
-
-                if user:
-                    # Update existing user
-                    user.full_name = item.full_name.strip()
-                    if item.employee_code and not user.code:
-                        user.code = item.employee_code.strip()
-                    if item.status in ("active", "inactive", "pending"):
-                        user.status = item.status
-                    if item.cccd and not user.cccd:
-                        user.cccd = item.cccd.strip()
-
-                    # Update profile based on role
-                    if target_role.name.lower() in ("mentor", "hr", "admin"):
-                        profile = (
-                            self.db.query(UserProfile)
-                            .filter(UserProfile.user_id == user.id)
-                            .first()
-                        )
-                        if not profile:
-                            profile = UserProfile(
-                                user_id=user.id,
-                                department_id=dept.id if dept else None,
-                                phone_number=item.phone,
-                                position=item.position,
-                            )
-                            self.db.add(profile)
-                        else:
-                            if dept:
-                                profile.department_id = dept.id
-                            if item.phone:
-                                profile.phone_number = item.phone
-                            if item.position:
-                                profile.position = item.position
-
-                    elif target_role.name.lower() == "intern":
-                        intern_prof = (
-                            self.db.query(InternProfile)
-                            .filter(InternProfile.user_id == user.id)
-                            .first()
-                        )
-                        if not intern_prof:
-                            intern_prof = InternProfile(
-                                user_id=user.id,
-                                phone_number=item.phone,
-                                university=item.university,
-                                major=item.major,
-                                status="approved",
-                            )
-                            self.db.add(intern_prof)
-                        else:
-                            if item.phone:
-                                intern_prof.phone_number = item.phone
-                            if item.university:
-                                intern_prof.university = item.university
-                            if item.major:
-                                intern_prof.major = item.major
-
-                    updated_users += 1
-
-                else:
-                    # Create new user
-                    code_to_set = item.employee_code.strip() if item.employee_code else f"HRM{int(time.time())}"
-                    # Check if code already used
-                    if self.db.query(User).filter(User.code == code_to_set).first():
-                        code_to_set = f"{code_to_set}_{int(time.time()) % 10000}"
-
-                    new_user = User(
-                        code=code_to_set,
-                        email=item.email.strip(),
-                        password_hash=hash_password("FastHRM@2026"),
-                        full_name=item.full_name.strip(),
-                        role_id=target_role.id,
-                        status=item.status or "active",
-                        cccd=item.cccd.strip() if item.cccd else None,
-                    )
-                    self.db.add(new_user)
-                    self.db.flush()
-
-                    if target_role.name.lower() in ("mentor", "hr", "admin"):
-                        profile = UserProfile(
-                            user_id=new_user.id,
-                            department_id=dept.id if dept else None,
-                            phone_number=item.phone,
-                            position=item.position,
-                        )
-                        self.db.add(profile)
-                    elif target_role.name.lower() == "intern":
-                        intern_prof = InternProfile(
-                            user_id=new_user.id,
-                            phone_number=item.phone,
-                            university=item.university,
-                            major=item.major,
-                            status="approved",
-                        )
-                        self.db.add(intern_prof)
-
-                    created_users += 1
-
-                # Role specific counter
-                if target_role.name.lower() == "mentor":
-                    mentors_synced += 1
-                elif target_role.name.lower() == "hr":
-                    hr_synced += 1
-                elif target_role.name.lower() == "intern":
-                    interns_synced += 1
-
-                self.db.flush()
-
-            except Exception as e:
-                failed_records += 1
-                error_details.append({
-                    "email": item.email,
-                    "code": item.employee_code,
-                    "error": str(e),
-                })
-                logger.warning(f"Error syncing HRM item {item.email}: {e}")
-
-        # Finalize log
         log.total_records = len(items)
         log.created_users = created_users
         log.updated_users = updated_users
         log.failed_records = failed_records
-        log.mentors_synced = mentors_synced
-        log.hr_synced = hr_synced
-        log.interns_synced = interns_synced
+        log.mentors_synced = counts["mentors_synced"]
+        log.hr_synced = counts["hr_synced"]
+        log.interns_synced = counts["interns_synced"]
         log.completed_at = datetime.utcnow()
 
         if failed_records == 0 and len(items) > 0:
             log.status = "success"
-        elif created_users + updated_users > 0:
+        elif created_users + updated_users + skipped_users > 0:
             log.status = "partial"
         else:
             log.status = "failed" if len(items) > 0 else "success"
 
         log.details = {
+            "conflict_strategy": conflict_strategy,
             "created": created_users,
             "updated": updated_users,
+            "skipped": skipped_users,
             "failed": failed_records,
-            "errors": error_details[:20],
+            "conflicts_count": counts.get("conflicts_count", 0),
+            "errors": error_items[:20],
         }
 
         self.db.commit()
@@ -331,6 +235,7 @@ class HrmSyncService:
         endpoint_override: str | None = None,
         source: str = "FastHRM",
         sync_type: str = "manual",
+        conflict_strategy: ConflictStrategy = "update",
     ) -> HrmSyncLog:
         endpoint = endpoint_override or self._get_setting(
             "hrm_api_endpoint", "https://hrm.ictu.edu.vn/api/v1/interns/sync"
@@ -353,7 +258,8 @@ class HrmSyncService:
                     body = resp.json()
                     raw_items = body.get("data") if isinstance(body, dict) else body
                     if isinstance(raw_items, list):
-                        items_to_sync = [HrmPersonnelItem(**item) for item in raw_items]
+                        mapped_items, _ = HrmDataMapper.map_batch(raw_items)
+                        items_to_sync = mapped_items
                 else:
                     raise httpx.HTTPStatusError(
                         f"HRM returned status {resp.status_code}",
@@ -365,9 +271,15 @@ class HrmSyncService:
                 f"HRM external endpoint {endpoint} not reachable directly ({exc}). Using standard FastHRM seed roster for demo/local environment."
             )
             is_mock_fallback = True
-            items_to_sync = [HrmPersonnelItem(**item) for item in DEFAULT_MOCK_HRM_ITEMS]
+            mapped_items, _ = HrmDataMapper.map_batch(DEFAULT_MOCK_HRM_ITEMS)
+            items_to_sync = mapped_items
 
-        log = self.sync_personnel(items_to_sync, sync_type=sync_type, source=source)
+        log = self.sync_personnel(
+            items_to_sync,
+            sync_type=sync_type,
+            source=source,
+            conflict_strategy=conflict_strategy,
+        )
         if is_mock_fallback and log.details and isinstance(log.details, dict):
             log.details["is_mock_fallback"] = True
             log.details["endpoint_contacted"] = endpoint
@@ -405,7 +317,9 @@ class HrmSyncService:
             items=payload.data,
             sync_type="webhook",
             source=payload.source or "FastHRM Webhook",
+            conflict_strategy=payload.conflict_strategy,
         )
+
 
 
 class HrmCronScheduler:
