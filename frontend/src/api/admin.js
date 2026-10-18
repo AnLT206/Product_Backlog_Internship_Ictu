@@ -346,6 +346,44 @@ export async function testHrmConnection() {
   });
 }
 
+/**
+ * Lấy trạng thái đồng bộ HRM và Cron Job.
+ * GET /api/admin/hrm/status
+ */
+export async function getHrmStatus() {
+  return apiFetch('/api/admin/hrm/status', { method: 'GET' });
+}
+
+/**
+ * Lấy lịch sử các đợt đồng bộ nhân sự & mentor từ HRM.
+ * GET /api/admin/hrm/history
+ */
+export async function getHrmHistory(limit = 50, offset = 0) {
+  return apiFetch(`/api/admin/hrm/history?limit=${limit}&offset=${offset}`, { method: 'GET' });
+}
+
+/**
+ * Kích hoạt đồng bộ nhân sự & mentor HRM ngay lập tức.
+ * POST /api/admin/hrm/sync
+ */
+export async function triggerHrmSync(payload = {}) {
+  return apiFetch('/api/admin/hrm/sync', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Bật/tắt tiến trình lập lịch Cron Job đồng bộ HRM.
+ * POST /api/admin/hrm/scheduler/toggle?active=true|false
+ */
+export async function toggleHrmScheduler(active = true) {
+  return apiFetch(`/api/admin/hrm/scheduler/toggle?active=${active}`, {
+    method: 'POST',
+  });
+}
+
+
 /* ─────────────────────────────────────────────
    Backup & Restore API
 ───────────────────────────────────────────── */
