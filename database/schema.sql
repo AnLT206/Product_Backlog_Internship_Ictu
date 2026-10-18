@@ -413,3 +413,51 @@ CREATE TABLE IF NOT EXISTS `mentor_interns` (
     CONSTRAINT `fk_mentor_interns_intern` FOREIGN KEY (`intern_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `internship_groups` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(150) NOT NULL,
+    `code` VARCHAR(50) NULL UNIQUE,
+    `department_id` INT NULL,
+    `program_id` INT NULL,
+    `description` VARCHAR(500) NULL,
+    `max_members` INT NOT NULL DEFAULT 20,
+    `status` ENUM('active', 'inactive', 'closed') NOT NULL DEFAULT 'active',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX `idx_internship_groups_department_id` (`department_id`),
+    INDEX `idx_internship_groups_program_id` (`program_id`),
+    CONSTRAINT `fk_ig_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL,
+    CONSTRAINT `fk_ig_program` FOREIGN KEY (`program_id`) REFERENCES `internship_programs` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `intern_profile_groups` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `intern_profile_id` INT NOT NULL,
+    `group_id` INT NOT NULL,
+    `role` VARCHAR(50) NOT NULL DEFAULT 'member',
+    `status` ENUM('active', 'transferred', 'left') NOT NULL DEFAULT 'active',
+    `assigned_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `assigned_by` INT NULL,
+    UNIQUE KEY `uq_intern_profile_group` (`intern_profile_id`, `group_id`),
+    INDEX `idx_ipg_intern_profile_id` (`intern_profile_id`),
+    INDEX `idx_ipg_group_id` (`group_id`),
+    CONSTRAINT `fk_ipg_intern_profile` FOREIGN KEY (`intern_profile_id`) REFERENCES `intern_profiles` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_ipg_group` FOREIGN KEY (`group_id`) REFERENCES `internship_groups` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_ipg_assigned_by` FOREIGN KEY (`assigned_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `intern_profile_departments` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `intern_profile_id` INT NOT NULL,
+    `department_id` INT NOT NULL,
+    `assigned_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `assigned_by` INT NULL,
+    UNIQUE KEY `uq_intern_profile_department` (`intern_profile_id`, `department_id`),
+    INDEX `idx_ipd_intern_profile_id` (`intern_profile_id`),
+    INDEX `idx_ipd_department_id` (`department_id`),
+    CONSTRAINT `fk_ipd_intern_profile` FOREIGN KEY (`intern_profile_id`) REFERENCES `intern_profiles` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_ipd_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_ipd_assigned_by` FOREIGN KEY (`assigned_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+

@@ -9,6 +9,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
+    from app.models.intern_profile import InternProfile
+    from app.models.internship_group import (
+        InternProfileDepartment,
+        InternshipGroup,
+    )
     from app.models.user_profile import UserProfile
 
 
@@ -26,3 +31,18 @@ class Department(Base):
     user_profiles: Mapped[list[UserProfile]] = relationship(
         back_populates="department"
     )
+    internship_groups: Mapped[list[InternshipGroup]] = relationship(
+        back_populates="department"
+    )
+    intern_profiles: Mapped[list[InternProfile]] = relationship(
+        secondary="intern_profile_departments",
+        back_populates="departments",
+        overlaps="department_intern_memberships,intern_profile,department",
+    )
+    department_intern_memberships: Mapped[list[InternProfileDepartment]] = relationship(
+        back_populates="department",
+        cascade="all, delete-orphan",
+        overlaps="intern_profiles,departments",
+    )
+
+

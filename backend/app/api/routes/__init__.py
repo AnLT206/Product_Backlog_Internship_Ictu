@@ -11,6 +11,7 @@ from app.api.routes import (
     evaluations,
     intern_contract,
     interns,
+    internship_groups,
     leaves,
     meetings,
     mentors,
@@ -34,6 +35,7 @@ api_router.include_router(analytics.stats_router)
 api_router.include_router(allowances.router)
 api_router.include_router(analytics.router)
 api_router.include_router(departments.router)
+api_router.include_router(internship_groups.router)
 api_router.include_router(documents.router)           # /api/hr/documents/*
 api_router.include_router(documents.intern_router)    # /api/intern/documents/*
 api_router.include_router(documents.download_router)  # /api/documents/*
@@ -59,4 +61,5 @@ api_router.include_router(admin.settings_router)
 api_router.include_router(work_schedules.router)
 api_router.include_router(intern_portal.router)
 api_router.include_router(operations.router)
+
 

@@ -31,6 +31,11 @@ from app.models.system_setting import SystemSetting
 from app.models.backup_record import BackupRecord
 from app.models.support_ticket import SupportTicket
 from app.models.mentor_intern import MentorIntern
+from app.models.internship_group import (
+    InternshipGroup,
+    InternProfileGroup,
+    InternProfileDepartment,
+)
 
 __all__ = [
     "Allowance",
@@ -69,4 +74,8 @@ __all__ = [
     "BackupRecord",
     "SupportTicket",
     "MentorIntern",
+    "InternshipGroup",
+    "InternProfileGroup",
+    "InternProfileDepartment",
 ]
+

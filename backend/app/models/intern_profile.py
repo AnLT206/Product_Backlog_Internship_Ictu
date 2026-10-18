@@ -10,6 +10,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
+    from app.models.department import Department
+    from app.models.internship_group import (
+        InternProfileDepartment,
+        InternProfileGroup,
+        InternshipGroup,
+    )
     from app.models.user import User
 
 
@@ -48,4 +54,29 @@ class InternProfile(Base):
 
     user: Mapped[User] = relationship(foreign_keys=[user_id], back_populates="intern_profile")
     mentor: Mapped[User | None] = relationship(foreign_keys=[mentor_id], back_populates="mentored_intern_profiles")
+
+    # Quan hệ n-n với nhóm thực tập (Internship_Groups)
+    groups: Mapped[list[InternshipGroup]] = relationship(
+        secondary="intern_profile_groups",
+        back_populates="intern_profiles",
+        overlaps="group_memberships,intern_profile,group",
+    )
+    group_memberships: Mapped[list[InternProfileGroup]] = relationship(
+        back_populates="intern_profile",
+        cascade="all, delete-orphan",
+        overlaps="groups,intern_profiles",
+    )
+
+    # Quan hệ n-n với phòng ban (Departments)
+    departments: Mapped[list[Department]] = relationship(
+        secondary="intern_profile_departments",
+        back_populates="intern_profiles",
+        overlaps="department_memberships,intern_profile,department",
+    )
+    department_memberships: Mapped[list[InternProfileDepartment]] = relationship(
+        back_populates="intern_profile",
+        cascade="all, delete-orphan",
+        overlaps="departments,intern_profiles",
+    )
+
 
