@@ -14,6 +14,7 @@ from app.schemas.backup_record import (
     BackupItemResponse,
     BackupOverviewResponse,
     BackupScheduleConfig,
+    CloudStorageStatusResponse,
 )
 from app.schemas.permission import (
     PermissionActionResponse,
@@ -341,6 +342,41 @@ def delete_backup(
     return BackupService(db).delete_backup(backup_id, current_user)
 
 
+@router.post(
+    "/backups/daily-run",
+    response_model=BackupItemResponse,
+    summary="Kích hoạt kịch bản tự động sao lưu Database định kỳ hàng ngày lên Cloud Storage",
+    dependencies=[Depends(require_roles("admin"))],
+)
+def run_daily_backup_job(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> BackupItemResponse:
+    return BackupService(db).create_backup(
+        BackupCreateRequest(
+            backup_type="full",
+            note=f"Kịch bản sao lưu tự động định kỳ kích hoạt bởi {current_user.full_name} (Mã hóa Cloud S3)",
+            encrypt=True,
+            upload_cloud=True,
+        ),
+        current_user,
+    )
+
+
+@router.get(
+    "/backups/cloud-status",
+    response_model=CloudStorageStatusResponse,
+    summary="Kiểm tra trạng thái kết nối Cloud Storage và dung lượng lưu trữ sao lưu",
+    dependencies=[Depends(require_roles("admin"))],
+)
+def get_cloud_storage_status(
+    db: Session = Depends(get_db),
+    _: object = Depends(require_roles("admin")),
+) -> CloudStorageStatusResponse:
+    from app.services.cloud_backup_provider import CloudBackupProvider
+    return CloudBackupProvider().get_cloud_status()
+
+
 @router.put(
     "/backups/schedule",
     response_model=BackupScheduleConfig,
@@ -353,5 +389,6 @@ def update_backup_schedule(
     current_user: User = Depends(get_current_user),
 ) -> BackupScheduleConfig:
     return BackupService(db).update_schedule(payload.model_dump(), current_user)
+
 
 

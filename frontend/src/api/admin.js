@@ -422,12 +422,31 @@ export async function createBackup(payload) {
 }
 
 /**
+ * Kích hoạt kịch bản sao lưu tự động định kỳ hàng ngày (Mã hóa Cloud S3).
+ * POST /api/admin/backups/daily-run
+ */
+export async function runDailyBackup() {
+  return apiFetch('/api/admin/backups/daily-run', {
+    method: 'POST',
+  });
+}
+
+/**
+ * Kiểm tra trạng thái Cloud Storage và dung lượng lưu trữ sao lưu.
+ * GET /api/admin/backups/cloud-status
+ */
+export async function getCloudStorageStatus() {
+  return apiFetch('/api/admin/backups/cloud-status', { method: 'GET' });
+}
+
+/**
  * Khôi phục cơ sở dữ liệu từ bản sao lưu.
  * POST /api/admin/backups/:backupId/restore
  * @param {number} backupId
  */
 export async function restoreBackup(backupId) {
   return apiFetch(`/api/admin/backups/${backupId}/restore`, {
+
     method: 'POST',
   });
 }
