@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, require_roles
+from app.api.deps import get_current_user, get_db, require_roles
+from app.models.user import User
 from app.schemas.program import (
     ProgramAssignRequest,
     ProgramAssignResponse,
     ProgramCompletionStatsResponse,
     ProgramCreateRequest,
+    ProgramGroupBatchAssignRequest,
+    ProgramGroupBatchAssignResponse,
     ProgramPeriodRequest,
     ProgramResponse,
     ProgramUpdateRequest,
@@ -14,6 +17,22 @@ from app.schemas.program import (
 from app.services.program_service import ProgramService
 
 router = APIRouter(prefix="/hr/programs", tags=["programs"])
+
+
+@router.post(
+    "/assign-groups",
+    response_model=ProgramGroupBatchAssignResponse,
+    status_code=status.HTTP_200_OK,
+    summary="HR gán hàng loạt thực tập sinh vào một chương trình hoặc nhóm cụ thể",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def assign_groups(
+    payload: ProgramGroupBatchAssignRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ProgramGroupBatchAssignResponse:
+    """Gán hàng loạt TTS vào kỳ thực tập hoặc nhóm thực tập cụ thể (POST /api/hr/programs/assign-groups)."""
+    return ProgramService(db).assign_groups(payload, assigned_by=current_user.id)
 
 
 @router.get(

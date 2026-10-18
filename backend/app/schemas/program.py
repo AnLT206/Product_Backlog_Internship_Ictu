@@ -82,7 +82,43 @@ class ProgramAssignResponse(BaseModel):
     message: str
 
 
+class ProgramGroupBatchAssignRequest(BaseModel):
+    program_id: int | None = Field(default=None, description="ID kỳ thực tập cần gán")
+    group_id: int | None = Field(default=None, description="ID nhóm thực tập cần gán")
+    intern_ids: list[int] | None = Field(default=None, description="Danh sách User ID của TTS cần gán")
+    intern_profile_ids: list[int] | None = Field(default=None, description="Danh sách InternProfile ID của TTS cần gán")
+    mentor_id: int | None = Field(default=None, description="ID mentor hướng dẫn (tuỳ chọn)")
+    role: str = Field(default="member", max_length=50, description="Vai trò trong nhóm (member, leader)")
+
+    @model_validator(mode="after")
+    def check_target_and_interns(self) -> "ProgramGroupBatchAssignRequest":
+        if self.program_id is None and self.group_id is None:
+            raise ValueError("Vui lòng cung cấp ít nhất program_id hoặc group_id để phân công.")
+
+        has_intern_ids = bool(self.intern_ids and len(self.intern_ids) > 0)
+        has_profile_ids = bool(self.intern_profile_ids and len(self.intern_profile_ids) > 0)
+        if not has_intern_ids and not has_profile_ids:
+            raise ValueError("Vui lòng cung cấp danh sách thực tập sinh cần gán (intern_ids hoặc intern_profile_ids).")
+        return self
+
+
+class ProgramGroupBatchAssignResponse(BaseModel):
+    success: bool = True
+    program_id: int | None = None
+    program_name: str | None = None
+    group_id: int | None = None
+    group_name: str | None = None
+    department_id: int | None = None
+    department_name: str | None = None
+    assigned_count: int
+    intern_ids: list[int] = Field(default_factory=list)
+    intern_profile_ids: list[int] = Field(default_factory=list)
+    mentor_id: int | None = None
+    message: str
+
+
 class InternStatusSummary(BaseModel):
+
     """Tổng hợp số lượng TTS theo 4 trạng thái và các tỷ lệ tương ứng (US-33)."""
 
     total: int = Field(default=0, description="Tổng số thực tập sinh")

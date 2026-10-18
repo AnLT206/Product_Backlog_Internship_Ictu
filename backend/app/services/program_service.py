@@ -5,7 +5,14 @@ from sqlalchemy import and_, case, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.models.intern_profile import InternProfile
+from app.models.internship_group import (
+    InternProfileDepartment,
+    InternProfileGroup,
+    InternshipGroup,
+)
 from app.models.internship_program import InternshipProgram
+from app.models.mentor_intern import MentorIntern
 from app.models.program_member import ProgramMember
 from app.models.role import Role
 from app.models.user import User
@@ -17,10 +24,13 @@ from app.schemas.program import (
     ProgramCompletionItem,
     ProgramCompletionStatsResponse,
     ProgramCreateRequest,
+    ProgramGroupBatchAssignRequest,
+    ProgramGroupBatchAssignResponse,
     ProgramPeriodRequest,
     ProgramResponse,
     ProgramUpdateRequest,
 )
+
 
 
 class ProgramService:
@@ -306,6 +316,305 @@ class ProgramService:
             mentor_id=payload.mentor_id,
             message=f"Đã gán thành công {len(assigned)} thực tập sinh vào kỳ.",
         )
+
+    def assign_groups(
+        self,
+        payload: ProgramGroupBatchAssignRequest,
+        assigned_by: int | None = None,
+    ) -> ProgramGroupBatchAssignResponse:
+        """Gán hàng loạt thực tập sinh vào một chương trình hoặc nhóm cụ thể (POST /api/hr/programs/assign-groups)."""
+        program = None
+        if payload.program_id is not None:
+            program = (
+                self.db.query(InternshipProgram)
+                .filter(
+                    InternshipProgram.id == payload.program_id,
+                    InternshipProgram.is_deleted.is_(False),
+                )
+                .first()
+            )
+            if not program:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Không tìm thấy kỳ thực tập có ID {payload.program_id}.",
+                )
+            if program.status == "closed":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Kỳ thực tập đã đóng, không thể tiếp nhận thêm thực tập sinh.",
+                )
+
+        group = None
+        if payload.group_id is not None:
+            group = (
+                self.db.query(InternshipGroup)
+                .filter(InternshipGroup.id == payload.group_id)
+                .first()
+            )
+            if not group:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Không tìm thấy nhóm thực tập có ID {payload.group_id}.",
+                )
+            if group.status == "closed":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Nhóm thực tập đã đóng, không thể tiếp nhận thêm thực tập sinh.",
+                )
+
+        if program is None and group is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Vui lòng cung cấp ít nhất program_id hoặc group_id để phân công.",
+            )
+
+        if payload.mentor_id is not None:
+            mentor = (
+                self.db.query(User)
+                .join(Role, User.role_id == Role.id)
+                .filter(User.id == payload.mentor_id, Role.name == "mentor")
+                .first()
+            )
+            if not mentor:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Không tìm thấy Mentor có ID {payload.mentor_id}.",
+                )
+
+        # 1. Thu thập và xác thực danh sách thực tập sinh
+        interns_map: dict[int, tuple[User, InternProfile]] = {}
+
+        if payload.intern_ids:
+            unique_uids = list(dict.fromkeys(payload.intern_ids))
+            users = (
+                self.db.query(User)
+                .join(Role, User.role_id == Role.id)
+                .filter(User.id.in_(unique_uids), Role.name == "intern")
+                .all()
+            )
+            found_uids = {u.id for u in users}
+            for uid in unique_uids:
+                if uid not in found_uids:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Không tìm thấy thực tập sinh có User ID {uid}.",
+                    )
+            for u in users:
+                prof = (
+                    self.db.query(InternProfile)
+                    .filter(InternProfile.user_id == u.id)
+                    .first()
+                )
+                if not prof:
+                    prof = InternProfile(user_id=u.id, status="approved")
+                    self.db.add(prof)
+                    self.db.flush()
+                interns_map[u.id] = (u, prof)
+
+        if payload.intern_profile_ids:
+            unique_pids = list(dict.fromkeys(payload.intern_profile_ids))
+            profiles = (
+                self.db.query(InternProfile)
+                .filter(InternProfile.id.in_(unique_pids))
+                .all()
+            )
+            found_pids = {p.id for p in profiles}
+            for pid in unique_pids:
+                if pid not in found_pids:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Không tìm thấy hồ sơ thực tập sinh có Profile ID {pid}.",
+                    )
+            for p in profiles:
+                u = self.db.query(User).filter(User.id == p.user_id).first()
+                if not u:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Không tìm thấy tài khoản người dùng cho hồ sơ Profile ID {p.id}.",
+                    )
+                interns_map[u.id] = (u, p)
+
+        if not interns_map:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Vui lòng cung cấp danh sách thực tập sinh cần gán.",
+            )
+
+        target_interns = list(interns_map.values())
+
+        # 2. Kiểm tra giới hạn số lượng (Capacity Check)
+        if program is not None:
+            current_pm_count = (
+                self.db.query(ProgramMember)
+                .filter(ProgramMember.program_id == program.id)
+                .count()
+            )
+            existing_user_ids = {
+                pm.intern_user_id
+                for pm in self.db.query(ProgramMember.intern_user_id)
+                .filter(
+                    ProgramMember.program_id == program.id,
+                    ProgramMember.intern_user_id.in_([u.id for u, _ in target_interns]),
+                )
+                .all()
+            }
+            new_to_program = [u for u, _ in target_interns if u.id not in existing_user_ids]
+            if current_pm_count + len(new_to_program) > program.max_interns:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Số lượng thực tập sinh vượt quá giới hạn tối đa của kỳ thực tập '{program.name}' ({program.max_interns} TTS).",
+                )
+
+        if group is not None:
+            current_group_count = (
+                self.db.query(InternProfileGroup)
+                .filter(
+                    InternProfileGroup.group_id == group.id,
+                    InternProfileGroup.status == "active",
+                )
+                .count()
+            )
+            existing_profile_ids = {
+                ipg.intern_profile_id
+                for ipg in self.db.query(InternProfileGroup.intern_profile_id)
+                .filter(
+                    InternProfileGroup.group_id == group.id,
+                    InternProfileGroup.status == "active",
+                    InternProfileGroup.intern_profile_id.in_([p.id for _, p in target_interns]),
+                )
+                .all()
+            }
+            new_to_group = [p for _, p in target_interns if p.id not in existing_profile_ids]
+            if current_group_count + len(new_to_group) > group.max_members:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Số lượng thực tập sinh vượt quá giới hạn tối đa của nhóm '{group.name}' ({group.max_members} TTS).",
+                )
+
+        # 3. Phân công vào chương trình và/hoặc nhóm
+        assigned_user_ids: list[int] = []
+        assigned_profile_ids: list[int] = []
+
+        for user, profile in target_interns:
+            assigned_user_ids.append(user.id)
+            assigned_profile_ids.append(profile.id)
+
+            if program is not None:
+                pm = (
+                    self.db.query(ProgramMember)
+                    .filter(
+                        ProgramMember.program_id == program.id,
+                        ProgramMember.intern_user_id == user.id,
+                    )
+                    .first()
+                )
+                if pm:
+                    if payload.mentor_id:
+                        pm.mentor_user_id = payload.mentor_id
+                else:
+                    new_pm = ProgramMember(
+                        program_id=program.id,
+                        intern_user_id=user.id,
+                        mentor_user_id=payload.mentor_id,
+                    )
+                    self.db.add(new_pm)
+
+            if group is not None:
+                ipg = (
+                    self.db.query(InternProfileGroup)
+                    .filter(
+                        InternProfileGroup.group_id == group.id,
+                        InternProfileGroup.intern_profile_id == profile.id,
+                    )
+                    .first()
+                )
+                if ipg:
+                    ipg.role = payload.role
+                    ipg.status = "active"
+                    if assigned_by:
+                        ipg.assigned_by = assigned_by
+                else:
+                    new_ipg = InternProfileGroup(
+                        group_id=group.id,
+                        intern_profile_id=profile.id,
+                        role=payload.role,
+                        status="active",
+                        assigned_by=assigned_by,
+                    )
+                    self.db.add(new_ipg)
+
+                # Tự động đồng bộ liên kết phòng ban tương ứng của nhóm
+                if group.department_id is not None:
+                    ipd = (
+                        self.db.query(InternProfileDepartment)
+                        .filter(
+                            InternProfileDepartment.department_id == group.department_id,
+                            InternProfileDepartment.intern_profile_id == profile.id,
+                        )
+                        .first()
+                    )
+                    if not ipd:
+                        self.db.add(
+                            InternProfileDepartment(
+                                department_id=group.department_id,
+                                intern_profile_id=profile.id,
+                                assigned_by=assigned_by,
+                            )
+                        )
+
+            # Phân công mentor nếu có
+            if payload.mentor_id is not None:
+                profile.mentor_id = payload.mentor_id
+                mi = (
+                    self.db.query(MentorIntern)
+                    .filter(MentorIntern.intern_id == user.id)
+                    .first()
+                )
+                if mi:
+                    mi.mentor_id = payload.mentor_id
+                else:
+                    self.db.add(MentorIntern(mentor_id=payload.mentor_id, intern_id=user.id))
+
+        try:
+            self.db.commit()
+        except IntegrityError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Dữ liệu phân công không hợp lệ hoặc vi phạm ràng buộc dữ liệu.",
+            )
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể thực hiện phân công vào chương trình hoặc nhóm.",
+            ) from None
+
+        target_descs = []
+        if program:
+            target_descs.append(f"kỳ thực tập '{program.name}'")
+        if group:
+            target_descs.append(f"nhóm '{group.name}'")
+        target_str = " và ".join(target_descs)
+
+        dept_id = group.department_id if group else None
+        dept_name = group.department.name if group and group.department else None
+
+        return ProgramGroupBatchAssignResponse(
+            success=True,
+            program_id=program.id if program else None,
+            program_name=program.name if program else None,
+            group_id=group.id if group else None,
+            group_name=group.name if group else None,
+            department_id=dept_id,
+            department_name=dept_name,
+            assigned_count=len(target_interns),
+            intern_ids=assigned_user_ids,
+            intern_profile_ids=assigned_profile_ids,
+            mentor_id=payload.mentor_id,
+            message=f"Đã gán thành công {len(target_interns)} thực tập sinh vào {target_str}.",
+        )
+
 
     def _get_or_404(
         self, program_id: int, allow_deleted: bool = False
