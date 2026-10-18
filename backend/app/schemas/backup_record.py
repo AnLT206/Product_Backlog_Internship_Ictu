@@ -70,3 +70,34 @@ class BackupRestoreRequest(BaseModel):
     backup_id: int | None = None
     file_path: str | None = None
     decrypt: bool = True
+
+
+class SafeRestoreRequest(BaseModel):
+    admin_password: str = Field(..., min_length=4, description="Mật khẩu Super Admin để xác thực lại danh tính an toàn")
+    confirmation_phrase: str = Field(default="CONFIRM_RESTORE", description="Cụm từ xác nhận thao tác, ví dụ: 'CONFIRM_RESTORE'")
+    create_safety_snapshot: bool = Field(default=True, description="Tự động snapshot sao lưu CSDL hiện tại trước khi phục hồi để có thể hoàn tác")
+    verify_checksum: bool = Field(default=True, description="Kiểm tra đối chiếu mã băm SHA-256 tính toàn vẹn của tệp trước khi nạp")
+
+
+class SafeRestoreResponse(BaseModel):
+    success: bool
+    message: str
+    backup_id: int
+    filename: str
+    safety_snapshot_filename: str | None = None
+    checksum_verified: bool = True
+    restored_at: datetime
+    execution_time_seconds: float
+
+
+class BackupVerifyResponse(BaseModel):
+    backup_id: int
+    filename: str
+    is_valid: bool
+    file_exists: bool
+    checksum_matched: bool
+    expected_checksum: str | None = None
+    actual_checksum: str | None = None
+    can_decrypt: bool
+    file_size_formatted: str
+    message: str

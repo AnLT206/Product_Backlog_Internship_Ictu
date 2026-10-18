@@ -14,7 +14,10 @@ from app.schemas.backup_record import (
     BackupItemResponse,
     BackupOverviewResponse,
     BackupScheduleConfig,
+    BackupVerifyResponse,
     CloudStorageStatusResponse,
+    SafeRestoreRequest,
+    SafeRestoreResponse,
 )
 from app.schemas.permission import (
     PermissionActionResponse,
@@ -327,6 +330,35 @@ def restore_backup(
     current_user: User = Depends(get_current_user),
 ) -> dict[str, str]:
     return BackupService(db).restore_backup(backup_id, current_user)
+
+
+@router.post(
+    "/backups/{backup_id}/restore-safe",
+    response_model=SafeRestoreResponse,
+    summary="Kích hoạt phục hồi dữ liệu an toàn (Safe Disaster Recovery) dành riêng cho Super Admin",
+    dependencies=[Depends(require_roles("admin"))],
+)
+def restore_backup_safe(
+    backup_id: int,
+    payload: SafeRestoreRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> SafeRestoreResponse:
+    return BackupService(db).safe_restore_backup(backup_id, payload, current_user)
+
+
+@router.post(
+    "/backups/verify/{backup_id}",
+    response_model=BackupVerifyResponse,
+    summary="Kiểm tra tính toàn vẹn (Dry-run Verify) tệp sao lưu trước khi kích hoạt phục hồi",
+    dependencies=[Depends(require_roles("admin"))],
+)
+def verify_backup_file(
+    backup_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_roles("admin")),
+) -> BackupVerifyResponse:
+    return BackupService(db).verify_backup(backup_id)
 
 
 @router.delete(

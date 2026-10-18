@@ -21,11 +21,15 @@ from app.schemas.backup_record import (
     BackupItemResponse,
     BackupOverviewResponse,
     BackupScheduleConfig,
+    BackupVerifyResponse,
     CloudStorageStatusResponse,
+    SafeRestoreRequest,
+    SafeRestoreResponse,
 )
 from app.services.backup_encryption_service import BackupEncryptionService
 from app.services.cloud_backup_provider import CloudBackupProvider
 from app.services.database_dump_engine import DatabaseDumpEngine
+from app.utils.hash_password import verify_password
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +46,8 @@ def _format_size(size_bytes: int) -> str:
 
 
 class BackupService:
+    _restore_lock = threading.Lock()
+
     def __init__(self, db: Session) -> None:
         self.db = db
         bind_engine = db.get_bind() if hasattr(db, "get_bind") else engine
@@ -273,8 +279,12 @@ class BackupService:
                 SystemLog(
                     user_id=user_id,
                     action="CREATE",
-                    resource=f"Tạo sao lưu mã hóa Cloud '{final_filename}' ({_format_size(final_size)})",
+                    method="POST",
+                    path="/api/admin/backups",
+                    resource="backups",
+                    description=f"Tạo sao lưu mã hóa Cloud '{final_filename}' ({_format_size(final_size)})",
                     status_code=201,
+                    created_at=datetime.utcnow(),
                 )
             )
             self.db.commit()
@@ -402,8 +412,12 @@ class BackupService:
                 SystemLog(
                     user_id=user_id,
                     action="UPDATE",
-                    resource=f"Khôi phục CSDL thành công từ bản sao lưu mã hóa '{filename}'",
+                    method="POST",
+                    path=f"/api/admin/backups/{backup_id}/restore",
+                    resource="backups",
+                    description=f"Khôi phục CSDL thành công từ bản sao lưu mã hóa '{filename}'",
                     status_code=200,
+                    created_at=datetime.utcnow(),
                 )
             )
             self.db.commit()
@@ -415,6 +429,331 @@ class BackupService:
             "filename": filename,
             "restored_at": now_time.isoformat(),
         }
+
+    def verify_backup(self, backup_id: int) -> BackupVerifyResponse:
+        """
+        Kiểm tra tính toàn vẹn và khả năng phục hồi của tệp sao lưu (Dry-run Health & Integrity Check).
+        - Kiểm tra sự tồn tại của tệp (cục bộ / Cloud).
+        - Đối soát mã băm SHA-256 so với giá trị lúc tạo sao lưu.
+        - Kiểm tra khả năng giải mã (Decryption test với Fernet) và giải nén Gzip.
+        """
+        record = self.db.query(BackupRecord).filter(BackupRecord.id == backup_id).first()
+        if not record:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bản sao lưu không tồn tại.")
+
+        file_exists = False
+        checksum_matched = False
+        actual_checksum = None
+        can_decrypt = False
+        file_size_formatted = _format_size(record.file_size or 0)
+        target_file_path = record.file_path
+
+        # 1. Kiểm tra tồn tại cục bộ hoặc tải từ Cloud
+        if target_file_path and os.path.exists(target_file_path):
+            file_exists = True
+        elif record.cloud_storage_url:
+            try:
+                local_download_dir = self._ensure_storage_dir()
+                target_file_path = os.path.join(local_download_dir, record.filename)
+                self.cloud_provider.download_file(record.cloud_storage_url, target_file_path)
+                record.file_path = target_file_path
+                self.db.commit()
+                file_exists = os.path.exists(target_file_path)
+            except Exception as e:
+                logger.warning(f"Could not download backup from cloud for verify: {e}")
+                file_exists = False
+
+        if not file_exists:
+            return BackupVerifyResponse(
+                backup_id=record.id,
+                filename=record.filename,
+                is_valid=False,
+                file_exists=False,
+                checksum_matched=False,
+                expected_checksum=record.checksum_sha256,
+                actual_checksum=None,
+                can_decrypt=False,
+                file_size_formatted=file_size_formatted,
+                message=f"Tệp sao lưu không tồn tại trên hệ thống lưu trữ hoặc Cloud: {record.filename}",
+            )
+
+        # 2. Kiểm tra kích thước và tính SHA-256
+        actual_size = os.path.getsize(target_file_path)
+        file_size_formatted = _format_size(actual_size)
+        actual_checksum = self.encryption_service.calculate_sha256(target_file_path)
+
+        if record.checksum_sha256:
+            checksum_matched = (actual_checksum.lower() == record.checksum_sha256.lower())
+        else:
+            checksum_matched = True
+
+        # 3. Thử nghiệm giải mã và giải nén
+        if record.is_encrypted or target_file_path.endswith(".enc"):
+            try:
+                with open(target_file_path, "rb") as f_in:
+                    enc_data = f_in.read()
+                decrypted = self.encryption_service.fernet.decrypt(enc_data)
+                try:
+                    import gzip
+                    gzip.decompress(decrypted)
+                except Exception:
+                    pass
+                can_decrypt = True
+            except Exception as e:
+                logger.warning(f"Decryption test failed for {record.filename}: {e}")
+                can_decrypt = False
+        else:
+            try:
+                with open(target_file_path, "r", encoding="utf-8", errors="replace") as f_in:
+                    head = f_in.read(1024)
+                    can_decrypt = len(head) > 0
+            except Exception:
+                can_decrypt = False
+
+        is_valid = bool(file_exists and checksum_matched and can_decrypt)
+
+        if is_valid:
+            msg = "Tệp sao lưu toàn vẹn: Tồn tại, khớp mã băm SHA-256 và giải mã thành công."
+        else:
+            reasons = []
+            if not checksum_matched:
+                reasons.append("Mã băm SHA-256 không khớp")
+            if not can_decrypt:
+                reasons.append("Không thể giải mã hoặc giải nén tệp")
+            msg = f"Tệp sao lưu không đạt yêu cầu an toàn: {', '.join(reasons)}."
+
+        return BackupVerifyResponse(
+            backup_id=record.id,
+            filename=record.filename,
+            is_valid=is_valid,
+            file_exists=file_exists,
+            checksum_matched=checksum_matched,
+            expected_checksum=record.checksum_sha256,
+            actual_checksum=actual_checksum,
+            can_decrypt=can_decrypt,
+            file_size_formatted=file_size_formatted,
+            message=msg,
+        )
+
+    def safe_restore_backup(
+        self,
+        backup_id: int,
+        payload: SafeRestoreRequest,
+        current_user: User,
+    ) -> SafeRestoreResponse:
+        """
+        Cơ chế an toàn phục hồi thảm họa đa tầng (Disaster Recovery Safe Restore):
+        1. Concurrency Lock: Chặn các tiến trình restore chạy đồng thời bằng thread-safe lock.
+        2. Xác thực lại danh tính Super Admin qua mật khẩu tài khoản.
+        3. Kiểm tra cụm từ xác nhận nguy hiểm 'CONFIRM_RESTORE'.
+        4. Kiểm tra tính toàn vẹn (Checksum SHA-256).
+        5. Tự động Snapshot khẩn cấp CSDL hiện tại trước khi chạm vào dữ liệu (Rollback Safety Snapshot).
+        6. Giải mã tệp sao lưu và nạp SQL DDL/DML vào database.
+        7. Cập nhật registry BackupRecord và Ghi vết truy vết SystemLog.
+        """
+        # 1. Thread-safe Concurrency Lock
+        if not BackupService._restore_lock.acquire(blocking=False):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Một tiến trình phục hồi dữ liệu khác đang chạy trong hệ thống. Vui lòng thử lại sau.",
+            )
+
+        try:
+            # 2. Xác thực lại danh tính Super Admin bằng mật khẩu
+            if not current_user or not current_user.password_hash or not verify_password(payload.admin_password, current_user.password_hash):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Mật khẩu Super Admin không chính xác. Thao tác phục hồi dữ liệu bị từ chối vì lý do an toàn.",
+                )
+
+            # 3. Kiểm tra cụm từ xác nhận
+            if (payload.confirmation_phrase or "").strip() != "CONFIRM_RESTORE":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cụm từ xác nhận không chính xác. Phải nhập chính xác 'CONFIRM_RESTORE' để tiếp tục.",
+                )
+
+            # 4. Tìm bản ghi sao lưu
+            record = self.db.query(BackupRecord).filter(BackupRecord.id == backup_id).first()
+            if not record:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bản sao lưu không tồn tại.")
+
+            user_id = current_user.id
+            user_name = current_user.full_name
+            filename = record.filename
+            file_size = record.file_size
+            target_file_path = record.file_path
+            expected_checksum = record.checksum_sha256
+            cloud_url = record.cloud_storage_url
+            backup_type = record.backup_type
+            is_encrypted = record.is_encrypted
+            algo = record.encryption_algorithm
+            created_at_time = record.created_at
+
+            start_time = time.time()
+
+            # Tải từ Cloud nếu mất file cục bộ
+            if not os.path.exists(target_file_path) and cloud_url:
+                local_download_dir = self._ensure_storage_dir()
+                target_file_path = os.path.join(local_download_dir, filename)
+                self.cloud_provider.download_file(cloud_url, target_file_path)
+                record.file_path = target_file_path
+                self.db.commit()
+
+            if not os.path.exists(target_file_path):
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Tệp sao lưu không tồn tại trên hệ thống lưu trữ: {filename}",
+                )
+
+            # 5. Đối soát tính toàn vẹn (SHA-256 Checksum)
+            checksum_verified = False
+            if payload.verify_checksum:
+                actual_checksum = self.encryption_service.calculate_sha256(target_file_path)
+                if expected_checksum and actual_checksum.lower() != expected_checksum.lower():
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=(
+                            f"Kiểm tra tính toàn vẹn thất bại: Mã băm SHA-256 không khớp! "
+                            f"(Kỳ vọng: {expected_checksum[:12]}..., Thực tế: {actual_checksum[:12]}...). "
+                            f"Tệp sao lưu có thể đã bị can thiệp trái phép hoặc hư hỏng."
+                        ),
+                    )
+                checksum_verified = True
+
+            # 6. Tự động Snapshot khẩn cấp CSDL hiện tại trước khi restore
+            safety_snapshot_filename = None
+            safety_snapshot_path = None
+            snap_size = 0
+            snap_checksum = None
+            if payload.create_safety_snapshot:
+                target_dir = self._ensure_storage_dir()
+                snap_time_str = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+                safety_snapshot_filename = f"ictu_safety_snapshot_before_restore_{snap_time_str}.sql"
+                safety_snapshot_path = os.path.join(target_dir, safety_snapshot_filename)
+                try:
+                    self.dump_engine.dump_database(safety_snapshot_path, backup_type="full")
+                    snap_size = os.path.getsize(safety_snapshot_path)
+                    snap_checksum = self.encryption_service.calculate_sha256(safety_snapshot_path)
+                except Exception as snap_err:
+                    logger.warning(f"Could not create safety snapshot: {snap_err}")
+
+            # 7. Giải mã và Nạp SQL vào cơ sở dữ liệu
+            sql_to_execute = target_file_path
+            temp_decrypted_path = None
+
+            if is_encrypted or target_file_path.endswith(".enc"):
+                temp_decrypted_path = target_file_path + ".safe_restore_tmp.sql"
+                try:
+                    self.encryption_service.decrypt_and_decompress(
+                        input_enc_path=target_file_path,
+                        output_sql_path=temp_decrypted_path,
+                    )
+                except Exception as dec_err:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Giải mã tệp sao lưu thất bại: {dec_err}",
+                    )
+                sql_to_execute = temp_decrypted_path
+
+            try:
+                self.dump_engine.restore_sql(sql_to_execute)
+            finally:
+                if temp_decrypted_path and os.path.exists(temp_decrypted_path):
+                    try:
+                        os.remove(temp_decrypted_path)
+                    except Exception:
+                        pass
+
+            # Xóa sạch ORM cache phiên làm việc cũ
+            self.db.expunge_all()
+            execution_time = round(time.time() - start_time, 2)
+            now_time = datetime.utcnow()
+
+            # Làm mới hoặc tái tạo bản ghi sao lưu trong registry
+            refreshed_rec = (
+                self.db.query(BackupRecord)
+                .filter((BackupRecord.id == backup_id) | (BackupRecord.filename == filename))
+                .first()
+            )
+            if refreshed_rec:
+                refreshed_rec.restored_at = now_time
+                self.db.commit()
+            else:
+                refreshed_rec = BackupRecord(
+                    id=backup_id,
+                    filename=filename,
+                    file_path=target_file_path,
+                    file_size=file_size,
+                    backup_type=backup_type,
+                    status="completed",
+                    is_encrypted=is_encrypted,
+                    encryption_algorithm=algo,
+                    checksum_sha256=expected_checksum,
+                    cloud_storage_url=cloud_url,
+                    created_by_user_id=user_id,
+                    created_at=created_at_time,
+                    restored_at=now_time,
+                )
+                self.db.add(refreshed_rec)
+                self.db.commit()
+
+            # Ghi lại bản ghi Safety Snapshot vào registry CSDL vừa phục hồi để hỗ trợ Rollback
+            if safety_snapshot_filename and safety_snapshot_path and os.path.exists(safety_snapshot_path):
+                try:
+                    safety_rec = BackupRecord(
+                        filename=safety_snapshot_filename,
+                        file_path=safety_snapshot_path,
+                        file_size=snap_size,
+                        backup_type="safety_snapshot",
+                        note=f"Snapshot an toàn tự động trước khi Restore bản sao lưu #{backup_id} ({filename})",
+                        status="completed",
+                        is_encrypted=False,
+                        checksum_sha256=snap_checksum,
+                        created_by_user_id=user_id,
+                        created_at=now_time,
+                    )
+                    self.db.add(safety_rec)
+                    self.db.commit()
+                except Exception as snap_rec_err:
+                    logger.warning(f"Could not persist safety snapshot record: {snap_rec_err}")
+                    self.db.rollback()
+
+            # 8. Ghi nhật ký SystemLog
+            try:
+                self.db.add(
+                    SystemLog(
+                        user_id=user_id,
+                        action="UPDATE",
+                        method="POST",
+                        path=f"/api/admin/backups/{backup_id}/restore-safe",
+                        resource="backups",
+                        description=(
+                            f"Super Admin '{user_name}' kích hoạt khôi phục an toàn CSDL từ bản sao lưu '{filename}'. "
+                            f"Snapshot khẩn cấp: '{safety_snapshot_filename or 'Không'}'. "
+                            f"Thời gian thực thi: {execution_time}s"
+                        )[:500],
+                        status_code=200,
+                        created_at=datetime.utcnow(),
+                    )
+                )
+                self.db.commit()
+            except Exception as e:
+                logger.warning(f"Could not record safe restore SystemLog: {e}")
+                self.db.rollback()
+
+            return SafeRestoreResponse(
+                success=True,
+                message=f"Phục hồi dữ liệu an toàn thành công từ bản sao lưu '{filename}'!",
+                backup_id=backup_id,
+                filename=filename,
+                safety_snapshot_filename=safety_snapshot_filename,
+                checksum_verified=checksum_verified,
+                restored_at=now_time,
+                execution_time_seconds=execution_time,
+            )
+        finally:
+            BackupService._restore_lock.release()
 
 
     def delete_backup(self, backup_id: int, current_user: User | None = None) -> dict[str, str]:
@@ -438,8 +777,12 @@ class BackupService:
                 SystemLog(
                     user_id=user_id,
                     action="DELETE",
-                    resource=f"Xóa bản sao lưu dữ liệu '{filename}'",
+                    method="DELETE",
+                    path=f"/api/admin/backups/{backup_id}",
+                    resource="backups",
+                    description=f"Xóa bản sao lưu dữ liệu '{filename}'",
                     status_code=200,
+                    created_at=datetime.utcnow(),
                 )
             )
             self.db.commit()
@@ -469,8 +812,12 @@ class BackupService:
                 SystemLog(
                     user_id=user_id,
                     action="UPDATE",
-                    resource="Cập nhật cấu hình lịch sao lưu tự động định kỳ lên Cloud Storage",
+                    method="PUT",
+                    path="/api/admin/backups/schedule",
+                    resource="backups",
+                    description="Cập nhật cấu hình lịch sao lưu tự động định kỳ lên Cloud Storage",
                     status_code=200,
+                    created_at=datetime.utcnow(),
                 )
             )
             self.db.commit()

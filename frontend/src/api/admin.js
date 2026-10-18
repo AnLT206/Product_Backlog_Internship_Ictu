@@ -446,7 +446,30 @@ export async function getCloudStorageStatus() {
  */
 export async function restoreBackup(backupId) {
   return apiFetch(`/api/admin/backups/${backupId}/restore`, {
+    method: 'POST',
+  });
+}
 
+/**
+ * Kích hoạt phục hồi dữ liệu an toàn với xác thực mật khẩu Super Admin và snapshot tự động.
+ * POST /api/admin/backups/:backupId/restore-safe
+ * @param {number} backupId
+ * @param {{ admin_password: string, confirmation_phrase?: string, create_safety_snapshot?: boolean, verify_checksum?: boolean }} payload
+ */
+export async function safeRestoreBackup(backupId, payload) {
+  return apiFetch(`/api/admin/backups/${backupId}/restore-safe`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Kiểm tra tính toàn vẹn (Dry-run Verify) tệp sao lưu trước khi kích hoạt phục hồi.
+ * POST /api/admin/backups/verify/:backupId
+ * @param {number} backupId
+ */
+export async function verifyBackup(backupId) {
+  return apiFetch(`/api/admin/backups/verify/${backupId}`, {
     method: 'POST',
   });
 }
