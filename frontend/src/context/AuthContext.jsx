@@ -420,6 +420,11 @@ export function normalizeUserName(u) {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
+    const path = typeof window !== 'undefined' ? window.location.pathname : '';
+    if (path === '/login' || path === '/register') {
+      return null;
+    }
+
     const stored = readStoredUser();
     if (stored) {
       const normalized = normalizeUserName(stored);
@@ -438,7 +443,6 @@ export function AuthProvider({ children }) {
       return enriched;
     }
     // Default demo session: xác định đúng vai trò theo ngữ cảnh URL của tab hiện tại
-    const path = typeof window !== 'undefined' ? window.location.pathname : '';
     let demo;
     if (path.startsWith('/admin')) {
       demo = DEMO_PROFILES.admin;
@@ -446,13 +450,16 @@ export function AuthProvider({ children }) {
       demo = DEMO_PROFILES.hr;
     } else if (path.startsWith('/mentor')) {
       demo = DEMO_PROFILES.mentor;
-    } else {
+    } else if (path.startsWith('/intern')) {
       const isApplicantUrl =
         path === '/intern/upload' ||
         (typeof window !== 'undefined' &&
           ((window.sessionStorage && sessionStorage.getItem('last_portal_intern_role') === 'applicant') ||
             localStorage.getItem('last_portal_intern_role') === 'applicant'));
       demo = isApplicantUrl ? DEMO_PROFILES.applicant : DEMO_PROFILES.intern;
+    } else {
+      // Các trang công khai (/, /login, /register...) không tự động khởi tạo phiên
+      return null;
     }
     const enriched = enrichUserWithPersistedProfile(demo);
     saveSession({ access_token: 'demo-enterprise-token', user: enriched });

@@ -164,5 +164,20 @@ describe('auth.js and multi-tab session isolation', () => {
     expect(isApplicantUser(tts2)).toBe(false);
     expect(isApplicantUser(hr)).toBe(false);
   });
+
+  it('does not restore admin or any user session when accessing /login or /register', () => {
+    // Giả lập admin đã đăng nhập trước đó và lưu vào localStorage
+    const adminUser = { id: 1, email: 'admin@ictu.edu.vn', role: 'admin', code: 'AD0001' };
+    saveSession({ access_token: 'admin-token', user: adminUser });
+    expect(localStorage.getItem('auth_user')).toBeTruthy();
+
+    // Khi người dùng truy cập /login, readStoredUser PHẢI trả về null (không tự đăng nhập admin)
+    window.location.pathname = '/login';
+    expect(readStoredUser()).toBeNull();
+
+    // Khi người dùng truy cập /register, readStoredUser PHẢI trả về null
+    window.location.pathname = '/register';
+    expect(readStoredUser()).toBeNull();
+  });
 });
 

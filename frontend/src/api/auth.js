@@ -116,6 +116,11 @@ export function readStoredUser() {
   try {
     const path = typeof window !== 'undefined' ? window.location.pathname : '';
 
+    // Khi ở trang /login hoặc /register, không tự động khôi phục phiên từ storage
+    if (path === '/login' || path === '/register') {
+      return null;
+    }
+
     // 1. Phân hệ HR (/hr/*) — Cô lập tuyệt đối cho HR
     if (path.startsWith('/hr')) {
       if (typeof window !== 'undefined' && window.sessionStorage) {

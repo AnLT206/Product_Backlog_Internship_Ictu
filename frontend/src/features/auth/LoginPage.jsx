@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import logoApp from '../../assets/logo_app.png'
 import { dashboardPathForRole } from '../../api/auth'
 import { useAuth, isApplicantUser } from '../../context/AuthContext'
@@ -68,7 +68,7 @@ const QUICK_ACCOUNTS = [
 function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, user, isAuthenticated } = useAuth()
+  const { login, logout, user, isAuthenticated } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -77,14 +77,13 @@ function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [quickLoadingRole, setQuickLoadingRole] = useState('')
 
-  if (isAuthenticated && user) {
-    const roleDest = dashboardPathForRole(user.role)
-    const target =
-      location.state?.from && location.state.from.startsWith(`/${user.role}`)
-        ? location.state.from
-        : roleDest
-    return <Navigate to={target} replace />
-  }
+  useEffect(() => {
+    // Khi người dùng chủ động truy cập trang /login, dọn dẹp phiên đăng nhập cũ nếu có
+    // để tránh việc tự động đăng nhập hoặc giữ trạng thái tài khoản trước đó (ví dụ admin).
+    if (isAuthenticated || user) {
+      logout()
+    }
+  }, [isAuthenticated, user, logout])
 
   async function performLogin(targetEmail, targetPassword, forcedDest) {
     setError('')
