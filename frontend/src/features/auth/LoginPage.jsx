@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import logoApp from '../../assets/logo_app.png'
 import { dashboardPathForRole } from '../../api/auth'
@@ -76,14 +76,19 @@ function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [quickLoadingRole, setQuickLoadingRole] = useState('')
+  const hasLoggedOutOnMountRef = useRef(false)
 
   useEffect(() => {
-    // Khi người dùng chủ động truy cập trang /login, dọn dẹp phiên đăng nhập cũ nếu có
-    // để tránh việc tự động đăng nhập hoặc giữ trạng thái tài khoản trước đó (ví dụ admin).
-    if (isAuthenticated || user) {
-      logout()
+    // Chỉ dọn dẹp phiên cũ một lần duy nhất khi người dùng mở trang /login,
+    // tuyệt đối không kích hoạt lại khi người dùng vừa đăng nhập thành công.
+    if (!hasLoggedOutOnMountRef.current) {
+      hasLoggedOutOnMountRef.current = true
+      if (isAuthenticated || user) {
+        logout()
+      }
     }
-  }, [isAuthenticated, user, logout])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function performLogin(targetEmail, targetPassword, forcedDest) {
     setError('')
