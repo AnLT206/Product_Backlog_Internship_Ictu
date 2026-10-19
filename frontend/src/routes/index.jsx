@@ -36,6 +36,7 @@ import MentorLayout from '../features/mentor/MentorLayout.jsx'
 import MentorDashboardPage from '../features/mentor/MentorDashboardPage.jsx'
 import MentorInternsPage from '../features/mentor/MentorInternsPage.jsx'
 import MentorTasksPage from '../features/mentor/MentorTasksPage.jsx'
+import MentorSchedulePage from '../features/mentor/MentorSchedulePage.jsx'
 
 import InternLayout from '../features/intern/InternLayout.jsx'
 import InternDashboardPage from '../features/intern/InternDashboardPage.jsx'
@@ -125,6 +126,7 @@ export default function AppRoutes() {
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<MentorDashboardPage />} />
+          <Route path="schedule" element={<MentorSchedulePage />} />
           <Route path="interns" element={<MentorInternsPage />} />
           <Route path="tasks" element={<MentorTasksPage />} />
           <Route path="attendance" element={<HrAttendancePage />} />
