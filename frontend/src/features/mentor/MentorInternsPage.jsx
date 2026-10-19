@@ -14,6 +14,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { getAssignedInterns } from '../../api/mentors'
 import { getMentorTasks } from '../../api/tasks'
+import {
+  subscribeRealtimeEvents,
+  getRealtimeSyncState,
+  SYNC_EVENTS,
+} from '../../utils/realtimeSync'
 import TaskCreateModal from './TaskCreateModal'
 import './MentorInternsPage.css'
 
@@ -32,7 +37,6 @@ function formatDate(iso) {
    ───────────────────────────────────────────────────────────────────────── */
 export default function MentorInternsPage() {
   const { user } = useAuth()
-  void user
 
   /* ── Interns ── */
   const [interns,       setInterns]       = useState([])
@@ -60,25 +64,85 @@ export default function MentorInternsPage() {
       getAssignedInterns(),
       getMentorTasks(),
     ])
+
+    const syncState = getRealtimeSyncState()
+    const currentMentorId = user?.id || (user?.email?.includes('mentor2') ? 4 : 3)
+    let items = []
+
     if (internsRes.ok) {
-      const items = Array.isArray(internsRes.data)
-        ? internsRes.data
-        : (Array.isArray(internsRes.data?.items) ? internsRes.data.items : [])
-      setInterns(items)
-      setInternsError(null)
-    } else {
-      setInternsError('Không thể tải danh sách thực tập sinh.')
+      items = Array.isArray(internsRes.data)
+        ? [...internsRes.data]
+        : (Array.isArray(internsRes.data?.items) ? [...internsRes.data.items] : [])
     }
+
+    // Kết hợp với phân công thực tế từ HR qua realtime sync
+    const localAssigns = (syncState.mentorAssignments || []).filter(
+      (a) => a.mentor_id === currentMentorId || (!a.mentor_id && user?.email?.includes('mentor'))
+    )
+
+    localAssigns.forEach((a) => {
+      const exists = items.some((i) => Number(i.intern_id || i.id) === Number(a.intern_id))
+      if (!exists) {
+        items.push({
+          intern_id: a.intern_id,
+          intern_code: a.student_code?.split(' ')[0] || `TTS000${a.intern_id}`,
+          intern_name: a.student,
+          intern_email: a.student_email || 'intern@ictu.edu.vn',
+          program_id: a.program_id || 1,
+          program_name: a.program_name || 'Khóa K20 - Kỳ Thu 2026',
+          group_name: a.group_name || a.project || 'Nhóm R&D Software Engineering',
+          assigned_at: a.assigned_at || new Date().toISOString(),
+        })
+      }
+    })
+
+    // Chuẩn hóa fields
+    items = items.map((i) => {
+      const targetId = Number(i.intern_id || i.id)
+      const matchLocal = (syncState.mentorAssignments || []).find((a) => Number(a.intern_id) === targetId)
+      return {
+        ...i,
+        intern_id: targetId,
+        intern_name: i.intern_name || i.full_name || `TTS #${targetId}`,
+        intern_code: i.intern_code || i.code || `TTS000${targetId}`,
+        intern_email: i.intern_email || i.email || 'intern@ictu.edu.vn',
+        group_name: matchLocal?.group_name || i.group_name || 'Nhóm R&D Software Engineering',
+        program_name: matchLocal?.program_name || i.program_name || 'Khóa K20 - Kỳ Thu 2026',
+      }
+    })
+
+    setInterns(items)
+    setInternsError(null)
+
     if (tasksRes.ok) {
-      setTasks(tasksRes.data?.items ?? [])
+      setTasks(tasksRes.data?.items ?? (Array.isArray(tasksRes.data) ? tasksRes.data : []))
     }
     setInternsLoading(false)
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadAll()
-  }, [])
+
+    const unsubscribe = subscribeRealtimeEvents((event) => {
+      if (
+        event.type === SYNC_EVENTS.MENTOR_ASSIGNED ||
+        event.type === 'SYNC_MENTOR_ASSIGNMENT' ||
+        event.type === 'SYNC_GROUPS_UPDATED' ||
+        event.type === SYNC_EVENTS.CONTRACT_SIGNED
+      ) {
+        void loadAll()
+        setToast({ type: 'success', message: 'Dữ liệu phân công vừa được đồng bộ từ HR!' })
+      }
+    })
+
+    const handleStorage = () => void loadAll()
+    window.addEventListener('storage', handleStorage)
+
+    return () => {
+      unsubscribe()
+      window.removeEventListener('storage', handleStorage)
+    }
+  }, [user])
 
   /* ── Task stats per intern ── */
   const taskStats = useMemo(() => {
@@ -174,6 +238,7 @@ export default function MentorInternsPage() {
                   <th>Thực tập sinh</th>
                   <th className="mip-col--code">Mã TTS</th>
                   <th className="mip-col--program">Chương trình</th>
+                  <th className="mip-col--group">Nhóm phân công</th>
                   <th className="mip-col--assign">Ngày phân công</th>
                   <th className="mip-col--tasks">Nhiệm vụ</th>
                   <th className="mip-col--progress">Tiến độ</th>
@@ -200,6 +265,11 @@ export default function MentorInternsPage() {
                       </td>
                       <td className="mip-cell-muted">{intern.intern_code ?? '—'}</td>
                       <td className="mip-cell-muted">{intern.program_name ?? '—'}</td>
+                      <td>
+                        <span style={{ display: 'inline-flex', padding: '3px 8px', borderRadius: '12px', background: '#EFF6FF', color: '#1D4ED8', fontSize: '12px', fontWeight: 600 }}>
+                          👥 {intern.group_name ?? 'Nhóm R&D'}
+                        </span>
+                      </td>
                       <td className="mip-cell-muted">{formatDate(intern.assigned_at)}</td>
                       <td>
                         {stats.total === 0 ? (

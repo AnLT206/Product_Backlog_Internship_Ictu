@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import {
   syncContractSigning,
+  syncSendContractToApplicant,
   subscribeRealtimeEvents,
   getRealtimeSyncState,
   SYNC_EVENTS,
@@ -325,7 +326,7 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
               }
             } else if (isMounted && isApproved) {
               const targetId = user?.id || 7;
-              const myContract = syncState.contracts?.find(
+              let myContract = syncState.contracts?.find(
                 (c) =>
                   (c.intern_id === targetId ||
                     String(c.intern_id) === String(targetId) ||
@@ -333,6 +334,19 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
                     c.student_name === user?.full_name) &&
                   !c.signed_intern
               );
+              if (!myContract) {
+                myContract = syncSendContractToApplicant(targetId, {
+                  student_name: user?.full_name || 'Thực tập sinh',
+                  student_code: user?.code || `DTC2600${targetId}`,
+                  email: user?.email,
+                  phone: user?.phone || user?.phone_number,
+                  university: user?.university || 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+                  faculty: user?.major || 'Khoa Công nghệ Thông tin',
+                  doc_type: 'Hợp đồng Tiếp nhận Thực tập & Đào tạo',
+                  department: 'Trung tâm Phát triển Phần mềm ICTU',
+                  allowance: '3.000.000 đ/tháng',
+                });
+              }
               if (myContract) {
                 setPendingContract(myContract);
               }
@@ -400,19 +414,30 @@ export default function InternApplicantDashboard({ user, onContractConfirmed }) 
           if (status === 'approved') {
             setCurrentStep('approved');
             setShowRejectModal(false);
+            const targetId = user?.id || 7;
+            const currentState = getRealtimeSyncState();
+            const existing = (currentState.contracts || []).find(
+              (c) =>
+                (c.intern_id === targetId ||
+                  String(c.intern_id) === String(targetId) ||
+                  (user?.email && c.email && c.email.toLowerCase() === user.email.toLowerCase()) ||
+                  c.student_name === user?.full_name) &&
+                !c.signed_intern
+            );
+            const contractToSign = existing || syncSendContractToApplicant(targetId, {
+              student_name: user?.full_name || 'Thực tập sinh',
+              student_code: user?.code || `DTC2600${targetId}`,
+              email: user?.email,
+              university: user?.university,
+              faculty: user?.major,
+              doc_type: 'Hợp đồng Tiếp nhận Thực tập & Đào tạo',
+            });
+            setPendingContract(contractToSign);
+            setShowContractModal(true);
             showToast(
-              'Chúc mừng! Hồ sơ của bạn đã được HR phê duyệt tiếp nhận. Đang chuyển hướng vào Không gian làm việc Thực tập sinh...',
+              '🎉 Chúc mừng! Hồ sơ của bạn đã được HR phê duyệt tiếp nhận. Vui lòng ký Hợp đồng tiếp nhận thực tập để kích hoạt tài khoản chính thức.',
               'success'
             );
-            setTimeout(() => {
-              if (updateUser) {
-                updateUser({
-                  status: 'active',
-                  role: 'intern',
-                  profile_status: 'approved',
-                });
-              }
-            }, 1200);
           } else if (status === 'rejected') {
             sessionStorage.removeItem('applicant_reject_modal_dismissed');
             setShowRejectModal(true);

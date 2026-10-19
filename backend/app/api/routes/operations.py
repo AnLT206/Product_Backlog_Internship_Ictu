@@ -56,6 +56,7 @@ def get_mentor_mentees(
         .options(
             joinedload(ProgramMember.intern).joinedload(User.intern_profile),
             joinedload(ProgramMember.program),
+            joinedload(ProgramMember.mentor),
         )
     )
     if target_mentor_id:
@@ -74,7 +75,13 @@ def get_mentor_mentees(
             "major": m.intern.intern_profile.major if m.intern.intern_profile else "Công nghệ thông tin",
             "gpa": float(m.intern.intern_profile.gpa) if m.intern.intern_profile and m.intern.intern_profile.gpa else 3.5,
             "status": m.intern.status,
+            "program_id": m.program.id if m.program else None,
+            "program_code": m.program.code if m.program else None,
             "program_name": m.program.name if m.program else "Kỳ thực tập Q3/2026",
+            "program_start_date": m.program.start_date.isoformat() if m.program and m.program.start_date else None,
+            "program_end_date": m.program.end_date.isoformat() if m.program and m.program.end_date else None,
+            "mentor_id": m.mentor_user_id,
+            "mentor_name": m.mentor.full_name if m.mentor else None,
             "avatar": m.intern.intern_profile.avatar if m.intern.intern_profile else None,
         }
         for m in members

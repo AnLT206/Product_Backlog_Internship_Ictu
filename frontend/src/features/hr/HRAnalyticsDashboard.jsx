@@ -102,9 +102,12 @@ export function buildAnalyticsReportList() {
     const applicants = syncState?.applicants || [];
     const approved = applicants.filter(
       (a) =>
-        a.status === 'approved' ||
-        a.status === 'active' ||
-        (a.student_code && a.student_code.startsWith('TTS'))
+        (a.status === 'approved' ||
+          a.status === 'active' ||
+          (a.student_code && a.student_code.startsWith('TTS') && a.student_code !== 'TTS9999')) &&
+        a.status !== 'pending' &&
+        a.status !== 'unsubmitted' &&
+        a.status !== 'rejected'
     );
 
     if (approved.length > 0) {

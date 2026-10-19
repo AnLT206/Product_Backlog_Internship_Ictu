@@ -47,6 +47,7 @@ import {
   calculateHrDashboardMetrics,
   subscribeRealtimeEvents,
   syncApplicantDecision,
+  syncSendContractToApplicant,
 } from '../../utils/realtimeSync';
 import { getSavedAvatar } from '../../utils/avatarHelper';
 import './HrDashboardPage.css';
@@ -387,10 +388,23 @@ export default function HrDashboardPage() {
     setActionLoadingId(applicant.id);
     try {
       syncApplicantDecision(applicant.id, 'approved');
+      // Phát hành Hợp đồng tiếp nhận thực tập điện tử cho ứng viên
+      syncSendContractToApplicant(applicant.id, {
+        student_name: applicant.full_name,
+        student_code: applicant.student_code || applicant.code,
+        university: applicant.university,
+        email: applicant.email,
+        phone: applicant.phone || applicant.phone_number,
+        faculty: applicant.faculty || applicant.major,
+        doc_type: 'Hợp đồng Tiếp nhận Thực tập & Đào tạo',
+        department: 'Trung tâm Phát triển Phần mềm ICTU',
+        allowance: '3.000.000 đ/tháng',
+      });
+
       setInterns((prev) =>
         prev.map((it) =>
           it.id === applicant.id || (applicant.email && it.email === applicant.email)
-            ? { ...it, status: 'approved' }
+            ? { ...it, status: 'approved', contract_sent: true }
             : it
         )
       );
@@ -399,7 +413,7 @@ export default function HrDashboardPage() {
           console.warn('approveIntern error:', err);
         });
       }
-      showToast(`Đã duyệt hồ sơ của ${applicant.full_name}! Trạng thái chuyển thành "Đã duyệt".`);
+      showToast(`Đã duyệt hồ sơ & gửi Hợp đồng tiếp nhận cho ${applicant.full_name}! Sinh viên cần đăng nhập để ký xác nhận.`);
       await loadDashboardData();
     } catch {
       showToast(`Không thể duyệt hồ sơ ${applicant.full_name}. Vui lòng thử lại.`, 'error');

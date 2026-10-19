@@ -4,6 +4,7 @@ import { useAuth, isApplicantUser } from '../../context/AuthContext'
 
 const INTERN_NAV_ITEMS = [
   { to: '/intern/dashboard', label: 'Dashboard', permission: 'tasks_update', end: true },
+  { to: '/intern/program', label: 'Kỳ thực tập' },
   { to: '/intern/schedule', label: 'Lịch thực tập cá nhân', permission: 'schedule_view' },
   { to: '/intern/attendance', label: 'Lịch sử chấm công - nghỉ phép', permission: 'attendance_self' },
   { to: '/intern/reports', label: 'Báo cáo tuần', permission: 'reports_submit' },
@@ -13,9 +14,10 @@ const INTERN_NAV_ITEMS = [
   { to: '/intern/profile', label: 'Hồ sơ cá nhân' },
 ]
 
-// Ứng viên chỉ có quyền xem lộ trình, upload CV, hồ sơ cá nhân (không có phần Trợ giúp)
+// Ứng viên chỉ có quyền xem lộ trình, kỳ thực tập, upload CV, hồ sơ cá nhân
 const APPLICANT_NAV_ITEMS = [
   { to: '/intern/dashboard', label: 'Lộ trình thực tập', end: true },
+  { to: '/intern/program', label: 'Kỳ thực tập' },
   { to: '/intern/upload', label: 'Upload CV' },
   { to: '/intern/profile', label: 'Hồ sơ cá nhân' },
 ]
@@ -24,18 +26,11 @@ export default function InternLayout() {
   const { user } = useAuth()
   const location = useLocation()
   // Xác định vai trò: Ứng viên (chờ duyệt/ký hợp đồng) vs Thực tập sinh chính thức
-  const isApplicant = Boolean(
-    user && (
-      isApplicantUser(user) ||
-      (typeof window !== 'undefined' &&
-        localStorage.getItem('last_portal_intern_role') === 'applicant' &&
-        localStorage.getItem('applicant_onboarded') !== 'true')
-    )
-  )
+  const isApplicant = Boolean(user && isApplicantUser(user))
   const isActualIntern = Boolean(user && !isApplicant)
 
-  // Nếu là ứng viên, cho phép truy cập: /intern/upload, /intern/dashboard, /intern/roadmap, /intern/profile
-  const allowedApplicantPaths = ['/intern/upload', '/intern/dashboard', '/intern/roadmap', '/intern/profile']
+  // Nếu là ứng viên, cho phép truy cập: /intern/upload, /intern/dashboard, /intern/roadmap, /intern/profile, /intern/program
+  const allowedApplicantPaths = ['/intern/upload', '/intern/dashboard', '/intern/roadmap', '/intern/profile', '/intern/program']
   const isCurrentPathAllowed = allowedApplicantPaths.some(
     (p) => location.pathname === p || location.pathname === `${p}/`
   )
@@ -59,7 +54,9 @@ export default function InternLayout() {
 
   // Breadcrumb chuẩn theo từng trang của TTS
   let currentBreadcrumbLabel = `Không gian làm việc Thực tập sinh – ${displayUserName}`
-  if (isApplicant) {
+  if (location.pathname.includes('/program')) {
+    currentBreadcrumbLabel = 'Thông tin Kỳ thực tập & Đơn vị tiếp nhận'
+  } else if (isApplicant) {
     if (location.pathname.includes('/upload')) {
       currentBreadcrumbLabel = 'Upload CV & Hồ sơ ứng tuyển'
     } else if (location.pathname.includes('/profile')) {

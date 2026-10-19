@@ -686,4 +686,16 @@ textarea {
   max-width: 360px;
 }
 
+/* Global Toast Constraints - Prevents full-screen stretching */
+.assign-toast,
+.mentor-assign-toast,
+.intern-group-toast {
+  height: auto !important;
+  min-height: auto !important;
+  max-height: fit-content !important;
+  width: auto !important;
+  max-width: 480px !important;
+  box-sizing: border-box !important;
+}
+
 

@@ -184,9 +184,15 @@ function InternListPage() {
           resolvedStatus = 'pending';
         }
 
+        const syncAssign = (syncState.mentorAssignments || []).find(
+          (a) => Number(a.intern_id) === Number(item.id) || (a.student === item.full_name)
+        );
+        const progName = syncAssign?.program_name || syncMatch?.program_name || item.program_name || (resolvedStatus === 'active' ? 'Khóa K20 - Kỳ Thu 2026' : 'Chưa phân kỳ');
+
         return {
           ...item,
           status: resolvedStatus,
+          program_name: progName,
           has_cv: hasCv,
           cv_file_name: item.cv_file_name || (isApplicantAccount && localCvSubmitted ? localCvFileName : syncMatch?.cv_file),
           avatar: item.avatar || syncMatch?.avatar || getSavedAvatar(item.email, item.id, item.full_name),
@@ -453,7 +459,25 @@ function InternListPage() {
                               {initials(intern.full_name)}
                             </span>
                           </div>
-                          <span className="intern-name-text">{intern.full_name}</span>
+                          <div>
+                            <span className="intern-name-text">{intern.full_name}</span>
+                            {intern.program_name && (
+                              <div style={{ marginTop: '3px' }}>
+                                <span style={{
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  color: '#2563eb',
+                                  backgroundColor: '#eff6ff',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #bfdbfe',
+                                  display: 'inline-block',
+                                }}>
+                                  {intern.program_name}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
 

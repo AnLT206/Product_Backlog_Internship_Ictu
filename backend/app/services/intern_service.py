@@ -210,6 +210,33 @@ class InternService:
                 if d.user_id not in cv_map:
                     cv_map[d.user_id] = d
 
+        program_map = {}
+        user_ids = [u.id for u in users]
+        if user_ids:
+            try:
+                from app.models.program_member import ProgramMember
+                from app.models.internship_program import InternshipProgram
+
+                pms = (
+                    self.db.query(
+                        ProgramMember.intern_user_id,
+                        ProgramMember.program_id,
+                        InternshipProgram.name.label("program_name"),
+                    )
+                    .join(InternshipProgram, ProgramMember.program_id == InternshipProgram.id)
+                    .filter(ProgramMember.intern_user_id.in_(user_ids))
+                    .order_by(ProgramMember.id.desc())
+                    .all()
+                )
+                for pm in pms:
+                    if pm.intern_user_id not in program_map:
+                        program_map[pm.intern_user_id] = {
+                            "program_id": pm.program_id,
+                            "program_name": pm.program_name,
+                        }
+            except Exception:
+                pass
+
         items = [
             InternListItem(
                 id=u.id,
@@ -241,6 +268,8 @@ class InternService:
                 avatar=u.intern_profile.avatar if u.intern_profile else None,
                 mentor_id=u.intern_profile.mentor_id if u.intern_profile else None,
                 mentor_name=u.intern_profile.mentor.full_name if (u.intern_profile and u.intern_profile.mentor) else None,
+                program_id=program_map[u.id]["program_id"] if u.id in program_map else None,
+                program_name=program_map[u.id]["program_name"] if u.id in program_map else None,
                 created_at=u.created_at,
                 updated_at=u.updated_at,
             )

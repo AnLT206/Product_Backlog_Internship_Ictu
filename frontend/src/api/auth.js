@@ -110,6 +110,9 @@ export function clearSession(roleKey) {
   localStorage.removeItem('auth_user_mentor');
   localStorage.removeItem('access_token_admin');
   localStorage.removeItem('auth_user_admin');
+  localStorage.removeItem('applicant_onboarded');
+  localStorage.removeItem('applicant_pending_contract');
+  localStorage.removeItem('last_portal_intern_role');
 }
 
 export function readStoredUser() {

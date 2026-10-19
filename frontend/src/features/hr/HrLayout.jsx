@@ -4,19 +4,26 @@ import { useAuth } from '../../context/AuthContext'
 import './HrLayout.css'
 
 const HR_NAV_ITEMS = [
+  { isSectionHeader: true, label: 'Tổng quan & Tuyển sinh' },
   {
     to: '/hr/dashboard',
     label: 'Tổng quan Dashboard',
     end: true,
   },
   {
+    to: '/hr/programs',
+    label: 'Kỳ thực tập tuyển dụng',
+  },
+  {
     to: '/hr/interns',
     label: 'Quản lý hồ sơ TTS',
   },
   {
-    to: '/hr/programs',
-    label: 'Kỳ thực tập tuyển dụng',
+    to: '/hr/contracts',
+    label: 'Hợp đồng thực tập',
   },
+
+  { isSectionHeader: true, label: 'Điều phối & Phân công' },
   {
     to: '/hr/intern-group-assignment',
     label: 'Phân công thực tập sinh',
@@ -25,6 +32,8 @@ const HR_NAV_ITEMS = [
     to: '/hr/mentor-assignment',
     label: 'Điều phối & Gán Mentor',
   },
+
+  { isSectionHeader: true, label: 'Chuyên cần & Vận hành' },
   {
     to: '/hr/attendance',
     label: 'Chấm công & Phụ cấp',
@@ -33,10 +42,8 @@ const HR_NAV_ITEMS = [
     to: '/hr/attendance-monitor',
     label: 'Giám sát Chấm công Realtime',
   },
-  {
-    to: '/hr/contracts',
-    label: 'Hợp đồng thực tập',
-  },
+
+  { isSectionHeader: true, label: 'Báo cáo & Hỗ trợ' },
   {
     to: '/hr/analytics',
     label: 'Báo cáo & Thống kê KPI',
@@ -55,7 +62,7 @@ export default function HrLayout() {
   const { user } = useAuth()
   const location = useLocation()
   const activeNav = HR_NAV_ITEMS.find((item) =>
-    item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
+    item.to ? (item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)) : false
   )
   const currentLabel = activeNav ? activeNav.label : 'Phân hệ Nhân sự'
 

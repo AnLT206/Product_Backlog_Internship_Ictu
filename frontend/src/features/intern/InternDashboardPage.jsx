@@ -513,33 +513,35 @@ export default function InternDashboardPage() {
   const mergedPRs = totalTasks > 0 ? (1 + tasksWithPR.filter((t) => t.status === 'done').length) : 0
   const prMergeRate = totalTasks > 0 ? Math.min(100, Math.round((mergedPRs / (tasksWithPR.length + 1)) * 100)) : 0
 
-  // Nếu là ứng viên chưa duyệt
-  const isApplicant =
-    isApplicantUser(user) ||
-    (user?.email || '').toLowerCase().includes('ungvien') ||
-    (user?.code || '').toUpperCase() === 'UV0001' ||
-    user?.id === 7 ||
-    (typeof window !== 'undefined' &&
-      localStorage.getItem('last_portal_intern_role') === 'applicant' &&
-      localStorage.getItem('applicant_onboarded') !== 'true')
+  // Nếu là ứng viên chưa ký hợp đồng / chưa hoàn tất thủ tục tiếp nhận
+  const isApplicant = !isContractSignedLocally && isApplicantUser(user);
 
   if (isApplicant) {
     return (
       <InternApplicantDashboard
         user={user}
         onContractConfirmed={() => {
-          setIsContractSignedLocally(true)
+          setIsContractSignedLocally(true);
+          if (typeof window !== 'undefined') {
+            const userEmail = (user?.email || '').toLowerCase().trim();
+            if (userEmail) {
+              localStorage.setItem(`applicant_onboarded_${userEmail}`, 'true');
+            }
+            localStorage.setItem('applicant_onboarded', 'true');
+            localStorage.setItem('last_portal_intern_role', 'intern');
+          }
           if (updateUser) {
             updateUser({
               status: 'active',
+              onboarded: true,
               code: user?.code && !user.code.startsWith('UV') ? user.code : 'TTS0001',
               full_name: user?.full_name || 'TTS',
-            })
+            });
           }
-          showToast('Ký hợp đồng thành công! Chào mừng bạn gia nhập hệ thống thực tập sinh chính thức.')
+          showToast('Ký hợp đồng thành công! Chào mừng bạn gia nhập hệ thống thực tập sinh chính thức.');
         }}
       />
-    )
+    );
   }
 
   function handleSaveTask(updatedData) {

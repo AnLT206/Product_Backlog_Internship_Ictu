@@ -50,6 +50,7 @@ import InternSupportPage from '../features/intern/InternSupportPage.jsx'
 import InternProfilePage from '../features/intern/InternProfilePage.jsx'
 import TaskListPage from '../features/intern/TaskListPage.jsx'
 import TaskDetailPage from '../features/intern/TaskDetailPage.jsx'
+import InternProgramPage from '../features/intern/InternProgramPage.jsx'
 
 export default function AppRoutes() {
   return (
@@ -143,6 +144,7 @@ export default function AppRoutes() {
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<InternDashboardPage />} />
+          <Route path="program" element={<InternProgramPage />} />
           <Route path="roadmap" element={<Navigate to="/intern/dashboard" replace />} />
           <Route path="tasks" element={<TaskListPage />} />
           <Route path="tasks/:id" element={<TaskDetailPage />} />
