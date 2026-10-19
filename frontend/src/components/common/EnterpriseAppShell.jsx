@@ -62,6 +62,8 @@ export default function EnterpriseAppShell({
   }
 
   function isItemActive(item) {
+    if (!item || !item.to) return false
+
     const currentPath = location.pathname
     const currentHash = location.hash || ''
 
@@ -75,7 +77,7 @@ export default function EnterpriseAppShell({
     // If item has NO hash (e.g. /mentor/dashboard):
     // Check if other sibling items exist with the same path and a hash
     const siblingHashes = navItems
-      .filter((other) => other !== item && other.to.startsWith(itemPath + '#'))
+      .filter((other) => other !== item && other?.to && other.to.startsWith(itemPath + '#'))
       .map((other) => other.to.split('#')[1])
 
     if (siblingHashes.length > 0) {
@@ -126,6 +128,17 @@ export default function EnterpriseAppShell({
             {navItems
               .filter((item) => !item.permission || hasPermission(user, item.permission))
               .map((item) => {
+                if (item.isSectionHeader) {
+                  return (
+                    <div
+                      key={item.label}
+                      className="sidebar-subgroup-label"
+                    >
+                      {item.label}
+                    </div>
+                  )
+                }
+
                 const active = isItemActive(item)
                 if (item.locked) {
                   return (

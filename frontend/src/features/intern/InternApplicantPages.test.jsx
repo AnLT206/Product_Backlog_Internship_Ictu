@@ -194,7 +194,7 @@ describe('InternApplicantPages Test Suite', () => {
       await waitFor(() => {
         expect(screen.getByText(/THÔNG BÁO: BẠN NHẬN ĐƯỢC HỢP ĐỒNG TIẾP NHẬN THỰC TẬP TỪ PHÒNG NHÂN SỰ/i)).toBeInTheDocument();
       });
-      expect(screen.getByText(/AI & Data Lab/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/AI & Data Lab/i).length).toBeGreaterThan(0);
     });
 
     it('khi ứng viên có profile_status "rejected": trang InternUploadPage TUYỆT ĐỐI KHÔNG mở modal hợp đồng và hiển thị thông báo từ chối', async () => {

@@ -4,6 +4,7 @@ import InternMentorCard from './InternMentorCard';
 import InternGroupCard from './InternGroupCard';
 import InternAllMembersModal from './InternAllMembersModal';
 import { getMyMentorGroup } from '../../../api/interns';
+import { getRealtimeSyncState, subscribeRealtimeEvents } from '../../../utils/realtimeSync';
 import './InternMentorGroup.css';
 
 export default function InternMentorGroupSection({
@@ -25,7 +26,7 @@ export default function InternMentorGroupSection({
   );
   const [error, setError] = useState(null);
 
-  // Hàm gọi API service getMyMentorGroup thật
+  // Hàm gọi API service getMyMentorGroup thật kết hợp Realtime Sync fallback
   const fetchData = useCallback(async () => {
     // Nếu có dữ liệu props khởi tạo từ ngoài (ví dụ trong test), sử dụng trực tiếp
     if (initialMentor !== undefined || initialGroup !== undefined) {
@@ -42,31 +43,109 @@ export default function InternMentorGroupSection({
 
     try {
       const res = await getMyMentorGroup();
-      if (res?.ok && res.data) {
+      if (res && res.ok === false) {
+        setError(res.error || `Lỗi kết nối máy chủ ${res.status || 500}`);
+        setMentorData(null);
+        setGroupData(null);
+        setMembersData([]);
+        return;
+      }
+
+      if (res?.ok && res.data && (res.data.mentor || res.data.group)) {
         setMentorData(res.data.mentor || null);
         setGroupData(res.data.group || null);
         const membersList = Array.isArray(res.data.members)
           ? res.data.members
           : (Array.isArray(res.data.group?.members) ? res.data.group.members : []);
         setMembersData(membersList);
+        setError(null);
       } else {
-        const errMsg =
-          res?.data?.detail ||
-          res?.data?.message ||
-          res?.error ||
-          'Không thể tải thông tin Mentor và Nhóm thực tập.';
-        setError(errMsg);
+        // Fallback đọc từ Realtime Sync State (khi vừa được phân công từ HR portal)
+        const syncState = getRealtimeSyncState();
+        let storedUser = {};
+        try {
+          storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        } catch {}
+
+        const currentId = Number(storedUser.id);
+        const currentEmail = (storedUser.email || '').toLowerCase().trim();
+
+        const assign = (syncState.mentorAssignments || []).find(
+          (a) =>
+            (currentId && Number(a.intern_id) === currentId) ||
+            (currentEmail && a.email && a.email.toLowerCase().trim() === currentEmail) ||
+            (storedUser.full_name && a.student === storedUser.full_name)
+        );
+
+        if (assign) {
+          const mentorId = Number(assign.mentor_id) || 3;
+          const mentorName = assign.mentor || 'Trần Hoàng Quân';
+          const progName = assign.program_name || 'Khóa K20 - Kỳ Thu 2026';
+          const deptName = assign.company || 'Trung tâm Phát triển Phần mềm ICTU';
+          const groupTitle = assign.group_name || assign.project || `Nhóm ${mentorName}`;
+
+          setMentorData({
+            id: mentorId,
+            full_name: mentorName,
+            email: mentorId === 3 ? 'mentor@ictu.edu.vn' : 'mentor2@ictu.edu.vn',
+            department: deptName,
+            position: assign.mentor_role || 'Senior Fullstack Tech Lead',
+            phone: '0988.234.567',
+            avatar_url: null,
+            status: 'online',
+            status_text: 'Đang trực tuyến',
+          });
+
+          setGroupData({
+            id: assign.group_id || 1,
+            code: 'GRP-01',
+            name: groupTitle,
+            program_name: progName,
+            department_name: deptName,
+            mentor_id: mentorId,
+            mentor_name: mentorName,
+            total_members: 4,
+            max_slots: 5,
+            status: 'active',
+            description: 'Nhóm thực tập theo kỳ phân công từ nhà trường và doanh nghiệp.',
+          });
+
+          setMembersData([
+            {
+              id: currentId || 5,
+              code: storedUser.code || 'TTS0001',
+              full_name: storedUser.full_name || 'Thực tập sinh',
+              role: 'Thành viên',
+              is_current_user: true,
+              is_me: true,
+              email: storedUser.email,
+              phone: '0912.345.678',
+              university: 'Đại học CNTT & TT (ICTU)',
+              major: 'Công nghệ thông tin',
+            },
+          ]);
+          setError(null);
+        } else {
+          setMentorData(null);
+          setGroupData(null);
+          setMembersData([]);
+          setError(null);
+        }
       }
     } catch (err) {
-      setError(err?.message || 'Đã xảy ra lỗi khi kết nối máy chủ.');
+      setError(err?.message || 'Đã xảy ra lỗi khi gọi dữ liệu.');
     } finally {
       setLoading(false);
     }
   }, [initialMentor, initialGroup, initialMembers]);
 
-  // Tải dữ liệu ban đầu khi component mount
+  // Tải dữ liệu ban đầu và lắng nghe sự kiện đồng bộ từ HR realtime
   useEffect(() => {
     fetchData();
+    const unsub = subscribeRealtimeEvents(() => {
+      fetchData();
+    });
+    return () => unsub();
   }, [fetchData]);
 
   return (

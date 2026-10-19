@@ -85,8 +85,8 @@ export default function InternGroupCard({ group, members = [], onViewAllMembers 
               <Layers size={13} />
               <span>Chương trình:</span>
             </span>
-            <span className="meta-field-value" title={group.program_name}>
-              {group.program_name}
+            <span className="meta-field-value" title={group.program_name || 'Khóa K20 - Kỳ Thu 2026'}>
+              {group.program_name || 'Khóa K20 - Kỳ Thu 2026'}
             </span>
           </div>
 

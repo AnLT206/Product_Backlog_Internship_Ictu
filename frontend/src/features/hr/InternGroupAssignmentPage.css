@@ -15,20 +15,29 @@
 }
 
 /* ── TOAST ALERT ── */
-.assign-toast {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  z-index: 9999;
-  animation: slideInRight 0.25s ease-out;
+.intern-group-assign-page .assign-toast {
+  position: fixed !important;
+  top: 24px !important;
+  bottom: auto !important;
+  right: 24px !important;
+  left: auto !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: fit-content !important;
+  width: auto !important;
+  max-width: 480px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 12px 20px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  z-index: 99999 !important;
+  animation: slideInRight 0.25s ease-out !important;
+  box-sizing: border-box !important;
+  pointer-events: auto !important;
 }
 
 @keyframes slideInRight {
@@ -42,16 +51,16 @@
   }
 }
 
-.assign-toast--success {
-  background-color: #ecfdf5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+.intern-group-assign-page .assign-toast--success {
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0 !important;
 }
 
-.assign-toast--error {
-  background-color: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
+.intern-group-assign-page .assign-toast--error {
+  background-color: #fef2f2 !important;
+  color: #991b1b !important;
+  border: 1px solid #fecaca !important;
 }
 
 .toast-icon {
@@ -601,6 +610,17 @@
   background-color: #dbeafe;
 }
 
+.interns-selection-table tbody tr.is-row-disabled {
+  background-color: #fafafa;
+  opacity: 0.85;
+  cursor: not-allowed;
+}
+
+.btn-row-checkbox:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Checkbox Buttons */
 .btn-header-checkbox,
 .btn-row-checkbox {
@@ -1106,4 +1126,378 @@
 .error-retry-btn:hover {
   background-color: #fee2e2;
 }
+
+/* ── COORDINATION UX ENHANCEMENTS: GUIDE CARD, CROSSLINKS & QUICK ASSIGN ── */
+.coordination-crosslink-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-bottom: 24px;
+  font-size: 13.5px;
+  color: #1e3a8a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.coordination-crosslink-banner a {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s;
+}
+
+.coordination-crosslink-banner a:hover {
+  color: #1d4ed8;
+}
+
+.crosslink-icon {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.coordination-guide-card {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  gap: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.guide-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+
+.guide-step-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+.guide-step-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.guide-step-text strong {
+  font-size: 13.5px;
+  color: #0f172a;
+}
+
+.guide-step-text span {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.guide-step-arrow {
+  color: #cbd5e1;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  user-select: none;
+}
+
+@media (max-width: 860px) {
+  .coordination-guide-card {
+    flex-direction: column;
+    gap: 14px;
+  }
+  .guide-step-arrow {
+    display: none;
+  }
+}
+
+/* Quick assign inline controls */
+.quick-assign-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quick-group-select {
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #1e293b;
+  max-width: 180px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.quick-group-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.btn-quick-assign-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #2563eb;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s, transform 0.05s;
+}
+
+.btn-quick-assign-action:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.btn-quick-assign-action:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Assigned Program Pill */
+.assigned-program-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.program-tag--unassigned {
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+  border: 1px dashed #cbd5e1 !important;
+}
+
+/* ── WORKFLOW QUICK NAV (JUMP-TO BUTTONS) ── */
+.workflow-quick-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.workflow-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.workflow-nav-btn:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.workflow-nav-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background-color: #eff6ff;
+  color: #2563eb;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.workflow-nav-chevron {
+  color: #94a3b8;
+}
+
+/* ── FIELD HINTS ── */
+.field-hint {
+  font-size: 11.5px;
+  margin-top: 4px;
+  display: block;
+}
+
+/* ── GROUP INFO CARD & CAPACITY VISUALIZER ── */
+.group-info-grid {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.group-capacity-bar-wrap {
+  width: 100%;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.capacity-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.capacity-bar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.capacity-bar-percent {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.capacity-progress-track {
+  width: 100%;
+  height: 8px;
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.capacity-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* ── CONTRACT STATUS TABS (KHU VỰC 2) ── */
+.contract-status-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.contract-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.contract-tab-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.contract-tab-btn.is-active {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+}
+
+.tab-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background-color: rgba(0, 0, 0, 0.08);
+  color: inherit;
+}
+
+.contract-tab-btn.is-active .tab-badge {
+  background-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.tab-badge.badge--green {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.contract-tab-btn.is-active .tab-badge.badge--green {
+  background-color: #ffffff;
+  color: #059669;
+}
+
+.tab-badge.badge--amber {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.contract-tab-btn.is-active .tab-badge.badge--amber {
+  background-color: #ffffff;
+  color: #d97706;
+}
+
+/* ── ASSIGNED FILTERS CLUSTER (KHU VỰC 3) ── */
+.assigned-filters-cluster {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── CROSSLINK ENHANCEMENTS ── */
+.crosslink-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.crosslink-main-text {
+  font-size: 13.5px;
+  color: #1e3a8a;
+}
+
+.crosslink-sub-text {
+  font-size: 12.5px;
+  color: #1e40af;
+}
+
 

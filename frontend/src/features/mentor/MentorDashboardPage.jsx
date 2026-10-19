@@ -19,6 +19,7 @@ import {
   Edit3,
   Download,
   Briefcase,
+  Search,
 } from 'lucide-react'
 import {
   fetchMentorMentees,
@@ -39,6 +40,7 @@ import {
   getRealtimeSyncState,
 } from '../../utils/realtimeSync'
 import { getSavedAvatar } from '../../utils/avatarHelper'
+import { calculateInternMetrics } from '../intern/utils/internMetrics'
 import './MentorDashboardPage.css'
 
 /** 5 Tiêu chí Rubric Đánh giá năng lực cuối kỳ sử dụng Thang điểm (Rating Scale 1 - 5) */
@@ -187,8 +189,12 @@ export default function MentorDashboardPage() {
   const [activeTab, setActiveTab] = useState('mentees') // 'mentees' | 'tasks' | 'reports' | 'evaluations' | 'leave'
   const [toast, setToast] = useState(null)
 
-  // ── Danh sách Mentees do Mentor phụ trách ──
+  // ── Danh sách Mentees do Mentor phụ trách & Bộ lọc đồng bộ ──
   const [mentees, setMentees] = useState([])
+  const [menteeFilterProgram, setMenteeFilterProgram] = useState('all')
+  const [menteeFilterGroup, setMenteeFilterGroup] = useState('all')
+  const [menteeFilterSprint, setMenteeFilterSprint] = useState('all')
+  const [menteeSearchQuery, setMenteeSearchQuery] = useState('')
 
   // ── Đơn xin nghỉ phép của TTS (Đồng bộ thời gian thực từ HR & TTS) ──
   const [leaveRequests, setLeaveRequests] = useState([])
@@ -341,35 +347,122 @@ export default function MentorDashboardPage() {
               }
               return true
             })
-            .map((m) => ({
-              id: m.id,
-              code: m.code || `TTS000${m.id}`,
-              full_name: m.full_name || 'Thực tập sinh',
-              email: m.email || 'intern@ictu.edu.vn',
-              avatar: m.avatar || getSavedAvatar(m.email, m.id, m.full_name),
-              phone: m.phone || '0912 345 678',
-              major: m.major || 'Công nghệ thông tin',
-              gpa: Number(m.gpa || 3.5),
-              lab: m.program_name || 'R&D Software Engineering',
-              attendance_rate: '98%',
-            }))
+            .map((m) => {
+              const localAssign = (syncState.mentorAssignments || []).find((a) => a.intern_id === m.id)
+              const appObj = (syncState.applicants || []).find(
+                (ap) => ap.id === m.id || (ap.email && ap.email.toLowerCase() === m.email?.toLowerCase())
+              )
+              const email = m.email || 'intern@ictu.edu.vn'
+              const resolvedProgramId = localAssign?.program_id || m.program_id || 1
+              const resolvedProgramName = localAssign?.program_name || m.program_name || 'Khóa K20 - Kỳ Thu 2026'
+              const resolvedGroupName = localAssign?.group_name || appObj?.group_name || 'Nhóm R&D Software Engineering'
+              const resolvedDeptName = localAssign?.department_name || appObj?.department_name || 'Trung tâm Phát triển Phần mềm ICTU'
+              const hasSignedContract = appObj?.contract_status === 'signed' || appObj?.hasSignedContract !== false
+
+              let sprintProgress = 0
+              let kpiScore = 82
+              let kpiGrade = 'B'
+              let kpiGradeLabel = 'Khá / Tốt'
+              let attendanceRate = '98%'
+
+              try {
+                const metrics = calculateInternMetrics({
+                  id: m.id,
+                  email,
+                  code: m.code,
+                  full_name: m.full_name,
+                })
+                sprintProgress = metrics.sprintProgress
+                kpiScore = metrics.kpiScore
+                kpiGrade = metrics.kpiGrade
+                kpiGradeLabel = metrics.kpiGradeLabel
+                attendanceRate = `${metrics.attendanceRate}%`
+              } catch (err) {
+                console.warn('Error calculating metrics for mentee:', m.id, err)
+              }
+
+              return {
+                id: m.id,
+                code: m.code || `TTS000${m.id}`,
+                full_name: m.full_name || 'Thực tập sinh',
+                email,
+                avatar: m.avatar || getSavedAvatar(email, m.id, m.full_name),
+                phone: m.phone || '0912 345 678',
+                major: m.major || 'Công nghệ thông tin',
+                university: m.university || 'ĐH CNTT & TT (ICTU)',
+                gpa: Number(m.gpa || 3.5),
+                lab: resolvedGroupName,
+                program_id: resolvedProgramId,
+                program_name: resolvedProgramName,
+                group_id: localAssign?.group_id || 'GRP-DEFAULT',
+                group_name: resolvedGroupName,
+                department_name: resolvedDeptName,
+                hasSignedContract,
+                attendance_rate: attendanceRate,
+                sprint_progress: sprintProgress,
+                kpi_score: kpiScore,
+                kpi_grade: kpiGrade,
+                kpi_grade_label: kpiGradeLabel,
+              }
+            })
         }
 
         activeLocalAssignments.forEach((a) => {
           if (!baseMentees.some((m) => m.id === a.intern_id)) {
             const appObj = (syncState.applicants || []).find((ap) => ap.id === a.intern_id)
             const email = appObj?.email || 'intern@ictu.edu.vn'
+            const fullName = appObj?.full_name || a.student || `TTS #${a.intern_id}`
+            const code = appObj?.student_code || a.student_code?.split(' ')[0] || `TTS000${a.intern_id}`
+            const resolvedProgramId = a.program_id || 1
+            const resolvedProgramName = a.program_name || 'Khóa K20 - Kỳ Thu 2026'
+            const resolvedGroupName = a.group_name || a.project || 'Nhóm R&D Software Engineering'
+            const resolvedDeptName = a.department_name || 'Trung tâm Phát triển Phần mềm ICTU'
+            const hasSignedContract = appObj?.contract_status === 'signed' || appObj?.hasSignedContract !== false
+
+            let sprintProgress = 0
+            let kpiScore = 80
+            let kpiGrade = 'B'
+            let kpiGradeLabel = 'Khá / Tốt'
+            let attendanceRate = '98%'
+
+            try {
+              const metrics = calculateInternMetrics({
+                id: a.intern_id,
+                email,
+                code,
+                full_name: fullName,
+              })
+              sprintProgress = metrics.sprintProgress
+              kpiScore = metrics.kpiScore
+              kpiGrade = metrics.kpiGrade
+              kpiGradeLabel = metrics.kpiGradeLabel
+              attendanceRate = `${metrics.attendanceRate}%`
+            } catch (err) {
+              console.warn('Error calculating metrics for local assigned mentee:', a.intern_id, err)
+            }
+
             baseMentees.push({
               id: a.intern_id,
-              code: appObj?.student_code || a.student_code?.split(' ')[0] || `TTS000${a.intern_id}`,
-              full_name: appObj?.full_name || a.student || `TTS #${a.intern_id}`,
+              code,
+              full_name: fullName,
               email,
-              avatar: appObj?.avatar || getSavedAvatar(email, a.intern_id, appObj?.full_name || a.student),
+              avatar: appObj?.avatar || getSavedAvatar(email, a.intern_id, fullName),
               phone: appObj?.phone || '0912 345 678',
               major: appObj?.major || 'Công nghệ thông tin',
+              university: appObj?.university || 'ĐH CNTT & TT (ICTU)',
               gpa: Number(appObj?.gpa || 3.65),
-              lab: a.project || 'R&D Software Engineering',
-              attendance_rate: '98%',
+              lab: resolvedGroupName,
+              program_id: resolvedProgramId,
+              program_name: resolvedProgramName,
+              group_id: a.group_id || 'GRP-DEFAULT',
+              group_name: resolvedGroupName,
+              department_name: resolvedDeptName,
+              hasSignedContract,
+              attendance_rate: attendanceRate,
+              sprint_progress: sprintProgress,
+              kpi_score: kpiScore,
+              kpi_grade: kpiGrade,
+              kpi_grade_label: kpiGradeLabel,
             })
           }
         })
@@ -426,6 +519,15 @@ export default function MentorDashboardPage() {
           }
         } catch {}
 
+        // Đồng bộ tiến độ Sprint thực tế từ loadedTasks vào từng sinh viên
+        resolvedMentees.forEach((m) => {
+          const menteeTasks = loadedTasks.filter((t) => Number(t.intern_id) === Number(m.id))
+          if (menteeTasks.length > 0) {
+            const avg = Math.round(menteeTasks.reduce((s, t) => s + (Number(t.progress) || 0), 0) / menteeTasks.length)
+            m.sprint_progress = avg
+          }
+        })
+        setMentees([...resolvedMentees])
         setTasks(loadedTasks)
 
         // 3. Báo cáo tuần: Kết hợp API và dữ liệu thực từ trang Thực tập sinh (intern_report_history)
@@ -549,10 +651,19 @@ export default function MentorDashboardPage() {
 
     // Đồng bộ thời gian thực từ phân hệ HR và TTS
     const unsubscribeSync = subscribeRealtimeEvents((event) => {
-      if (event.type === SYNC_EVENTS.MENTOR_ASSIGNED) {
-        // HR vừa phân công TTS mới cho Mentor
+      if (
+        event.type === SYNC_EVENTS.MENTOR_ASSIGNED ||
+        event.type === 'SYNC_MENTOR_ASSIGNMENT' ||
+        event.type === 'SYNC_GROUPS_UPDATED' ||
+        event.type === SYNC_EVENTS.CONTRACT_SIGNED
+      ) {
+        // HR vừa phân công TTS hoặc nhóm mới cho Mentor, hoặc TTS vừa ký hợp đồng
         loadAllData()
-        showToast('HR vừa phân bổ thực tập sinh mới vào dự án của bạn theo thời gian thực!')
+        if (event.type === SYNC_EVENTS.CONTRACT_SIGNED) {
+          showToast('Thực tập sinh đã ký hợp đồng tiếp nhận điện tử thành công!')
+        } else {
+          showToast('HR vừa phân bổ thực tập sinh mới vào dự án/nhóm của bạn theo thời gian thực!')
+        }
       } else if (
         event.type === 'SYNC_LEAVE_STATUS_CHANGED' ||
         event.type === SYNC_EVENTS.LEAVE_REQUEST_SUBMITTED ||
@@ -1021,6 +1132,41 @@ export default function MentorDashboardPage() {
     return true
   })
 
+  // Danh sách Kỳ thực tập & Nhóm duy nhất từ mentees
+  const programOptions = useMemo(() => {
+    return Array.from(new Set(mentees.map((m) => m.program_name).filter(Boolean)))
+  }, [mentees])
+
+  const groupOptions = useMemo(() => {
+    return Array.from(new Set(mentees.map((m) => m.group_name).filter(Boolean)))
+  }, [mentees])
+
+  // Tiến độ Sprint 1 trung bình của toàn bộ mentees
+  const avgSprintProgress = useMemo(() => {
+    if (mentees.length === 0) return 0
+    const sum = mentees.reduce((acc, m) => acc + (Number(m.sprint_progress) || 0), 0)
+    return Math.round(sum / mentees.length)
+  }, [mentees])
+
+  // Bộ lọc danh sách Mentees (Kỳ thực tập, Nhóm, Tiến độ Sprint, Từ khóa)
+  const filteredMentees = useMemo(() => {
+    return mentees.filter((m) => {
+      if (menteeFilterProgram !== 'all' && m.program_name !== menteeFilterProgram) return false
+      if (menteeFilterGroup !== 'all' && m.group_name !== menteeFilterGroup) return false
+      if (menteeFilterSprint === 'completed' && (m.sprint_progress || 0) < 100) return false
+      if (menteeFilterSprint === 'in_progress' && (m.sprint_progress || 0) >= 100) return false
+      if (menteeSearchQuery.trim()) {
+        const q = menteeSearchQuery.toLowerCase().trim()
+        const matchName = m.full_name?.toLowerCase().includes(q)
+        const matchCode = m.code?.toLowerCase().includes(q)
+        const matchMajor = m.major?.toLowerCase().includes(q)
+        const matchEmail = m.email?.toLowerCase().includes(q)
+        if (!matchName && !matchCode && !matchMajor && !matchEmail) return false
+      }
+      return true
+    })
+  }, [mentees, menteeFilterProgram, menteeFilterGroup, menteeFilterSprint, menteeSearchQuery])
+
   // Lọc danh sách đơn xin nghỉ phép của TTS theo trạng thái
   const filteredMentorLeaves = useMemo(() => {
     let list = leaveRequests
@@ -1109,20 +1255,20 @@ export default function MentorDashboardPage() {
           </span>
         </div>
 
-        {/* Thẻ 2: Tasks đang theo dõi */}
+        {/* Thẻ 2: Tiến độ Sprint 1 & Tasks */}
         <div className="mentor-kpi-card">
           <div className="kpi-card-header">
-            <span className="kpi-label">Tasks đang theo dõi</span>
+            <span className="kpi-label">Tiến độ Sprint 1 &amp; Tasks</span>
             <div className="kpi-icon-badge kpi-icon-badge--purple">
               <CheckSquare size={18} />
             </div>
           </div>
           <div className="kpi-val-row">
-            <span className="kpi-value">{tasks.length}</span>
-            <span className="kpi-unit">nhiệm vụ Sprint</span>
+            <span className="kpi-value">{avgSprintProgress}%</span>
+            <span className="kpi-unit">Sprint 1 trung bình</span>
           </div>
           <span className="kpi-hint">
-            {tasks.filter((t) => t.status === 'doing').length} đang làm · {tasks.filter((t) => t.status === 'done').length} đã hoàn thành
+            {tasks.length} nhiệm vụ Sprint ({tasks.filter((t) => t.status === 'done').length} đã xong · {tasks.filter((t) => t.status === 'doing').length} đang làm)
           </span>
         </div>
 
@@ -1232,59 +1378,204 @@ export default function MentorDashboardPage() {
                 </button>
               </div>
 
+              {/* Bộ lọc đồng bộ Mentees (Kỳ thực tập, Nhóm, Sprint, Tìm kiếm) */}
+              <div className="report-filter-bar" style={{ flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {/* Lọc Kỳ thực tập */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 600 }}>Kỳ:</span>
+                    <select
+                      value={menteeFilterProgram}
+                      onChange={(e) => setMenteeFilterProgram(e.target.value)}
+                      style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#fff' }}
+                    >
+                      <option value="all">Tất cả kỳ thực tập</option>
+                      {programOptions.map((prog) => (
+                        <option key={prog} value={prog}>
+                          {prog}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Lọc Nhóm tiếp nhận */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 600 }}>Nhóm:</span>
+                    <select
+                      value={menteeFilterGroup}
+                      onChange={(e) => setMenteeFilterGroup(e.target.value)}
+                      style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', background: '#fff' }}
+                    >
+                      <option value="all">Tất cả nhóm ({groupOptions.length})</option>
+                      {groupOptions.map((grp) => (
+                        <option key={grp} value={grp}>
+                          {grp}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Lọc Sprint */}
+                  <div className="report-filter-pills">
+                    <button
+                      type="button"
+                      className={`report-pill-btn ${menteeFilterSprint === 'all' ? 'is-active' : ''}`}
+                      onClick={() => setMenteeFilterSprint('all')}
+                    >
+                      Tất cả ({mentees.length})
+                    </button>
+                    <button
+                      type="button"
+                      className={`report-pill-btn ${menteeFilterSprint === 'in_progress' ? 'is-active' : ''}`}
+                      onClick={() => setMenteeFilterSprint('in_progress')}
+                    >
+                      Đang làm Sprint
+                    </button>
+                    <button
+                      type="button"
+                      className={`report-pill-btn ${menteeFilterSprint === 'completed' ? 'is-active' : ''}`}
+                      onClick={() => setMenteeFilterSprint('completed')}
+                    >
+                      Hoàn thành 100%
+                    </button>
+                  </div>
+                </div>
+
+                {/* Ô tìm kiếm */}
+                <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 auto' }}>
+                  <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                  <input
+                    type="text"
+                    value={menteeSearchQuery}
+                    onChange={(e) => setMenteeSearchQuery(e.target.value)}
+                    placeholder="Tìm tên, MSSV, chuyên ngành..."
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px 6px 32px',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      fontSize: '13px',
+                    }}
+                  />
+                </div>
+              </div>
+
               <div className="mentor-mentee-cards-stack">
-                {mentees.map((mentee) => {
-                  // Tìm task gần nhất của mentee này theo đúng intern_id được phân công
-                  const menteeTasks = tasks.filter((t) => Number(t.intern_id) === Number(mentee.id))
-                  const latestTask = menteeTasks.find((t) => t.status === 'doing') || menteeTasks.find((t) => t.status === 'review') || menteeTasks[0]
-                  const menteeReports = reports.filter((r) => r.intern_id === mentee.id)
-                  const hasPendingReport = menteeReports.some((r) => r.status === 'pending' || !r.mentor_feedback)
-                  const isEvaluated = Boolean(evaluationsByIntern[mentee.id])
+                {filteredMentees.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 20px', background: '#F8FAFC', borderRadius: '10px', border: '1px dashed #CBD5E1', color: '#64748B' }}>
+                    <Users size={36} color="#94A3B8" style={{ margin: '0 auto 10px' }} />
+                    <p style={{ margin: 0, fontWeight: 600 }}>Không tìm thấy thực tập sinh nào phù hợp bộ lọc.</p>
+                    <button
+                      type="button"
+                      className="mentor-btn mentor-btn--outline mentor-btn--sm"
+                      style={{ marginTop: '12px' }}
+                      onClick={() => {
+                        setMenteeFilterProgram('all')
+                        setMenteeFilterGroup('all')
+                        setMenteeFilterSprint('all')
+                        setMenteeSearchQuery('')
+                      }}
+                    >
+                      Đặt lại bộ lọc
+                    </button>
+                  </div>
+                ) : (
+                  filteredMentees.map((mentee) => {
+                    // Tìm task gần nhất của mentee này theo đúng intern_id được phân công
+                    const menteeTasks = tasks.filter((t) => Number(t.intern_id) === Number(mentee.id))
+                    const latestTask = menteeTasks.find((t) => t.status === 'doing') || menteeTasks.find((t) => t.status === 'review') || menteeTasks[0]
+                    const menteeReports = reports.filter((r) => r.intern_id === mentee.id)
+                    const hasPendingReport = menteeReports.some((r) => r.status === 'pending' || !r.mentor_feedback)
+                    const isEvaluated = Boolean(evaluationsByIntern[mentee.id])
 
-                  // Initials
-                  const trimmedName = (mentee.full_name || '').trim()
-                  let initials = 'TTS'
-                  if (trimmedName.toUpperCase() === 'TTS') {
-                    initials = 'TTS'
-                  } else if (trimmedName) {
-                    const parts = trimmedName.split(' ').filter(Boolean)
-                    if (parts.length === 1) {
-                      initials = parts[0].length <= 3 ? parts[0].toUpperCase() : parts[0].substring(0, 2).toUpperCase()
-                    } else {
-                      initials = parts.slice(-2).map((w) => w[0]).join('').toUpperCase()
+                    // Initials
+                    const trimmedName = (mentee.full_name || '').trim()
+                    let initials = 'TTS'
+                    if (trimmedName.toUpperCase() === 'TTS') {
+                      initials = 'TTS'
+                    } else if (trimmedName) {
+                      const parts = trimmedName.split(' ').filter(Boolean)
+                      if (parts.length === 1) {
+                        initials = parts[0].length <= 3 ? parts[0].toUpperCase() : parts[0].substring(0, 2).toUpperCase()
+                      } else {
+                        initials = parts.slice(-2).map((w) => w[0]).join('').toUpperCase()
+                      }
                     }
-                  }
 
-                  return (
-                    <div key={mentee.id} className="mentee-full-card">
-                      <div className="mentee-card-top">
-                        <div className="mentee-avatar-box">
-                          {mentee.avatar && mentee.avatar.startsWith('data:image') ? (
-                            <img src={mentee.avatar} alt={mentee.full_name} className="mentee-avatar-img" />
-                          ) : (
-                            initials
-                          )}
-                        </div>
-                        <div className="mentee-head-info">
-                          <div className="mentee-title-line">
-                            <h3>{mentee.full_name}</h3>
-                            <span className="mentee-code-tag">{mentee.code}</span>
-                            <span className="status-badge status-badge--success">
-                              {mentee.attendance_rate || '98%'} Chuyên cần
-                            </span>
-                            {isEvaluated && (
-                              <span className="status-badge status-badge--primary" style={{ fontSize: '11.5px' }}>
-                                ✓ Đã đánh giá
-                              </span>
+                    return (
+                      <div key={mentee.id} className="mentee-full-card">
+                        <div className="mentee-card-top">
+                          <div className="mentee-avatar-box">
+                            {mentee.avatar && mentee.avatar.startsWith('data:image') ? (
+                              <img src={mentee.avatar} alt={mentee.full_name} className="mentee-avatar-img" />
+                            ) : (
+                              initials
                             )}
                           </div>
-                          <p className="mentee-sub-line">
-                            {mentee.major} · GPA <strong>{mentee.gpa} / 4.0</strong> · Dự án: <strong>{mentee.lab || 'R&D Software Engineering'}</strong>
-                            {mentee.phone && <span> · SĐT: <strong>{mentee.phone}</strong></span>}
-                            {mentee.email && <span> · Email: <strong>{mentee.email}</strong></span>}
-                          </p>
+                          <div className="mentee-head-info">
+                            <div className="mentee-title-line" style={{ flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                              <h3>{mentee.full_name}</h3>
+                              <span className="mentee-code-tag">{mentee.code}</span>
+                              <span className="status-badge status-badge--primary" style={{ fontSize: '11.5px' }}>
+                                👥 {mentee.group_name || 'Nhóm R&D'}
+                              </span>
+                              <span className="status-badge status-badge--info" style={{ fontSize: '11.5px' }}>
+                                📅 {mentee.program_name || 'Khóa K20 - Kỳ Thu 2026'}
+                              </span>
+                              {mentee.hasSignedContract ? (
+                                <span className="status-badge status-badge--success" style={{ fontSize: '11.5px' }}>
+                                  ✓ Đã ký HĐ
+                                </span>
+                              ) : (
+                                <span className="status-badge status-badge--warning" style={{ fontSize: '11.5px' }}>
+                                  ⏳ Chờ ký HĐ
+                                </span>
+                              )}
+                              <span className="status-badge status-badge--neutral" style={{ fontSize: '11.5px' }}>
+                                {mentee.attendance_rate || '98%'} Chuyên cần
+                              </span>
+                              {isEvaluated && (
+                                <span className="status-badge status-badge--primary" style={{ fontSize: '11.5px' }}>
+                                  ✓ Đã đánh giá
+                                </span>
+                              )}
+                            </div>
+                            <p className="mentee-sub-line">
+                              {mentee.major} · GPA <strong>{mentee.gpa} / 4.0</strong> · Phòng ban: <strong>{mentee.department_name || 'Trung tâm Phát triển Phần mềm'}</strong>
+                              {mentee.phone && <span> · SĐT: <strong>{mentee.phone}</strong></span>}
+                              {mentee.email && <span> · Email: <strong>{mentee.email}</strong></span>}
+                            </p>
+
+                            {/* Chỉ số Tiến độ Sprint 1 & Điểm KPI tạm tính của sinh viên */}
+                            <div style={{ marginTop: '10px', padding: '10px 12px', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#1E293B' }}>
+                                    ⚡ Tiến độ Sprint 1: <strong style={{ color: 'var(--primary)' }}>{mentee.sprint_progress || 0}%</strong>
+                                  </span>
+                                  <span className={`kpi-badge-pill ${(mentee.sprint_progress || 0) === 100 ? 'kpi-badge-pill--green' : 'kpi-badge-pill--blue'}`} style={{ fontSize: '11px', padding: '2px 8px' }}>
+                                    {(mentee.sprint_progress || 0) === 100 ? 'Hoàn thành' : 'Active'}
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: '12px', color: '#475569', fontWeight: 600 }}>
+                                  KPI tạm tính: <strong style={{ color: '#0F766E' }}>{mentee.kpi_score || 82}/100đ (Hạng {mentee.kpi_grade || 'B'})</strong>
+                                </span>
+                              </div>
+                              <div className="progress-bar-track" style={{ height: '6px', background: '#E2E8F0', borderRadius: '4px' }}>
+                                <div
+                                  className={`progress-bar-val ${(mentee.sprint_progress || 0) === 100 ? 'is-complete' : ''}`}
+                                  style={{
+                                    width: `${mentee.sprint_progress || 0}%`,
+                                    height: '100%',
+                                    background: (mentee.sprint_progress || 0) === 100 ? '#16A34A' : '#2563EB',
+                                    borderRadius: '4px',
+                                    transition: 'width 0.3s ease',
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
 
                       {/* Box nhiệm vụ gần nhất: Chỉ hiển thị khi TTS đã có task thực tế */}
                       {latestTask ? (
@@ -1354,7 +1645,8 @@ export default function MentorDashboardPage() {
                       </div>
                     </div>
                   )
-                })}
+                })
+              )}
               </div>
             </section>
           </div>

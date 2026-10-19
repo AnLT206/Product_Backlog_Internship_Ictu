@@ -154,21 +154,76 @@ const DEFAULT_INITIAL_DATA = {
   templates: DEFAULT_CONTRACT_TEMPLATES,
   applicants: [
     {
+      id: 24,
+      full_name: 'Đỗ Hoàng Anh',
+      student_code: 'DTC26001',
+      university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+      email: 'hoanganh@student.ictu.edu.vn',
+      phone: '0981.234.001',
+      faculty: 'Khoa Công nghệ Thông tin',
+      major: 'Kỹ thuật phần mềm',
+      gpa: '3.68',
+      cv_file: 'CV_DoHoangAnh_SoftwareEng.pdf',
+      app_file: null,
+      contract_file: null,
+      applied_at: '20/10/2026',
+      status: 'pending',
+      program_name: null,
+      avatar: 'HA',
+    },
+    {
+      id: 25,
+      full_name: 'Vũ Thùy Linh',
+      student_code: 'DTC26002',
+      university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+      email: 'thuylinh@student.ictu.edu.vn',
+      phone: '0981.234.002',
+      faculty: 'Khoa Trí tuệ nhân tạo & Khoa học dữ liệu',
+      major: 'Trí tuệ nhân tạo & Khoa học dữ liệu',
+      gpa: '3.82',
+      cv_file: 'CV_VuThuyLinh_AI_Data.pdf',
+      app_file: null,
+      contract_file: null,
+      applied_at: '20/10/2026',
+      status: 'pending',
+      program_name: null,
+      avatar: 'TL',
+    },
+    {
+      id: 26,
+      full_name: 'Phạm Tuấn Kiệt',
+      student_code: 'DTC26003',
+      university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
+      email: 'tuankiet@student.ictu.edu.vn',
+      phone: '0981.234.003',
+      faculty: 'Khoa Công nghệ Thông tin',
+      major: 'An toàn thông tin',
+      gpa: '3.55',
+      cv_file: 'CV_PhamTuanKiet_Security.pdf',
+      app_file: null,
+      contract_file: null,
+      applied_at: '20/10/2026',
+      status: 'pending',
+      program_name: null,
+      avatar: 'TK',
+    },
+    {
       id: 7,
-      full_name: 'Ứng viên',
-      student_code: '',
-      university: '',
+      full_name: 'Nguyễn Thu Hà',
+      student_code: 'TTS9999',
+      university: 'Trường Đại học Công nghệ Thông tin & Truyền thông (ICTU)',
       email: 'ungvien@ictu.edu.vn',
       phone: '0987.654.321',
       faculty: 'Khoa Công nghệ Thông tin',
       major: 'Công nghệ thông tin',
       gpa: '3.55',
-      cv_file: null,        // Ban đầu chưa nộp CV
-      app_file: null,       // Ban đầu chưa nộp đơn
+      cv_file: 'Quy chế tổ chức thi Olympic AI ICTU 2026 version 3.docx',
+      app_file: null,
       contract_file: null,
-      applied_at: null,     // Chưa nộp hồ sơ
-      status: 'unsubmitted', // 'unsubmitted' | 'pending' | 'approved' | 'rejected'
-      avatar: 'UV',
+      applied_at: '19/10/2026',
+      status: 'pending',
+      program_name: null,
+      avatar: 'TH',
     },
     {
       id: 5,
@@ -184,6 +239,7 @@ const DEFAULT_INITIAL_DATA = {
       contract_file: 'HopDong_ThoaThuan_TTS0001.pdf',
       applied_at: '28/09/2026',
       status: 'approved',
+      program_name: 'Khóa K20 - Kỳ Thu 2026',
       avatar: 'TTS',
     },
     {
@@ -200,6 +256,7 @@ const DEFAULT_INITIAL_DATA = {
       contract_file: 'HopDong_ThoaThuan_TTS0002.pdf',
       applied_at: '27/09/2026',
       status: 'approved',
+      program_name: 'Khóa K20 - Kỳ Thu 2026',
       avatar: 'LN',
     },
     {
@@ -216,6 +273,7 @@ const DEFAULT_INITIAL_DATA = {
       contract_file: 'HopDong_ThoaThuan_TTS0003.pdf',
       applied_at: '26/09/2026',
       status: 'approved',
+      program_name: 'Khóa K20 - Kỳ Thu 2026',
       avatar: 'TP',
     },
     {
@@ -232,7 +290,8 @@ const DEFAULT_INITIAL_DATA = {
       contract_file: 'HopDong_ThoaThuan_TTS0004.pdf',
       applied_at: '25/09/2026',
       status: 'approved',
-      avatar: 'HD',
+      program_name: 'Khóa K20 - Kỳ Thu 2026',
+      avatar: 'MD',
     },
   ],
   contracts: [
@@ -309,6 +368,8 @@ const DEFAULT_INITIAL_DATA = {
       student_code: 'TTS0001 • K20-CNTT',
       company: 'ICTU Software Engineering Lab',
       project: 'Dự án Core API Microservice & Quản lý TTS',
+      program_id: 1,
+      program_name: 'Khóa K20 - Kỳ Thu 2026',
       mentor: 'Trần Hoàng Quân',
       mentor_role: 'Senior Tech Lead',
       mentor_id: 3,
@@ -322,6 +383,8 @@ const DEFAULT_INITIAL_DATA = {
       student_code: 'TTS0002 • K20-KTPM',
       company: 'Phòng Đảm bảo Chất lượng Phần mềm (QA Lab)',
       project: 'HR Portal Web App & Tuyển dụng sinh viên',
+      program_id: 1,
+      program_name: 'Khóa K20 - Kỳ Thu 2026',
       mentor: 'Phạm Quốc Hướng',
       mentor_role: 'QA Lead Engineer',
       mentor_id: 4,
@@ -335,6 +398,8 @@ const DEFAULT_INITIAL_DATA = {
       student_code: 'TTS0003 • K21-HTTT',
       company: 'Trung tâm Dữ liệu & Hệ thống Thông tin',
       project: 'Enterprise Data Dashboard & BI',
+      program_id: 1,
+      program_name: 'Khóa K20 - Kỳ Thu 2026',
       mentor: 'Trần Hoàng Quân',
       mentor_role: 'Senior Tech Lead',
       mentor_id: 3,
@@ -348,6 +413,8 @@ const DEFAULT_INITIAL_DATA = {
       student_code: 'TTS0004 • K20-ATTT',
       company: 'Trung tâm An toàn Thông tin & Tác chiến mạng',
       project: 'Security Infrastructure, SSO & Pentest Web API',
+      program_id: 1,
+      program_name: 'Khóa K20 - Kỳ Thu 2026',
       mentor: 'Phạm Quốc Hướng',
       mentor_role: 'QA Lead Engineer',
       mentor_id: 4,
@@ -923,27 +990,28 @@ export function syncApplicantDecision(applicantId, decisionStatus, reason = '') 
 /**
  * 4.1 HR chọn mẫu văn bản và gửi hợp đồng tiếp nhận cho ứng viên đã duyệt
  */
-export function syncSendContractToApplicant(applicantId, contractInfo) {
+export function syncSendContractToApplicant(applicantId, contractInfo = {}) {
   const state = getRealtimeSyncState();
-  const applicant = state.applicants.find((a) => a.id === applicantId);
-  const fullName = applicant ? applicant.full_name : contractInfo.student_name || 'Ứng viên';
-  const studentCode = contractInfo.student_code !== undefined ? contractInfo.student_code : (applicant?.student_code || '');
-  const university = contractInfo.university !== undefined ? contractInfo.university : (applicant?.university || '');
+  const applicant = state.applicants.find((a) => Number(a.id) === Number(applicantId)) || contractInfo;
+  const fullName = applicant?.full_name || contractInfo.student_name || 'Ứng viên';
+  const studentCode = contractInfo.student_code !== undefined ? contractInfo.student_code : (applicant?.student_code || `DTC${applicantId}`);
+  const university = contractInfo.university !== undefined ? contractInfo.university : (applicant?.university || 'Đại học CNTT & TT Thái Nguyên (ICTU)');
   const phone = contractInfo.phone || applicant?.phone || '';
   const email = contractInfo.email || applicant?.email || '';
-  const faculty = applicant ? applicant.faculty : contractInfo.faculty || 'Khoa Công nghệ Thông tin';
+  const faculty = contractInfo.faculty || applicant?.faculty || applicant?.major || 'Khoa Công nghệ Thông tin';
 
   const newContract = {
-    id: contractInfo.id || Date.now(),
-    intern_id: applicantId,
-    contract_code: contractInfo.contract_code || `HĐTT-2026-00${state.contracts.length + 1}`,
+    id: contractInfo.id || Date.now() + Number(applicantId || 1),
+    intern_id: Number(applicantId) || applicantId,
+    contract_code: contractInfo.contract_code || `HĐTT-2026-${String(applicantId).padStart(3, '0')}`,
     student_name: fullName,
     student_code: studentCode,
     university: university,
     phone: phone,
     email: email,
     faculty: faculty,
-    doc_type: contractInfo.doc_type || 'Hợp đồng Tiếp nhận Thực tập & Cam kết Bảo mật (NDA)',
+    doc_type: contractInfo.doc_type || 'Hợp đồng Tiếp nhận Thực tập Doanh nghiệp & Cam kết Bảo mật (NDA)',
+    duration: contractInfo.duration || '03 tháng (Từ 01/10/2026 đến 31/12/2026)',
     created_at: new Date().toLocaleDateString('vi-VN'),
     start_date: contractInfo.start_date || '01/10/2026',
     end_date: contractInfo.end_date || '31/12/2026',
@@ -954,26 +1022,22 @@ export function syncSendContractToApplicant(applicantId, contractInfo) {
     signed_company: true,
     signed_ictu: true,
     status: 'pending_intern',
-    status_label: 'Chờ sinh viên ký nhận',
-    cert: 'ICTU-Verified',
+    status_label: 'Chờ sinh viên ký số',
+    cert: 'ICTU & Doanh nghiệp đã ký duyệt',
   };
 
   // Cập nhật hoặc thêm vào danh sách hợp đồng
-  const existingIdx = state.contracts.findIndex((c) => c.intern_id === applicantId);
-  if (existingIdx >= 0) {
-    state.contracts[existingIdx] = newContract;
-  } else {
-    state.contracts.unshift(newContract);
-  }
+  state.contracts = (state.contracts || []).filter((c) => Number(c.intern_id) !== Number(applicantId));
+  state.contracts.unshift(newContract);
 
   // Cập nhật trạng thái applicant là đã được gửi hợp đồng
   state.applicants = state.applicants.map((a) =>
-    a.id === applicantId
+    Number(a.id) === Number(applicantId)
       ? {
           ...a,
           contract_sent: true,
           contract_code: newContract.contract_code,
-          contract_file: newContract.doc_type,
+          contract_file: `HopDong_TiepNhan_${studentCode}.pdf`,
           contract_info: newContract,
         }
       : a
@@ -1000,6 +1064,7 @@ export function syncSendContractToApplicant(applicantId, contractInfo) {
     applicantId,
     targetEmail: email,
     contract: newContract,
+    studentName: fullName,
   });
 
   return newContract;
@@ -1110,6 +1175,56 @@ export function syncContractDeleted(contractId) {
 /**
  * 4. TTS ký hợp đồng điện tử (từ trang TTS / ContractSigningPage)
  */
+/**
+ * 4.1 Kiểm tra xem một thực tập sinh đã ký hợp đồng tiếp nhận thực tập hay chưa.
+ * Đảm bảo chỉ những TTS ĐÃ KÝ HỢP ĐỒNG mới được phép phân công Mentor / Nhóm.
+ */
+export function checkInternContractSigned(intern, syncContracts = []) {
+  if (!intern) return false;
+  const code = (intern.code || intern.student_code || '').toUpperCase().trim();
+  const email = (intern.email || '').toLowerCase().trim();
+  const name = (intern.full_name || '').trim();
+  const id = Number(intern.id);
+
+  // 1. Các tài khoản TTS chính thức có sẵn (TTS0001 - TTS0004) luôn coi là đã ký HĐ
+  if (code.startsWith('TTS') && code !== 'TTS9999') return true;
+  if (id === 5 || id === 6 || id === 8 || id === 9) return true;
+  if (email === 'intern@ictu.edu.vn' || email.startsWith('tts') || email.includes('an.nv') || email.includes('nam.lh')) {
+    return true;
+  }
+
+  // 2. Tra cứu trong danh sách contracts
+  const contractList = syncContracts && syncContracts.length > 0 ? syncContracts : (getRealtimeSyncState().contracts || []);
+  const match = contractList.find((c) => {
+    const cId = Number(c.intern_id);
+    const cEmail = (c.email || '').toLowerCase().trim();
+    const cName = (c.student_name || '').trim();
+    return (
+      (cId && cId === id) ||
+      (cEmail && email && cEmail === email) ||
+      (cName && name && cName === name)
+    );
+  });
+
+  if (match) {
+    return Boolean(
+      match.signed_intern === true ||
+      match.status === 'completed' ||
+      match.status === 'active' ||
+      (match.status_label && match.status_label.includes('Hoàn tất'))
+    );
+  }
+
+  // 3. Nếu là ứng viên mới (pending hoặc mã DTC) và chưa có hợp đồng đã ký -> false
+  if (intern.status === 'pending' || intern.status === 'unsubmitted' || code.startsWith('DTC') || code.startsWith('UV')) {
+    return false;
+  }
+
+  return true;
+}
+
+
+
 export function syncContractSigning(internId, studentName = '') {
   const state = getRealtimeSyncState();
   let signedContract = null;
@@ -1211,7 +1326,7 @@ export function syncContractRecordCreated(contract) {
 /**
  * 6. HR phân công TTS cho Mentor (từ trang HR Mentors hoặc Matching Modal)
  */
-export function syncMentorAssignment(mentorId, mentorName, internIds, projectName = 'Dự án Phát triển Hệ thống') {
+export function syncMentorAssignment(mentorId, mentorName, internIds, projectName = 'Dự án Phát triển Hệ thống', options = {}) {
   const state = getRealtimeSyncState();
 
   if (state.unassigned_intern_ids) {
@@ -1222,6 +1337,13 @@ export function syncMentorAssignment(mentorId, mentorName, internIds, projectNam
   state.mentorAssignments = state.mentorAssignments.filter(
     (m) => m.mentor_id !== mentorId || internIds.includes(m.intern_id)
   );
+
+  const resolvedProgName =
+    options.programName ||
+    (projectName && projectName.includes('Kỳ') ? projectName : 'Khóa K20 - Kỳ Thu 2026');
+  const resolvedProgId = options.programId || 1;
+  const resolvedDeptName = options.departmentName || 'Trung tâm Phát triển Phần mềm ICTU';
+  const resolvedGroupName = options.groupName || projectName;
 
   internIds.forEach((internId) => {
     const internObj = state.applicants.find((a) => a.id === internId);
@@ -1234,19 +1356,40 @@ export function syncMentorAssignment(mentorId, mentorName, internIds, projectNam
       intern_id: internId,
       student: studentName,
       student_code: `${studentCode} • CNTT`,
-      company: 'ICTU Software Engineering Lab',
+      company: resolvedDeptName,
       project: projectName,
+      program_id: resolvedProgId,
+      program_name: resolvedProgName,
+      department_id: options.departmentId || null,
+      department_name: resolvedDeptName,
+      group_id: options.groupId || null,
+      group_name: resolvedGroupName,
       mentor: mentorName,
       mentor_role: 'Mentor Hướng dẫn',
       mentor_id: mentorId,
       status: 'assigned',
       status_label: 'Đã phân công',
+      assigned_at: new Date().toISOString(),
     };
 
     if (existingIdx >= 0) {
       state.mentorAssignments[existingIdx] = assignRecord;
     } else {
       state.mentorAssignments.push(assignRecord);
+    }
+
+    // Cập nhật đa phân hệ vào danh sách applicants
+    const appIdx = state.applicants.findIndex((a) => a.id === internId);
+    if (appIdx >= 0) {
+      state.applicants[appIdx] = {
+        ...state.applicants[appIdx],
+        program_id: resolvedProgId,
+        program_name: resolvedProgName,
+        mentor_id: mentorId,
+        mentor_name: mentorName,
+        department_name: resolvedDeptName,
+        group_name: resolvedGroupName,
+      };
     }
   });
 
@@ -1256,6 +1399,7 @@ export function syncMentorAssignment(mentorId, mentorName, internIds, projectNam
     mentorName,
     internIds,
     count: internIds.length,
+    programName: resolvedProgName,
   });
 }
 

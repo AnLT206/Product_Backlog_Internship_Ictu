@@ -94,16 +94,6 @@ function LoginPage() {
     setError('')
     setLoading(true)
 
-    const isApplicantAccount = targetEmail.trim().toLowerCase().includes('ungvien')
-    if (isApplicantAccount) {
-      try {
-        localStorage.removeItem('applicant_onboarded')
-        localStorage.removeItem('applicant_pending_contract')
-        localStorage.setItem('last_portal_intern_role', 'applicant')
-        sessionStorage.removeItem('applicant_reject_modal_dismissed')
-      } catch {}
-    }
-
     try {
       const result = await login(targetEmail.trim(), targetPassword)
       if (!result.ok) {
@@ -111,15 +101,24 @@ function LoginPage() {
         return
       }
 
-      const isApplicant =
-        isApplicantAccount ||
-        isApplicantUser(result.user) ||
-        (result.user?.email || '').toLowerCase().includes('ungvien') ||
-        result.user?.code === 'UV0001' ||
-        result.user?.status === 'pending' ||
-        result.user?.status === 'rejected' ||
-        result.user?.profile_status === 'pending' ||
-        result.user?.profile_status === 'rejected';
+      const isApplicant = isApplicantUser(result.user)
+      if (isApplicant) {
+        try {
+          const userEmail = (result.user?.email || targetEmail).toLowerCase().trim()
+          const scopedKey = `applicant_onboarded_${userEmail}`
+          if (localStorage.getItem(scopedKey) !== 'true') {
+            localStorage.removeItem('applicant_onboarded')
+            localStorage.removeItem('applicant_pending_contract')
+          }
+          localStorage.setItem('last_portal_intern_role', 'applicant')
+          sessionStorage.removeItem('applicant_reject_modal_dismissed')
+        } catch {}
+      } else {
+        try {
+          localStorage.setItem('last_portal_intern_role', 'intern')
+        } catch {}
+      }
+
       const roleDest = isApplicant ? '/intern/dashboard' : dashboardPathForRole(result.user.role)
       let dest = forcedDest || roleDest
       if (!forcedDest && location.state?.from) {
