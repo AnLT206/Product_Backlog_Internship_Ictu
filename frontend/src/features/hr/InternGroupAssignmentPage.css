@@ -539,38 +539,49 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 12px;
   background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .interns-selection-table,
 .assigned-members-table {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
+  min-width: 1240px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13.5px;
   text-align: left;
 }
 
 .interns-selection-table thead,
 .assigned-members-table thead {
   background-color: #f8fafc;
-  border-bottom: 2px solid #e2e8f0;
 }
 
 .interns-selection-table th,
 .assigned-members-table th {
-  padding: 12px 14px;
+  padding: 13px 16px;
   font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
   color: #475569;
+  background-color: #f8fafc;
+  border-bottom: 1.5px solid #e2e8f0;
   white-space: nowrap;
 }
 
 .interns-selection-table td,
 .assigned-members-table td {
-  padding: 12px 14px;
+  padding: 13px 16px;
   border-bottom: 1px solid #f1f5f9;
   vertical-align: middle;
   color: #1e293b;
+}
+
+.interns-selection-table tbody tr:last-child td,
+.assigned-members-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .interns-selection-table tbody tr {
@@ -595,71 +606,76 @@
 .btn-row-checkbox {
   background: transparent;
   border: none;
-  padding: 4px;
+  padding: 6px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #94a3b8;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
 }
 
 .btn-header-checkbox:hover:not(:disabled),
 .btn-row-checkbox:hover {
   color: #2563eb;
-  background-color: #f1f5f9;
+  background-color: #eff6ff;
 }
 
 .checkbox-icon {
   color: #94a3b8;
+  transition: transform 0.15s ease, color 0.15s ease;
 }
 
 .checkbox-icon.checked {
   color: #2563eb;
+  transform: scale(1.05);
 }
 
 /* Table Cells Data */
 .intern-code-badge {
   display: inline-block;
-  font-family: monospace;
-  font-weight: 700;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-weight: 600;
   font-size: 12px;
-  color: #0f172a;
+  letter-spacing: 0.04em;
+  color: #334155;
   background-color: #f1f5f9;
   border: 1px solid #e2e8f0;
   padding: 3px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
+  text-decoration: none;
 }
 
 .intern-name-cell {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .intern-avatar-circle {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background-color: #dbeafe;
-  color: #1e40af;
+  background-color: #eff6ff;
+  color: #1d4ed8;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 12.5px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 1px solid #bfdbfe;
+  border: 1.5px solid #bfdbfe;
 }
 
 .avatar-assigned {
-  background-color: #d1fae5;
-  color: #065f46;
+  background-color: #ecfdf5;
+  color: #047857;
   border-color: #a7f3d0;
 }
 
 .intern-name-text {
+  font-size: 13.5px;
   font-weight: 600;
   color: #0f172a;
 }
@@ -667,83 +683,176 @@
 .intern-gpa-badge {
   display: inline-block;
   font-size: 11px;
-  color: #059669;
+  color: #047857;
   background-color: #ecfdf5;
-  padding: 1px 6px;
-  border-radius: 4px;
+  border: 1px solid #a7f3d0;
+  padding: 1px 7px;
+  border-radius: 9999px;
   font-weight: 600;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .intern-contact-cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  min-width: 220px;
 }
 
 .intern-email-text {
+  font-size: 13px;
   font-weight: 500;
-  color: #334155;
-  word-break: break-all;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
 }
 
 .intern-phone-text {
   font-size: 12px;
+  font-weight: 500;
   color: #64748b;
+  letter-spacing: 0.01em;
 }
 
 .intern-edu-cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  max-width: 260px;
 }
 
 .intern-major-text {
+  font-size: 13px;
   font-weight: 600;
-  color: #1e293b;
+  color: #0f172a;
 }
 
 .intern-uni-text {
   font-size: 12px;
   color: #64748b;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .program-tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   font-size: 12px;
+  font-weight: 500;
   color: #334155;
-  background-color: #f1f5f9;
+  background-color: #f8fafc;
   border: 1px solid #e2e8f0;
-  padding: 4px 8px;
-  border-radius: 6px;
-  line-height: 1.3;
-}
-
-.department-tag {
-  display: inline-block;
-  font-size: 12px;
-  color: #1e40af;
-  background-color: #eff6ff;
-  border: 1px solid #dbeafe;
-  padding: 4px 8px;
-  border-radius: 6px;
-  line-height: 1.3;
-}
-
-.status-badge {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 600;
   padding: 4px 10px;
-  border-radius: 9999px;
+  border-radius: 6px;
+  line-height: 1.3;
   white-space: nowrap;
 }
 
-.status-pending {
-  background-color: #fffbeb;
-  color: #b45309;
-  border: 1px solid #fde68a;
+.department-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.department-tag--unassigned {
+  color: #64748b;
+  background-color: #f8fafc;
+  border: 1px dashed #cbd5e1;
+}
+
+.department-tag--assigned {
+  color: #1d4ed8;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+/* ── Status Badges & Cells ── */
+.intern-status-cell {
+  text-align: center;
+  padding: 13px 8px !important;
+  white-space: nowrap;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 124px;
+  padding: 5px 14px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.2;
+  box-sizing: border-box;
+  letter-spacing: 0.01em;
+  margin: 0 auto;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.status-dot {
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Chờ phân nhóm */
+.status-badge.status-waiting {
+  background-color: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fdba74;
+}
+.status-badge.status-waiting .status-dot {
+  background-color: #ea580c;
+}
+
+/* Chờ duyệt / pending */
+.status-badge.status-pending {
+  background-color: #fefce8;
+  color: #a16207;
+  border: 1px solid #fde047;
+}
+.status-badge.status-pending .status-dot {
+  background-color: #ca8a04;
+}
+
+/* Đã phân nhóm / Hoạt động */
+.status-badge.status-assigned,
+.status-badge.status-active {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+.status-badge.status-assigned .status-dot,
+.status-badge.status-active .status-dot {
+  background-color: #16a34a;
+}
+
+/* Từ chối / rejected */
+.status-badge.status-rejected {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+.status-badge.status-rejected .status-dot {
+  background-color: #dc2626;
+}
+
+.status-badge.status-neutral {
+  background-color: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+.status-badge.status-neutral .status-dot {
+  background-color: #64748b;
 }
 
 /* Empty State */

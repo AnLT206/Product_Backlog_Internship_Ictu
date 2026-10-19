@@ -64,3 +64,16 @@ def update_work_schedule(
     db: Session = Depends(get_db),
 ) -> WorkScheduleResponse:
     return WorkScheduleService(db).update_work_schedule(schedule_id, data)
+
+
+@router.delete(
+    "/{schedule_id}",
+    summary="Xóa cấu hình ca làm việc",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def delete_work_schedule(
+    schedule_id: int,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    return WorkScheduleService(db).delete_work_schedule(schedule_id)
+

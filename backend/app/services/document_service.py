@@ -125,8 +125,25 @@ class DocumentService:
         doc.status = "approved"
         doc.confirmed_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
+        # Cập nhật trạng thái người dùng sang active và profile sang approved
+        current_user.status = "active"
+        profile = self.db.query(InternProfile).filter(InternProfile.user_id == current_user.id).first()
+        if profile:
+            profile.status = "approved"
+
         notification_service = NotificationService(self.db)
         try:
+            # Thông báo cho TTS: Hoàn tất ký hợp đồng -> Bắt đầu Giai đoạn 2
+            notification_service.create_notification(
+                user_id=current_user.id,
+                title="🎉 Xác nhận hợp đồng thành công!",
+                body=(
+                    f"Bạn đã ký xác nhận hợp đồng tiếp nhận '{doc.file_name}'. "
+                    "Hệ thống đã chuyển sang Giai đoạn 2: Vui lòng tải lên CV và Đơn thực tập chính thức để hoàn tất hồ sơ."
+                ),
+                commit=False,
+            )
+
             hr_users = (
                 self.db.query(User)
                 .join(Role, User.role_id == Role.id)
@@ -139,7 +156,8 @@ class DocumentService:
                     user_id=hr.id,
                     title="TTS đã xác nhận hợp đồng",
                     body=(
-                        f"{intern_name} đã xác nhận hợp đồng '{doc.file_name}'."
+                        f"{intern_name} đã xác nhận hợp đồng '{doc.file_name}'. "
+                        "Hồ sơ đã chuyển sang Giai đoạn 2: Quản lý hồ sơ thực tập sinh."
                     ),
                     commit=False,
                 )
@@ -228,13 +246,23 @@ class DocumentService:
 
         notification_service = NotificationService(self.db)
         try:
+            doc_label = "CV chính thức" if doc.doc_type == "cv" else ("Đơn thực tập" if doc.doc_type == "application" else doc.doc_type)
             if payload.status == "rejected":
                 notification_service.create_notification(
                     user_id=doc.user_id,
-                    title="Tài liệu bị từ chối",
+                    title="⚠️ Tài liệu bị từ chối / Cần bổ sung",
                     body=(
-                        f"Tài liệu '{doc.file_name}' ({doc.doc_type}) đã bị từ chối. "
-                        f"Lý do: {note}"
+                        f"Tài liệu '{doc.file_name}' ({doc_label}) đã bị từ chối / cần được bổ sung hoặc chỉnh sửa. "
+                        f"Lý do từ HR: {note}. Vui lòng nộp lại để hoàn tất hồ sơ."
+                    ),
+                    commit=False,
+                )
+            elif payload.status == "approved":
+                notification_service.create_notification(
+                    user_id=doc.user_id,
+                    title="✅ Tài liệu hồ sơ được duyệt HỢP LỆ",
+                    body=(
+                        f"Tài liệu '{doc.file_name}' ({doc_label}) của bạn đã được HR thẩm định và duyệt HỢP LỆ."
                     ),
                     commit=False,
                 )

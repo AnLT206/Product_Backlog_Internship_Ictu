@@ -26,8 +26,10 @@ from app.schemas.program import (
     ProgramCreateRequest,
     ProgramGroupBatchAssignRequest,
     ProgramGroupBatchAssignResponse,
+    ProgramMemberItem,
     ProgramPeriodRequest,
     ProgramResponse,
+    ProgramUpdateMemberRequest,
     ProgramUpdateRequest,
 )
 
@@ -43,8 +45,18 @@ class ProgramService:
             .filter(ProgramMember.program_id == row.id)
             .count()
         )
+        current_mentors = (
+            self.db.query(ProgramMember.mentor_user_id)
+            .filter(
+                ProgramMember.program_id == row.id,
+                ProgramMember.mentor_user_id.isnot(None),
+            )
+            .distinct()
+            .count()
+        )
         resp = ProgramResponse.model_validate(row)
         resp.current_interns = current_interns
+        resp.current_mentors = current_mentors
         return resp
 
     def list_programs(self, include_deleted: bool = False) -> list[ProgramResponse]:
@@ -78,6 +90,7 @@ class ProgramService:
                 start_date=payload.start_date,
                 end_date=payload.end_date,
                 max_interns=payload.max_interns,
+                max_mentors=payload.max_mentors,
                 status="open",
                 is_deleted=False,
             )
@@ -294,6 +307,32 @@ class ProgramService:
             self.db.add(member)
             assigned.append(intern_id)
 
+        if payload.mentor_id:
+            for intern_id in assigned:
+                prof = (
+                    self.db.query(InternProfile)
+                    .filter(InternProfile.user_id == intern_id)
+                    .first()
+                )
+                if prof:
+                    prof.mentor_id = payload.mentor_id
+                else:
+                    self.db.add(
+                        InternProfile(user_id=intern_id, mentor_id=payload.mentor_id, status="approved")
+                    )
+
+                mi = (
+                    self.db.query(MentorIntern)
+                    .filter(MentorIntern.intern_id == intern_id)
+                    .first()
+                )
+                if mi:
+                    mi.mentor_id = payload.mentor_id
+                else:
+                    self.db.add(
+                        MentorIntern(mentor_id=payload.mentor_id, intern_id=intern_id)
+                    )
+
         try:
             self.db.commit()
         except IntegrityError:
@@ -316,6 +355,200 @@ class ProgramService:
             mentor_id=payload.mentor_id,
             message=f"Đã gán thành công {len(assigned)} thực tập sinh vào kỳ.",
         )
+
+    def list_program_members(self, program_id: int) -> list[ProgramMemberItem]:
+        """Lấy danh sách các TTS và Mentor trong kỳ thực tập."""
+        program = self._get_or_404(program_id, allow_deleted=True)
+        members = (
+            self.db.query(ProgramMember)
+            .filter(ProgramMember.program_id == program.id)
+            .order_by(ProgramMember.id.desc())
+            .all()
+        )
+        result: list[ProgramMemberItem] = []
+        for m in members:
+            intern = self.db.query(User).filter(User.id == m.intern_user_id).first()
+            mentor = (
+                self.db.query(User).filter(User.id == m.mentor_user_id).first()
+                if m.mentor_user_id
+                else None
+            )
+            profile = (
+                self.db.query(InternProfile)
+                .filter(InternProfile.user_id == m.intern_user_id)
+                .first()
+            )
+            result.append(
+                ProgramMemberItem(
+                    id=m.id,
+                    program_id=m.program_id,
+                    intern_user_id=m.intern_user_id,
+                    intern_name=(
+                        intern.full_name
+                        if intern and intern.full_name
+                        else (intern.email if intern else f"TTS #{m.intern_user_id}")
+                    ),
+                    intern_email=intern.email if intern else "",
+                    intern_code=intern.code if intern else None,
+                    phone_number=profile.phone_number if profile else None,
+                    university=profile.university if profile else None,
+                    major=profile.major if profile else None,
+                    mentor_user_id=m.mentor_user_id,
+                    mentor_name=mentor.full_name if mentor else None,
+                    mentor_email=mentor.email if mentor else None,
+                    status=m.status,
+                    created_at=m.created_at,
+                )
+            )
+        return result
+
+    def update_program_member(
+        self, program_id: int, intern_id: int, payload: ProgramUpdateMemberRequest
+    ) -> ProgramMemberItem:
+        """Cập nhật Mentor hoặc trạng thái cho một TTS trong kỳ thực tập."""
+        self._get_or_404(program_id)
+        member = (
+            self.db.query(ProgramMember)
+            .filter(
+                ProgramMember.program_id == program_id,
+                ProgramMember.intern_user_id == intern_id,
+            )
+            .first()
+        )
+        if not member:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Không tìm thấy thực tập sinh trong kỳ thực tập này.",
+            )
+
+        if payload.mentor_id is not None:
+            if payload.mentor_id > 0:
+                mentor = (
+                    self.db.query(User)
+                    .join(Role, User.role_id == Role.id)
+                    .filter(User.id == payload.mentor_id, Role.name == "mentor")
+                    .first()
+                )
+                if not mentor:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Không tìm thấy Mentor tương ứng.",
+                    )
+                member.mentor_user_id = payload.mentor_id
+
+                prof = (
+                    self.db.query(InternProfile)
+                    .filter(InternProfile.user_id == intern_id)
+                    .first()
+                )
+                if prof:
+                    prof.mentor_id = payload.mentor_id
+                else:
+                    self.db.add(
+                        InternProfile(user_id=intern_id, mentor_id=payload.mentor_id, status="approved")
+                    )
+
+                mi = (
+                    self.db.query(MentorIntern)
+                    .filter(MentorIntern.intern_id == intern_id)
+                    .first()
+                )
+                if mi:
+                    mi.mentor_id = payload.mentor_id
+                else:
+                    self.db.add(
+                        MentorIntern(mentor_id=payload.mentor_id, intern_id=intern_id)
+                    )
+            else:
+                member.mentor_user_id = None
+                prof = (
+                    self.db.query(InternProfile)
+                    .filter(InternProfile.user_id == intern_id)
+                    .first()
+                )
+                if prof and prof.mentor_id == member.mentor_user_id:
+                    prof.mentor_id = None
+                mi = (
+                    self.db.query(MentorIntern)
+                    .filter(MentorIntern.intern_id == intern_id)
+                    .first()
+                )
+                if mi:
+                    self.db.delete(mi)
+
+        if payload.status:
+            valid_statuses = {"in_progress", "completed", "dropped_out", "failed"}
+            if payload.status in valid_statuses:
+                member.status = payload.status
+
+        try:
+            self.db.commit()
+            self.db.refresh(member)
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể cập nhật thành viên kỳ thực tập.",
+            ) from None
+
+        intern = self.db.query(User).filter(User.id == member.intern_user_id).first()
+        mentor = (
+            self.db.query(User).filter(User.id == member.mentor_user_id).first()
+            if member.mentor_user_id
+            else None
+        )
+        profile = (
+            self.db.query(InternProfile)
+            .filter(InternProfile.user_id == member.intern_user_id)
+            .first()
+        )
+        return ProgramMemberItem(
+            id=member.id,
+            program_id=member.program_id,
+            intern_user_id=member.intern_user_id,
+            intern_name=(
+                intern.full_name
+                if intern and intern.full_name
+                else (intern.email if intern else f"TTS #{member.intern_user_id}")
+            ),
+            intern_email=intern.email if intern else "",
+            intern_code=intern.code if intern else None,
+            phone_number=profile.phone_number if profile else None,
+            university=profile.university if profile else None,
+            major=profile.major if profile else None,
+            mentor_user_id=member.mentor_user_id,
+            mentor_name=mentor.full_name if mentor else None,
+            mentor_email=mentor.email if mentor else None,
+            status=member.status,
+            created_at=member.created_at,
+        )
+
+    def remove_program_member(self, program_id: int, intern_id: int) -> None:
+        """Xóa một TTS khỏi kỳ thực tập."""
+        self._get_or_404(program_id)
+        member = (
+            self.db.query(ProgramMember)
+            .filter(
+                ProgramMember.program_id == program_id,
+                ProgramMember.intern_user_id == intern_id,
+            )
+            .first()
+        )
+        if not member:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Không tìm thấy thực tập sinh trong kỳ thực tập này.",
+            )
+
+        self.db.delete(member)
+        try:
+            self.db.commit()
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể xóa thực tập sinh khỏi kỳ thực tập.",
+            ) from None
 
     def assign_groups(
         self,

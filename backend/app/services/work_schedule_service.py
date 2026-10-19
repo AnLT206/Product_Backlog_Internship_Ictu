@@ -95,3 +95,10 @@ class WorkScheduleService:
         self.db.commit()
         self.db.refresh(shift)
         return shift
+
+    def delete_work_schedule(self, schedule_id: int) -> dict[str, str]:
+        shift = self.get_by_id(schedule_id)
+        self.db.delete(shift)
+        self.db.commit()
+        return {"detail": "Đã xóa ca làm việc thành công"}
+

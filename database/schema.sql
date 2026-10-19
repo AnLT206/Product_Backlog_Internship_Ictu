@@ -139,6 +139,7 @@ CREATE TABLE IF NOT EXISTS `internship_programs` (
     `start_date` DATE NOT NULL,
     `end_date` DATE NOT NULL,
     `max_interns` INT NOT NULL DEFAULT 50,
+    `max_mentors` INT NOT NULL DEFAULT 10,
     `status` ENUM('open', 'closed') NOT NULL DEFAULT 'open',
     `is_deleted` TINYINT(1) NOT NULL DEFAULT 0,
     `deleted_at` DATETIME NULL DEFAULT NULL,

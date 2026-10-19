@@ -18,6 +18,7 @@ class InternshipProgram(Base):
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
     max_interns: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
+    max_mentors: Mapped[int] = mapped_column(Integer, default=10, nullable=False)
     status: Mapped[str] = mapped_column(
         Enum("open", "closed", name="program_status_enum"),
         default="open",

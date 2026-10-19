@@ -127,6 +127,49 @@ export async function assignInternsToProgram(programId, body) {
 }
 
 /**
+ * Lấy danh sách thành viên (TTS & Mentor) của một kỳ thực tập.
+ * Route: GET /api/hr/programs/:id/members
+ *
+ * @param {number|string} programId
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function getProgramMembers(programId) {
+  return apiFetch(`/api/hr/programs/${programId}/members`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * Cập nhật Mentor hoặc trạng thái cho một TTS trong kỳ thực tập.
+ * Route: PUT /api/hr/programs/:id/members/:internId
+ *
+ * @param {number|string} programId
+ * @param {number|string} internId
+ * @param {{ mentor_id?: number|null, status?: string }} body
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function updateProgramMember(programId, internId, body) {
+  return apiFetch(`/api/hr/programs/${programId}/members/${internId}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Xóa một TTS khỏi kỳ thực tập.
+ * Route: DELETE /api/hr/programs/:id/members/:internId
+ *
+ * @param {number|string} programId
+ * @param {number|string} internId
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function removeProgramMember(programId, internId) {
+  return apiFetch(`/api/hr/programs/${programId}/members/${internId}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
  * Lấy dữ liệu thống kê tỷ lệ hoàn thành chương trình thực tập và so sánh đợt trước.
  *
  * @returns {Promise<{ ok: boolean, status: number, data: object }>}
@@ -193,3 +236,45 @@ export async function getCompletionStats() {
     },
   };
 }
+
+/**
+ * Lấy danh sách lịch làm việc / ca làm việc theo kỳ thực tập.
+ * Route: GET /api/hr/work-schedules?program_id=:programId
+ */
+export async function getProgramWorkSchedules(programId) {
+  const qs = programId ? `?program_id=${programId}` : '';
+  return apiFetch(`/api/hr/work-schedules${qs}`, { method: 'GET' });
+}
+
+/**
+ * Tạo mới phiên / ca làm việc hằng tuần cho kỳ thực tập.
+ * Route: POST /api/hr/work-schedules
+ */
+export async function createWorkSchedule(body) {
+  return apiFetch('/api/hr/work-schedules', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Cập nhật phiên / ca làm việc.
+ * Route: PUT /api/hr/work-schedules/:id
+ */
+export async function updateWorkSchedule(id, body) {
+  return apiFetch(`/api/hr/work-schedules/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Xóa phiên / ca làm việc.
+ * Route: DELETE /api/hr/work-schedules/:id
+ */
+export async function deleteWorkSchedule(id) {
+  return apiFetch(`/api/hr/work-schedules/${id}`, {
+    method: 'DELETE',
+  });
+}
+
