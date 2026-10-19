@@ -4,7 +4,7 @@ import InternMentorGroupSection from './components/InternMentorGroupSection';
 import InternMentorCard from './components/InternMentorCard';
 import InternGroupCard from './components/InternGroupCard';
 import InternAllMembersModal from './components/InternAllMembersModal';
-import { getMyMentorGroup } from '../../api/interns';
+import * as internsApi from '../../api/interns';
 import {
   MOCK_MENTOR,
   MOCK_GROUP,
@@ -21,7 +21,7 @@ describe('Intern Mentor & Group UI Test Suite (Story: Mentor của tôi & Nhóm 
      1. KIỂM THỬ KHỐI "MENTOR CỦA TÔI" (MENTOR CARD)
      ─────────────────────────────────────────────────────────────────────────── */
   describe('1. Khối Mentor của tôi (InternMentorCard)', () => {
-    it('Render đầy đủ tiêu đề, phụ đề, họ tên, chức vụ, phòng ban, avatar và trạng thái', () => {
+    it('Render đầy đủ tiêu đề, phụ đề, họ tên, chức vụ, phòng ban, avatar initials fallback và trạng thái', () => {
       render(<InternMentorCard mentor={MOCK_MENTOR} />);
 
       // Tiêu đề & phụ đề
@@ -36,7 +36,7 @@ describe('Intern Mentor & Group UI Test Suite (Story: Mentor của tôi & Nhóm 
       // Trạng thái online
       expect(screen.getByText(/Đang làm việc tại văn phòng/i)).toBeInTheDocument();
 
-      // Avatar fallback initials ("TQ" cho Trần Hoàng Quân)
+      // Avatar fallback initials ("TQ" cho Trần Hoàng Quân khi avatar_url null)
       expect(screen.getByText('TQ')).toBeInTheDocument();
     });
 
@@ -62,7 +62,19 @@ describe('Intern Mentor & Group UI Test Suite (Story: Mentor của tôi & Nhóm 
       expect(copyBtn).toBeInTheDocument();
     });
 
-    it('Hiển thị Empty State chính xác khi chưa có Mentor được phân công', () => {
+    it('Hiển thị ảnh đại diện khi avatar_url có giá trị hợp lệ', () => {
+      const mentorWithAvatar = {
+        ...MOCK_MENTOR,
+        avatar_url: 'https://example.com/avatar.jpg',
+      };
+      render(<InternMentorCard mentor={mentorWithAvatar} />);
+
+      const img = screen.getByRole('img', { name: /Trần Hoàng Quân/i });
+      expect(img).toBeInTheDocument();
+      expect(img).toHaveAttribute('src', 'https://example.com/avatar.jpg');
+    });
+
+    it('Hiển thị Empty State chính xác khi chưa có Mentor được phân công (mentor = null)', () => {
       render(<InternMentorCard mentor={null} />);
 
       expect(screen.getByText(/Chưa phân công người hướng dẫn/i)).toBeInTheDocument();
@@ -158,12 +170,19 @@ describe('Intern Mentor & Group UI Test Suite (Story: Mentor của tôi & Nhóm 
       expect(handleOpenModal).toHaveBeenCalledTimes(1);
     });
 
-    it('Hiển thị Empty State chính xác khi chưa được đưa vào nhóm', () => {
+    it('Hiển thị Empty State chính xác khi chưa được đưa vào nhóm (group = null)', () => {
       render(<InternGroupCard group={null} members={[]} onViewAllMembers={vi.fn()} />);
 
       expect(screen.getByText(/Chưa tham gia nhóm thực tập/i)).toBeInTheDocument();
       expect(screen.getByText(/Bạn chưa được đưa vào nhóm dự án thực tập nào/i)).toBeInTheDocument();
       expect(screen.getByText(/Chờ HR xếp nhóm/i)).toBeInTheDocument();
+    });
+
+    it('Hiển thị thông báo khi nhóm chưa có thành viên nào khác (members = [])', () => {
+      render(<InternGroupCard group={MOCK_GROUP} members={[]} onViewAllMembers={vi.fn()} />);
+
+      expect(screen.getByText(/Nhóm hiện tại chưa có thành viên nào khác/i)).toBeInTheDocument();
+      expect(screen.getAllByText('0 thành viên').length).toBe(2);
     });
   });
 
@@ -230,100 +249,128 @@ describe('Intern Mentor & Group UI Test Suite (Story: Mentor của tôi & Nhóm 
   });
 
   /* ───────────────────────────────────────────────────────────────────────────
-     4. KIỂM THỬ API SERVICE getMyMentorGroup VÀ CÁC SCENARIO
+     4. KIỂM THỬ API SERVICE getMyMentorGroup
      ─────────────────────────────────────────────────────────────────────────── */
   describe('4. Frontend API Service (getMyMentorGroup)', () => {
-    it('getMyMentorGroup trả về dữ liệu đầy đủ theo chuẩn Response { ok, status, data }', async () => {
-      const res = await getMyMentorGroup();
+    it('getMyMentorGroup gọi đúng GET /api/intern/mentor-group', async () => {
+      const spy = vi.spyOn(internsApi, 'getMyMentorGroup').mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: {
+          status: 'assigned',
+          message: 'Thành công',
+          mentor: MOCK_MENTOR,
+          group: MOCK_GROUP,
+          members: MOCK_GROUP_MEMBERS,
+        },
+      });
+
+      const res = await internsApi.getMyMentorGroup();
+      expect(spy).toHaveBeenCalled();
       expect(res.ok).toBe(true);
       expect(res.status).toBe(200);
-      expect(res.data.mentor).toBeDefined();
       expect(res.data.mentor.full_name).toBe('Trần Hoàng Quân');
-      expect(res.data.group).toBeDefined();
+      expect(res.data.group.name).toContain('Nhóm Frontend React');
       expect(res.data.members).toHaveLength(6);
-    });
-
-    it('getMyMentorGroup xử lý scenario no-mentor', async () => {
-      const res = await getMyMentorGroup({ scenario: 'no-mentor' });
-      expect(res.ok).toBe(true);
-      expect(res.data.mentor).toBeNull();
-      expect(res.data.group).toBeDefined();
-    });
-
-    it('getMyMentorGroup xử lý scenario no-group', async () => {
-      const res = await getMyMentorGroup({ scenario: 'no-group' });
-      expect(res.ok).toBe(true);
-      expect(res.data.group).toBeNull();
-      expect(res.data.members).toEqual([]);
-    });
-
-    it('getMyMentorGroup xử lý scenario error', async () => {
-      const res = await getMyMentorGroup({ scenario: 'error' });
-      expect(res.ok).toBe(false);
-      expect(res.status).toBe(500);
-      expect(res.error).toBeDefined();
     });
   });
 
   /* ───────────────────────────────────────────────────────────────────────────
-     5. KIỂM THỬ SECTION TỔNG HỢP VÀ CÁC STATE (LOADING / ERROR / PREVIEW)
+     5. KIỂM THỬ SECTION TỔNG HỢP VÀ CÁC TRẠNG THÁI (LOADING / API SUCCESS / ERROR / FALLBACK)
      ─────────────────────────────────────────────────────────────────────────── */
   describe('5. Section tổng hợp & Tích hợp API State (InternMentorGroupSection)', () => {
-    it('Render đồng thời cả Mentor Card và Group Card trong cùng giao diện', async () => {
+    it('Hiển thị trạng thái Loading khi đang tải dữ liệu', () => {
+      // Mock API trả về Promise chưa resolve ngay
+      vi.spyOn(internsApi, 'getMyMentorGroup').mockReturnValue(new Promise(() => {}));
+
+      render(<InternMentorGroupSection />);
+
+      expect(
+        screen.getByText(/Đang tải thông tin Mentor và Nhóm thực tập.../i)
+      ).toBeInTheDocument();
+    });
+
+    it('Render thành công cả Mentor Card và Group Card khi API trả về dữ liệu hợp lệ', async () => {
+      vi.spyOn(internsApi, 'getMyMentorGroup').mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: {
+          status: 'assigned',
+          message: 'Lấy thông tin thành công',
+          mentor: MOCK_MENTOR,
+          group: MOCK_GROUP,
+          members: MOCK_GROUP_MEMBERS,
+        },
+      });
+
       render(<InternMentorGroupSection />);
 
       await waitFor(() => {
         expect(screen.getByRole('region', { name: 'Mentor của tôi' })).toBeInTheDocument();
         expect(screen.getByRole('region', { name: 'Nhóm thực tập' })).toBeInTheDocument();
       });
+
+      expect(screen.getAllByText('Trần Hoàng Quân').length).toBe(2);
+      expect(screen.getByText(/Nhóm Frontend React/i)).toBeInTheDocument();
     });
 
-    it('Toolbar cho phép chuyển đổi và kiểm tra các trạng thái giao diện', async () => {
-      render(<InternMentorGroupSection />);
-
-      // Ban đầu ở trạng thái "Đầy đủ"
-      await waitFor(() => {
-        expect(screen.getAllByText('Trần Hoàng Quân').length).toBe(2);
-        expect(screen.getByText(/Nhóm Frontend React/i)).toBeInTheDocument();
+    it('Xử lý an toàn khi Intern chưa được phân công (status = unassigned, mentor = null, group = null)', async () => {
+      vi.spyOn(internsApi, 'getMyMentorGroup').mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: {
+          status: 'unassigned',
+          message: 'Bạn chưa được phân bổ vào nhóm thực tập hoặc chưa có người hướng dẫn.',
+          mentor: null,
+          group: null,
+          members: [],
+        },
       });
 
-      // Chuyển sang: "Chưa có Mentor"
-      const noMentorBtn = screen.getByRole('button', { name: /Chưa có Mentor/i });
-      fireEvent.click(noMentorBtn);
+      render(<InternMentorGroupSection />);
 
       await waitFor(() => {
         expect(screen.getByText(/Chưa phân công người hướng dẫn/i)).toBeInTheDocument();
-        expect(screen.getByText(/Nhóm Frontend React/i)).toBeInTheDocument();
-      });
-
-      // Chuyển sang: "Chưa có Nhóm"
-      const noGroupBtn = screen.getByRole('button', { name: /Chưa có Nhóm/i });
-      fireEvent.click(noGroupBtn);
-
-      await waitFor(() => {
         expect(screen.getByText(/Chưa tham gia nhóm thực tập/i)).toBeInTheDocument();
-      });
-
-      // Chuyển sang: "Lỗi tải"
-      const errorBtn = screen.getByRole('button', { name: /Lỗi tải/i });
-      fireEvent.click(errorBtn);
-
-      await waitFor(() => {
-        expect(screen.getByText(/Không thể tải thông tin/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Thử lại/i })).toBeInTheDocument();
-      });
-
-      // Quay lại: "Đầy đủ"
-      const fullBtn = screen.getByRole('button', { name: /Đầy đủ/i });
-      fireEvent.click(fullBtn);
-
-      await waitFor(() => {
-        expect(screen.getAllByText('Trần Hoàng Quân').length).toBe(2);
-        expect(screen.getByText(/Nhóm Frontend React/i)).toBeInTheDocument();
       });
     });
 
-    it('Hàm getInitials trả về chữ cái đầu in hoa chuẩn', () => {
+    it('Hiển thị thông báo lỗi và nút Thử lại khi API gặp lỗi (API error)', async () => {
+      const getSpy = vi.spyOn(internsApi, 'getMyMentorGroup').mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        error: 'Lỗi kết nối máy chủ 500',
+      });
+
+      render(<InternMentorGroupSection />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Không thể tải thông tin/i)).toBeInTheDocument();
+        expect(screen.getByText(/Lỗi kết nối máy chủ 500/i)).toBeInTheDocument();
+      });
+
+      // Bấm nút Thử lại
+      getSpy.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        data: {
+          status: 'assigned',
+          mentor: MOCK_MENTOR,
+          group: MOCK_GROUP,
+          members: MOCK_GROUP_MEMBERS,
+        },
+      });
+
+      const retryBtn = screen.getByRole('button', { name: /Thử lại/i });
+      fireEvent.click(retryBtn);
+
+      await waitFor(() => {
+        expect(screen.getByRole('region', { name: 'Mentor của tôi' })).toBeInTheDocument();
+        expect(screen.getAllByText('Trần Hoàng Quân').length).toBe(2);
+      });
+    });
+
+    it('Hàm getInitials trả về chữ cái đầu in hoa chuẩn khi avatar_url null', () => {
       expect(getInitials('Trần Hoàng Quân')).toBe('TQ');
       expect(getInitials('Nguyễn Văn An')).toBe('NA');
       expect(getInitials('Admin')).toBe('AD');

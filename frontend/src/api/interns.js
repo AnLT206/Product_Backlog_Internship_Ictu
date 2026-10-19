@@ -9,7 +9,6 @@
  */
 
 import apiFetch, { getTokenForRole, acquireTokenForRole } from './client';
-import { MOCK_MENTOR_GROUP_DATA } from '../features/intern/mentorGroupMock';
 
 /**
  * Lấy danh sách thực tập sinh với bộ lọc tuỳ chọn (phân trang, ngành, trường, trạng thái, từ khóa).
@@ -230,82 +229,10 @@ export function buildToast(ok, status, data, successMessage = 'Thao tác thành 
 
 /**
  * Lấy thông tin chi tiết Mentor hướng dẫn và Nhóm thực tập của Thực tập sinh đang đăng nhập.
+ * Route: GET /api/intern/mentor-group
  *
- * KIẾN TRÚC TÍCH HỢP:
- * - Hiện tại Backend đang trong quá trình bổ sung endpoint REST GET /api/intern/mentor-group.
- * - Function này tuân thủ chuẩn Interface Promise: { ok: boolean, status: number, data: { mentor, group, members } }
- * - Khi Backend deploy endpoint thật:
- *     return apiFetch('/api/intern/mentor-group', { method: 'GET' });
- *   Toàn bộ UI và Components hoàn toàn giữ nguyên 100%, không cần thay đổi.
- *
- * @param {{
- *   scenario?: 'full' | 'no-mentor' | 'no-group' | 'empty-members' | 'error',
- *   delay?: number,
- * }} [options={}]
- * @returns {Promise<{ ok: boolean, status: number, data?: { mentor: object|null, group: object|null, members: Array }, error?: string }>}
+ * @returns {Promise<{ ok: boolean, status: number, data?: { status: string, message?: string, mentor: object|null, group: object|null, members: Array }, error?: string }>}
  */
-export async function getMyMentorGroup(options = {}) {
-  const { scenario = 'full', delay = 0 } = options;
-
-  if (delay > 0) {
-    await new Promise((resolve) => setTimeout(resolve, delay));
-  }
-
-  if (scenario === 'error') {
-    return {
-      ok: false,
-      status: 500,
-      data: null,
-      error: 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng và thử lại.',
-    };
-  }
-
-  if (scenario === 'no-mentor') {
-    return {
-      ok: true,
-      status: 200,
-      data: {
-        mentor: null,
-        group: MOCK_MENTOR_GROUP_DATA.group,
-        members: MOCK_MENTOR_GROUP_DATA.members,
-      },
-    };
-  }
-
-  if (scenario === 'no-group') {
-    return {
-      ok: true,
-      status: 200,
-      data: {
-        mentor: MOCK_MENTOR_GROUP_DATA.mentor,
-        group: null,
-        members: [],
-      },
-    };
-  }
-
-  if (scenario === 'empty-members') {
-    return {
-      ok: true,
-      status: 200,
-      data: {
-        mentor: MOCK_MENTOR_GROUP_DATA.mentor,
-        group: {
-          ...MOCK_MENTOR_GROUP_DATA.group,
-          total_members: 0,
-        },
-        members: [],
-      },
-    };
-  }
-
-  return {
-    ok: true,
-    status: 200,
-    data: {
-      mentor: MOCK_MENTOR_GROUP_DATA.mentor,
-      group: MOCK_MENTOR_GROUP_DATA.group,
-      members: MOCK_MENTOR_GROUP_DATA.members,
-    },
-  };
+export async function getMyMentorGroup() {
+  return apiFetch('/api/intern/mentor-group', { method: 'GET' });
 }
