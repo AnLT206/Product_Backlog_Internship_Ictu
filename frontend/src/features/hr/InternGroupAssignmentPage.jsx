@@ -1159,12 +1159,8 @@ export default function InternGroupAssignmentPage() {
                   <th style={{ width: '260px' }}>Trường & Chuyên ngành</th>
                   <th style={{ width: '200px' }}>Chương trình hiện tại</th>
                   <th style={{ width: '200px' }}>Phòng ban nguyện vọng</th>
-<<<<<<< HEAD
-                  <th style={{ width: '170px', textAlign: 'center' }}>Trạng thái</th>
-=======
                   <th style={{ width: '130px', textAlign: 'center' }}>Trạng thái</th>
                   <th style={{ width: '260px', textAlign: 'center' }}>Gán nhanh vào nhóm (1-Click)</th>
->>>>>>> afba2ff5105c5c0eb2ec0db328e877c8c65b6a75
                 </tr>
               </thead>
               <tbody>
@@ -1258,18 +1254,6 @@ export default function InternGroupAssignmentPage() {
                             {intern.preferred_department}
                           </span>
                         </td>
-<<<<<<< HEAD
-                        <td className="intern-status-cell">
-                          {(() => {
-                            const { label, className } = getStatusInfo(intern.status);
-                            return (
-                              <span className={`status-badge ${className}`}>
-                                <span className="status-dot" />
-                                <span>{label}</span>
-                              </span>
-                            );
-                          })()}
-=======
                         <td style={{ textAlign: 'center' }}>
                           {isLocked ? (
                             <span className="status-badge status-pending" title="TTS chưa hoàn tất ký hợp đồng tiếp nhận, không thể phân công vào nhóm">
@@ -1309,7 +1293,6 @@ export default function InternGroupAssignmentPage() {
                               <span>Gán</span>
                             </button>
                           </div>
->>>>>>> afba2ff5105c5c0eb2ec0db328e877c8c65b6a75
                         </td>
                       </tr>
                     );
@@ -1400,17 +1383,6 @@ export default function InternGroupAssignmentPage() {
             <table className="assigned-members-table">
               <thead>
                 <tr>
-<<<<<<< HEAD
-                  <th style={{ width: '56px', textAlign: 'center' }}>STT</th>
-                  <th style={{ width: '110px', textAlign: 'center' }}>Mã TTS</th>
-                  <th style={{ width: '220px' }}>Họ và tên</th>
-                  <th style={{ width: '240px' }}>Email liên hệ</th>
-                  <th style={{ width: '240px' }}>Nhóm dự án</th>
-                  <th style={{ width: '220px' }}>Phòng ban trực thuộc</th>
-                  <th style={{ width: '200px' }}>Vai trò trong nhóm</th>
-                  <th style={{ width: '120px', textAlign: 'center' }}>Ngày gán</th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>Thao tác</th>
-=======
                   <th style={{ width: '45px', textAlign: 'center' }}>STT</th>
                   <th style={{ width: '95px', textAlign: 'center' }}>Mã TTS</th>
                   <th style={{ width: '200px' }}>Họ và tên</th>
@@ -1420,7 +1392,6 @@ export default function InternGroupAssignmentPage() {
                   <th style={{ width: '170px' }}>Vai trò trong nhóm</th>
                   <th style={{ width: '110px', textAlign: 'center' }}>Ngày gán</th>
                   <th style={{ width: '90px', textAlign: 'center' }}>Thao tác</th>
->>>>>>> afba2ff5105c5c0eb2ec0db328e877c8c65b6a75
                 </tr>
               </thead>
               <tbody>
