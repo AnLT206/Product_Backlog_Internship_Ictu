@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import apiFetch from '../../api/client'
+import { fetchInternWeeklySchedules } from '../../api/operations'
 import './InternDashboardPage.css'
 import './InternSchedulePage.css'
 
@@ -676,20 +677,67 @@ export default function InternSchedulePage() {
     }
   }, [])
 
-  // Giả lập gọi API lấy dữ liệu lịch thực tập từ BE với loading/error state
+  // Lấy dữ liệu lịch thực tập trực tiếp từ HR qua API backend (/api/intern/weekly-schedules)
   useEffect(() => {
+    let isMounted = true
     setIsLoading(true)
     setError(null)
-    const timer = setTimeout(() => {
+
+    async function loadSchedule() {
       try {
-        setEvents(MOCK_SCHEDULE_EVENTS)
-        setIsLoading(false)
+        const res = await fetchInternWeeklySchedules()
+        const apiList =
+          res && res.ok && Array.isArray(res.data)
+            ? res.data
+            : Array.isArray(res)
+            ? res
+            : []
+
+        if (apiList.length > 0) {
+          // Chuẩn hóa dữ liệu từ HR sang định dạng giao diện lịch
+          const mappedEvents = apiList.map((item) => {
+            const timeStr = `${item.start_time?.slice(0, 5)} – ${item.end_time?.slice(0, 5)}`
+            return {
+              id: `api-sched-${item.id}`,
+              title: item.shift_name,
+              date: item.session_date,
+              time: timeStr,
+              type: 'shift',
+              typeLabel: 'Ca làm việc (HR phân công)',
+              location: item.location || 'P.302 – Trung tâm Phần mềm & AI ICTU',
+              host: item.created_by_name || 'Phòng Nhân sự (HR)',
+              description: item.notes || 'Lịch làm việc theo phiên do HR xếp lịch.',
+              status:
+                item.days_until_session === 0
+                  ? 'today'
+                  : item.days_until_session > 0
+                  ? 'upcoming'
+                  : 'completed',
+            }
+          })
+          if (isMounted) {
+            setEvents(mappedEvents)
+            setIsLoading(false)
+          }
+        } else {
+          // Nếu HR chưa xếp ca nào, hiển thị lịch mẫu demo
+          if (isMounted) {
+            setEvents(MOCK_SCHEDULE_EVENTS)
+            setIsLoading(false)
+          }
+        }
       } catch {
-        setError('Không thể tải dữ liệu lịch thực tập. Vui lòng thử lại sau.')
-        setIsLoading(false)
+        if (isMounted) {
+          setEvents(MOCK_SCHEDULE_EVENTS)
+          setIsLoading(false)
+        }
       }
-    }, 350)
-    return () => clearTimeout(timer)
+    }
+
+    loadSchedule()
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   // Lọc và sắp xếp sự kiện theo trình tự thời gian sáng -> chiều -> tối

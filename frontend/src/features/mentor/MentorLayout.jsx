@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 
 const MENTOR_NAV_ITEMS = [
   { to: '/mentor/dashboard', label: 'Danh sách TTS phụ trách', end: true },
+  { to: '/mentor/schedule', label: 'Lịch làm việc & Hướng dẫn' },
   { to: '/mentor/dashboard#tasks', label: 'Giao việc & Nhiệm vụ (Tasks)' },
   { to: '/mentor/dashboard#reports', label: 'Duyệt báo cáo tuần' },
   { to: '/mentor/dashboard#evaluations', label: 'Đánh giá năng lực cuối kỳ' },

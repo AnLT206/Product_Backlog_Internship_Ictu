@@ -37,6 +37,7 @@ from app.models.internship_group import (
     InternProfileDepartment,
 )
 from app.models.hrm_sync_log import HrmSyncLog
+from app.models.weekly_work_schedule import WeeklyWorkSchedule
 
 __all__ = [
     "Allowance",
@@ -79,6 +80,7 @@ __all__ = [
     "InternProfileGroup",
     "InternProfileDepartment",
     "HrmSyncLog",
+    "WeeklyWorkSchedule",
 ]
 
 

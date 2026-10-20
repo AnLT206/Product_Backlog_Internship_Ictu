@@ -4,6 +4,7 @@ import {
   DollarSign,
   BarChart2,
   CalendarCheck,
+  Calendar,
   Clock,
   Sparkles,
 } from 'lucide-react'
@@ -11,18 +12,19 @@ import AllowanceManagementPage from './AllowanceManagementPage'
 import AttendanceReportPage from './AttendanceReportPage'
 import LeaveRequestManagement from './components/LeaveRequestManagement'
 import WorkScheduleSettings from './components/WorkScheduleSettings'
+import WeeklyWorkScheduleManager from './components/WeeklyWorkScheduleManager'
 import './HrSubPages.css'
 
 export default function HrAttendancePage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabFromUrl = searchParams.get('tab')
 
-  // Xác định tab mặc định dựa trên query param (?tab=allowance | report | leave | schedule)
+  // Xác định tab mặc định dựa trên query param (?tab=allowance | report | leave | schedule | weekly-schedule)
   const [activeTab, setActiveTab] = useState(() => {
-    if (tabFromUrl && ['allowance', 'report', 'leave', 'schedule'].includes(tabFromUrl)) {
+    if (tabFromUrl && ['allowance', 'report', 'leave', 'schedule', 'weekly-schedule'].includes(tabFromUrl)) {
       return tabFromUrl
     }
-    return 'allowance'
+    return 'weekly-schedule'
   })
 
   const [pendingLeaveCount, setPendingLeaveCount] = useState(0)
@@ -30,7 +32,7 @@ export default function HrAttendancePage() {
   // Đồng bộ state khi URL param thay đổi (ví dụ khi redirect từ menu khác)
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['allowance', 'report', 'leave', 'schedule'].includes(tab) && tab !== activeTab) {
+    if (tab && ['allowance', 'report', 'leave', 'schedule', 'weekly-schedule'].includes(tab) && tab !== activeTab) {
       setActiveTab(tab)
     }
   }, [searchParams, activeTab])
@@ -106,20 +108,34 @@ export default function HrAttendancePage() {
           )}
         </button>
 
-        {/* Tab 4: Cấu hình Ca làm việc */}
+        {/* Tab 4: Lịch làm việc theo phiên của từng tuần (TTS & Mentor) */}
+        <button
+          type="button"
+          onClick={() => handleTabChange('weekly-schedule')}
+          className={`subpage-btn ${activeTab === 'weekly-schedule' ? 'subpage-btn--primary' : 'subpage-btn--outline'}`}
+          style={{ whiteSpace: 'nowrap' }}
+          id="tab-btn-weekly-schedule"
+        >
+          <Calendar size={16} />
+          <span>Lịch phiên theo tuần (TTS / Mentor)</span>
+        </button>
+
+        {/* Tab 5: Cấu hình Ca làm việc linh hoạt */}
         <button
           type="button"
           onClick={() => handleTabChange('schedule')}
           className={`subpage-btn ${activeTab === 'schedule' ? 'subpage-btn--primary' : 'subpage-btn--outline'}`}
           style={{ whiteSpace: 'nowrap' }}
+          id="tab-btn-schedule-settings"
         >
           <Clock size={16} />
-          <span>Cấu hình Ca làm việc linh hoạt</span>
+          <span>Khung giờ ca mẫu</span>
         </button>
       </div>
 
       {/* Render nội dung tương ứng theo tab đã chọn */}
       <div className="hr-attendance-hub-content">
+        {activeTab === 'weekly-schedule' && <WeeklyWorkScheduleManager />}
         {activeTab === 'allowance' && <AllowanceManagementPage />}
         {activeTab === 'report' && <AttendanceReportPage />}
         {activeTab === 'leave' && (
