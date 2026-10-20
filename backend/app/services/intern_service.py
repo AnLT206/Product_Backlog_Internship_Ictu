@@ -81,6 +81,7 @@ class InternService:
                 university=payload.university or "",
                 major=payload.major or "",
                 academic_year=payload.academic_year,
+                class_name=payload.class_name,
                 gpa=payload.gpa,
                 address=payload.address,
             )
@@ -236,6 +237,7 @@ class InternService:
                 university=u.intern_profile.university if u.intern_profile else None,
                 major=u.intern_profile.major if u.intern_profile else None,
                 academic_year=u.intern_profile.academic_year if u.intern_profile else None,
+                class_name=u.intern_profile.class_name if u.intern_profile else None,
                 gpa=u.intern_profile.gpa if u.intern_profile else None,
                 address=u.intern_profile.address if u.intern_profile else None,
                 avatar=u.intern_profile.avatar if u.intern_profile else None,
@@ -435,6 +437,7 @@ class InternService:
             university=profile.university if profile else None,
             major=profile.major if profile else None,
             academic_year=profile.academic_year if profile else None,
+            class_name=profile.class_name if profile else None,
             gpa=profile.gpa if profile else None,
             address=profile.address if profile else None,
             avatar=profile.avatar if profile else None,

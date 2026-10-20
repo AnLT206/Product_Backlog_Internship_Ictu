@@ -26,6 +26,7 @@ import {
   getRealtimeSyncState,
   subscribeRealtimeEvents,
 } from '../../utils/realtimeSync';
+import MentorDimensionAssignmentTab from './components/MentorDimensionAssignmentTab';
 import './MentorAssignmentPage.css';
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -648,8 +649,24 @@ export default function MentorAssignmentPage() {
             <UserCheck size={15} />
             <span>Phần 2: Quản lý & Gán Mentor ({assignedInterns.length} đã gán, {unassignedInterns.length} chờ gán)</span>
           </button>
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === 'dimension' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('dimension')}
+            data-testid="tab-dimension-assignment"
+          >
+            <GraduationCap size={15} />
+            <span>Phân công theo Khối / Lớp / Khóa / Ban (1-N & N-N)</span>
+          </button>
         </div>
       </header>
+
+      {/* ── TAB PHÂN CÔNG THEO KHỐI / LỚP / KHÓA / BAN (1-N & N-N) ── */}
+      {activeTab === 'dimension' && (
+        <section className="dimension-section" aria-label="Phân công Mentor theo Khối / Lớp / Khóa / Ban">
+          <MentorDimensionAssignmentTab />
+        </section>
+      )}
 
       {/* ── PHẦN 1: THEO DÕI TẢI CÔNG VIỆC MENTOR (WORKLOAD) ── */}
       {(activeTab === 'both' || activeTab === 'workload') && (
