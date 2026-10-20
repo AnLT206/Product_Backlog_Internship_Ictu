@@ -81,6 +81,7 @@ class InternService:
                 university=payload.university or "",
                 major=payload.major or "",
                 academic_year=payload.academic_year,
+                class_name=payload.class_name,
                 gpa=payload.gpa,
                 address=payload.address,
             )
@@ -123,14 +124,28 @@ class InternService:
             ).update({"status": "approved"}, synchronize_session=False)
             self.db.commit()
             self.db.refresh(user)
+            from app.services.notification_service import NotificationService
+            NotificationService(self.db).create_notification(
+                user_id=user.id,
+                title="🎉 Thông báo trúng tuyển thực tập sinh & Ký hợp đồng",
+                body=(
+                    "Chúc mừng bạn đã trúng tuyển chương trình thực tập ICTU! "
+                    "Bộ phận Nhân sự đang chuẩn bị hợp đồng thực tập cho bạn. "
+                    "Vui lòng vào hệ thống để xem và xác nhận Hợp đồng tiếp nhận thực tập."
+                ),
+                commit=False,
+            )
+            self.db.commit()
             EmailService.enqueue_email(
                 background_tasks,
                 user.email,
-                "Hồ sơ thực tập sinh đã được duyệt",
+                "Thông báo trúng tuyển chương trình thực tập tại ICTU",
                 (
                     f"Xin chào {user.full_name or 'bạn'},\n\n"
-                    "Hồ sơ thực tập sinh của bạn đã được duyệt. "
-                    "Bạn có thể dùng email và mật khẩu đã đăng ký để đăng nhập hệ thống."
+                    "Chúc mừng bạn đã trúng tuyển chương trình thực tập tại ICTU!\n"
+                    "Bộ phận Nhân sự (HR) đã phê duyệt hồ sơ ứng tuyển của bạn và đang tải lên Hợp đồng tiếp nhận thực tập.\n"
+                    "Vui lòng đăng nhập vào hệ thống để xem và xác nhận Hợp đồng nhằm hoàn tất Giai đoạn 1 (Tiếp nhận & Xét duyệt).\n\n"
+                    "Trân trọng,\nPhòng Quản lý Thực tập sinh - ICTU"
                 ),
             )
         except SQLAlchemyError:
@@ -289,6 +304,7 @@ class InternService:
                 university=u.intern_profile.university if u.intern_profile else None,
                 major=u.intern_profile.major if u.intern_profile else None,
                 academic_year=u.intern_profile.academic_year if u.intern_profile else None,
+                class_name=u.intern_profile.class_name if u.intern_profile else None,
                 gpa=u.intern_profile.gpa if u.intern_profile else None,
                 address=u.intern_profile.address if u.intern_profile else None,
                 avatar=u.intern_profile.avatar if u.intern_profile else None,
@@ -492,6 +508,7 @@ class InternService:
             university=profile.university if profile else None,
             major=profile.major if profile else None,
             academic_year=profile.academic_year if profile else None,
+            class_name=profile.class_name if profile else None,
             gpa=profile.gpa if profile else None,
             address=profile.address if profile else None,
             avatar=profile.avatar if profile else None,

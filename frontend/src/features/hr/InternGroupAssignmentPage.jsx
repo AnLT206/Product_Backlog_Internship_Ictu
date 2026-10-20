@@ -65,6 +65,29 @@ function getInitials(fullName) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   HELPER: Trả về nhãn tiếng Việt & class màu sắc chuẩn cho từng trạng thái TTS
+   ───────────────────────────────────────────────────────────────────────────── */
+function getStatusInfo(status) {
+  if (!status) {
+    return { label: 'Chưa rõ', className: 'status-neutral' };
+  }
+  const s = String(status).toLowerCase().trim();
+  if (s.includes('chờ phân nhóm') || s === 'waiting') {
+    return { label: 'Chờ phân nhóm', className: 'status-waiting' };
+  }
+  if (s === 'pending' || s.includes('chờ duyệt') || s === 'applied' || s === 'reviewing') {
+    return { label: 'Chờ duyệt', className: 'status-pending' };
+  }
+  if (s.includes('đã phân nhóm') || s === 'active' || s === 'approved' || s === 'onboarded') {
+    return { label: 'Đã phân nhóm', className: 'status-assigned' };
+  }
+  if (s === 'rejected' || s.includes('từ chối') || s === 'inactive') {
+    return { label: 'Đã từ chối', className: 'status-rejected' };
+  }
+  return { label: status, className: 'status-neutral' };
+}
+
 export default function InternGroupAssignmentPage() {
   /* ───────────────────────────────────────────────────────────────────────────
      TAB ĐIỀU HƯỚNG CHÍNH (Phân công vs Tab Tạo & Quản lý nhóm riêng biệt)
@@ -240,13 +263,49 @@ export default function InternGroupAssignmentPage() {
       });
       setGroups(mappedGroups);
 
-      // 4. Xử lý danh sách Thực tập sinh (chờ phân công vs đã phân công)
+      // 4. Xử lý danh sách Thực tập sinh (loại bỏ Ứng viên, chỉ lấy TTS chính thức để phân nhóm)
       let rawInterns = [];
       if (internsRes.ok) {
         rawInterns = Array.isArray(internsRes.data)
           ? internsRes.data
           : (internsRes.data?.items || []);
       }
+
+      // Hàm kiểm tra định danh ứng viên (chưa duyệt, từ chối, hoặc tài khoản demo ứng viên)
+      const isApplicantRecord = (item) => {
+        if (!item) return false;
+        const email = (item.email || '').toLowerCase().trim();
+        const code = (item.code || '').toUpperCase().trim();
+        const role = (item.role || '').toLowerCase().trim();
+        const status = (item.status || '').toLowerCase().trim();
+
+        // 1. Mã ứng viên (bắt đầu bằng UV)
+        if (code.startsWith('UV')) return true;
+
+        // 2. Email hoặc role là applicant/ứng viên
+        if (
+          role === 'applicant' ||
+          email.includes('ungvien') ||
+          email === 'ungvien@ictu.edu.vn' ||
+          Number(item.id) === 7
+        ) {
+          return true;
+        }
+
+        // 3. Hồ sơ ứng viên chưa duyệt hoặc bị từ chối
+        if (
+          status === 'rejected' ||
+          status === 'pending' ||
+          status === 'unsubmitted' ||
+          status === 'inactive'
+        ) {
+          return true;
+        }
+
+        return false;
+      };
+
+      const eligibleInterns = rawInterns.filter((intern) => !isApplicantRecord(intern));
 
       // Đọc trạng thái đồng bộ realtime nếu có
       const unassignedSet = new Set((syncState.unassigned_intern_ids || []).map(Number));
@@ -261,7 +320,7 @@ export default function InternGroupAssignmentPage() {
       const unassigned = [];
       const assigned = [];
 
-      rawInterns.forEach((intern) => {
+      eligibleInterns.forEach((intern) => {
         const internIdNum = Number(intern.id);
         const isExplicitlyUnassigned = unassignedSet.has(internIdNum);
 
@@ -1941,7 +2000,7 @@ export default function InternGroupAssignmentPage() {
             <table className="interns-selection-table">
               <thead>
                 <tr>
-                  <th style={{ width: '46px', textAlign: 'center' }}>
+                  <th style={{ width: '48px', textAlign: 'center' }}>
                     <button
                       type="button"
                       className="btn-header-checkbox"
@@ -1957,11 +2016,11 @@ export default function InternGroupAssignmentPage() {
                       )}
                     </button>
                   </th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>Mã TTS</th>
+                  <th style={{ width: '110px', textAlign: 'center' }}>Mã TTS</th>
                   <th style={{ width: '220px' }}>Họ và tên</th>
-                  <th style={{ width: '240px' }}>Email & Điện thoại</th>
-                  <th style={{ width: '250px' }}>Trường & Chuyên ngành</th>
-                  <th style={{ width: '220px' }}>Chương trình hiện tại</th>
+                  <th style={{ width: '260px' }}>Email & Điện thoại</th>
+                  <th style={{ width: '260px' }}>Trường & Chuyên ngành</th>
+                  <th style={{ width: '200px' }}>Chương trình hiện tại</th>
                   <th style={{ width: '200px' }}>Phòng ban nguyện vọng</th>
                   <th style={{ width: '130px', textAlign: 'center' }}>Trạng thái</th>
                   <th style={{ width: '260px', textAlign: 'center' }}>Gán nhanh vào nhóm (1-Click)</th>
@@ -2032,7 +2091,7 @@ export default function InternGroupAssignmentPage() {
                         </td>
                         <td>
                           <div className="intern-contact-cell">
-                            <span className="intern-email-text">{intern.email}</span>
+                            <span className="intern-email-text" title={intern.email}>{intern.email}</span>
                             <span className="intern-phone-text">{intern.phone}</span>
                           </div>
                         </td>
@@ -2048,7 +2107,15 @@ export default function InternGroupAssignmentPage() {
                           </span>
                         </td>
                         <td>
-                          <span className="department-tag">{intern.preferred_department}</span>
+                          <span
+                            className={`department-tag ${
+                              intern.preferred_department === 'Chưa xếp phòng ban'
+                                ? 'department-tag--unassigned'
+                                : 'department-tag--assigned'
+                            }`}
+                          >
+                            {intern.preferred_department}
+                          </span>
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           {isLocked ? (

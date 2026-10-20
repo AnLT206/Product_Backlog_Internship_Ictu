@@ -55,6 +55,8 @@ export default function InternUploadPage() {
   const [cvFile, setCvFile] = useState(null);
   const [cvSubmissionDate, setCvSubmissionDate] = useState(null);
 
+  const [allDocs, setAllDocs] = useState([]);
+
   // File CV đang được chọn (chưa bấm Gửi - Staged file)
   const [stagedFile, setStagedFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -107,50 +109,55 @@ export default function InternUploadPage() {
         (a) => a.id === user?.id || (user?.email && a.email?.toLowerCase() === user.email.toLowerCase())
       );
 
-      // 1. Kiểm tra tài liệu thực tế từ backend API
+      // 1. Kiểm tra tài liệu thực tế từ backend API (toàn bộ CV & đơn thực tập)
       let serverDocStatus = null;
       let serverDocReason = null;
       try {
-        const res = await getMyDocuments({ doc_type: 'cv' });
-        if (res?.ok && Array.isArray(res.data) && res.data.length > 0) {
-          hasCvOnServer = true;
-          const latestDoc = res.data[0];
-          serverDocStatus = latestDoc.status;
-          serverDocReason = latestDoc.review_note || null;
-          if (isMounted) {
-            const dateObj = latestDoc.created_at ? new Date(latestDoc.created_at) : new Date();
-            setCvSubmissionDate(dateObj);
-            setCvFile({
-              id: latestDoc.id,
-              name: latestDoc.file_name,
-              size: 1024 * 1024 * 1.5,
-              uploadedAt: latestDoc.created_at,
-            });
-            localStorage.setItem('applicant_cv_submission', JSON.stringify({
-              id: latestDoc.id,
-              file_name: latestDoc.file_name,
-              file_size: 1024 * 1024 * 1.5,
-              submitted_at: latestDoc.created_at,
-            }));
-          }
-        } else if (res?.ok && Array.isArray(res.data) && res.data.length === 0) {
-          // Backend trả về 200 OK và rỗng: Kiểm tra xem có CV trong syncStore không trước khi xóa
-          if (syncMatch?.cv_file && syncMatch.cv_file !== 'CV_UngVien.pdf') {
+        const res = await getMyDocuments({});
+        if (res?.ok && Array.isArray(res.data)) {
+          if (isMounted) setAllDocs(res.data);
+          const cvDoc = res.data.find((d) => d.doc_type === 'cv');
+          if (cvDoc) {
             hasCvOnServer = true;
+            serverDocStatus = cvDoc.status;
+            serverDocReason = cvDoc.review_note || null;
             if (isMounted) {
-              setCvSubmissionDate(new Date());
+              const dateObj = cvDoc.created_at ? new Date(cvDoc.created_at) : new Date();
+              setCvSubmissionDate(dateObj);
               setCvFile({
-                id: syncMatch.id || Date.now(),
-                name: syncMatch.cv_file,
+                id: cvDoc.id,
+                name: cvDoc.file_name,
                 size: 1024 * 1024 * 1.5,
-                uploadedAt: syncMatch.applied_at || new Date().toISOString(),
+                uploadedAt: cvDoc.created_at,
+                status: cvDoc.status,
+                reviewNote: cvDoc.review_note,
               });
+              localStorage.setItem('applicant_cv_submission', JSON.stringify({
+                id: cvDoc.id,
+                file_name: cvDoc.file_name,
+                file_size: 1024 * 1024 * 1.5,
+                submitted_at: cvDoc.created_at,
+              }));
             }
-          } else {
-            localStorage.removeItem('applicant_cv_submission');
-            if (isMounted) {
-              setCvFile(null);
-              setCvSubmissionDate(null);
+          } else if (res.data.length === 0) {
+            // Backend trả về 200 OK và rỗng: Kiểm tra xem có CV trong syncStore không trước khi xóa
+            if (syncMatch?.cv_file && syncMatch.cv_file !== 'CV_UngVien.pdf') {
+              hasCvOnServer = true;
+              if (isMounted) {
+                setCvSubmissionDate(new Date());
+                setCvFile({
+                  id: syncMatch.id || Date.now(),
+                  name: syncMatch.cv_file,
+                  size: 1024 * 1024 * 1.5,
+                  uploadedAt: syncMatch.applied_at || new Date().toISOString(),
+                });
+              }
+            } else {
+              localStorage.removeItem('applicant_cv_submission');
+              if (isMounted) {
+                setCvFile(null);
+                setCvSubmissionDate(null);
+              }
             }
           }
         }
@@ -1039,6 +1046,80 @@ export default function InternUploadPage() {
           <span style={{ fontSize: 12.5, color: '#64748b' }}>Tối đa 5 MB / file (.PDF, .DOC, .DOCX)</span>
         </div>
 
+        {/* Danh mục tài liệu hồ sơ thực tập sinh chính thức (Giai đoạn 2) */}
+        <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+          <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>📁 Danh mục tài liệu hồ sơ thực tập sinh (Giai đoạn 2: Hoàn thiện hồ sơ)</span>
+          </h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+            {/* Mục 1: CV chính thức */}
+            <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <strong style={{ fontSize: '13.5px', color: '#0f172a' }}>1. CV chính thức</strong>
+                {allDocs.find((d) => d.doc_type === 'cv' && d.status === 'approved') ? (
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#059669', backgroundColor: '#ecfdf5', padding: '2px 8px', borderRadius: '12px' }}>✓ Hợp lệ</span>
+                ) : allDocs.find((d) => d.doc_type === 'cv' && d.status === 'rejected') ? (
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#dc2626', backgroundColor: '#fef2f2', padding: '2px 8px', borderRadius: '12px' }}>⚠️ Cần bổ sung</span>
+                ) : allDocs.find((d) => d.doc_type === 'cv' && d.status === 'pending') || cvFile ? (
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#2563eb', backgroundColor: '#eff6ff', padding: '2px 8px', borderRadius: '12px' }}>⏳ Chờ HR duyệt</span>
+                ) : (
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '12px' }}>Chưa nộp</span>
+                )}
+              </div>
+              <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
+                {allDocs.find((d) => d.doc_type === 'cv')?.file_name || cvFile?.name || 'Chưa tải lên bản CV chính thức'}
+              </p>
+              {allDocs.find((d) => d.doc_type === 'cv' && d.status === 'rejected') && (
+                <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '6px', padding: '6px 10px', fontSize: '11.5px', color: '#c2410c' }}>
+                  <strong>Yêu cầu từ HR:</strong> {allDocs.find((d) => d.doc_type === 'cv')?.review_note || 'Vui lòng bổ sung thông tin kinh nghiệm/kỹ năng'}
+                </div>
+              )}
+              <div style={{ marginTop: 'auto', paddingTop: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setSelectedDocType('cv'); fileInputRef.current?.click(); }}
+                  style={{ fontSize: '12px', fontWeight: 600, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  {allDocs.find((d) => d.doc_type === 'cv') ? '↻ Tải lên bản mới thay thế' : '+ Tải lên CV ngay'}
+                </button>
+              </div>
+            </div>
+
+            {/* Mục 2: Đơn thực tập chính thức */}
+            <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <strong style={{ fontSize: '13.5px', color: '#0f172a' }}>2. Đơn thực tập chính thức</strong>
+                {allDocs.find((d) => d.doc_type === 'application' && d.status === 'approved') ? (
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#059669', backgroundColor: '#ecfdf5', padding: '2px 8px', borderRadius: '12px' }}>✓ Hợp lệ</span>
+                ) : allDocs.find((d) => d.doc_type === 'application' && d.status === 'rejected') ? (
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#dc2626', backgroundColor: '#fef2f2', padding: '2px 8px', borderRadius: '12px' }}>⚠️ Cần bổ sung</span>
+                ) : allDocs.find((d) => d.doc_type === 'application' && d.status === 'pending') ? (
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#2563eb', backgroundColor: '#eff6ff', padding: '2px 8px', borderRadius: '12px' }}>⏳ Chờ HR duyệt</span>
+                ) : (
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '12px' }}>Chưa nộp</span>
+                )}
+              </div>
+              <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
+                {allDocs.find((d) => d.doc_type === 'application')?.file_name || 'Đơn xin tiếp nhận thực tập (có xác nhận của Trường/Khoa)'}
+              </p>
+              {allDocs.find((d) => d.doc_type === 'application' && d.status === 'rejected') && (
+                <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '6px', padding: '6px 10px', fontSize: '11.5px', color: '#c2410c' }}>
+                  <strong>Yêu cầu từ HR:</strong> {allDocs.find((d) => d.doc_type === 'application')?.review_note || 'Cần có dấu mộc xác nhận từ Khoa/Trường'}
+                </div>
+              )}
+              <div style={{ marginTop: 'auto', paddingTop: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setSelectedDocType('application'); fileInputRef.current?.click(); }}
+                  style={{ fontSize: '12px', fontWeight: 600, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  {allDocs.find((d) => d.doc_type === 'application') ? '↻ Tải lên bản mới thay thế' : '+ Tải lên đơn thực tập ngay'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Bộ chọn loại tài liệu upload */}
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
           <button
@@ -1058,7 +1139,7 @@ export default function InternUploadPage() {
               gap: '6px',
             }}
           >
-            <span>📄 1. CV ứng tuyển / chính thức</span>
+            <span>📄 Tải lên: CV ứng tuyển / chính thức</span>
           </button>
           <button
             type="button"
@@ -1077,7 +1158,7 @@ export default function InternUploadPage() {
               gap: '6px',
             }}
           >
-            <span>📝 2. Đơn thực tập chính thức (Xác nhận từ Nhà trường)</span>
+            <span>📝 Tải lên: Đơn thực tập chính thức (Xác nhận từ Nhà trường)</span>
           </button>
         </div>
 

@@ -25,6 +25,7 @@ from app.api.routes import (
     tasks,
     weekly_reports,
     work_schedules,
+    weekly_work_schedules,
     intern_portal,
     hrm_sync,
 )
@@ -62,6 +63,7 @@ api_router.include_router(admin.settings_router)
 api_router.include_router(hrm_sync.router)
 api_router.include_router(hrm_sync.webhook_router)
 api_router.include_router(work_schedules.router)
+api_router.include_router(weekly_work_schedules.router)
 api_router.include_router(intern_portal.router)
 api_router.include_router(operations.router)
 

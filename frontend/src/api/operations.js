@@ -390,5 +390,52 @@ export async function gradeWeeklyReport(payload) {
   })
 }
 
+/* ── WEEKLY WORK SCHEDULES (HR, INTERN, MENTOR) ── */
+export async function fetchWeeklySchedules({ role, userId, startDate, endDate, status } = {}) {
+  const query = new URLSearchParams()
+  if (role) query.set('role', role)
+  if (userId) query.set('user_id', userId)
+  if (startDate) query.set('start_date', startDate)
+  if (endDate) query.set('end_date', endDate)
+  if (status) query.set('status', status)
+  const qs = query.toString()
+  return apiFetch(`/api/hr/weekly-schedules${qs ? `?${qs}` : ''}`, { method: 'GET' })
+}
+
+export async function createWeeklySchedule(payload) {
+  return apiFetch('/api/hr/weekly-schedules', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateWeeklySchedule(scheduleId, payload) {
+  return apiFetch(`/api/hr/weekly-schedules/${scheduleId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteWeeklySchedule(scheduleId) {
+  return apiFetch(`/api/hr/weekly-schedules/${scheduleId}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function fetchInternWeeklySchedules({ startDate, endDate } = {}) {
+  const query = new URLSearchParams()
+  if (startDate) query.set('start_date', startDate)
+  if (endDate) query.set('end_date', endDate)
+  const qs = query.toString()
+  return apiFetch(`/api/intern/weekly-schedules${qs ? `?${qs}` : ''}`, { method: 'GET' })
+}
+
+export async function fetchMentorWeeklySchedules({ startDate, endDate } = {}) {
+  const query = new URLSearchParams()
+  if (startDate) query.set('start_date', startDate)
+  if (endDate) query.set('end_date', endDate)
+  const qs = query.toString()
+  return apiFetch(`/api/mentor/weekly-schedules${qs ? `?${qs}` : ''}`, { method: 'GET' })
+}
 
 

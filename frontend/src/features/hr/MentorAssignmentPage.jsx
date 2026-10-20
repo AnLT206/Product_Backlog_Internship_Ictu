@@ -32,6 +32,7 @@ import {
   subscribeRealtimeEvents,
   checkInternContractSigned,
 } from '../../utils/realtimeSync';
+import MentorDimensionAssignmentTab from './components/MentorDimensionAssignmentTab';
 import './MentorAssignmentPage.css';
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -1040,116 +1041,136 @@ export default function MentorAssignmentPage() {
             <UserCheck size={15} />
             <span>Phần 2: Quản lý &amp; Gán Mentor ({assignedInterns.length} đã gán, {unassignedInterns.length} chờ gán)</span>
           </button>
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === 'dimension' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('dimension')}
+            data-testid="tab-dimension-assignment"
+          >
+            <GraduationCap size={15} />
+            <span>Phân công theo Khối / Lớp / Khóa / Ban (1-N & N-N)</span>
+          </button>
         </div>
       </header>
 
-      {/* ── BẢNG ĐIỀU KHIỂN & CHỈ SỐ CÂN BẰNG TẢI KHỐI LƯỢNG CÔNG VIỆC MENTOR ── */}
-      <section className="workload-balancing-kpi-grid" aria-label="Chỉ số cân bằng tải công việc">
-        <div className="balancing-kpi-card">
-          <div className="balancing-kpi-card-header">
-            <span className="balancing-kpi-label">Độ cân bằng tải hệ thống</span>
-            <div className="balancing-kpi-icon icon--blue">
-              <Scale size={18} />
+      {/* ── TAB PHÂN CÔNG THEO KHỐI / LỚP / KHÓA / BAN (1-N & N-N) ── */}
+      {activeTab === 'dimension' && (
+        <section className="dimension-section" aria-label="Phân công Mentor theo Khối / Lớp / Khóa / Ban">
+          <MentorDimensionAssignmentTab />
+        </section>
+      )}
+
+      {/* ── BẢNG ĐIỀU KHIỂN & HƯỚNG DẪN (KHI KHÔNG Ở TAB DIMENSION) ── */}
+      {activeTab !== 'dimension' && (
+        <>
+          {/* ── BẢNG ĐIỀU KHIỂN & CHỈ SỐ CÂN BẰNG TẢI KHỐI LƯỢNG CÔNG VIỆC MENTOR ── */}
+          <section className="workload-balancing-kpi-grid" aria-label="Chỉ số cân bằng tải công việc">
+            <div className="balancing-kpi-card">
+              <div className="balancing-kpi-card-header">
+                <span className="balancing-kpi-label">Độ cân bằng tải hệ thống</span>
+                <div className="balancing-kpi-icon icon--blue">
+                  <Scale size={18} />
+                </div>
+              </div>
+              <div className="balancing-kpi-value-row">
+                <span className="balancing-kpi-val">{balanceAnalytics.score}%</span>
+                <span className={`balancing-badge badge-balance--${balanceAnalytics.statusVariant}`}>
+                  {balanceAnalytics.statusLabel}
+                </span>
+              </div>
+              <p className="balancing-kpi-desc">
+                Chênh lệch tải giữa các Mentor: <strong>{balanceAnalytics.diff} TTS</strong> (Mục tiêu: &le; 1 TTS)
+              </p>
             </div>
-          </div>
-          <div className="balancing-kpi-value-row">
-            <span className="balancing-kpi-val">{balanceAnalytics.score}%</span>
-            <span className={`balancing-badge badge-balance--${balanceAnalytics.statusVariant}`}>
-              {balanceAnalytics.statusLabel}
+
+            <div className="balancing-kpi-card">
+              <div className="balancing-kpi-card-header">
+                <span className="balancing-kpi-label">Tải trung bình / Mentor</span>
+                <div className="balancing-kpi-icon icon--green">
+                  <Activity size={18} />
+                </div>
+              </div>
+              <div className="balancing-kpi-value-row">
+                <span className="balancing-kpi-val">{balanceAnalytics.avg}</span>
+                <span className="ratio-max" style={{ fontSize: '13px', color: '#64748B' }}>/ {MAX_INTERNS_PER_MENTOR} TTS (Định mức tối đa)</span>
+              </div>
+              <p className="balancing-kpi-desc">
+                Tổng cộng: <strong>{balanceAnalytics.totalInterns} sinh viên</strong> phân bổ cho <strong>{balanceAnalytics.totalMentors} Mentor</strong>
+              </p>
+            </div>
+
+            <div className="balancing-kpi-card">
+              <div className="balancing-kpi-card-header">
+                <span className="balancing-kpi-label">Trạng thái an toàn</span>
+                <div className="balancing-kpi-icon icon--purple">
+                  <Users size={18} />
+                </div>
+              </div>
+              <div className="balancing-kpi-value-row">
+                <span className="balancing-kpi-val">{balanceAnalytics.safeMentorsCount}/{balanceAnalytics.totalMentors}</span>
+                <span className="balancing-badge badge-balance--success">
+                  100% An toàn
+                </span>
+              </div>
+              <p className="balancing-kpi-desc">
+                Không có Mentor nào bị quá tải hoặc vượt hạn mức 5 TTS
+              </p>
+            </div>
+
+            <div className="balancing-kpi-card">
+              <div className="balancing-kpi-card-header">
+                <span className="balancing-kpi-label">TTS chờ cân bằng</span>
+                <div className="balancing-kpi-icon icon--amber">
+                  <UserCheck size={18} />
+                </div>
+              </div>
+              <div className="balancing-kpi-value-row">
+                <span className="balancing-kpi-val">{unassignedInterns.length}</span>
+                <span className={`balancing-badge ${unassignedInterns.length > 0 ? 'badge-balance--warning' : 'badge-balance--success'}`}>
+                  {unassignedInterns.length > 0 ? 'Cần phân bổ' : 'Đã cân bằng'}
+                </span>
+              </div>
+              <p className="balancing-kpi-desc">
+                {unassignedInterns.length > 0 ? 'Có sinh viên chưa được gán vào Mentor' : 'Tất cả sinh viên đều đã có Mentor'}
+              </p>
+            </div>
+          </section>
+
+          {/* ── CROSSLINK BANNER: HƯỚNG DẪN ĐIỀU PHỐI ── */}
+          <div className="coordination-crosslink-banner">
+            <Sparkles size={16} className="crosslink-icon" />
+            <span>
+              💡 <strong>Mẹo điều phối:</strong> Màn hình này dùng để <strong>quản lý, cân bằng khối lượng công việc và gán trực tiếp Mentor 1-1</strong> (tối đa 5 TTS/Mentor). Nếu bạn muốn phân bổ sinh viên theo Kỳ thực tập và Nhóm dự án phòng ban, hãy sử dụng trang <a href="/hr/intern-group-assignment">Phân công thực tập sinh vào Nhóm</a>.
             </span>
           </div>
-          <p className="balancing-kpi-desc">
-            Chênh lệch tải giữa các Mentor: <strong>{balanceAnalytics.diff} TTS</strong> (Mục tiêu: &le; 1 TTS)
-          </p>
-        </div>
 
-        <div className="balancing-kpi-card">
-          <div className="balancing-kpi-card-header">
-            <span className="balancing-kpi-label">Tải trung bình / Mentor</span>
-            <div className="balancing-kpi-icon icon--green">
-              <Activity size={18} />
+          <div className="coordination-guide-card">
+            <div className="guide-step-item">
+              <div className="guide-step-badge">1</div>
+              <div className="guide-step-text">
+                <strong>Xem tải Mentor</strong>
+                <span>Kiểm tra chỉ tiêu tiếp nhận ở Phần 1 (Xanh = Khả dụng, Cam = Sắp đầy, Đỏ = Đủ 5/5).</span>
+              </div>
+            </div>
+            <div className="guide-step-arrow">➔</div>
+            <div className="guide-step-item">
+              <div className="guide-step-badge">2</div>
+              <div className="guide-step-text">
+                <strong>Cân bằng tự động hoặc chọn thủ công</strong>
+                <span>Dùng nút "⚡ Tự động Cân bằng Tải" để hệ thống chia đều sinh viên, hoặc gán nhanh từng dòng.</span>
+              </div>
+            </div>
+            <div className="guide-step-arrow">➔</div>
+            <div className="guide-step-item">
+              <div className="guide-step-badge">3</div>
+              <div className="guide-step-text">
+                <strong>Hoàn tất phân công</strong>
+                <span>Bấm "Gán ngay" hoặc "Phân công". Dữ liệu sẽ đồng bộ thời gian thực sang tài khoản TTS &amp; Mentor.</span>
+              </div>
             </div>
           </div>
-          <div className="balancing-kpi-value-row">
-            <span className="balancing-kpi-val">{balanceAnalytics.avg}</span>
-            <span className="ratio-max" style={{ fontSize: '13px', color: '#64748B' }}>/ {MAX_INTERNS_PER_MENTOR} TTS (Định mức tối đa)</span>
-          </div>
-          <p className="balancing-kpi-desc">
-            Tổng cộng: <strong>{balanceAnalytics.totalInterns} sinh viên</strong> phân bổ cho <strong>{balanceAnalytics.totalMentors} Mentor</strong>
-          </p>
-        </div>
-
-        <div className="balancing-kpi-card">
-          <div className="balancing-kpi-card-header">
-            <span className="balancing-kpi-label">Trạng thái an toàn</span>
-            <div className="balancing-kpi-icon icon--purple">
-              <Users size={18} />
-            </div>
-          </div>
-          <div className="balancing-kpi-value-row">
-            <span className="balancing-kpi-val">{balanceAnalytics.safeMentorsCount}/{balanceAnalytics.totalMentors}</span>
-            <span className="balancing-badge badge-balance--success">
-              100% An toàn
-            </span>
-          </div>
-          <p className="balancing-kpi-desc">
-            Không có Mentor nào bị quá tải hoặc vượt hạn mức 5 TTS
-          </p>
-        </div>
-
-        <div className="balancing-kpi-card">
-          <div className="balancing-kpi-card-header">
-            <span className="balancing-kpi-label">TTS chờ cân bằng</span>
-            <div className="balancing-kpi-icon icon--amber">
-              <UserCheck size={18} />
-            </div>
-          </div>
-          <div className="balancing-kpi-value-row">
-            <span className="balancing-kpi-val">{unassignedInterns.length}</span>
-            <span className={`balancing-badge ${unassignedInterns.length > 0 ? 'badge-balance--warning' : 'badge-balance--success'}`}>
-              {unassignedInterns.length > 0 ? 'Cần phân bổ' : 'Đã cân bằng'}
-            </span>
-          </div>
-          <p className="balancing-kpi-desc">
-            {unassignedInterns.length > 0 ? 'Có sinh viên chưa được gán vào Mentor' : 'Tất cả sinh viên đều đã có Mentor'}
-          </p>
-        </div>
-      </section>
-
-      {/* ── CROSSLINK BANNER: HƯỚNG DẪN ĐIỀU PHỐI ── */}
-      <div className="coordination-crosslink-banner">
-        <Sparkles size={16} className="crosslink-icon" />
-        <span>
-          💡 <strong>Mẹo điều phối:</strong> Màn hình này dùng để <strong>quản lý, cân bằng khối lượng công việc và gán trực tiếp Mentor 1-1</strong> (tối đa 5 TTS/Mentor). Nếu bạn muốn phân bổ sinh viên theo Kỳ thực tập và Nhóm dự án phòng ban, hãy sử dụng trang <a href="/hr/intern-group-assignment">Phân công thực tập sinh vào Nhóm</a>.
-        </span>
-      </div>
-
-      {/* ── HƯỚNG DẪN 3 BƯỚC ĐIỀU PHỐI TRỰC QUAN ── */}
-      <div className="coordination-guide-card">
-        <div className="guide-step-item">
-          <div className="guide-step-badge">1</div>
-          <div className="guide-step-text">
-            <strong>Xem tải Mentor</strong>
-            <span>Kiểm tra chỉ tiêu tiếp nhận ở Phần 1 (Xanh = Khả dụng, Cam = Sắp đầy, Đỏ = Đủ 5/5).</span>
-          </div>
-        </div>
-        <div className="guide-step-arrow">➔</div>
-        <div className="guide-step-item">
-          <div className="guide-step-badge">2</div>
-          <div className="guide-step-text">
-            <strong>Cân bằng tự động hoặc chọn thủ công</strong>
-            <span>Dùng nút "⚡ Tự động Cân bằng Tải" để hệ thống chia đều sinh viên, hoặc gán nhanh từng dòng.</span>
-          </div>
-        </div>
-        <div className="guide-step-arrow">➔</div>
-        <div className="guide-step-item">
-          <div className="guide-step-badge">3</div>
-          <div className="guide-step-text">
-            <strong>Hoàn tất phân công</strong>
-            <span>Bấm "Gán ngay" hoặc "Phân công". Dữ liệu sẽ đồng bộ thời gian thực sang tài khoản TTS &amp; Mentor.</span>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* ── PHẦN 1: THEO DÕI TẢI CÔNG VIỆC MENTOR (WORKLOAD) ── */}
       {(activeTab === 'both' || activeTab === 'workload') && (

@@ -11,6 +11,7 @@ class ProgramCreateRequest(BaseModel):
     start_date: date
     end_date: date
     max_interns: int = Field(default=50, ge=1, description="Số lượng TTS tối đa của kỳ")
+    max_mentors: int = Field(default=10, ge=1, description="Số lượng Mentor tối đa của kỳ")
 
     @model_validator(mode="after")
     def end_after_start(self) -> "ProgramCreateRequest":
@@ -26,6 +27,7 @@ class ProgramUpdateRequest(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     max_interns: int | None = Field(default=None, ge=1, description="Số lượng TTS tối đa")
+    max_mentors: int | None = Field(default=None, ge=1, description="Số lượng Mentor tối đa")
     status: Literal["open", "closed"] | None = Field(default=None, description="Trạng thái mở/đóng kỳ")
 
     @model_validator(mode="after")
@@ -60,9 +62,11 @@ class ProgramResponse(BaseModel):
     start_date: date
     end_date: date
     max_interns: int = 50
+    max_mentors: int = 10
     status: str = "open"
     is_deleted: bool = False
     current_interns: int = 0
+    current_mentors: int = 0
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -80,6 +84,30 @@ class ProgramAssignResponse(BaseModel):
     intern_ids: list[int]
     mentor_id: int | None = None
     message: str
+
+
+class ProgramMemberItem(BaseModel):
+    id: int
+    program_id: int
+    intern_user_id: int
+    intern_name: str
+    intern_email: str
+    intern_code: str | None = None
+    phone_number: str | None = None
+    university: str | None = None
+    major: str | None = None
+    mentor_user_id: int | None = None
+    mentor_name: str | None = None
+    mentor_email: str | None = None
+    status: str
+    created_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class ProgramUpdateMemberRequest(BaseModel):
+    mentor_id: int | None = None
+    status: str | None = None
 
 
 class ProgramGroupBatchAssignRequest(BaseModel):

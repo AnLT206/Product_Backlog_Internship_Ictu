@@ -24,6 +24,7 @@ class InternCreateRequest(BaseModel):
     university: str | None = Field(default=None, max_length=150)
     major: str | None = Field(default=None, max_length=150)
     academic_year: str | None = Field(default=None, max_length=50)
+    class_name: str | None = Field(default=None, max_length=100)
     gpa: Decimal | None = Field(default=None, ge=0, le=4)
     address: str | None = Field(default=None, max_length=255)
     mentor_id: int | None = Field(default=None, description="ID của Mentor phụ trách (tùy chọn)")
@@ -52,7 +53,7 @@ class InternCreateRequest(BaseModel):
             raise ValueError("Mật khẩu không được bắt đầu/kết thúc bằng khoảng trắng.")
         return value
 
-    @field_validator("university", "major", "academic_year", "address", "phone_number")
+    @field_validator("university", "major", "academic_year", "class_name", "address", "phone_number")
     @classmethod
     def strip_optional_text(cls, value: str | None) -> str | None:
         if value is None:
@@ -79,6 +80,7 @@ class InternListItem(BaseModel):
     university: str | None = None
     major: str | None = None
     academic_year: str | None = None
+    class_name: str | None = None
     gpa: Decimal | None = None
     address: str | None = None
     avatar: str | None = None
@@ -136,6 +138,7 @@ class InternUpdateRequest(BaseModel):
     university: str | None = Field(default=None, max_length=150)
     major: str | None = Field(default=None, max_length=150)
     academic_year: str | None = Field(default=None, max_length=50)
+    class_name: str | None = Field(default=None, max_length=100)
     gpa: Decimal | None = Field(default=None, ge=0, le=4)
     address: str | None = Field(default=None, max_length=255)
     mentor_id: int | None = Field(default=None, description="ID của Mentor phụ trách (tùy chọn)")

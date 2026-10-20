@@ -15,7 +15,18 @@ from app.schemas.mentor_assignment import (
     MentorAssignResponse,
     MentorBulkAssignRequest,
 )
+from app.schemas.mentor_dimension_assignment import (
+    AssignMentorRoleResult,
+    BatchAssignByDimensionRequest,
+    DimensionInternsResponse,
+    DimensionsSummaryResponse,
+    MatrixAssignRequest,
+    UnassignMentorRoleRequest,
+    UpdateInternMentorsRequest,
+    UpdateSingleMentorRoleRequest,
+)
 from app.services.mentor_assignment_service import MentorAssignmentService
+from app.services.mentor_dimension_service import MentorDimensionService
 
 router = APIRouter(tags=["mentor-assignments"])
 
@@ -137,3 +148,104 @@ def get_my_assigned_interns(
 ) -> AssignedInternListResponse:
     """Mentor tra cứu danh sách các TTS mà mình được phân công hướng dẫn."""
     return MentorAssignmentService(db).get_assigned_interns(current_user.id)
+
+
+# ── HR Dimension-based & Multi-Mentor (1-N & N-N) Endpoints ───────────────────
+
+@router.get(
+    "/hr/mentor-assignments/dimensions-summary",
+    response_model=DimensionsSummaryResponse,
+    summary="HR xem tổng hợp phân loại TTS theo Khối / Lớp / Khóa / Ban",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def get_dimensions_summary(
+    db: Session = Depends(get_db),
+) -> DimensionsSummaryResponse:
+    return MentorDimensionService(db).get_dimensions_summary()
+
+
+@router.get(
+    "/hr/mentor-assignments/by-dimension",
+    response_model=DimensionInternsResponse,
+    summary="HR lấy danh sách TTS kèm danh sách Mentor theo tiêu chí Khối/Lớp/Khóa/Ban",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def get_interns_by_dimension(
+    dimension_type: str = Query(..., description="major | class | intake | department"),
+    dimension_value: str = Query(..., description="Giá trị cụ thể của tiêu chí"),
+    db: Session = Depends(get_db),
+) -> DimensionInternsResponse:
+    return MentorDimensionService(db).get_interns_by_dimension(dimension_type, dimension_value)
+
+
+@router.post(
+    "/hr/mentor-assignments/batch-by-dimension",
+    response_model=AssignMentorRoleResult,
+    summary="HR phân công Mentor hàng loạt theo Khối/Lớp/Khóa/Ban (hỗ trợ 1-N & N-N)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def batch_assign_by_dimension(
+    payload: BatchAssignByDimensionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AssignMentorRoleResult:
+    return MentorDimensionService(db).batch_assign_by_dimension(payload, assigned_by_id=current_user.id)
+
+
+@router.post(
+    "/hr/mentor-assignments/matrix",
+    response_model=AssignMentorRoleResult,
+    summary="HR phân công ma trận nhiều Mentor cho nhiều TTS (N-N)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def matrix_assign(
+    payload: MatrixAssignRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AssignMentorRoleResult:
+    return MentorDimensionService(db).matrix_assign(payload, assigned_by_id=current_user.id)
+
+
+@router.delete(
+    "/hr/mentor-assignments/role",
+    summary="HR hủy phân công Mentor khỏi TTS theo vai trò",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def unassign_mentor_role(
+    payload: UnassignMentorRoleRequest,
+    db: Session = Depends(get_db),
+) -> dict:
+    return MentorDimensionService(db).unassign_mentor_role(payload)
+
+
+@router.put(
+    "/hr/mentor-assignments/intern/{intern_id}",
+    response_model=AssignMentorRoleResult,
+    summary="HR chỉnh sửa toàn bộ danh sách Mentor của một TTS (thêm/sửa vai trò/xóa)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def update_intern_mentors(
+    intern_id: int,
+    payload: UpdateInternMentorsRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AssignMentorRoleResult:
+    return MentorDimensionService(db).update_intern_mentors(
+        intern_id=intern_id, payload=payload, assigned_by_id=current_user.id
+    )
+
+
+@router.put(
+    "/hr/mentor-assignments/role",
+    summary="HR chỉnh sửa vai trò của Mentor hoặc đổi sang Mentor khác cho TTS",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def update_single_mentor_role(
+    payload: UpdateSingleMentorRoleRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    return MentorDimensionService(db).update_single_mentor_role(
+        payload=payload, assigned_by_id=current_user.id
+    )
+

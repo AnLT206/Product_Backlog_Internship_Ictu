@@ -13,8 +13,10 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Calendar,
+  Clock,
   ListFilter,
   Plus,
   Pencil,
@@ -22,6 +24,7 @@ import {
   Lock,
   Unlock,
   Users,
+  UserCheck,
   Layers,
   CheckCircle2,
   AlertCircle,
@@ -37,6 +40,7 @@ import {
 } from '../../api/programs';
 import { getDepartments } from '../../api/mentors';
 import ProgramSettings from '../hr/ProgramSettings';
+import ProgramWorkScheduleTab from './ProgramWorkScheduleTab';
 import './ProgramListPage.css';
 
 /** Định dạng ngày YYYY-MM-DD → DD/MM/YYYY */
@@ -60,9 +64,11 @@ const DEFAULT_DEPARTMENTS = [
 ];
 
 function ProgramListPage() {
+  const navigate = useNavigate();
   const [programs, setPrograms] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [activeTab, setActiveTab] = useState('list'); // Mặc định mở danh sách kỳ thực tập
+  const [selectedScheduleProgramId, setSelectedScheduleProgramId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -370,12 +376,27 @@ function ProgramListPage() {
             <Calendar size={16} />
             <span>Cài đặt Khung thời gian Chương trình</span>
           </button>
+          <button
+            type="button"
+            className={`program-nav-tab ${activeTab === 'schedules' ? 'program-nav-tab--active' : ''}`}
+            onClick={() => setActiveTab('schedules')}
+          >
+            <Clock size={16} />
+            <span>Lịch làm việc theo phiên hàng tuần</span>
+          </button>
         </div>
 
         {/* ── Nội dung Tab ── */}
         {activeTab === 'settings' ? (
           <div className="program-settings-tab-wrapper">
-            <ProgramSettings onSaved={fetchList} />
+            <ProgramSettings programs={programs} onSaved={fetchList} />
+          </div>
+        ) : activeTab === 'schedules' ? (
+          <div className="program-schedules-tab-wrapper">
+            <ProgramWorkScheduleTab
+              programs={programs}
+              initialProgramId={selectedScheduleProgramId}
+            />
           </div>
         ) : (
           <div className="program-table-card">
@@ -393,12 +414,12 @@ function ProgramListPage() {
               <div className="program-table-scroll">
                 <table className="program-table">
                   <colgroup>
-                    <col style={{ width: '23%' }} />
-                    <col style={{ width: '20%' }} />
                     <col style={{ width: '18%' }} />
-                    <col style={{ width: '8%' }} />
-                    <col style={{ width: '10%' }} />
-                    <col style={{ width: '21%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '15%' }} />
+                    <col style={{ width: '9%' }} />
+                    <col style={{ width: '9%' }} />
+                    <col style={{ width: '35%' }} />
                   </colgroup>
                   <thead>
                     <tr>
@@ -436,8 +457,11 @@ function ProgramListPage() {
                             </div>
                           </td>
                           <td className="prog-slots" style={{ textAlign: 'center' }}>
-                            <span className="prog-slots-badge">
-                              {prog.max_interns || 50} TTS
+                            <span
+                              className="prog-slots-badge"
+                              title={`Đã tiếp nhận ${prog.current_interns || 0} trên ${prog.max_interns || 50} chỉ tiêu`}
+                            >
+                              {prog.current_interns || 0}/{prog.max_interns || 50} TTS
                             </span>
                           </td>
                           <td className="prog-status" style={{ textAlign: 'center' }}>
@@ -448,6 +472,31 @@ function ProgramListPage() {
                           </td>
                           <td className="prog-actions" style={{ textAlign: 'center' }}>
                             <div className="prog-actions-cell">
+                              {/* Nút Gán TTS & Mentor */}
+                              <button
+                                type="button"
+                                className="prog-btn prog-btn--assign"
+                                onClick={() => navigate(`/hr/programs/${prog.id}/assign`)}
+                                title="Phân công TTS và Mentor vào kỳ thực tập này"
+                              >
+                                <UserCheck size={12} />
+                                <span>Gán TTS & Mentor</span>
+                              </button>
+
+                              {/* Nút Lịch làm việc theo phiên */}
+                              <button
+                                type="button"
+                                className="prog-btn prog-btn--schedule"
+                                onClick={() => {
+                                  setSelectedScheduleProgramId(String(prog.id));
+                                  setActiveTab('schedules');
+                                }}
+                                title="Xem và cấu hình lịch làm việc theo phiên của kỳ thực tập này"
+                              >
+                                <Clock size={12} />
+                                <span>Lịch phiên</span>
+                              </button>
+
                               {/* Nút Chỉnh sửa */}
                               <button
                                 type="button"

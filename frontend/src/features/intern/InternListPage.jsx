@@ -18,8 +18,8 @@
  * KHÔNG thêm: phân trang (task chưa yêu cầu — page param dự phòng trong API).
  */
 
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import useDebounce from '../../hooks/useDebounce';
 import { getInterns, getFilterOptions } from '../../api/interns';
 import { getSavedAvatar } from '../../utils/avatarHelper';
@@ -60,6 +60,12 @@ function initials(full_name) {
  * Route: /hr/interns
  */
 function InternListPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    urlTab && ['active', 'pending', 'rejected', 'all'].includes(urlTab) ? urlTab : 'active'
+  );
+
   /* ── Filter state ── */
   const [filterQ,     setFilterQ]     = useState('');
   const [filterMajor, setFilterMajor] = useState('');
@@ -77,7 +83,7 @@ function InternListPage() {
   const debouncedQuery = useDebounce(filterQ, 300);
 
   /* ── Data state ── */
-  const [interns,  setInterns]  = useState([]);
+  const [allItems, setAllItems] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [loadErr,  setLoadErr]  = useState(null);
   const [toast,    setToast]    = useState(null);
@@ -198,9 +204,7 @@ function InternListPage() {
           avatar: item.avatar || syncMatch?.avatar || getSavedAvatar(item.email, item.id, item.full_name),
         };
       });
-      // Phân tách 2 luồng: Trang Quản lý hồ sơ TTS chỉ hiển thị các TTS chính thức (active/approved), không lẫn ứng viên pending
-      const activeInterns = items.filter((item) => item.status === 'active' || item.status === 'approved');
-      setInterns(activeInterns);
+      setAllItems(items);
       setLoadErr(null);
     } else if (retryCount > 0 && (status === 401 || status === 403 || status === 0)) {
       await new Promise((r) => setTimeout(r, 400));
@@ -210,6 +214,28 @@ function InternListPage() {
     }
     setLoading(false);
   }
+
+  /* ── Tính toán số lượng & danh sách theo Tab ── */
+  const counts = useMemo(() => {
+    const active = allItems.filter((i) => i.status === 'active' || i.status === 'approved').length;
+    const pending = allItems.filter((i) => i.status === 'pending').length;
+    const rejected = allItems.filter((i) => i.status === 'inactive' || i.status === 'rejected').length;
+    const all = allItems.length;
+    return { active, pending, rejected, all };
+  }, [allItems]);
+
+  const interns = useMemo(() => {
+    if (activeTab === 'active') {
+      return allItems.filter((i) => i.status === 'active' || i.status === 'approved');
+    }
+    if (activeTab === 'pending') {
+      return allItems.filter((i) => i.status === 'pending');
+    }
+    if (activeTab === 'rejected') {
+      return allItems.filter((i) => i.status === 'inactive' || i.status === 'rejected');
+    }
+    return allItems;
+  }, [allItems, activeTab]);
 
   /* ── useEffect:
      - Chạy lại khi debouncedQuery đổi (sau 300ms ngừng gõ)
@@ -234,6 +260,11 @@ function InternListPage() {
     setFilterQ('');
     setFilterMajor('');
     setFilterUni('');
+  }
+
+  function handleTabChange(newTab) {
+    setActiveTab(newTab);
+    setSearchParams({ tab: newTab });
   }
 
   /* ── Render ── */
@@ -274,13 +305,162 @@ function InternListPage() {
             <span className="intern-list-badge">HR</span>
             <h1>Danh sách <span>thực tập sinh</span></h1>
             <p className="intern-list-subtitle">
-              Xem và quản lý hồ sơ các thực tập sinh trong hệ thống.
+              Xem và quản lý hồ sơ các thực tập sinh theo các giai đoạn tiếp nhận và thực tập.
             </p>
           </div>
 
           <Link to="/hr/interns/new" id="intern-add-btn" className="intern-list-add-btn">
             + Thêm hồ sơ mới
           </Link>
+        </div>
+
+        {/* ── Thanh Tabs trạng thái theo sơ đồ nghiệp vụ ── */}
+        <div
+          className="intern-list-tabs-bar"
+          style={{
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'center',
+            backgroundColor: '#ffffff',
+            padding: '10px 14px',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            marginBottom: '16px',
+            overflowX: 'auto',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => handleTabChange('active')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: activeTab === 'active' ? '1px solid #2563eb' : '1px solid #e2e8f0',
+              backgroundColor: activeTab === 'active' ? '#2563eb' : '#f8fafc',
+              color: activeTab === 'active' ? '#ffffff' : '#334155',
+              fontWeight: 600,
+              fontSize: '13.5px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>TTS chính thức (GĐ 2 & 3)</span>
+            <span
+              style={{
+                fontSize: '11.5px',
+                padding: '1px 7px',
+                borderRadius: '999px',
+                backgroundColor: activeTab === 'active' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+                color: activeTab === 'active' ? '#ffffff' : '#475569',
+              }}
+            >
+              {counts.active}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabChange('pending')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: activeTab === 'pending' ? '1px solid #d97706' : '1px solid #e2e8f0',
+              backgroundColor: activeTab === 'pending' ? '#f59e0b' : '#f8fafc',
+              color: activeTab === 'pending' ? '#ffffff' : '#334155',
+              fontWeight: 600,
+              fontSize: '13.5px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>Hồ sơ chờ duyệt (GĐ 1)</span>
+            <span
+              style={{
+                fontSize: '11.5px',
+                padding: '1px 7px',
+                borderRadius: '999px',
+                backgroundColor: activeTab === 'pending' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+                color: activeTab === 'pending' ? '#ffffff' : '#475569',
+              }}
+            >
+              {counts.pending}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabChange('rejected')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: activeTab === 'rejected' ? '1px solid #dc2626' : '1px solid #e2e8f0',
+              backgroundColor: activeTab === 'rejected' ? '#ef4444' : '#f8fafc',
+              color: activeTab === 'rejected' ? '#ffffff' : '#334155',
+              fontWeight: 600,
+              fontSize: '13.5px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>Đã từ chối</span>
+            <span
+              style={{
+                fontSize: '11.5px',
+                padding: '1px 7px',
+                borderRadius: '999px',
+                backgroundColor: activeTab === 'rejected' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+                color: activeTab === 'rejected' ? '#ffffff' : '#475569',
+              }}
+            >
+              {counts.rejected}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabChange('all')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: activeTab === 'all' ? '1px solid #0f172a' : '1px solid #e2e8f0',
+              backgroundColor: activeTab === 'all' ? '#0f172a' : '#f8fafc',
+              color: activeTab === 'all' ? '#ffffff' : '#334155',
+              fontWeight: 600,
+              fontSize: '13.5px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>Tất cả</span>
+            <span
+              style={{
+                fontSize: '11.5px',
+                padding: '1px 7px',
+                borderRadius: '999px',
+                backgroundColor: activeTab === 'all' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+                color: activeTab === 'all' ? '#ffffff' : '#475569',
+              }}
+            >
+              {counts.all}
+            </span>
+          </button>
         </div>
 
         {/* ══════════════════════════════════════

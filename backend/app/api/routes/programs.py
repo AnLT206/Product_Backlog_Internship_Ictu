@@ -10,8 +10,10 @@ from app.schemas.program import (
     ProgramCreateRequest,
     ProgramGroupBatchAssignRequest,
     ProgramGroupBatchAssignResponse,
+    ProgramMemberItem,
     ProgramPeriodRequest,
     ProgramResponse,
+    ProgramUpdateMemberRequest,
     ProgramUpdateRequest,
 )
 from app.services.program_service import ProgramService
@@ -177,3 +179,46 @@ def remove_intern_from_program(
 ) -> dict[str, str]:
     return ProgramService(db).unassign_intern_from_program(program_id, intern_id)
 
+
+@router.get(
+    "/{program_id}/members",
+    response_model=list[ProgramMemberItem],
+    summary="Lấy danh sách các TTS và Mentor trong kỳ thực tập",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def list_program_members(
+    program_id: int,
+    db: Session = Depends(get_db),
+) -> list[ProgramMemberItem]:
+    return ProgramService(db).list_program_members(program_id)
+
+
+@router.put(
+    "/{program_id}/members/{intern_id}",
+    response_model=ProgramMemberItem,
+    summary="Cập nhật thông tin phân công Mentor hoặc trạng thái TTS trong kỳ",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def update_program_member(
+    program_id: int,
+    intern_id: int,
+    payload: ProgramUpdateMemberRequest,
+    db: Session = Depends(get_db),
+) -> ProgramMemberItem:
+    return ProgramService(db).update_program_member(program_id, intern_id, payload)
+
+
+@router.delete(
+    "/{program_id}/members/{intern_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    summary="Hủy / Gỡ TTS khỏi kỳ thực tập",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def remove_program_member(
+    program_id: int,
+    intern_id: int,
+    db: Session = Depends(get_db),
+) -> Response:
+    ProgramService(db).remove_program_member(program_id, intern_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

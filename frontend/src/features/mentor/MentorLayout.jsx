@@ -1,9 +1,9 @@
 import { Outlet } from 'react-router-dom'
 import EnterpriseAppShell from '../../components/common/EnterpriseAppShell'
 import { useAuth } from '../../context/AuthContext'
-
 const MENTOR_NAV_ITEMS = [
   { to: '/mentor/dashboard', label: 'Tổng quan (Dashboard)', end: true },
+  { to: '/mentor/schedule', label: 'Lịch làm việc & Hướng dẫn' },
   { to: '/mentor/interns', label: 'Danh sách TTS phụ trách' },
   { to: '/mentor/groups', label: 'Nhóm phụ trách' },
   { to: '/mentor/weekly-matrix', label: 'Tiến độ 12 tuần (Weekly Matrix)' },

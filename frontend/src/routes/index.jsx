@@ -20,6 +20,7 @@ import InternCreatePage from '../features/intern/InternCreatePage.jsx'
 import InternEditPage from '../features/intern/InternEditPage.jsx'
 import ProgramListPage from '../features/programs/ProgramListPage.jsx'
 import ProgramFormPage from '../features/programs/ProgramFormPage.jsx'
+import ProgramAssignPage from '../features/programs/ProgramAssignPage.jsx'
 import MentorAssignmentPage from '../features/hr/MentorAssignmentPage.jsx'
 import InternGroupAssignmentPage from '../features/hr/InternGroupAssignmentPage.jsx'
 import CompletionRatePage from '../features/hr/CompletionRatePage.jsx'
@@ -41,6 +42,7 @@ import MentorWeeklyMatrixPage from '../features/mentor/MentorWeeklyMatrixPage.js
 import MentorReportsPage from '../features/mentor/MentorReportsPage.jsx'
 import MentorEvaluationsPage from '../features/mentor/MentorEvaluationsPage.jsx'
 import MentorLeavePage from '../features/mentor/MentorLeavePage.jsx'
+import MentorSchedulePage from '../features/mentor/MentorSchedulePage.jsx'
 
 import InternLayout from '../features/intern/InternLayout.jsx'
 import InternDashboardPage from '../features/intern/InternDashboardPage.jsx'
@@ -103,6 +105,8 @@ export default function AppRoutes() {
           <Route path="interns/:id/edit" element={<InternEditPage />} />
           <Route path="programs" element={<ProgramListPage />} />
           <Route path="programs/new" element={<ProgramFormPage />} />
+          <Route path="programs/:id/assign" element={<ProgramAssignPage />} />
+          <Route path="programs/assign" element={<ProgramAssignPage />} />
           <Route path="mentors" element={<Navigate to="/hr/mentor-assignment" replace />} />
           <Route path="mentors/assign" element={<Navigate to="/hr/mentor-assignment" replace />} />
           <Route path="mentor-assignment" element={<MentorAssignmentPage />} />
@@ -132,6 +136,7 @@ export default function AppRoutes() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<MentorDashboardPage />} />
           <Route path="groups" element={<MentorGroupsPage />} />
+          <Route path="schedule" element={<MentorSchedulePage />} />
           <Route path="interns" element={<MentorInternsPage />} />
           <Route path="weekly-matrix" element={<MentorWeeklyMatrixPage />} />
           <Route path="tasks" element={<MentorTasksPage />} />

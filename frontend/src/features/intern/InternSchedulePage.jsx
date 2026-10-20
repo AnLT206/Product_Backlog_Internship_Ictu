@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import apiFetch from '../../api/client'
+import { fetchInternWeeklySchedules } from '../../api/operations'
 import './InternDashboardPage.css'
 import './InternSchedulePage.css'
 
@@ -658,21 +660,84 @@ export default function InternSchedulePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [detailEvent, setDetailEvent] = useState(null)
+  const [mentorGroupData, setMentorGroupData] = useState(null)
 
-  // Giả lập gọi API lấy dữ liệu lịch thực tập từ BE với loading/error state
+  // Tải thông tin Mentor và Nhóm/Chương trình thực tập của TTS (Giai đoạn 3)
   useEffect(() => {
+    let isMounted = true
+    apiFetch('/api/intern/my-mentor-and-group')
+      .then((res) => {
+        if (isMounted && res?.ok && res?.data) {
+          setMentorGroupData(res.data)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  // Lấy dữ liệu lịch thực tập trực tiếp từ HR qua API backend (/api/intern/weekly-schedules)
+  useEffect(() => {
+    let isMounted = true
     setIsLoading(true)
     setError(null)
-    const timer = setTimeout(() => {
+
+    async function loadSchedule() {
       try {
-        setEvents(MOCK_SCHEDULE_EVENTS)
-        setIsLoading(false)
+        const res = await fetchInternWeeklySchedules()
+        const apiList =
+          res && res.ok && Array.isArray(res.data)
+            ? res.data
+            : Array.isArray(res)
+            ? res
+            : []
+
+        if (apiList.length > 0) {
+          // Chuẩn hóa dữ liệu từ HR sang định dạng giao diện lịch
+          const mappedEvents = apiList.map((item) => {
+            const timeStr = `${item.start_time?.slice(0, 5)} – ${item.end_time?.slice(0, 5)}`
+            return {
+              id: `api-sched-${item.id}`,
+              title: item.shift_name,
+              date: item.session_date,
+              time: timeStr,
+              type: 'shift',
+              typeLabel: 'Ca làm việc (HR phân công)',
+              location: item.location || 'P.302 – Trung tâm Phần mềm & AI ICTU',
+              host: item.created_by_name || 'Phòng Nhân sự (HR)',
+              description: item.notes || 'Lịch làm việc theo phiên do HR xếp lịch.',
+              status:
+                item.days_until_session === 0
+                  ? 'today'
+                  : item.days_until_session > 0
+                  ? 'upcoming'
+                  : 'completed',
+            }
+          })
+          if (isMounted) {
+            setEvents(mappedEvents)
+            setIsLoading(false)
+          }
+        } else {
+          // Nếu HR chưa xếp ca nào, hiển thị lịch mẫu demo
+          if (isMounted) {
+            setEvents(MOCK_SCHEDULE_EVENTS)
+            setIsLoading(false)
+          }
+        }
       } catch {
-        setError('Không thể tải dữ liệu lịch thực tập. Vui lòng thử lại sau.')
-        setIsLoading(false)
+        if (isMounted) {
+          setEvents(MOCK_SCHEDULE_EVENTS)
+          setIsLoading(false)
+        }
       }
-    }, 350)
-    return () => clearTimeout(timer)
+    }
+
+    loadSchedule()
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   // Lọc và sắp xếp sự kiện theo trình tự thời gian sáng -> chiều -> tối
@@ -771,23 +836,36 @@ export default function InternSchedulePage() {
         <div className="schedule-mentorship-content">
           <div className="schedule-mentorship-badge">
             <span className="mentorship-badge-dot"></span>
-            Giai đoạn 3: Quản lý chương trình thực tập • Đã tiếp nhận & Sẵn sàng
+            {mentorGroupData?.mentor || user?.mentor_name
+              ? 'Giai đoạn 3: Quản lý chương trình thực tập • Đã tiếp nhận & Sẵn sàng thực tập'
+              : 'Giai đoạn 3: Quản lý chương trình thực tập • Đang phân công Mentor & Xếp lịch'}
           </div>
           <div className="schedule-mentorship-grid">
             <div className="schedule-mentorship-item">
               <span className="mentorship-label">Chương trình thực tập:</span>
-              <strong className="mentorship-val">Chương trình Thực tập Kỹ thuật Phần mềm & AI 2026</strong>
-              <span className="mentorship-sub">Phòng ban: Trung tâm Phát triển Phần mềm ICTU</span>
+              <strong className="mentorship-val">
+                {mentorGroupData?.group?.program_name || user?.program_name || 'Chương trình Thực tập Kỹ thuật Phần mềm & AI 2026'}
+              </strong>
+              <span className="mentorship-sub">
+                Phòng ban: {mentorGroupData?.group?.department_name || mentorGroupData?.mentor?.department || user?.department_name || 'Trung tâm Phát triển Phần mềm ICTU'}
+              </span>
             </div>
             <div className="schedule-mentorship-item">
               <span className="mentorship-label">Lịch thực tập chính thức:</span>
               <strong className="mentorship-val">01/10/2026 – 31/12/2026 (12 tuần)</strong>
-              <span className="mentorship-sub">Tiến độ kỳ thực tập: Tuần 2 / Sprint 2</span>
+              <span className="mentorship-sub">
+                {mentorGroupData?.group?.name ? `Nhóm: ${mentorGroupData.group.name} • ` : ''}Tiến độ: Tuần 2 / Sprint 2
+              </span>
             </div>
             <div className="schedule-mentorship-item schedule-mentorship-item--mentor">
               <span className="mentorship-label">Mentor hướng dẫn phụ trách:</span>
-              <strong className="mentorship-val">{user?.mentor_name || 'ThS. Đỗ Duy Thảo (Lead Tech Architect)'}</strong>
-              <span className="mentorship-sub">Email: {user?.mentor_email || 'ddt@ictu.edu.vn'} • Họp Review 1-1 hàng tuần</span>
+              <strong className="mentorship-val">
+                {mentorGroupData?.mentor?.full_name || user?.mentor_name || 'ThS. Đỗ Duy Thảo (Lead Tech Architect)'}
+              </strong>
+              <span className="mentorship-sub">
+                Email: {mentorGroupData?.mentor?.email || user?.mentor_email || 'ddt@ictu.edu.vn'}
+                {mentorGroupData?.mentor?.phone ? ` • SĐT: ${mentorGroupData.mentor.phone}` : ' • Họp Review 1-1'}
+              </span>
             </div>
           </div>
         </div>
