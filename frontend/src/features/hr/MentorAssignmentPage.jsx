@@ -27,6 +27,7 @@ import {
   subscribeRealtimeEvents,
   checkInternContractSigned,
 } from '../../utils/realtimeSync';
+import MentorDimensionAssignmentTab from './components/MentorDimensionAssignmentTab';
 import './MentorAssignmentPage.css';
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -794,43 +795,62 @@ export default function MentorAssignmentPage() {
             <UserCheck size={15} />
             <span>Phần 2: Quản lý & Gán Mentor ({assignedInterns.length} đã gán, {unassignedInterns.length} chờ gán)</span>
           </button>
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === 'dimension' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('dimension')}
+            data-testid="tab-dimension-assignment"
+          >
+            <GraduationCap size={15} />
+            <span>Phân công theo Khối / Lớp / Khóa / Ban (1-N & N-N)</span>
+          </button>
         </div>
       </header>
 
-      {/* ── CROSSLINK BANNER: HƯỚNG DẪN ĐIỀU PHỐI ── */}
-      <div className="coordination-crosslink-banner">
-        <Sparkles size={16} className="crosslink-icon" />
-        <span>
-          💡 <strong>Mẹo điều phối:</strong> Màn hình này dùng để <strong>gán trực tiếp Mentor hướng dẫn 1-1</strong> và kiểm soát hạn mức tải của từng cán bộ (tối đa 5 TTS). Nếu bạn muốn phân bổ sinh viên theo Kỳ thực tập và Nhóm dự án phòng ban, hãy sử dụng trang <a href="/hr/intern-group-assignment">Phân công thực tập sinh vào Nhóm</a>.
-        </span>
-      </div>
+      {/* ── TAB PHÂN CÔNG THEO KHỐI / LỚP / KHÓA / BAN (1-N & N-N) ── */}
+      {activeTab === 'dimension' && (
+        <section className="dimension-section" aria-label="Phân công Mentor theo Khối / Lớp / Khóa / Ban">
+          <MentorDimensionAssignmentTab />
+        </section>
+      )}
 
-      {/* ── HƯỚNG DẪN 3 BƯỚC ĐIỀU PHỐI TRỰC QUAN ── */}
-      <div className="coordination-guide-card">
-        <div className="guide-step-item">
-          <div className="guide-step-badge">1</div>
-          <div className="guide-step-text">
-            <strong>Xem tải Mentor</strong>
-            <span>Kiểm tra chỉ tiêu tiếp nhận ở Phần 1 (Xanh = Khả dụng, Cam = Sắp đầy, Đỏ = Đủ 5/5).</span>
+      {/* ── CROSSLINK BANNER: HƯỚNG DẪN ĐIỀU PHỐI (KHI KHÔNG Ở TAB DIMENSION) ── */}
+      {activeTab !== 'dimension' && (
+        <>
+          <div className="coordination-crosslink-banner">
+            <Sparkles size={16} className="crosslink-icon" />
+            <span>
+              💡 <strong>Mẹo điều phối:</strong> Màn hình này dùng để <strong>gán trực tiếp Mentor hướng dẫn 1-1</strong> và kiểm soát hạn mức tải của từng cán bộ (tối đa 5 TTS). Nếu bạn muốn phân bổ sinh viên theo Kỳ thực tập và Nhóm dự án phòng ban, hãy sử dụng trang <a href="/hr/intern-group-assignment">Phân công thực tập sinh vào Nhóm</a>.
+            </span>
           </div>
-        </div>
-        <div className="guide-step-arrow">➔</div>
-        <div className="guide-step-item">
-          <div className="guide-step-badge">2</div>
-          <div className="guide-step-text">
-            <strong>Chọn sinh viên</strong>
-            <span>Gán nhanh 1-Click ngay tại cột "Gán nhanh" trên từng dòng, hoặc tick checkbox để gán hàng loạt.</span>
+
+          <div className="coordination-guide-card">
+            <div className="guide-step-item">
+              <div className="guide-step-badge">1</div>
+              <div className="guide-step-text">
+                <strong>Xem tải Mentor</strong>
+                <span>Kiểm tra chỉ tiêu tiếp nhận ở Phần 1 (Xanh = Khả dụng, Cam = Sắp đầy, Đỏ = Đủ 5/5).</span>
+              </div>
+            </div>
+            <div className="guide-step-arrow">➔</div>
+            <div className="guide-step-item">
+              <div className="guide-step-badge">2</div>
+              <div className="guide-step-text">
+                <strong>Chọn sinh viên</strong>
+                <span>Gán nhanh 1-Click ngay tại cột "Gán nhanh" trên từng dòng, hoặc tick checkbox để gán hàng loạt.</span>
+              </div>
+            </div>
+            <div className="guide-step-arrow">➔</div>
+            <div className="guide-step-item">
+              <div className="guide-step-badge">3</div>
+              <div className="guide-step-text">
+                <strong>Hoàn tất phân công</strong>
+                <span>Bấm "Gán ngay" hoặc "Phân công". Dữ liệu sẽ đồng bộ thời gian thực sang tài khoản TTS & Mentor.</span>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="guide-step-arrow">➔</div>
-        <div className="guide-step-item">
-          <div className="guide-step-badge">3</div>
-          <div className="guide-step-text">
-            <strong>Hoàn tất phân công</strong>
-            <span>Bấm "Gán ngay" hoặc "Phân công". Dữ liệu sẽ đồng bộ thời gian thực sang tài khoản TTS & Mentor.</span>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* ── PHẦN 1: THEO DÕI TẢI CÔNG VIỆC MENTOR (WORKLOAD) ── */}
       {(activeTab === 'both' || activeTab === 'workload') && (

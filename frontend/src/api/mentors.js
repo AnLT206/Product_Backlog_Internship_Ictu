@@ -142,3 +142,128 @@ export async function unassignInternFromMentor(mentorId, internId, programId = n
     method: 'DELETE',
   });
 }
+
+/**
+ * Thống kê tổng hợp 4 chiều (Khối / Lớp / Khóa / Ban) và trạng thái gán Mentor.
+ * Route: GET /api/hr/mentor-assignments/dimensions-summary
+ *
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function getDimensionsSummary() {
+  return apiFetch('/api/hr/mentor-assignments/dimensions-summary', {
+    method: 'GET',
+  });
+}
+
+/**
+ * Lấy danh sách TTS và danh sách Mentor theo tiêu chí Khối/Lớp/Khóa/Ban (hỗ trợ N-N).
+ * Route: GET /api/hr/mentor-assignments/by-dimension?dimension_type=...&dimension_value=...
+ *
+ * @param {string} dimensionType major | class | intake | department
+ * @param {string} dimensionValue Tên tiêu chí
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function getInternsByDimension(dimensionType, dimensionValue) {
+  const params = new URLSearchParams({
+    dimension_type: dimensionType,
+    dimension_value: dimensionValue,
+  });
+  return apiFetch(`/api/hr/mentor-assignments/by-dimension?${params.toString()}`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * Phân công Mentor hàng loạt theo Khối/Lớp/Khóa/Ban (1-N & N-N).
+ * Route: POST /api/hr/mentor-assignments/batch-by-dimension
+ *
+ * @param {{
+ *   dimension_type: string,
+ *   dimension_value: string,
+ *   mentor_ids: number[],
+ *   role_type?: 'primary'|'technical'|'co_mentor'|'advisor',
+ *   assignment_mode?: 'append'|'replace',
+ *   target_intern_ids?: number[]
+ * }} payload
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function batchAssignByDimension(payload) {
+  return apiFetch('/api/hr/mentor-assignments/batch-by-dimension', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Phân công ma trận nhiều Mentor cho nhiều TTS (N-N tự do).
+ * Route: POST /api/hr/mentor-assignments/matrix
+ *
+ * @param {{
+ *   mentor_ids: number[],
+ *   intern_ids: number[],
+ *   role_type?: 'primary'|'technical'|'co_mentor'|'advisor',
+ *   assignment_mode?: 'append'|'replace'
+ * }} payload
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function matrixAssignMentors(payload) {
+  return apiFetch('/api/hr/mentor-assignments/matrix', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Hủy một vai trò Mentor khỏi TTS.
+ * Route: DELETE /api/hr/mentor-assignments/role
+ *
+ * @param {{
+ *   mentor_id: number,
+ *   intern_id: number,
+ *   role_type?: 'primary'|'technical'|'co_mentor'|'advisor'
+ * }} payload
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function unassignMentorRole(payload) {
+  return apiFetch('/api/hr/mentor-assignments/role', {
+    method: 'DELETE',
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Cập nhật / chỉnh sửa toàn bộ danh sách Mentor của một TTS.
+ * Route: PUT /api/hr/mentor-assignments/intern/:internId
+ *
+ * @param {number|string} internId
+ * @param {Array<{ mentor_id: number, role_type: string }>} mentors
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function updateInternMentors(internId, mentors) {
+  return apiFetch(`/api/hr/mentor-assignments/intern/${internId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ mentors }),
+  });
+}
+
+/**
+ * Chỉnh sửa vai trò của Mentor hoặc đổi sang Mentor khác.
+ * Route: PUT /api/hr/mentor-assignments/role
+ *
+ * @param {{
+ *   intern_id: number,
+ *   old_mentor_id: number,
+ *   old_role_type: string,
+ *   new_mentor_id?: number,
+ *   new_role_type?: string
+ * }} payload
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function updateSingleMentorRole(payload) {
+  return apiFetch('/api/hr/mentor-assignments/role', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+

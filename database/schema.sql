@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS `intern_profiles` (
     `university` VARCHAR(150) NULL,
     `major` VARCHAR(150) NULL,
     `academic_year` VARCHAR(50) NULL,
+    `class_name` VARCHAR(100) NULL,
     `gpa` DECIMAL(3, 2) NULL,
     `address` VARCHAR(255) NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -59,6 +60,8 @@ CREATE TABLE IF NOT EXISTS `intern_profiles` (
     INDEX `idx_intern_profiles_mentor_id` (`mentor_id`),
     INDEX `idx_intern_profiles_university` (`university`),
     INDEX `idx_intern_profiles_major` (`major`),
+    INDEX `idx_intern_profiles_academic_year` (`academic_year`),
+    INDEX `idx_intern_profiles_class_name` (`class_name`),
     CONSTRAINT `fk_intern_profiles_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_intern_profiles_mentor` FOREIGN KEY (`mentor_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -406,12 +409,18 @@ CREATE TABLE IF NOT EXISTS `mentor_interns` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `mentor_id` INT NOT NULL,
     `intern_id` INT NOT NULL,
+    `role_type` ENUM('primary', 'technical', 'co_mentor', 'advisor') NOT NULL DEFAULT 'primary',
+    `dimension_type` ENUM('direct', 'major', 'class', 'intake', 'department') NOT NULL DEFAULT 'direct',
+    `dimension_value` VARCHAR(150) NULL,
+    `assigned_by_id` INT NULL,
     `assigned_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX `idx_mentor_interns_mentor` (`mentor_id`),
     INDEX `idx_mentor_interns_intern` (`intern_id`),
-    CONSTRAINT `uq_mentor_intern` UNIQUE (`mentor_id`, `intern_id`),
+    INDEX `idx_mentor_interns_dimension` (`dimension_type`, `dimension_value`),
+    CONSTRAINT `uq_mentor_intern_role` UNIQUE (`mentor_id`, `intern_id`, `role_type`),
     CONSTRAINT `fk_mentor_interns_mentor` FOREIGN KEY (`mentor_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_mentor_interns_intern` FOREIGN KEY (`intern_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+    CONSTRAINT `fk_mentor_interns_intern` FOREIGN KEY (`intern_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_mentor_interns_assigned_by` FOREIGN KEY (`assigned_by_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `internship_groups` (
