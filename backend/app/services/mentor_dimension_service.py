@@ -22,6 +22,8 @@ from app.schemas.mentor_dimension_assignment import (
     MatrixAssignRequest,
     MentorAssignmentItem,
     UnassignMentorRoleRequest,
+    UpdateInternMentorsRequest,
+    UpdateSingleMentorRoleRequest,
 )
 
 TTS_ROLE_NAME = "intern"
@@ -440,3 +442,121 @@ class MentorDimensionService:
             "message": f"Đã hủy {deleted} vai trò phân công của Mentor khỏi thực tập sinh.",
             "deleted_count": deleted,
         }
+
+    def update_intern_mentors(
+        self, intern_id: int, payload: UpdateInternMentorsRequest, assigned_by_id: int
+    ) -> AssignMentorRoleResult:
+        """Cập nhật / chỉnh sửa toàn bộ danh sách Mentor của một TTS (thêm, sửa vai trò, xóa)."""
+        intern = (
+            self.db.query(User)
+            .join(Role, User.role_id == Role.id)
+            .filter(User.id == intern_id, Role.name == TTS_ROLE_NAME)
+            .first()
+        )
+        if not intern:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Không tìm thấy thực tập sinh với ID {intern_id}.",
+            )
+
+        mentor_ids = [m.mentor_id for m in payload.mentors]
+        if mentor_ids:
+            mentors = (
+                self.db.query(User)
+                .join(Role, User.role_id == Role.id)
+                .filter(User.id.in_(mentor_ids), Role.name == MENTOR_ROLE_NAME)
+                .all()
+            )
+            found_ids = {m.id for m in mentors}
+            for mid in mentor_ids:
+                if mid not in found_ids:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Không tìm thấy Mentor với ID {mid}.",
+                    )
+
+        # Xóa các phân công hiện tại của TTS này
+        self.db.query(MentorIntern).filter(MentorIntern.intern_id == intern_id).delete(synchronize_session=False)
+
+        primary_mentor_id = None
+        for m_input in payload.mentors:
+            self.db.add(
+                MentorIntern(
+                    mentor_id=m_input.mentor_id,
+                    intern_id=intern_id,
+                    role_type=m_input.role_type,
+                    dimension_type="direct",
+                    dimension_value=None,
+                    assigned_by_id=assigned_by_id,
+                )
+            )
+            if m_input.role_type == "primary" and primary_mentor_id is None:
+                primary_mentor_id = m_input.mentor_id
+
+        # Đồng bộ mentor chính vào intern_profile
+        p = self.db.query(InternProfile).filter(InternProfile.user_id == intern_id).first()
+        if p:
+            p.mentor_id = primary_mentor_id
+
+        self.db.commit()
+        return AssignMentorRoleResult(
+            success=True,
+            message="Đã cập nhật danh sách Mentor cho thực tập sinh thành công.",
+            assigned_count=len(payload.mentors),
+            affected_interns=1,
+        )
+
+    def update_single_mentor_role(
+        self, payload: UpdateSingleMentorRoleRequest, assigned_by_id: int
+    ) -> dict:
+        """Chỉnh sửa nhanh một vai trò của Mentor hoặc đổi sang Mentor khác."""
+        record = (
+            self.db.query(MentorIntern)
+            .filter(
+                MentorIntern.intern_id == payload.intern_id,
+                MentorIntern.mentor_id == payload.old_mentor_id,
+                MentorIntern.role_type == payload.old_role_type,
+            )
+            .first()
+        )
+        if not record:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Không tìm thấy bản ghi phân công tương ứng để cập nhật.",
+            )
+
+        if payload.new_mentor_id and payload.new_mentor_id != payload.old_mentor_id:
+            new_mentor = (
+                self.db.query(User)
+                .join(Role, User.role_id == Role.id)
+                .filter(User.id == payload.new_mentor_id, Role.name == MENTOR_ROLE_NAME)
+                .first()
+            )
+            if not new_mentor:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Không tìm thấy Mentor mới với ID {payload.new_mentor_id}.",
+                )
+            record.mentor_id = payload.new_mentor_id
+
+        if payload.new_role_type:
+            record.role_type = payload.new_role_type
+
+        record.assigned_by_id = assigned_by_id
+
+        # Kiểm tra đồng bộ mentor_id trong intern_profile
+        p = self.db.query(InternProfile).filter(InternProfile.user_id == payload.intern_id).first()
+        if p:
+            primary_rec = (
+                self.db.query(MentorIntern)
+                .filter(
+                    MentorIntern.intern_id == payload.intern_id,
+                    MentorIntern.role_type == "primary",
+                )
+                .first()
+            )
+            p.mentor_id = primary_rec.mentor_id if primary_rec else None
+
+        self.db.commit()
+        return {"success": True, "message": "Đã cập nhật phân công Mentor thành công."}
+

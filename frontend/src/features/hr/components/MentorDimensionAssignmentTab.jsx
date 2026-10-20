@@ -18,12 +18,17 @@ import {
   Award,
   Layers,
   HelpCircle,
+  Edit3,
+  Plus,
+  Trash2,
+  Save,
 } from 'lucide-react';
 import {
   getDimensionsSummary,
   getInternsByDimension,
   batchAssignByDimension,
   unassignMentorRole,
+  updateInternMentors,
   getMentors,
 } from '../../../api/mentors';
 import './MentorDimensionAssignmentTab.css';
@@ -49,6 +54,10 @@ export default function MentorDimensionAssignmentTab() {
   const [assignmentMode, setAssignmentMode] = useState('append'); // 'append' | 'replace'
   const [selectedInternIds, setSelectedInternIds] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Chỉnh sửa phân công cho từng TTS
+  const [editingIntern, setEditingIntern] = useState(null);
+  const [editMentorsList, setEditMentorsList] = useState([]);
 
   // UI state
   const [isLoading, setIsLoading] = useState(false);
@@ -244,6 +253,75 @@ export default function MentorDimensionAssignmentTab() {
       }
     } catch (err) {
       console.error('Lỗi khi hủy vai trò:', err);
+    }
+  };
+
+  // 10. Mở Modal Chỉnh sửa phân công Mentor cho TTS
+  const handleOpenEditModal = (intern) => {
+    setEditingIntern(intern);
+    if (intern.mentors && intern.mentors.length > 0) {
+      setEditMentorsList(
+        intern.mentors.map((m) => ({
+          mentor_id: m.mentor_id,
+          role_type: m.role_type || 'primary',
+        }))
+      );
+    } else {
+      setEditMentorsList(
+        mentorsList.length > 0 ? [{ mentor_id: mentorsList[0].id, role_type: 'primary' }] : []
+      );
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingIntern(null);
+    setEditMentorsList([]);
+  };
+
+  const handleAddEditRow = () => {
+    const available = mentorsList.find(
+      (m) => !editMentorsList.some((em) => em.mentor_id === m.id)
+    );
+    const newId = available ? available.id : (mentorsList[0]?.id || 1);
+    setEditMentorsList((prev) => [...prev, { mentor_id: newId, role_type: 'technical' }]);
+  };
+
+  const handleRemoveEditRow = (index) => {
+    setEditMentorsList((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleEditRowChange = (index, field, value) => {
+    setEditMentorsList((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, [field]: value } : row))
+    );
+  };
+
+  const handleSaveEditMentors = async () => {
+    if (!editingIntern) return;
+    setIsSubmitting(true);
+    try {
+      const res = await updateInternMentors(editingIntern.id, editMentorsList);
+      if (res.ok) {
+        setAlertInfo({
+          type: 'success',
+          message: `Đã cập nhật phân công Mentor cho thực tập sinh ${editingIntern.full_name} thành công!`,
+        });
+        handleCloseEditModal();
+        await Promise.all([
+          getDimensionsSummary().then((r) => r.ok && setDimensionsSummary(r.data)),
+          loadInternsForDimension(activeDimensionType, activeDimensionValue),
+        ]);
+      } else {
+        setAlertInfo({
+          type: 'error',
+          message: res.data?.detail || 'Không thể lưu thay đổi phân công.',
+        });
+      }
+    } catch (err) {
+      console.error('Lỗi lưu phân công:', err);
+      setAlertInfo({ type: 'error', message: 'Lỗi hệ thống khi cập nhật phân công.' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -512,12 +590,13 @@ export default function MentorDimensionAssignmentTab() {
                 <th>Khóa</th>
                 <th>Ban tiếp nhận</th>
                 <th>Mentors phụ trách (N-N)</th>
+                <th style={{ textAlign: 'center' }}>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {filteredInterns.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
                     {isLoading
                       ? 'Đang tải danh sách thực tập sinh...'
                       : 'Không có thực tập sinh nào thuộc tiêu chí này.'}
@@ -579,6 +658,17 @@ export default function MentorDimensionAssignmentTab() {
                           )}
                         </div>
                       </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn-edit-intern"
+                          title="Chỉnh sửa phân công Mentor cho TTS này"
+                          onClick={() => handleOpenEditModal(intern)}
+                        >
+                          <Edit3 size={13} />
+                          <span>Chỉnh sửa</span>
+                        </button>
+                      </td>
                     </tr>
                   );
                 })
@@ -587,6 +677,126 @@ export default function MentorDimensionAssignmentTab() {
           </table>
         </div>
       </div>
+
+      {/* ── MODAL CHỈNH SỬA PHÂN CÔNG MENTOR (CHO TỪNG TTS) ── */}
+      {editingIntern && (
+        <div className="dim-modal-overlay" role="dialog" aria-modal="true">
+          <div className="dim-modal-dialog">
+            <div className="dim-modal-header">
+              <div className="dim-modal-title">
+                <Edit3 size={18} color="#2563eb" />
+                <span>Chỉnh sửa Phân công Mentor</span>
+              </div>
+              <button
+                type="button"
+                className="dim-modal-close"
+                onClick={handleCloseEditModal}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="dim-modal-body">
+              <div className="dim-modal-intern-info">
+                <div>
+                  <strong>TTS:</strong> {editingIntern.full_name} ({editingIntern.code || `TTS-${editingIntern.id}`})
+                </div>
+                <div>
+                  <strong>Lớp:</strong> {editingIntern.class_name || '—'}
+                </div>
+                <div>
+                  <strong>Khối:</strong> {editingIntern.major || '—'}
+                </div>
+              </div>
+
+              <div>
+                <label className="dim-form-label" style={{ marginBottom: '8px', display: 'block' }}>
+                  Danh sách Mentor phụ trách (Quan hệ 1-N hoặc N-N):
+                </label>
+
+                {editMentorsList.length === 0 ? (
+                  <p style={{ fontSize: '13px', color: '#94a3b8', fontStyle: 'italic', margin: '8px 0' }}>
+                    Chưa có Mentor nào được phân công cho TTS này.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {editMentorsList.map((row, idx) => (
+                      <div key={idx} className="dim-edit-mentor-row">
+                        <select
+                          className="dim-select"
+                          value={row.mentor_id}
+                          onChange={(e) =>
+                            handleEditRowChange(idx, 'mentor_id', Number(e.target.value))
+                          }
+                        >
+                          {mentorsList.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.full_name || m.email} ({m.department || 'ICTU'})
+                            </option>
+                          ))}
+                        </select>
+
+                        <select
+                          className="dim-select"
+                          value={row.role_type}
+                          onChange={(e) =>
+                            handleEditRowChange(idx, 'role_type', e.target.value)
+                          }
+                        >
+                          {ROLE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+
+                        <button
+                          type="button"
+                          className="btn-remove-edit-row"
+                          title="Gỡ Mentor này khỏi TTS"
+                          onClick={() => handleRemoveEditRow(idx)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    className="btn-add-mentor-row"
+                    onClick={handleAddEditRow}
+                  >
+                    <Plus size={15} />
+                    <span>Thêm Mentor phụ trách (Đồng hướng dẫn N-N)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="dim-modal-footer">
+              <button
+                type="button"
+                className="btn-modal-cancel"
+                onClick={handleCloseEditModal}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                className="btn-modal-save"
+                disabled={isSubmitting}
+                onClick={handleSaveEditMentors}
+              >
+                <Save size={15} />
+                <span>{isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

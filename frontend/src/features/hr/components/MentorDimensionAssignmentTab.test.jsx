@@ -10,6 +10,8 @@ vi.mock('../../../api/mentors', () => ({
   getInternsByDimension: vi.fn(),
   batchAssignByDimension: vi.fn(),
   unassignMentorRole: vi.fn(),
+  updateInternMentors: vi.fn(),
+  updateSingleMentorRole: vi.fn(),
 }));
 
 const mockSummaryData = {
@@ -76,7 +78,45 @@ describe('MentorDimensionAssignmentTab Component', () => {
     mentorApi.getMentors.mockResolvedValue({ ok: true, data: mockMentors });
     mentorApi.getInternsByDimension.mockResolvedValue({ ok: true, data: mockInternsForDimension });
     mentorApi.batchAssignByDimension.mockResolvedValue({ ok: true, data: { message: 'Phân công thành công' } });
-    mentorApi.unassignMentorRole.mockResolvedValue({ ok: true });
+    mentorApi.updateInternMentors.mockResolvedValue({ ok: true, data: { message: 'Cập nhật thành công' } });
+  });
+
+  it('allows clicking Edit button to open modal, add or modify mentor roles, and save', async () => {
+    render(<MentorDimensionAssignmentTab />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Nguyễn Văn An')).toBeInTheDocument();
+    });
+
+    // Find and click the Edit button for Nguyễn Văn An
+    const editBtns = screen.getAllByRole('button', { name: /Chỉnh sửa/i });
+    expect(editBtns.length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(editBtns[0]);
+
+    // Modal should be opened
+    await waitFor(() => {
+      expect(screen.getByText(/Chỉnh sửa Phân công Mentor/i)).toBeInTheDocument();
+      expect(screen.getByText(/Nguyễn Văn An \(TTS0001\)/i)).toBeInTheDocument();
+    });
+
+    // Verify existing mentors appear in modal
+    const mentorSelects = screen.getAllByRole('combobox');
+    expect(mentorSelects.length).toBeGreaterThanOrEqual(2);
+
+    // Click "Thêm Mentor" button in modal
+    const addMentorBtn = screen.getByRole('button', { name: /Thêm Mentor phụ trách/i });
+    fireEvent.click(addMentorBtn);
+
+    // Save changes
+    const saveBtn = screen.getByRole('button', { name: /Lưu thay đổi/i });
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(mentorApi.updateInternMentors).toHaveBeenCalledWith(
+        10,
+        expect.any(Array)
+      );
+    });
   });
 
   it('renders top stats cards and navigation pills correctly', async () => {

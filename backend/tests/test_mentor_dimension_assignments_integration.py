@@ -301,3 +301,56 @@ def test_matrix_assign_and_unassign_role(dimension_test_setup):
             .first()
         )
         assert remaining is None
+
+
+def test_update_intern_mentors_and_single_role(dimension_test_setup):
+    """Kiểm tra chức năng chỉnh sửa phân công mentor thay vì chỉ gỡ."""
+    client, session_factory = dimension_test_setup
+    token = _hr_token()
+
+    # 1. Chỉnh sửa toàn bộ danh sách Mentor của Intern 10: gán Mentor 2 làm primary, Mentor 3 làm technical
+    edit_payload = {
+        "mentors": [
+            {"mentor_id": 2, "role_type": "primary"},
+            {"mentor_id": 3, "role_type": "technical"},
+        ]
+    }
+    put_res = client.put(
+        "/api/hr/mentor-assignments/intern/10",
+        json=edit_payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert put_res.status_code == 200
+    assert put_res.json()["success"] is True
+
+    with session_factory() as db:
+        p = db.query(InternProfile).filter(InternProfile.user_id == 10).one()
+        assert p.mentor_id == 2
+
+        mi_list = db.query(MentorIntern).filter(MentorIntern.intern_id == 10).all()
+        assert len(mi_list) == 2
+        roles = {m.role_type for m in mi_list}
+        assert roles == {"primary", "technical"}
+
+    # 2. Đổi vai trò hoặc đổi Mentor đơn lẻ: Đổi Mentor 3 từ technical sang advisor
+    role_put_res = client.put(
+        "/api/hr/mentor-assignments/role",
+        json={
+            "intern_id": 10,
+            "old_mentor_id": 3,
+            "old_role_type": "technical",
+            "new_role_type": "advisor",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert role_put_res.status_code == 200
+
+    with session_factory() as db:
+        updated_mi = (
+            db.query(MentorIntern)
+            .filter(MentorIntern.intern_id == 10, MentorIntern.mentor_id == 3)
+            .first()
+        )
+        assert updated_mi is not None
+        assert updated_mi.role_type == "advisor"
+

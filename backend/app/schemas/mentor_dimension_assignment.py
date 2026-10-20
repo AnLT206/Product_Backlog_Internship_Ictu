@@ -114,3 +114,27 @@ class UnassignMentorRoleRequest(BaseModel):
     mentor_id: int
     intern_id: int
     role_type: RoleTypeLiteral | None = None
+
+
+class MentorRoleInput(BaseModel):
+    """Cặp thông tin Mentor và vai trò."""
+
+    mentor_id: int
+    role_type: RoleTypeLiteral = "primary"
+
+
+class UpdateInternMentorsRequest(BaseModel):
+    """Cập nhật toàn bộ danh sách Mentor và vai trò cho một TTS (chỉnh sửa trực tiếp)."""
+
+    mentors: list[MentorRoleInput] = Field(..., description="Danh sách các Mentor và vai trò sau khi chỉnh sửa")
+
+
+class UpdateSingleMentorRoleRequest(BaseModel):
+    """Chỉnh sửa nhanh vai trò hoặc đổi Mentor cho TTS."""
+
+    intern_id: int
+    old_mentor_id: int
+    old_role_type: RoleTypeLiteral
+    new_mentor_id: int | None = None
+    new_role_type: RoleTypeLiteral | None = None
+

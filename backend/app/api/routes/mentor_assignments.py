@@ -22,6 +22,8 @@ from app.schemas.mentor_dimension_assignment import (
     DimensionsSummaryResponse,
     MatrixAssignRequest,
     UnassignMentorRoleRequest,
+    UpdateInternMentorsRequest,
+    UpdateSingleMentorRoleRequest,
 )
 from app.services.mentor_assignment_service import MentorAssignmentService
 from app.services.mentor_dimension_service import MentorDimensionService
@@ -214,4 +216,36 @@ def unassign_mentor_role(
     db: Session = Depends(get_db),
 ) -> dict:
     return MentorDimensionService(db).unassign_mentor_role(payload)
+
+
+@router.put(
+    "/hr/mentor-assignments/intern/{intern_id}",
+    response_model=AssignMentorRoleResult,
+    summary="HR chỉnh sửa toàn bộ danh sách Mentor của một TTS (thêm/sửa vai trò/xóa)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def update_intern_mentors(
+    intern_id: int,
+    payload: UpdateInternMentorsRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> AssignMentorRoleResult:
+    return MentorDimensionService(db).update_intern_mentors(
+        intern_id=intern_id, payload=payload, assigned_by_id=current_user.id
+    )
+
+
+@router.put(
+    "/hr/mentor-assignments/role",
+    summary="HR chỉnh sửa vai trò của Mentor hoặc đổi sang Mentor khác cho TTS",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def update_single_mentor_role(
+    payload: UpdateSingleMentorRoleRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    return MentorDimensionService(db).update_single_mentor_role(
+        payload=payload, assigned_by_id=current_user.id
+    )
 

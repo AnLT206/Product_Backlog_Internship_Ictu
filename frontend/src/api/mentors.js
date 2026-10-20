@@ -231,3 +231,39 @@ export async function unassignMentorRole(payload) {
   });
 }
 
+/**
+ * Cập nhật / chỉnh sửa toàn bộ danh sách Mentor của một TTS.
+ * Route: PUT /api/hr/mentor-assignments/intern/:internId
+ *
+ * @param {number|string} internId
+ * @param {Array<{ mentor_id: number, role_type: string }>} mentors
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function updateInternMentors(internId, mentors) {
+  return apiFetch(`/api/hr/mentor-assignments/intern/${internId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ mentors }),
+  });
+}
+
+/**
+ * Chỉnh sửa vai trò của Mentor hoặc đổi sang Mentor khác.
+ * Route: PUT /api/hr/mentor-assignments/role
+ *
+ * @param {{
+ *   intern_id: number,
+ *   old_mentor_id: number,
+ *   old_role_type: string,
+ *   new_mentor_id?: number,
+ *   new_role_type?: string
+ * }} payload
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function updateSingleMentorRole(payload) {
+  return apiFetch('/api/hr/mentor-assignments/role', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+
