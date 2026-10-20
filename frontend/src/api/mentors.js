@@ -142,3 +142,16 @@ export async function unassignInternFromMentor(mentorId, internId, programId = n
     method: 'DELETE',
   });
 }
+
+/**
+ * Lấy tải công việc (Workload) của tất cả Mentor, có thể lọc theo Kỳ thực tập.
+ * Route: GET /api/hr/mentors/workload?program_id=...
+ *
+ * @param {number|string|null} [programId=null]
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function getMentorWorkload(programId = null) {
+  const qs = programId ? `?program_id=${programId}` : '';
+  return apiFetch(`/api/hr/mentors/workload${qs}`, { method: 'GET' });
+}
+

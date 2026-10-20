@@ -30,7 +30,7 @@ const HR_NAV_ITEMS = [
   },
   {
     to: '/hr/mentor-assignment',
-    label: 'Điều phối & Gán Mentor',
+    label: 'Quản lý Mentor & Cân bằng tải',
   },
 
   { isSectionHeader: true, label: 'Chuyên cần & Vận hành' },

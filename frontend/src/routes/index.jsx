@@ -35,7 +35,12 @@ import SupportTicketManager from '../features/hr/SupportTicketManager.jsx'
 import MentorLayout from '../features/mentor/MentorLayout.jsx'
 import MentorDashboardPage from '../features/mentor/MentorDashboardPage.jsx'
 import MentorInternsPage from '../features/mentor/MentorInternsPage.jsx'
+import MentorGroupsPage from '../features/mentor/MentorGroupsPage.jsx'
 import MentorTasksPage from '../features/mentor/MentorTasksPage.jsx'
+import MentorWeeklyMatrixPage from '../features/mentor/MentorWeeklyMatrixPage.jsx'
+import MentorReportsPage from '../features/mentor/MentorReportsPage.jsx'
+import MentorEvaluationsPage from '../features/mentor/MentorEvaluationsPage.jsx'
+import MentorLeavePage from '../features/mentor/MentorLeavePage.jsx'
 
 import InternLayout from '../features/intern/InternLayout.jsx'
 import InternDashboardPage from '../features/intern/InternDashboardPage.jsx'
@@ -126,11 +131,15 @@ export default function AppRoutes() {
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<MentorDashboardPage />} />
+          <Route path="groups" element={<MentorGroupsPage />} />
           <Route path="interns" element={<MentorInternsPage />} />
+          <Route path="weekly-matrix" element={<MentorWeeklyMatrixPage />} />
           <Route path="tasks" element={<MentorTasksPage />} />
+          <Route path="reports" element={<MentorReportsPage />} />
+          <Route path="evaluations" element={<MentorEvaluationsPage />} />
+          <Route path="leave" element={<MentorLeavePage />} />
           <Route path="attendance" element={<HrAttendancePage />} />
           <Route path="contracts" element={<HrContractsPage />} />
-          <Route path="reports" element={<HrReportsPage />} />
         </Route>
 
         {/* ── Phân hệ Thực tập sinh (Intern Portal) ── */}

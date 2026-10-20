@@ -69,11 +69,18 @@ class InternshipGroupService:
                     detail=f"Mã nhóm '{payload.code}' đã tồn tại trong hệ thống.",
                 )
 
+        leader_name = None
+        if payload.leader_user_id is not None:
+            leader_u = self.db.query(User).filter(User.id == payload.leader_user_id).first()
+            if leader_u:
+                leader_name = leader_u.full_name
+
         group = InternshipGroup(
             name=payload.name,
             code=payload.code,
             department_id=payload.department_id,
             program_id=payload.program_id,
+            leader_user_id=payload.leader_user_id,
             description=payload.description,
             max_members=payload.max_members,
             status="active",
@@ -90,6 +97,8 @@ class InternshipGroupService:
             department_name=department_name,
             program_id=group.program_id,
             program_name=program_name,
+            leader_user_id=group.leader_user_id,
+            leader_name=leader_name,
             description=group.description,
             max_members=group.max_members,
             current_members_count=0,
@@ -103,12 +112,14 @@ class InternshipGroupService:
         self,
         department_id: int | None = None,
         program_id: int | None = None,
+        leader_user_id: int | None = None,
         status_filter: str | None = None,
     ) -> list[InternshipGroupResponse]:
-        """Lấy danh sách nhóm thực tập theo bộ lọc phòng ban, chương trình, trạng thái."""
+        """Lấy danh sách nhóm thực tập theo bộ lọc phòng ban, chương trình, trạng thái, mentor."""
         query = self.db.query(InternshipGroup).options(
             joinedload(InternshipGroup.department),
             joinedload(InternshipGroup.program),
+            joinedload(InternshipGroup.leader),
             joinedload(InternshipGroup.memberships),
         )
 
@@ -116,6 +127,8 @@ class InternshipGroupService:
             query = query.filter(InternshipGroup.department_id == department_id)
         if program_id is not None:
             query = query.filter(InternshipGroup.program_id == program_id)
+        if leader_user_id is not None:
+            query = query.filter(InternshipGroup.leader_user_id == leader_user_id)
         if status_filter:
             query = query.filter(InternshipGroup.status == status_filter)
 
@@ -133,6 +146,8 @@ class InternshipGroupService:
                     department_name=g.department.name if g.department else None,
                     program_id=g.program_id,
                     program_name=g.program.name if g.program else None,
+                    leader_user_id=g.leader_user_id,
+                    leader_name=g.leader.full_name if g.leader else None,
                     description=g.description,
                     max_members=g.max_members,
                     current_members_count=active_count,
@@ -150,6 +165,7 @@ class InternshipGroupService:
             .options(
                 joinedload(InternshipGroup.department),
                 joinedload(InternshipGroup.program),
+                joinedload(InternshipGroup.leader),
                 joinedload(InternshipGroup.memberships)
                 .joinedload(InternProfileGroup.intern_profile)
                 .joinedload(InternProfile.user),
@@ -191,6 +207,8 @@ class InternshipGroupService:
             department_name=group.department.name if group.department else None,
             program_id=group.program_id,
             program_name=group.program.name if group.program else None,
+            leader_user_id=group.leader_user_id,
+            leader_name=group.leader.full_name if group.leader else None,
             description=group.description,
             max_members=group.max_members,
             current_members_count=len(members_list),
@@ -356,6 +374,19 @@ class InternshipGroupService:
                 self.db.add(new_membership)
                 current_active_count += 1
 
+            # Deactivate other active group memberships for this intern profile
+            old_group_memberships = (
+                self.db.query(InternProfileGroup)
+                .filter(
+                    InternProfileGroup.intern_profile_id == prof.id,
+                    InternProfileGroup.group_id != group_id,
+                    InternProfileGroup.status == "active",
+                )
+                .all()
+            )
+            for old_gm in old_group_memberships:
+                old_gm.status = "inactive"
+
             assigned_profile_ids.append(prof.id)
 
             # Đồng bộ liên kết phòng ban nếu nhóm thuộc phòng ban
@@ -376,6 +407,46 @@ class InternshipGroupService:
                             assigned_by=assigned_by,
                         )
                     )
+
+            # Đồng bộ liên kết Mentor nếu nhóm có chỉ định Mentor phụ trách
+            if group.leader_user_id:
+                prof.mentor_id = group.leader_user_id
+                if group.program_id:
+                    pm_rec = (
+                        self.db.query(ProgramMember)
+                        .filter(
+                            ProgramMember.program_id == group.program_id,
+                            ProgramMember.intern_user_id == prof.user_id,
+                        )
+                        .first()
+                    )
+                    if pm_rec:
+                        pm_rec.mentor_user_id = group.leader_user_id
+                    else:
+                        self.db.add(
+                            ProgramMember(
+                                program_id=group.program_id,
+                                intern_user_id=prof.user_id,
+                                mentor_user_id=group.leader_user_id,
+                                status="active",
+                            )
+                        )
+
+                from app.models.mentor_intern import MentorIntern
+                mi_rec = (
+                    self.db.query(MentorIntern)
+                    .filter(
+                        MentorIntern.mentor_id == group.leader_user_id,
+                        MentorIntern.intern_id == prof.user_id,
+                    )
+                    .first()
+                )
+                if not mi_rec:
+                    self.db.add(MentorIntern(mentor_id=group.leader_user_id, intern_id=prof.user_id))
+
+            # Xóa cache cổng TTS để hiển thị tức thì
+            from app.services.intern_group_service import InternGroupService
+            InternGroupService.invalidate_cache(prof.user_id)
 
         self.db.commit()
 
@@ -403,15 +474,37 @@ class InternshipGroupService:
             .first()
         )
         if not membership:
+            # Hỗ trợ trường hợp truyền intern_profile_id là user_id của TTS
+            prof_by_user = self.db.query(InternProfile).filter(InternProfile.user_id == intern_profile_id).first()
+            if prof_by_user:
+                membership = (
+                    self.db.query(InternProfileGroup)
+                    .filter(
+                        InternProfileGroup.group_id == group_id,
+                        InternProfileGroup.intern_profile_id == prof_by_user.id,
+                    )
+                    .first()
+                )
+
+        if not membership:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Thực tập sinh (Profile ID: {intern_profile_id}) không có trong nhóm ID {group_id}.",
+                detail=f"Thực tập sinh ({intern_profile_id}) không có trong nhóm ID {group_id}.",
             )
+
+        prof = self.db.query(InternProfile).filter(InternProfile.id == membership.intern_profile_id).first()
+        user_id = prof.user_id if prof else None
+
         self.db.delete(membership)
         self.db.commit()
+
+        if user_id:
+            from app.services.intern_group_service import InternGroupService
+            InternGroupService.invalidate_cache(user_id)
+
         return {
             "success": True,
-            "message": f"Đã xoá thực tập sinh (Profile ID: {intern_profile_id}) khỏi nhóm thành công.",
+            "message": f"Đã xoá thực tập sinh khỏi nhóm thành công.",
         }
 
     def assign_interns_to_department(

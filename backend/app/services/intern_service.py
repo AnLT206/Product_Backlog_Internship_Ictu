@@ -237,6 +237,32 @@ class InternService:
             except Exception:
                 pass
 
+        # Tra cứu nhóm thực tập đang tham gia (active)
+        group_map = {}
+        try:
+            from app.models.internship_group import InternProfileGroup, InternshipGroup
+            profile_ids = [u.intern_profile.id for u in users if u.intern_profile]
+            if profile_ids:
+                ipgs = (
+                    self.db.query(InternProfileGroup, InternshipGroup)
+                    .join(InternshipGroup, InternProfileGroup.group_id == InternshipGroup.id)
+                    .filter(
+                        InternProfileGroup.intern_profile_id.in_(profile_ids),
+                        InternProfileGroup.status == "active",
+                    )
+                    .all()
+                )
+                for ipg, grp in ipgs:
+                    # Tìm user tương ứng
+                    matched_u = next((u for u in users if u.intern_profile and u.intern_profile.id == ipg.intern_profile_id), None)
+                    if matched_u:
+                        group_map[matched_u.id] = {
+                            "group_id": grp.id,
+                            "group_name": grp.name,
+                        }
+        except Exception:
+            pass
+
         items = [
             InternListItem(
                 id=u.id,
@@ -268,6 +294,8 @@ class InternService:
                 avatar=u.intern_profile.avatar if u.intern_profile else None,
                 mentor_id=u.intern_profile.mentor_id if u.intern_profile else None,
                 mentor_name=u.intern_profile.mentor.full_name if (u.intern_profile and u.intern_profile.mentor) else None,
+                group_id=group_map[u.id]["group_id"] if u.id in group_map else None,
+                group_name=group_map[u.id]["group_name"] if u.id in group_map else None,
                 program_id=program_map[u.id]["program_id"] if u.id in program_map else None,
                 program_name=program_map[u.id]["program_name"] if u.id in program_map else None,
                 created_at=u.created_at,

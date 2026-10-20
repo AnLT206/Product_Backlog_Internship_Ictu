@@ -30,6 +30,9 @@ class InternshipGroup(Base):
         ForeignKey("internship_programs.id", ondelete="SET NULL"), nullable=True, index=True
     )
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    leader_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     max_members: Mapped[int] = mapped_column(Integer, default=20, nullable=False)
     status: Mapped[str] = mapped_column(
         Enum("active", "inactive", "closed", name="internship_group_status_enum"),
@@ -43,6 +46,7 @@ class InternshipGroup(Base):
 
     department: Mapped[Department | None] = relationship(back_populates="internship_groups")
     program: Mapped[InternshipProgram | None] = relationship()
+    leader: Mapped[User | None] = relationship(foreign_keys=[leader_user_id])
 
     # N-N relationship với InternProfile qua intern_profile_groups
     intern_profiles: Mapped[list[InternProfile]] = relationship(

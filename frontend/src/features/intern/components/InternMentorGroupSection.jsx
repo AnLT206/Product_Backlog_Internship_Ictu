@@ -51,6 +51,24 @@ export default function InternMentorGroupSection({
         return;
       }
 
+      const syncState = getRealtimeSyncState();
+      let storedUser = {};
+      try {
+        storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      } catch {}
+
+      const currentId = Number(storedUser.id);
+      const currentEmail = (storedUser.email || '').toLowerCase().trim();
+      const unassignedSet = new Set((syncState.unassigned_intern_ids || []).map(Number));
+
+      if (currentId && unassignedSet.has(currentId)) {
+        setMentorData(null);
+        setGroupData(null);
+        setMembersData([]);
+        setError(null);
+        return;
+      }
+
       if (res?.ok && res.data && (res.data.mentor || res.data.group)) {
         setMentorData(res.data.mentor || null);
         setGroupData(res.data.group || null);
@@ -61,20 +79,12 @@ export default function InternMentorGroupSection({
         setError(null);
       } else {
         // Fallback đọc từ Realtime Sync State (khi vừa được phân công từ HR portal)
-        const syncState = getRealtimeSyncState();
-        let storedUser = {};
-        try {
-          storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-        } catch {}
-
-        const currentId = Number(storedUser.id);
-        const currentEmail = (storedUser.email || '').toLowerCase().trim();
-
         const assign = (syncState.mentorAssignments || []).find(
           (a) =>
-            (currentId && Number(a.intern_id) === currentId) ||
-            (currentEmail && a.email && a.email.toLowerCase().trim() === currentEmail) ||
-            (storedUser.full_name && a.student === storedUser.full_name)
+            !unassignedSet.has(Number(a.intern_id)) &&
+            ((currentId && Number(a.intern_id) === currentId) ||
+              (currentEmail && a.email && a.email.toLowerCase().trim() === currentEmail) ||
+              (storedUser.full_name && a.student === storedUser.full_name))
         );
 
         if (assign) {

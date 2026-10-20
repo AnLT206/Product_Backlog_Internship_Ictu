@@ -163,3 +163,17 @@ def assign_interns(
 def delete_program(program_id: int, db: Session = Depends(get_db)) -> Response:
     ProgramService(db).delete_program(program_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    "/{program_id}/interns/{intern_id}",
+    summary="Gỡ hoàn toàn thực tập sinh khỏi kỳ thực tập (HR / Admin only)",
+    dependencies=[Depends(require_roles("hr", "admin"))],
+)
+def remove_intern_from_program(
+    program_id: int,
+    intern_id: int,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    return ProgramService(db).unassign_intern_from_program(program_id, intern_id)
+

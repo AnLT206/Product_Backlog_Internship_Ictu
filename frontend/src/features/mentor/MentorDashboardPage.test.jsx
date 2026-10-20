@@ -19,6 +19,16 @@ vi.mock('../../context/AuthContext', () => ({
   }),
 }));
 
+vi.mock('../../api/groups', () => ({
+  getInternshipGroups: vi.fn().mockResolvedValue({
+    ok: true,
+    data: [
+      { id: 101, name: 'Nhóm R&D Cloud & AI', code: 'GRP-AI-01', department_name: 'Phòng AI', max_members: 5, leader_user_id: 3 },
+      { id: 102, name: 'Nhóm Phát triển Web & Mobile', code: 'GRP-WEB-02', department_name: 'Phòng Web', max_members: 5, leader_user_id: 3 },
+    ],
+  }),
+}));
+
 vi.mock('../../api/operations', () => ({
   fetchMentorMentees: vi.fn().mockResolvedValue({
     ok: true,
@@ -110,5 +120,45 @@ describe('MentorDashboardPage Task Binding & Border Test Suite', () => {
       expect(screen.getByText('Giao nhiệm vụ mới cho Thực tập sinh')).toBeInTheDocument();
     });
   });
+
+  it('Chuyển sang Tab Ma trận Tiến độ 12 tuần hiển thị bảng 12 cột và mở modal chấm điểm', async () => {
+    render(<MentorDashboardPage />);
+
+    // Click vào tab Ma trận Tiến độ 12 tuần
+    const matrixTabButton = screen.getByRole('button', { name: /Tiến độ 12 tuần \(Weekly Matrix\)/i });
+    expect(matrixTabButton).toBeInTheDocument();
+    fireEvent.click(matrixTabButton);
+
+    // Bảng ma trận xuất hiện
+    await waitFor(() => {
+      expect(screen.getByText(/Ma trận Theo dõi & Đánh giá Tiến độ 12 Tuần Thực tập/i)).toBeInTheDocument();
+      expect(screen.getByText('Tuần 1')).toBeInTheDocument();
+      expect(screen.getByText('Tuần 12')).toBeInTheDocument();
+    });
+
+    // Các sinh viên có mặt trong ma trận
+    expect(screen.getAllByText('Nguyễn Văn An').length).toBeGreaterThan(0);
+
+    // Click vào một ô tuần để mở modal chấm điểm tuần
+    const weekCellButtons = screen.getAllByRole('button', { name: /9\.0 đ|Chờ chấm|Đang làm/i });
+    expect(weekCellButtons.length).toBeGreaterThan(0);
+    fireEvent.click(weekCellButtons[0]);
+
+    // Modal chấm điểm xuất hiện
+    await waitFor(() => {
+      expect(screen.getByText(/Đánh giá Tiến độ:/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Lưu điểm & Gửi nhận xét/i })).toBeInTheDocument();
+    });
+  });
+
+  it('1 Mentor có thể phụ trách nhiều nhóm khác nhau và các nhóm hiển thị tách biệt không đè nhau', async () => {
+    render(<MentorDashboardPage forcedTab="groups" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Nhóm R&D Cloud & AI')).toBeInTheDocument();
+      expect(screen.getByText('Nhóm Phát triển Web & Mobile')).toBeInTheDocument();
+    });
+  });
 });
+
 

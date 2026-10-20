@@ -377,4 +377,18 @@ export async function rejectLeaveRequest(requestId, feedback = '') {
   })
 }
 
+/* ── MENTOR WEEKLY MATRIX & PROGRESS (12 TUẦN) ── */
+export async function fetchWeeklyMatrix(programId = null) {
+  const qs = programId ? `?program_id=${programId}` : ''
+  return apiFetch(`/api/mentor/weekly-matrix${qs}`, { method: 'GET' })
+}
+
+export async function gradeWeeklyReport(payload) {
+  return apiFetch('/api/mentor/weekly-grade', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+
 

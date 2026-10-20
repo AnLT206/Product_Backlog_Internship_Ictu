@@ -3,11 +3,14 @@ import EnterpriseAppShell from '../../components/common/EnterpriseAppShell'
 import { useAuth } from '../../context/AuthContext'
 
 const MENTOR_NAV_ITEMS = [
-  { to: '/mentor/dashboard', label: 'Danh sách TTS phụ trách', end: true },
-  { to: '/mentor/dashboard#tasks', label: 'Giao việc & Nhiệm vụ (Tasks)' },
-  { to: '/mentor/dashboard#reports', label: 'Duyệt báo cáo tuần' },
-  { to: '/mentor/dashboard#evaluations', label: 'Đánh giá năng lực cuối kỳ' },
-  { to: '/mentor/dashboard#leave', label: 'Theo dõi đơn nghỉ phép TTS' },
+  { to: '/mentor/dashboard', label: 'Tổng quan (Dashboard)', end: true },
+  { to: '/mentor/interns', label: 'Danh sách TTS phụ trách' },
+  { to: '/mentor/groups', label: 'Nhóm phụ trách' },
+  { to: '/mentor/weekly-matrix', label: 'Tiến độ 12 tuần (Weekly Matrix)' },
+  { to: '/mentor/tasks', label: 'Phân công nhiệm vụ (Tasks)' },
+  { to: '/mentor/reports', label: 'Duyệt báo cáo tuần' },
+  { to: '/mentor/evaluations', label: 'Đánh giá & Điểm cuối kỳ' },
+  { to: '/mentor/leave', label: 'Theo dõi đơn nghỉ phép' },
 ]
 
 export default function MentorLayout() {

@@ -29,6 +29,24 @@ vi.mock('../../context/AuthContext', async () => {
 describe('InternProgramPage Component Test Suite (Tab Kỳ thực tập của TTS)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.setItem(
+      'ictu_realtime_sync_store',
+      JSON.stringify({
+        unassigned_intern_ids: [],
+        mentorAssignments: [
+          {
+            intern_id: 24,
+            student: 'Đỗ Hoàng Anh',
+            email: 'hoanganh@student.ictu.edu.vn',
+            mentor: 'ThS. Nguyễn Văn Hướng Dẫn',
+            group_name: 'Nhóm Phát triển Web & AI',
+            project: 'Nhóm Phát triển Web & AI',
+            program_name: 'Khóa K20 - Kỳ Thu 2026',
+            company: 'Phòng Kỹ thuật & Hạ tầng Cloud',
+          },
+        ],
+      })
+    );
   });
 
   it('1. Render đầy đủ Header Banner: tên kỳ thực tập, mã kỳ, thời gian, phòng ban, nhóm và tiến độ', () => {
@@ -41,9 +59,10 @@ describe('InternProgramPage Component Test Suite (Tab Kỳ thực tập của TT
     expect(screen.getByText(/Mã kỳ: PRG-2026-F · K20/i)).toBeInTheDocument();
     expect(screen.getByText(/Đang diễn ra/i)).toBeInTheDocument();
 
-    // Thông tin phòng ban & nhóm
+    // Thông tin phòng ban & nhóm dự án thực tế (KHÔNG dùng helloworld làm tên nhóm)
     expect(screen.getByText(/Phòng Kỹ thuật & Hạ tầng Cloud/i)).toBeInTheDocument();
-    expect(screen.getByText(/helloworld/i)).toBeInTheDocument();
+    expect(screen.getByText(/Nhóm Phát triển Web & AI/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^helloworld$/i)).not.toBeInTheDocument();
     expect(screen.getAllByText(/ThS. Nguyễn Văn Hướng Dẫn/i).length).toBeGreaterThanOrEqual(1);
 
     // Thanh tiến độ
@@ -120,5 +139,49 @@ describe('InternProgramPage Component Test Suite (Tab Kỳ thực tập của TT
       expect(screen.getByRole('status')).toBeInTheDocument();
       expect(screen.getByText(/Đang tải văn bản Quyết định tiếp nhận/i)).toBeInTheDocument();
     });
+  });
+
+  it('8. Khi Thực tập sinh bị gỡ phân công khỏi Mentor: Không còn hiển thị tên Mentor và nhóm cũ, hiển thị trạng thái Chờ phân công', () => {
+    localStorage.setItem(
+      'ictu_realtime_sync_store',
+      JSON.stringify({
+        unassigned_intern_ids: [24],
+        mentorAssignments: [],
+      })
+    );
+
+    render(<InternProgramPage />);
+
+    // Kiểm tra không còn hiển thị tên Mentor cũ hay fallback
+    expect(screen.queryAllByText(/ThS\. Nguyễn Văn Hướng Dẫn/i)).toHaveLength(0);
+    expect(screen.queryAllByText(/helloworld/i)).toHaveLength(0);
+
+    // Hiển thị trạng thái Chờ phân công
+    expect(screen.getByText(/Chưa phân công \(Chờ HR\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Chưa phân công Người hướng dẫn \(Mentor\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hồ sơ của bạn hiện đang ở danh sách chờ phân bổ/i)).toBeInTheDocument();
+    expect(screen.getByText(/Chưa phân nhóm/i)).toBeInTheDocument();
+
+    localStorage.removeItem('ictu_realtime_sync_store');
+  });
+
+  it('9. Khi sinh viên chưa được phân vào nhóm dự án cụ thể: Tab thành viên nhóm hiển thị trạng thái chờ phân nhóm rõ ràng thay vì danh sách giả lập', () => {
+    localStorage.setItem(
+      'ictu_realtime_sync_store',
+      JSON.stringify({
+        unassigned_intern_ids: [24],
+        mentorAssignments: [],
+      })
+    );
+
+    render(<InternProgramPage />);
+
+    const membersTabBtn = screen.getByRole('button', { name: /Thành viên nhóm/i });
+    fireEvent.click(membersTabBtn);
+
+    expect(screen.getByText(/Chưa được phân vào nhóm dự án/i)).toBeInTheDocument();
+    expect(screen.getByText(/Danh sách thành viên cùng nhóm sẽ tự động hiển thị/i)).toBeInTheDocument();
+
+    localStorage.removeItem('ictu_realtime_sync_store');
   });
 });

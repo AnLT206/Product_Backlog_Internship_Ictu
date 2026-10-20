@@ -193,3 +193,18 @@ export async function getCompletionStats() {
     },
   };
 }
+
+/**
+ * Gỡ hoàn toàn một thực tập sinh khỏi kỳ thực tập (HR / Admin only).
+ * Route: DELETE /api/hr/programs/:programId/interns/:internId
+ *
+ * @param {number|string} programId
+ * @param {number|string} internId
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function removeInternFromProgram(programId, internId) {
+  return apiFetch(`/api/hr/programs/${programId}/interns/${internId}`, {
+    method: 'DELETE',
+  });
+}
+
