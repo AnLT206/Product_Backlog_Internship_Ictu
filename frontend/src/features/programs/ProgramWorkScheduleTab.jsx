@@ -31,14 +31,18 @@ import {
   Zap,
   Info,
   Layers,
-  ArrowRight
+  ArrowRight,
+  RotateCcw
 } from 'lucide-react';
+import apiFetch from '../../api/client';
 import {
   getProgramWorkSchedules,
   createWorkSchedule,
   updateWorkSchedule,
   deleteWorkSchedule
 } from '../../api/programs';
+import { getInternshipGroups } from '../../api/groups';
+import { syncWorkScheduleChange } from '../../utils/realtimeSync';
 import './ProgramWorkScheduleTab.css';
 
 // Cấu hình các ngày trong tuần
@@ -142,6 +146,10 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
   const [viewMode, setViewMode] = useState('matrix'); // 'matrix' | 'cards'
   const [toast, setToast] = useState(null);
 
+  // Danh sách nhóm và bộ lọc nhóm
+  const [groups, setGroups] = useState([]);
+  const [selectedGroupId, setSelectedGroupId] = useState('all');
+
   // State cho Modal Thêm / Sửa ca
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create'); // 'create' | 'edit'
@@ -151,6 +159,7 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
     id: null,
     group_name: '',
     program_id: '',
+    group_id: '',
     shift_type: 'morning',
     start_time: '08:00',
     end_time: '12:00',
@@ -206,19 +215,51 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
     fetchSchedules();
   }, [fetchSchedules]);
 
+  // Tải danh sách nhóm khi đổi kỳ thực tập
+  useEffect(() => {
+    setSelectedGroupId('all');
+    if (selectedProgramId && selectedProgramId !== 'all') {
+      getInternshipGroups({ program_id: selectedProgramId })
+        .then((res) => {
+          if (res.ok && Array.isArray(res.data)) {
+            setGroups(res.data);
+          } else {
+            setGroups([]);
+          }
+        })
+        .catch(() => setGroups([]));
+    } else {
+      setGroups([]);
+    }
+  }, [selectedProgramId]);
+
   // Thông tin kỳ thực tập đang chọn
   const currentProgram = useMemo(() => {
     if (selectedProgramId === 'all') return null;
     return programs.find((p) => String(p.id) === String(selectedProgramId)) || null;
   }, [programs, selectedProgramId]);
 
+  // Danh sách ca làm việc đã lọc theo nhóm và sắp xếp tăng dần theo giờ bắt đầu
+  const filteredSchedules = useMemo(() => {
+    let list = [...schedules];
+    if (selectedGroupId !== 'all') {
+      const gId = parseInt(selectedGroupId, 10);
+      list = list.filter((s) => s.group_id === gId || !s.group_id);
+    }
+    return list.sort((a, b) => {
+      const timeComp = (a.start_time || '').localeCompare(b.start_time || '');
+      if (timeComp !== 0) return timeComp;
+      return a.id - b.id;
+    });
+  }, [schedules, selectedGroupId]);
+
   // Thống kê phiên
-  const activeSchedulesCount = schedules.filter((s) => s.is_active).length;
+  const activeSchedulesCount = filteredSchedules.filter((s) => s.is_active).length;
   
-  // Tính tổng số giờ làm việc trung bình mỗi tuần
+  // Tính tổng số giờ làm việc trung bình mỗi tuần theo bộ lọc
   const totalWeeklyHours = useMemo(() => {
     let total = 0;
-    schedules.forEach((s) => {
+    filteredSchedules.forEach((s) => {
       if (!s.is_active) return;
       const [sh, sm] = formatHour(s.start_time).split(':').map(Number);
       const [eh, em] = formatHour(s.end_time).split(':').map(Number);
@@ -229,7 +270,7 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
       }
     });
     return Math.round(total * 10) / 10;
-  }, [schedules]);
+  }, [filteredSchedules]);
 
   // Mở modal tạo mới
   const handleOpenCreateModal = (defaultShiftType = 'morning', defaultDay = null) => {
@@ -240,6 +281,7 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
       id: null,
       group_name: defaultShiftType === 'morning' ? 'Ca sáng tiêu chuẩn' : defaultShiftType === 'afternoon' ? 'Ca chiều tiêu chuẩn' : 'Phiên làm việc chuyên môn',
       program_id: selectedProgramId !== 'all' ? selectedProgramId : (programs[0]?.id ? String(programs[0].id) : ''),
+      group_id: selectedGroupId !== 'all' ? selectedGroupId : '',
       shift_type: defaultShiftType,
       start_time: shiftConfig.defaultStart,
       end_time: shiftConfig.defaultEnd,
@@ -262,6 +304,7 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
       id: shift.id,
       group_name: shift.group_name || '',
       program_id: shift.program_id ? String(shift.program_id) : '',
+      group_id: shift.group_id ? String(shift.group_id) : '',
       shift_type: shift.shift_type || 'morning',
       start_time: formatHour(shift.start_time),
       end_time: formatHour(shift.end_time),
@@ -343,6 +386,7 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
     const payload = {
       group_name: formData.group_name.trim(),
       program_id: formData.program_id ? parseInt(formData.program_id, 10) : null,
+      group_id: formData.group_id ? parseInt(formData.group_id, 10) : null,
       shift_type: formData.shift_type,
       start_time: formData.start_time.length === 5 ? `${formData.start_time}:00` : formData.start_time,
       end_time: formData.end_time.length === 5 ? `${formData.end_time}:00` : formData.end_time,
@@ -359,6 +403,7 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
           showToast(`Đã cập nhật ca làm việc "${formData.group_name}" thành công!`);
           setModalOpen(false);
           fetchSchedules();
+          syncWorkScheduleChange({ action: 'update_shift', program_id: formData.program_id });
         } else {
           setModalError(res.data?.detail || 'Không thể cập nhật phiên làm việc.');
         }
@@ -368,6 +413,7 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
           showToast(`Đã tạo phiên làm việc "${formData.group_name}" thành công!`);
           setModalOpen(false);
           fetchSchedules();
+          syncWorkScheduleChange({ action: 'create_shift', program_id: formData.program_id });
         } else {
           setModalError(res.data?.detail || 'Không thể tạo mới phiên làm việc.');
         }
@@ -395,6 +441,7 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
         setSchedules((prev) =>
           prev.map((item) => (item.id === shift.id ? { ...item, is_active: nextActive } : item))
         );
+        syncWorkScheduleChange({ action: 'toggle_active', shift_id: shift.id, is_active: nextActive });
       } else {
         showToast('Không thể thay đổi trạng thái ca.', 'error');
       }
@@ -413,6 +460,7 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
       if (res.ok || res.status === 200 || res.status === 204) {
         showToast(`Đã xóa ca làm việc "${shift.group_name}" thành công!`);
         fetchSchedules();
+        syncWorkScheduleChange({ action: 'delete_shift', shift_id: shift.id });
       } else {
         showToast(res.data?.detail || 'Không thể xóa ca làm việc.', 'error');
       }
@@ -460,10 +508,45 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
         is_active: true
       });
 
-      showToast('Đã khởi tạo thành công lịch 2 ca chuẩn (Sáng + Chiều T2-T6)!');
+      // Tự động đồng bộ sang lịch thực tập cá nhân của TTS trong các nhóm
+      try {
+        await apiFetch(`/api/hr/work-schedules/generate-weekly?program_id=${progId}`, {
+          method: 'POST',
+        });
+      } catch {
+        // Ignored
+      }
+
+      showToast('Đã khởi tạo thành công ca chuẩn và đồng bộ lịch cho TTS theo nhóm!');
       fetchSchedules();
+      syncWorkScheduleChange({ action: 'init_default', program_id: progId });
     } catch {
       showToast('Lỗi khi khởi tạo ca chuẩn. Vui lòng thử lại.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Đồng bộ lịch làm việc của nhóm sang lịch cá nhân của TTS
+  const handleSyncWeeklyFromGroups = async () => {
+    if (selectedProgramId === 'all') {
+      alert('Vui lòng chọn một kỳ thực tập cụ thể trước khi đồng bộ lịch.');
+      return;
+    }
+    const progId = parseInt(selectedProgramId, 10);
+    setLoading(true);
+    try {
+      const res = await apiFetch(`/api/hr/work-schedules/generate-weekly?program_id=${progId}`, {
+        method: 'POST',
+      });
+      if (res && (res.ok || res.data?.success)) {
+        showToast(res.data?.message || 'Đã đồng bộ thành công lịch thực tập cá nhân cho TTS theo nhóm!', 'success');
+      } else {
+        showToast('Đã gửi yêu cầu đồng bộ lịch nhóm.', 'success');
+      }
+      syncWorkScheduleChange({ action: 'sync_weekly', program_id: progId });
+    } catch {
+      showToast('Lỗi khi đồng bộ lịch nhóm. Vui lòng thử lại.', 'error');
     } finally {
       setLoading(false);
     }
@@ -501,6 +584,25 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
             </select>
           </div>
 
+          {groups.length > 0 && (
+            <div className="work-schedule-select-wrapper">
+              <Layers size={16} className="work-schedule-select-icon" />
+              <select
+                className="work-schedule-select"
+                value={selectedGroupId}
+                onChange={(e) => setSelectedGroupId(e.target.value)}
+                aria-label="Lọc theo nhóm thực tập"
+              >
+                <option value="all">👥 Tất cả nhóm / Chuẩn toàn kỳ</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name} ({g.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {currentProgram && (
             <div className="work-schedule-prog-tag">
               <span className={`work-schedule-status-dot work-schedule-status-dot--${currentProgram.status}`} />
@@ -537,15 +639,28 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
 
           {/* Nút Khởi tạo ca chuẩn */}
           {selectedProgramId !== 'all' && (
-            <button
-              type="button"
-              className="work-schedule-preset-btn"
-              onClick={handleInitDefaultShifts}
-              title="Tự động thêm 2 ca chuẩn ICTU (Sáng 08:00-12:00 & Chiều 13:30-17:30 T2-T6)"
-            >
-              <Sparkles size={16} />
-              <span>Khởi tạo ca chuẩn</span>
-            </button>
+            <>
+              <button
+                type="button"
+                className="work-schedule-preset-btn"
+                onClick={handleInitDefaultShifts}
+                title="Tự động thêm 2 ca chuẩn ICTU (Sáng 08:00-12:00 & Chiều 13:30-17:30 T2-T6)"
+              >
+                <Sparkles size={16} />
+                <span>Khởi tạo ca chuẩn</span>
+              </button>
+
+              <button
+                type="button"
+                className="work-schedule-preset-btn"
+                onClick={handleSyncWeeklyFromGroups}
+                title="Đồng bộ lịch ca làm việc theo nhóm sang lịch cá nhân của từng TTS trong nhóm"
+                style={{ backgroundColor: '#f0fdf4', color: '#16a34a', borderColor: '#bbf7d0' }}
+              >
+                <RotateCcw size={16} />
+                <span>Đồng bộ lịch TTS</span>
+              </button>
+            </>
           )}
 
           {/* Nút Thêm phiên mới */}
@@ -662,8 +777,10 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
 
           <div className="work-schedule-matrix-grid">
             {WEEK_DAYS.map((day) => {
-              // Lọc các ca áp dụng vào ngày này
-              const dayShifts = schedules.filter((s) => isShiftOnDay(s.days_of_week, day.key, day.alt));
+              // Lọc các ca áp dụng vào ngày này và sắp xếp ca sáng trước, ca chiều sau
+              const dayShifts = filteredSchedules
+                .filter((s) => isShiftOnDay(s.days_of_week, day.key, day.alt))
+                .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
               const isWeekend = day.key === '7' || day.key === 'CN';
 
               return (
@@ -737,6 +854,11 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
                             <div className="work-schedule-item-name" title={shift.group_name}>
                               {shift.group_name}
                             </div>
+                            {shift.group_id && (
+                              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span>👥 {groups.find((g) => g.id === shift.group_id)?.code || `Nhóm #${shift.group_id}`}</span>
+                              </div>
+                            )}
 
                             <div className="work-schedule-item-time">
                               <Clock size={12} />
@@ -790,7 +912,7 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
       ) : (
         /* ── CHẾ ĐỘ DANH SÁCH THẺ (CARDS GRID) ── */
         <div className="work-schedule-cards-grid">
-          {schedules.map((shift) => {
+          {filteredSchedules.map((shift) => {
             const shiftTypeInfo = SHIFT_TYPES[shift.shift_type] || SHIFT_TYPES.morning;
             const ShiftIcon = shiftTypeInfo.icon;
             const duration = getShiftDuration(formatHour(shift.start_time), formatHour(shift.end_time));
@@ -963,6 +1085,28 @@ export default function ProgramWorkScheduleTab({ programs = [], initialProgramId
                     ))}
                   </select>
                 </div>
+
+                {/* Thuộc Nhóm thực tập */}
+                {groups.length > 0 && (
+                  <div className="work-schedule-field">
+                    <label className="work-schedule-label">Nhóm thực tập áp dụng</label>
+                    <select
+                      className="work-schedule-input"
+                      value={formData.group_id}
+                      onChange={(e) => setFormData({ ...formData, group_id: e.target.value })}
+                    >
+                      <option value="">🏢 Toàn bộ kỳ thực tập (Khung chuẩn 40h/tuần)</option>
+                      {groups.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          👥 {g.name} ({g.code})
+                        </option>
+                      ))}
+                    </select>
+                    <span className="work-schedule-field-hint">
+                      Chọn nhóm cụ thể nếu muốn cấu hình phiên đặc thù cho nhóm đó, hoặc để mặc định để áp dụng chuẩn toàn kỳ.
+                    </span>
+                  </div>
+                )}
 
                 {/* Chọn Loại ca làm việc */}
                 <div className="work-schedule-field">

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_roles
+from app.models.user import User
 from app.schemas.work_schedule import (
     WorkScheduleCreate,
     WorkScheduleResponse,
@@ -20,9 +21,28 @@ router = APIRouter(prefix="/hr/work-schedules", tags=["hr-work-schedules"])
 )
 def list_work_schedules(
     program_id: int | None = Query(default=None, description="Lọc theo kỳ thực tập"),
+    group_id: int | None = Query(default=None, description="Lọc theo nhóm thực tập"),
     db: Session = Depends(get_db),
 ) -> list[WorkScheduleResponse]:
-    return WorkScheduleService(db).list_work_schedules(program_id=program_id)
+    return WorkScheduleService(db).list_work_schedules(program_id=program_id, group_id=group_id)
+
+
+@router.post(
+    "/generate-weekly",
+    summary="Tự động sinh/đồng bộ lịch làm việc theo phiên từ cấu hình ca nhóm (SCRUM-173)",
+)
+def generate_weekly_work_schedules(
+    program_id: int | None = Query(default=None, description="Lọc theo kỳ thực tập"),
+    group_id: int | None = Query(default=None, description="Lọc theo nhóm thực tập"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("hr", "admin")),
+) -> dict:
+    from app.services.weekly_schedule_service import WeeklyScheduleService
+    return WeeklyScheduleService(db).generate_schedules_from_group_shifts(
+        program_id=program_id,
+        group_id=group_id,
+        created_by_id=current_user.id,
+    )
 
 
 @router.get(

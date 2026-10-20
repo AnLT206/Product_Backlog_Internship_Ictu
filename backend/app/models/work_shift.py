@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
+    from app.models.internship_group import InternshipGroup
     from app.models.internship_program import InternshipProgram
 
 
@@ -20,6 +21,11 @@ class WorkShift(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     program_id: Mapped[int | None] = mapped_column(
         ForeignKey("internship_programs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    group_id: Mapped[int | None] = mapped_column(
+        ForeignKey("internship_groups.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
@@ -36,3 +42,4 @@ class WorkShift(Base):
     )
 
     program: Mapped[InternshipProgram | None] = relationship(foreign_keys=[program_id])
+    group: Mapped[InternshipGroup | None] = relationship(foreign_keys=[group_id])

@@ -24,6 +24,7 @@ import {
 } from '../../../api/operations';
 import { getInterns } from '../../../api/interns';
 import { getMentors } from '../../../api/mentors';
+import { syncWorkScheduleChange } from '../../../utils/realtimeSync';
 import './WeeklyWorkScheduleManager.css';
 
 export default function WeeklyWorkScheduleManager() {
@@ -270,6 +271,7 @@ export default function WeeklyWorkScheduleManager() {
 
       setIsModalOpen(false);
       loadData();
+      syncWorkScheduleChange({ action: isEditing ? 'update_session' : 'create_session', user_id: payload.user_id });
     } catch (err) {
       const msg = err.message || 'Thao tác thất bại. Vui lòng kiểm tra lại.';
       setFormError(msg);
@@ -290,6 +292,7 @@ export default function WeeklyWorkScheduleManager() {
       }
       showToast('Đã xóa phiên làm việc thành công!', 'success');
       setSchedules((prev) => prev.filter((item) => item.id !== id));
+      syncWorkScheduleChange({ action: 'delete_session', id });
     } catch (err) {
       showToast(err.message || 'Không thể xóa phiên làm việc.', 'error');
     }

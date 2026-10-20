@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from datetime import date
 
 from fastapi import APIRouter, Depends, Query, status
@@ -80,6 +81,27 @@ def delete_weekly_schedule(
     db: Session = Depends(get_db),
 ) -> dict[str, str]:
     return WeeklyScheduleService(db).delete_schedule(schedule_id)
+
+
+@router.post(
+    "/hr/weekly-schedules/generate-from-groups",
+    summary="HR/Admin tự động sinh lịch làm việc theo phiên cho TTS và Mentor theo cấu hình nhóm",
+)
+def generate_weekly_schedules_from_groups(
+    program_id: int | None = Query(default=None, description="Lọc theo kỳ thực tập"),
+    group_id: int | None = Query(default=None, description="Lọc theo nhóm thực tập"),
+    start_date: date | None = Query(default=None, description="Từ ngày"),
+    end_date: date | None = Query(default=None, description="Đến ngày"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("hr", "admin")),
+) -> dict[str, Any]:
+    return WeeklyScheduleService(db).generate_schedules_from_group_shifts(
+        program_id=program_id,
+        group_id=group_id,
+        start_date=start_date,
+        end_date=end_date,
+        created_by_id=current_user.id,
+    )
 
 
 # ==================== INTERN / MENTOR VIEW APIS ====================

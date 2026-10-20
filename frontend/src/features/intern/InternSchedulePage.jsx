@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import apiFetch from '../../api/client'
 import { fetchInternWeeklySchedules } from '../../api/operations'
+import { subscribeRealtimeEvents, SYNC_EVENTS } from '../../utils/realtimeSync'
 import './InternDashboardPage.css'
 import './InternSchedulePage.css'
 
@@ -678,67 +679,78 @@ export default function InternSchedulePage() {
   }, [])
 
   // Lấy dữ liệu lịch thực tập trực tiếp từ HR qua API backend (/api/intern/weekly-schedules)
-  useEffect(() => {
-    let isMounted = true
-    setIsLoading(true)
+  const loadSchedule = useCallback(async (showLoading = false) => {
+    if (showLoading) setIsLoading(true)
     setError(null)
 
-    async function loadSchedule() {
-      try {
-        const res = await fetchInternWeeklySchedules()
-        const apiList =
-          res && res.ok && Array.isArray(res.data)
-            ? res.data
-            : Array.isArray(res)
-            ? res
-            : []
+    try {
+      const res = await fetchInternWeeklySchedules()
+      const apiList =
+        res && res.ok && Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res)
+          ? res
+          : []
 
-        if (apiList.length > 0) {
-          // Chuẩn hóa dữ liệu từ HR sang định dạng giao diện lịch
-          const mappedEvents = apiList.map((item) => {
-            const timeStr = `${item.start_time?.slice(0, 5)} – ${item.end_time?.slice(0, 5)}`
-            return {
-              id: `api-sched-${item.id}`,
-              title: item.shift_name,
-              date: item.session_date,
-              time: timeStr,
-              type: 'shift',
-              typeLabel: 'Ca làm việc (HR phân công)',
-              location: item.location || 'P.302 – Trung tâm Phần mềm & AI ICTU',
-              host: item.created_by_name || 'Phòng Nhân sự (HR)',
-              description: item.notes || 'Lịch làm việc theo phiên do HR xếp lịch.',
-              status:
-                item.days_until_session === 0
-                  ? 'today'
-                  : item.days_until_session > 0
-                  ? 'upcoming'
-                  : 'completed',
-            }
-          })
-          if (isMounted) {
-            setEvents(mappedEvents)
-            setIsLoading(false)
+      if (apiList.length > 0) {
+        // Chuẩn hóa dữ liệu từ HR sang định dạng giao diện lịch
+        const mappedEvents = apiList.map((item) => {
+          const timeStr = `${item.start_time?.slice(0, 5)} – ${item.end_time?.slice(0, 5)}`
+          return {
+            id: `api-sched-${item.id}`,
+            title: item.shift_name,
+            date: item.session_date,
+            time: timeStr,
+            type: 'shift',
+            typeLabel: 'Ca làm việc (HR phân công)',
+            location: item.location || 'P.302 – Trung tâm Phần mềm & AI ICTU',
+            host: item.created_by_name || 'Phòng Nhân sự (HR)',
+            description: item.notes || 'Lịch làm việc theo phiên do HR xếp lịch.',
+            status:
+              item.days_until_session === 0
+                ? 'today'
+                : item.days_until_session > 0
+                ? 'upcoming'
+                : 'completed',
           }
-        } else {
-          // Nếu HR chưa xếp ca nào, hiển thị lịch mẫu demo
-          if (isMounted) {
-            setEvents(MOCK_SCHEDULE_EVENTS)
-            setIsLoading(false)
-          }
-        }
-      } catch {
-        if (isMounted) {
-          setEvents(MOCK_SCHEDULE_EVENTS)
-          setIsLoading(false)
-        }
+        })
+        setEvents(mappedEvents)
+      } else {
+        setEvents([])
       }
-    }
-
-    loadSchedule()
-    return () => {
-      isMounted = false
+    } catch {
+      setEvents([])
+    } finally {
+      if (showLoading) setIsLoading(false)
     }
   }, [])
+
+  // Tự động nạp lần đầu và lắng nghe đồng bộ thời gian thực khi HR thay đổi lịch
+  useEffect(() => {
+    loadSchedule(true)
+
+    // 1. Lắng nghe broadcast event realtime từ HR (BroadcastChannel + CustomEvent + StorageEvent)
+    const unsubscribeSync = subscribeRealtimeEvents((event) => {
+      if (!event || event.type === SYNC_EVENTS.WORK_SCHEDULE_UPDATED) {
+        loadSchedule(false)
+      }
+    })
+
+    // 2. Tự động tải lại khi sinh viên chuyển tab trở lại trang này
+    const handleFocus = () => loadSchedule(false)
+    window.addEventListener('focus', handleFocus)
+
+    // 3. Cơ chế polling dự phòng mỗi 15 giây
+    const timerId = setInterval(() => {
+      loadSchedule(false)
+    }, 15000)
+
+    return () => {
+      unsubscribeSync()
+      window.removeEventListener('focus', handleFocus)
+      clearInterval(timerId)
+    }
+  }, [loadSchedule])
 
   // Lọc và sắp xếp sự kiện theo trình tự thời gian sáng -> chiều -> tối
   const filteredEvents = events
@@ -844,10 +856,10 @@ export default function InternSchedulePage() {
             <div className="schedule-mentorship-item">
               <span className="mentorship-label">Chương trình thực tập:</span>
               <strong className="mentorship-val">
-                {mentorGroupData?.group?.program_name || user?.program_name || 'Chương trình Thực tập Kỹ thuật Phần mềm & AI 2026'}
+                {mentorGroupData?.group?.program_name || user?.program_name || 'Kỳ thực tập Kỹ thuật Phần mềm & AI Doanh nghiệp 2026'}
               </strong>
               <span className="mentorship-sub">
-                Phòng ban: {mentorGroupData?.group?.department_name || mentorGroupData?.mentor?.department || user?.department_name || 'Trung tâm Phát triển Phần mềm ICTU'}
+                Phòng ban: {mentorGroupData?.group?.department_name || mentorGroupData?.mentor?.department || user?.department_name || 'Ban Công nghệ & Kỹ thuật Phần mềm'}
               </span>
             </div>
             <div className="schedule-mentorship-item">
@@ -860,10 +872,10 @@ export default function InternSchedulePage() {
             <div className="schedule-mentorship-item schedule-mentorship-item--mentor">
               <span className="mentorship-label">Mentor hướng dẫn phụ trách:</span>
               <strong className="mentorship-val">
-                {mentorGroupData?.mentor?.full_name || user?.mentor_name || 'ThS. Đỗ Duy Thảo (Lead Tech Architect)'}
+                {mentorGroupData?.mentor?.full_name || user?.mentor_name || 'ThS. Lê Hữu Đạt (Lead Tech Architect)'}
               </strong>
               <span className="mentorship-sub">
-                Email: {mentorGroupData?.mentor?.email || user?.mentor_email || 'ddt@ictu.edu.vn'}
+                Email: {mentorGroupData?.mentor?.email || user?.mentor_email || 'mentor1@ictu.vn'}
                 {mentorGroupData?.mentor?.phone ? ` • SĐT: ${mentorGroupData.mentor.phone}` : ' • Họp Review 1-1'}
               </span>
             </div>

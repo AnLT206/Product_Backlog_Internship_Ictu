@@ -4,6 +4,9 @@ set -e
 
 pip install --no-cache-dir -r requirements.txt
 
+echo "[backend] chạy tự động migrate & chuẩn hóa cấu trúc CSDL…"
+PYTHONPATH=. python -m scripts.auto_migrate_db
+
 SEED_ON_STARTUP="${ADMIN_SEED_ON_STARTUP:-true}"
 if [ "$SEED_ON_STARTUP" = "true" ] || [ "$SEED_ON_STARTUP" = "1" ]; then
   echo "[backend] seed admin (ADMIN_SEED_ON_STARTUP=$SEED_ON_STARTUP)…"

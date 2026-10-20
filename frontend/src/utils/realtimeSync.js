@@ -38,10 +38,20 @@ export const SYNC_EVENTS = {
   SUPPORT_TICKET_CREATED:  'SYNC_SUPPORT_TICKET_CREATED',  // TTS nộp ticket yêu cầu hỗ trợ mới
   SUPPORT_TICKET_RESPONDED: 'SYNC_SUPPORT_TICKET_RESPONDED', // HR/Mentor duyệt / từ chối ticket
   ATTENDANCE_CHECKED_IN:   'SYNC_ATTENDANCE_CHECKED_IN',   // TTS điểm danh / check-in hôm nay
-  LEAVE_REQUEST_SUBMITTED: 'SYNC_LEAVE_REQUEST_SUBMITTED', // TTS gửi đơn xin nghỉ phép
   ATTENDANCE_APPROVED:     'SYNC_ATTENDANCE_APPROVED',     // HR duyệt công / phụ cấp
   ALLOWANCE_UPDATED:       'SYNC_ALLOWANCE_UPDATED',       // HR cập nhật lương / phụ cấp / thưởng phạt
+  WORK_SCHEDULE_UPDATED:   'SYNC_WORK_SCHEDULE_UPDATED',   // HR cập nhật / tạo / xóa ca hoặc lịch làm việc
 };
+
+/**
+ * Phát sự kiện thông báo thay đổi lịch làm việc thời gian thực (HR -> TTS/Mentor)
+ */
+export function syncWorkScheduleChange(details = {}) {
+  emitRealtimeEvent(SYNC_EVENTS.WORK_SCHEDULE_UPDATED, {
+    timestamp: new Date().toISOString(),
+    ...details
+  });
+}
 
 // ── Kho Văn bản / Biểu mẫu Hợp đồng có sẵn trong hệ thống ──
 export const DEFAULT_CONTRACT_TEMPLATES = [

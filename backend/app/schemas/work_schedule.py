@@ -9,6 +9,7 @@ ShiftType = Literal["morning", "afternoon", "full_time", "flexible"]
 class WorkScheduleCreate(BaseModel):
     group_name: str = Field(..., min_length=1, max_length=100, description="Tên nhóm thực tập hoặc tên ca")
     program_id: int | None = Field(default=None, description="ID kỳ thực tập gắn với nhóm (tùy chọn)")
+    group_id: int | None = Field(default=None, description="ID nhóm thực tập gắn với ca làm việc (tùy chọn)")
     shift_type: ShiftType = Field(default="flexible", description="Loại ca làm việc")
     start_time: time = Field(..., description="Giờ bắt đầu làm việc (HH:MM:SS)")
     end_time: time = Field(..., description="Giờ kết thúc ca làm việc (HH:MM:SS)")
@@ -20,6 +21,7 @@ class WorkScheduleCreate(BaseModel):
 class WorkScheduleUpdate(BaseModel):
     group_name: str | None = Field(default=None, min_length=1, max_length=100)
     program_id: int | None = None
+    group_id: int | None = None
     shift_type: ShiftType | None = None
     start_time: time | None = None
     end_time: time | None = None
@@ -33,6 +35,7 @@ class WorkScheduleResponse(BaseModel):
 
     id: int
     program_id: int | None = None
+    group_id: int | None = None
     group_name: str
     shift_type: str
     start_time: time

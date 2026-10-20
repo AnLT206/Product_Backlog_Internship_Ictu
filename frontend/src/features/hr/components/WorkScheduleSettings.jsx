@@ -14,6 +14,7 @@ import {
   Edit3,
 } from 'lucide-react';
 import { fetchWorkSchedules, saveWorkSchedule, updateWorkSchedule, deleteWorkSchedule } from '../../../api/operations';
+import apiFetch from '../../../api/client';
 import './WorkScheduleSettings.css';
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -108,6 +109,7 @@ export default function WorkScheduleSettings({
 }) {
   // 1. Form States
   const [groupId, setGroupId] = useState('');
+  const [groups, setGroups] = useState(INTERN_GROUPS);
   const [startTime, setStartTime] = useState('08:15');
   const [endTime, setEndTime] = useState('17:30');
   const [selectedDays, setSelectedDays] = useState(['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6']);
@@ -128,6 +130,27 @@ export default function WorkScheduleSettings({
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  // Tải danh sách nhóm thực tập thật từ API
+  useEffect(() => {
+    let isMounted = true;
+    apiFetch('/api/hr/internship-groups')
+      .then((res) => {
+        if (isMounted && res && res.ok && Array.isArray(res.data) && res.data.length > 0) {
+          const mapped = res.data.map((g) => ({
+            id: String(g.id),
+            name: `${g.name} (${g.code || 'GRP'})`,
+          }));
+          const existingIds = new Set(mapped.map((m) => m.id));
+          const combined = [...mapped, ...INTERN_GROUPS.filter((ig) => !existingIds.has(ig.id))];
+          setGroups(combined);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Tải danh sách lịch làm việc từ API khi khởi tạo
@@ -261,7 +284,7 @@ export default function WorkScheduleSettings({
     setIsSubmitting(true);
     setErrors({});
 
-    const selectedGroupObj = INTERN_GROUPS.find((g) => g.id === groupId);
+    const selectedGroupObj = (groups || INTERN_GROUPS).find((g) => String(g.id) === String(groupId));
     const groupName = selectedGroupObj ? selectedGroupObj.name : groupId;
 
     const payload = {
@@ -448,7 +471,7 @@ export default function WorkScheduleSettings({
                 }}
               >
                 <option value="">-- Chọn nhóm thực tập áp dụng --</option>
-                {INTERN_GROUPS.map((group) => (
+                {(groups || INTERN_GROUPS).map((group) => (
                   <option key={group.id} value={group.id}>
                     {group.name}
                   </option>
