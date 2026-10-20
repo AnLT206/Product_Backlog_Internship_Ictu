@@ -202,15 +202,6 @@ export default function WeeklyWorkScheduleManager() {
   };
 
   const handleOpenEditModal = (item) => {
-    const daysDiff = getDaysDiff(item.session_date);
-    if (!item.is_editable && daysDiff < 3) {
-      showToast(
-        `Không thể sửa: HR chỉ được phép chỉnh sửa trước ít nhất 3 ngày (Phiên còn ${daysDiff} ngày).`,
-        'error'
-      );
-      return;
-    }
-
     setIsEditing(true);
     setCurrentId(item.id);
     setFormError('');
@@ -247,17 +238,6 @@ export default function WeeklyWorkScheduleManager() {
     if (formData.start_time >= formData.end_time) {
       setFormError('Giờ bắt đầu phải trước giờ kết thúc ca làm việc.');
       return;
-    }
-
-    // Kiểm tra quy tắc 3 ngày khi chỉnh sửa
-    if (isEditing) {
-      const daysDiff = getDaysDiff(formData.session_date);
-      if (daysDiff < 3) {
-        setFormError(
-          `Quy tắc nghiệp vụ: Chỉ được phép chỉnh sửa trước ít nhất 3 ngày tính đến ngày làm việc (Ngày chọn: ${formData.session_date}, cách hôm nay ${daysDiff} ngày).`
-        );
-        return;
-      }
     }
 
     setFormSubmitting(true);
@@ -338,12 +318,8 @@ export default function WeeklyWorkScheduleManager() {
     const total = schedules.length;
     const internCount = schedules.filter((s) => s.role === 'intern').length;
     const mentorCount = schedules.filter((s) => s.role === 'mentor').length;
-    const editableCount = schedules.filter((s) => {
-      const diff = getDaysDiff(s.session_date);
-      return s.is_editable !== false && diff >= 3;
-    }).length;
-    const lockedCount = total - editableCount;
-    return { total, internCount, mentorCount, editableCount, lockedCount };
+    const scheduledCount = schedules.filter((s) => s.status === 'scheduled').length;
+    return { total, internCount, mentorCount, scheduledCount };
   }, [schedules]);
 
   // Current user list based on selected role in form
@@ -374,13 +350,12 @@ export default function WeeklyWorkScheduleManager() {
           </button>
         </div>
 
-        {/* Thông báo quy tắc khóa 3 ngày */}
+        {/* Thông báo chính sách */}
         <div className="wws-policy-notice">
           <AlertCircle size={20} className="text-blue-600 flex-shrink-0" />
           <div>
-            <strong>Ràng buộc chỉnh sửa: </strong>
-            HR chỉ được phép chỉnh sửa lịch làm việc <strong>trước ít nhất 3 ngày</strong> tính đến ngày làm việc.
-            Sau thời gian đó (trong vòng 3 ngày hoặc ngày đã qua), nút <strong>"Sửa" sẽ bị mờ đi</strong> và không thể thao tác nhằm đảm bảo ổn định lịch cho TTS và Mentor.
+            <strong>Quản lý linh hoạt: </strong>
+            HR có thể thêm mới, điều chỉnh phòng họp, phân công nhân sự hoặc cập nhật thời gian cho bất kỳ ca làm việc nào. Dữ liệu được đồng bộ trực tiếp tới TTS và Mentor.
           </div>
         </div>
 
@@ -402,14 +377,9 @@ export default function WeeklyWorkScheduleManager() {
             <span className="wws-stat-hint">Được hiển thị tại /mentor/schedule</span>
           </div>
           <div className="wws-stat-card">
-            <span className="wws-stat-label">Có thể chỉnh sửa (&ge; 3 ngày)</span>
-            <span className="wws-stat-value" style={{ color: '#16a34a' }}>{stats.editableCount}</span>
-            <span className="wws-stat-hint">Nút Sửa khả dụng</span>
-          </div>
-          <div className="wws-stat-card">
-            <span className="wws-stat-label">Đã khóa điều chỉnh (&lt; 3 ngày)</span>
-            <span className="wws-stat-value" style={{ color: '#dc2626' }}>{stats.lockedCount}</span>
-            <span className="wws-stat-hint">Nút Sửa bị làm mờ</span>
+            <span className="wws-stat-label">Ca dự kiến (Scheduled)</span>
+            <span className="wws-stat-value" style={{ color: '#16a34a' }}>{stats.scheduledCount}</span>
+            <span className="wws-stat-hint">Đang trong kế hoạch thực hiện</span>
           </div>
         </div>
 
@@ -483,7 +453,7 @@ export default function WeeklyWorkScheduleManager() {
                 <th>Đối tượng</th>
                 <th>Nhân sự</th>
                 <th>Địa điểm</th>
-                <th>Quy tắc 3 ngày</th>
+                <th>Trạng thái</th>
                 <th style={{ textAlign: 'center' }}>Thao tác</th>
               </tr>
             </thead>
@@ -512,8 +482,6 @@ export default function WeeklyWorkScheduleManager() {
               ) : (
                 filteredSchedules.map((item) => {
                   const daysDiff = getDaysDiff(item.session_date);
-                  // Kiểm tra có được sửa không: API trả về is_editable hoặc tính daysDiff >= 3
-                  const isEditable = item.is_editable !== undefined ? item.is_editable : daysDiff >= 3;
 
                   return (
                     <tr key={item.id} data-testid={`schedule-row-${item.id}`}>
@@ -584,41 +552,35 @@ export default function WeeklyWorkScheduleManager() {
                         </div>
                       </td>
 
-                      {/* Trạng thái khóa 3 ngày */}
+                      {/* Trạng thái ca làm việc */}
                       <td>
-                        {isEditable ? (
-                          <span
-                            className="wws-lock-badge wws-lock-badge--open"
-                            title={`Còn ${daysDiff} ngày - Đủ điều kiện sửa (>= 3 ngày)`}
-                          >
-                            <Unlock size={12} />
-                            Được phép sửa
-                          </span>
-                        ) : (
-                          <span
-                            className="wws-lock-badge wws-lock-badge--locked"
-                            title={`Chỉ còn ${daysDiff} ngày tính đến ngày làm việc - Đã khóa sửa (< 3 ngày)`}
-                          >
-                            <Lock size={12} />
-                            Đã khóa (&lt; 3 ngày)
-                          </span>
-                        )}
+                        <span
+                          className={`wws-lock-badge ${
+                            item.status === 'completed'
+                              ? 'wws-lock-badge--open'
+                              : item.status === 'cancelled'
+                              ? 'wws-lock-badge--locked'
+                              : 'wws-lock-badge--open'
+                          }`}
+                        >
+                          <CheckCircle size={12} />
+                          {item.status === 'completed'
+                            ? 'Hoàn thành'
+                            : item.status === 'cancelled'
+                            ? 'Đã hủy'
+                            : 'Đã lên lịch'}
+                        </span>
                       </td>
 
                       {/* Thao tác: Nút Sửa & Xóa */}
                       <td>
                         <div className="wws-actions" style={{ justifyContent: 'center' }}>
-                          {/* NÚT SỬA: Bị làm mờ và vô hiệu hóa nếu !isEditable (< 3 ngày) */}
+                          {/* NÚT SỬA */}
                           <button
                             type="button"
-                            className={`wws-btn-edit ${!isEditable ? 'wws-btn-edit--disabled' : ''}`}
-                            disabled={!isEditable}
+                            className="wws-btn-edit"
                             onClick={() => handleOpenEditModal(item)}
-                            title={
-                              isEditable
-                                ? 'Chỉnh sửa phiên làm việc'
-                                : `Nút Sửa bị mờ & vô hiệu hóa: Phiên làm việc còn ${daysDiff} ngày. HR chỉ được sửa trước ít nhất 3 ngày.`
-                            }
+                            title="Chỉnh sửa phiên làm việc"
                             aria-label={`Sửa ca ${item.shift_name}`}
                             id={`btn-edit-schedule-${item.id}`}
                           >
@@ -655,7 +617,7 @@ export default function WeeklyWorkScheduleManager() {
           <div className="wws-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="wws-modal-header">
               <h3>
-                {isEditing ? 'Chỉnh sửa Phiên làm việc (Có kiểm tra 3 ngày)' : 'Thêm Phiên làm việc mới cho Tuần'}
+                {isEditing ? 'Chỉnh sửa Phiên làm việc' : 'Thêm Phiên làm việc mới cho Tuần'}
               </h3>
               <button
                 type="button"
@@ -738,9 +700,6 @@ export default function WeeklyWorkScheduleManager() {
                 <div className="wws-form-group">
                   <label htmlFor="modal-session-date">
                     Ngày làm việc của phiên *
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'normal', marginLeft: '6px' }}>
-                      (Lưu ý: Chỉ chỉnh sửa được trước &ge; 3 ngày tính đến ngày này)
-                    </span>
                   </label>
                   <input
                     id="modal-session-date"
@@ -868,7 +827,7 @@ export default function WeeklyWorkScheduleManager() {
                   {formSubmitting
                     ? 'Đang lưu...'
                     : isEditing
-                    ? 'Lưu thay đổi (Kiểm tra >= 3 ngày)'
+                    ? 'Lưu thay đổi'
                     : 'Thêm phiên làm việc'}
                 </button>
               </div>

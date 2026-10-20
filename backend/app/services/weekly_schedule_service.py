@@ -22,8 +22,7 @@ class WeeklyScheduleService:
     def _to_response_dto(self, item: WeeklyWorkSchedule) -> WeeklyWorkScheduleResponse:
         today = date.today()
         days_until = (item.session_date - today).days
-        # HR chỉ được phép chỉnh sửa trước ít nhất 3 ngày
-        is_editable = days_until >= 3
+        is_editable = True
 
         return WeeklyWorkScheduleResponse(
             id=item.id,
@@ -123,31 +122,7 @@ class WeeklyScheduleService:
         data: WeeklyWorkScheduleUpdate,
     ) -> WeeklyWorkScheduleResponse:
         item = self.get_by_id(schedule_id)
-
-        # KIỂM TRA QUY TẮC NGHIỆP VỤ: HR chỉ được phép chỉnh sửa trước ít nhất 3 ngày tính đến ngày làm việc
-        today = date.today()
-        days_until_current = (item.session_date - today).days
-        if days_until_current < 3:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"Không thể chỉnh sửa lịch làm việc này. "
-                    f"Chỉ được phép chỉnh sửa trước ít nhất 3 ngày tính đến ngày làm việc "
-                    f"(phiên làm việc: {item.session_date}, còn {days_until_current} ngày)."
-                ),
-            )
-
         update_dict = data.model_dump(exclude_unset=True)
-
-        # Nếu thay đổi session_date mới, ngày mới cũng phải hợp lệ (>= 3 ngày so với hôm nay)
-        new_session_date = update_dict.get("session_date")
-        if new_session_date is not None:
-            days_until_new = (new_session_date - today).days
-            if days_until_new < 3:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Ngày làm việc mới cũng phải cách hôm nay ít nhất 3 ngày.",
-                )
 
         new_start = update_dict.get("start_time", item.start_time)
         new_end = update_dict.get("end_time", item.end_time)

@@ -41,6 +41,7 @@ backend/uploads/
 backend/backups/
 backups/
 cloud_storage/
+backend/cloud_storage_bucket/
 
 # Agents
 .agents/

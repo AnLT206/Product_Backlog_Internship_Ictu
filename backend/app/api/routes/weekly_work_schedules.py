@@ -59,7 +59,7 @@ def create_weekly_schedule(
 @router.put(
     "/hr/weekly-schedules/{schedule_id}",
     response_model=WeeklyWorkScheduleResponse,
-    summary="HR/Admin chỉnh sửa lịch làm việc (Chỉ được phép sửa trước ít nhất 3 ngày)",
+    summary="HR/Admin chỉnh sửa lịch làm việc",
     dependencies=[Depends(require_roles("hr", "admin"))],
 )
 def update_weekly_schedule(

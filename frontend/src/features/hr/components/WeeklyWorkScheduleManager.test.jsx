@@ -62,11 +62,11 @@ describe('WeeklyWorkScheduleManager Component Test Suite', () => {
     });
   });
 
-  it('1. Render đầy đủ danh sách phiên làm việc và thông báo quy tắc 3 ngày', async () => {
+  it('1. Render đầy đủ danh sách phiên làm việc và giao diện quản trị', async () => {
     render(<WeeklyWorkScheduleManager />);
 
     expect(screen.getByText(/Quản lý Lịch làm việc theo phiên của từng tuần/i)).toBeInTheDocument();
-    expect(screen.getByText(/HR chỉ được phép chỉnh sửa lịch làm việc/i)).toBeInTheDocument();
+    expect(screen.getByText(/Quản lý linh hoạt/i)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('Ca Sáng (08:00 - 12:00)')).toBeInTheDocument();
@@ -74,22 +74,26 @@ describe('WeeklyWorkScheduleManager Component Test Suite', () => {
     });
   });
 
-  it('2. Quy tắc 3 ngày: Nút Sửa bị MỜ ĐI và vô hiệu hóa (disabled) khi phiên < 3 ngày', async () => {
+  it('2. Bỏ quy tắc 3 ngày: Nút Sửa luôn khả dụng và cho phép chỉnh sửa mọi phiên làm việc', async () => {
     render(<WeeklyWorkScheduleManager />);
 
     await waitFor(() => {
       expect(screen.getByText('Ca Chiều Hướng Dẫn')).toBeInTheDocument();
     });
 
-    // Ca 1 (cách 10 ngày -> is_editable = true)
+    // Ca 1 (cách 10 ngày)
     const btnEditFar = screen.getByRole('button', { name: /Sửa ca Ca Sáng/i });
     expect(btnEditFar).not.toBeDisabled();
     expect(btnEditFar).not.toHaveClass('wws-btn-edit--disabled');
 
-    // Ca 2 (cách 1 ngày -> is_editable = false)
+    // Ca 2 (cách 1 ngày) - trước đây bị khóa, nay luôn khả dụng
     const btnEditNear = screen.getByRole('button', { name: /Sửa ca Ca Chiều/i });
-    expect(btnEditNear).toBeDisabled();
-    expect(btnEditNear).toHaveClass('wws-btn-edit--disabled');
+    expect(btnEditNear).not.toBeDisabled();
+    expect(btnEditNear).not.toHaveClass('wws-btn-edit--disabled');
+
+    // Bấm nút Sửa mở modal chỉnh sửa thành công
+    fireEvent.click(btnEditNear);
+    expect(screen.getByText(/Chỉnh sửa Phiên làm việc/i)).toBeInTheDocument();
   });
 
   it('3. Mở modal thêm phiên làm việc mới khi click nút "Thêm phiên làm việc mới"', async () => {

@@ -120,17 +120,17 @@ def test_create_and_list_weekly_schedules(weekly_schedule_client):
     assert list_data[0]["shift_name"] == "Ca Sáng (08:00 - 12:00)"
 
 
-def test_3days_lock_rule_for_editing(weekly_schedule_client):
+def test_editing_weekly_schedule_anytime(weekly_schedule_client):
     """
-    Quy tắc nghiệp vụ: HR chỉ được phép chỉnh sửa trước 3 ngày tính đến ngày làm việc.
-    Sau thời gian đó (< 3 ngày), API trả về HTTP 400 và không cho phép chỉnh sửa.
+    Quy tắc nghiệp vụ: Đã bỏ quy tắc khóa 3 ngày. HR có thể chỉnh sửa lịch làm việc
+    linh hoạt mà không bị hạn chế bởi thời gian phiên làm việc.
     """
     client, session_factory = weekly_schedule_client
     hr_token = create_access_token(user_id=1, role="hr")
     today = date.today()
 
     with session_factory() as db:
-        # Schedule 1: 5 ngày nữa (>= 3 ngày -> HỢP LỆ)
+        # Schedule 1: 5 ngày nữa
         sched_far = WeeklyWorkSchedule(
             user_id=2,
             role="intern",
@@ -142,11 +142,11 @@ def test_3days_lock_rule_for_editing(weekly_schedule_client):
             status="scheduled",
             created_by_id=1,
         )
-        # Schedule 2: 2 ngày nữa (< 3 ngày -> BỊ KHÓA CHỈNH SỬA)
+        # Schedule 2: 1 ngày nữa (trước đây bị khóa, nay cho phép sửa)
         sched_near = WeeklyWorkSchedule(
             user_id=2,
             role="intern",
-            session_date=today + timedelta(days=2),
+            session_date=today + timedelta(days=1),
             shift_name="Ca Sáng",
             start_time=time(8, 0, 0),
             end_time=time(12, 0, 0),
@@ -167,24 +167,25 @@ def test_3days_lock_rule_for_editing(weekly_schedule_client):
     )
     assert update_far.status_code == 200
     assert update_far.json()["shift_name"] == "Ca Chiều (Đã cập nhật)"
+    assert update_far.json()["is_editable"] is True
 
-    # 2. Sửa ca cách 2 ngày -> BỊ CHẶN (400) với thông báo rõ ràng
+    # 2. Sửa ca gần ngày (cách 1 ngày) -> THÀNH CÔNG (200) vì đã bỏ quy tắc 3 ngày
     update_near = client.put(
         f"/api/hr/weekly-schedules/{near_id}",
-        json={"shift_name": "Cố tình sửa ca gần ngày"},
+        json={"shift_name": "Sửa ca gần ngày thành công"},
         headers={"Authorization": f"Bearer {hr_token}"},
     )
-    assert update_near.status_code == 400
-    assert "trước ít nhất 3 ngày" in update_near.json()["detail"]
+    assert update_near.status_code == 200
+    assert update_near.json()["shift_name"] == "Sửa ca gần ngày thành công"
+    assert update_near.json()["is_editable"] is True
 
-    # 3. Thử đổi ngày của ca cách 5 ngày về thành ngày mai (cách 1 ngày) -> BỊ CHẶN (400)
+    # 3. Đổi ngày của ca về thành ngày mai -> THÀNH CÔNG (200)
     move_to_near = client.put(
         f"/api/hr/weekly-schedules/{far_id}",
         json={"session_date": (today + timedelta(days=1)).isoformat()},
         headers={"Authorization": f"Bearer {hr_token}"},
     )
-    assert move_to_near.status_code == 400
-    assert "ít nhất 3 ngày" in move_to_near.json()["detail"]
+    assert move_to_near.status_code == 200
 
 
 def test_delete_weekly_schedule(weekly_schedule_client):

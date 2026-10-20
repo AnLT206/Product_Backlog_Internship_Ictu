@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class WeeklyWorkSchedule(Base):
-    """Lịch làm việc theo phiên của từng tuần cho TTS và Mentor (có quy tắc khóa chỉnh sửa trước 3 ngày)."""
+    """Lịch làm việc theo phiên của từng tuần cho TTS và Mentor."""
 
     __tablename__ = "weekly_work_schedules"
 
