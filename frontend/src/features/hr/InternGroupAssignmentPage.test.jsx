@@ -9,6 +9,14 @@ import * as internsApi from '../../api/interns';
 vi.mock('../../api/programs', () => ({
   getPrograms: vi.fn(),
   assignInternsToProgram: vi.fn(),
+  removeInternFromProgram: vi.fn().mockResolvedValue({ ok: true, data: { message: 'Đã gỡ thực tập sinh khỏi kỳ thực tập' } }),
+}));
+
+vi.mock('../../api/groups', () => ({
+  getInternshipGroups: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+  createInternshipGroup: vi.fn().mockResolvedValue({ ok: true, data: { id: 99, name: 'Nhóm Test' } }),
+  assignInternsToGroup: vi.fn().mockResolvedValue({ ok: true, data: { message: 'Phân nhóm thành công' } }),
+  removeInternFromGroup: vi.fn().mockResolvedValue({ ok: true, data: { message: 'Đã gỡ khỏi nhóm' } }),
 }));
 
 vi.mock('../../api/mentors', () => ({
@@ -17,6 +25,7 @@ vi.mock('../../api/mentors', () => ({
   assignMentor: vi.fn(),
   unassignInternFromMentor: vi.fn(),
   getAssignedInternsByMentor: vi.fn(),
+  getMentorWorkload: vi.fn().mockResolvedValue({ ok: true, data: [] }),
 }));
 
 vi.mock('../../api/interns', () => ({
@@ -179,9 +188,7 @@ describe('InternGroupAssignmentPage API Integration Test Suite', () => {
       expect(screen.getByText('2', { selector: '.stat-value.text-emerald' })).toBeInTheDocument();
     });
 
-    // Các trường chọn trong Form
-    expect(screen.getByLabelText('Chọn Chương trình thực tập')).toBeInTheDocument();
-    expect(screen.getByLabelText('Chọn Phòng ban tiếp nhận')).toBeInTheDocument();
+    // Trường chọn Nhóm tiếp nhận phân công
     expect(screen.getByLabelText('Chọn Nhóm tiếp nhận')).toBeInTheDocument();
 
     // Nút phân công ban đầu bị disabled
@@ -190,29 +197,22 @@ describe('InternGroupAssignmentPage API Integration Test Suite', () => {
     expect(assignBtn).toBeDisabled();
   });
 
-  it('2. Dropdown Nhóm cập nhật danh sách theo Phòng ban từ API và hiển thị chi tiết nhóm', async () => {
+  it('2. Chọn Nhóm tiếp nhận tự động liên kết Kỳ thực tập, Phòng ban và Mentor', async () => {
     render(<InternGroupAssignmentPage />);
 
     await waitFor(() => {
-      expect(programsApi.getPrograms).toHaveBeenCalled();
+      expect(screen.getByText('Nguyễn Đăng Khôi')).toBeInTheDocument();
     });
 
-    const deptSelect = screen.getByLabelText('Chọn Phòng ban tiếp nhận');
     const groupSelect = screen.getByLabelText('Chọn Nhóm tiếp nhận');
-
-    // Chọn Phòng ban: Trung tâm Phát triển Phần mềm (id: 1)
-    fireEvent.change(deptSelect, { target: { value: '1' } });
     expect(groupSelect).not.toBeDisabled();
 
-    // Chọn Nhóm của Mentor Trần Hoàng Quân (id: 3)
     fireEvent.change(groupSelect, { target: { value: '3' } });
-
-    // Kiểm tra card thông tin nhóm xuất hiện
-    await waitFor(() => {
-      const card = screen.getByText(/Nhóm đang chọn:/i).closest('.group-info-card');
-      expect(card).toBeInTheDocument();
-      expect(within(card).getByText('Trần Hoàng Quân')).toBeInTheDocument();
-    });
+    expect(groupSelect.value).toBe('3');
+    expect(screen.getByText(/Hệ thống tự động liên kết Kỳ thực tập/i)).toBeInTheDocument();
+    const card = screen.getByText('Mentor trưởng nhóm:', { selector: '.meta-pill-label' }).closest('.group-info-card');
+    expect(card).toBeInTheDocument();
+    expect(within(card).getAllByText(/Trần Hoàng Quân/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('3. Checkbox Header: chọn tất cả và bỏ chọn tất cả với danh sách TTS từ API', async () => {
@@ -269,14 +269,8 @@ describe('InternGroupAssignmentPage API Integration Test Suite', () => {
       expect(screen.getByText('Nguyễn Đăng Khôi')).toBeInTheDocument();
     });
 
-    const prgSelect = screen.getByLabelText('Chọn Chương trình thực tập');
-    const deptSelect = screen.getByLabelText('Chọn Phòng ban tiếp nhận');
     const groupSelect = screen.getByLabelText('Chọn Nhóm tiếp nhận');
 
-    // Chọn Chương trình Hè 2026 (id: 1)
-    fireEvent.change(prgSelect, { target: { value: '1' } });
-    // Chọn Phòng ban Phần mềm (id: 1)
-    fireEvent.change(deptSelect, { target: { value: '1' } });
     // Chọn Nhóm Trần Hoàng Quân (id: 3)
     fireEvent.change(groupSelect, { target: { value: '3' } });
 
@@ -376,8 +370,8 @@ describe('InternGroupAssignmentPage API Integration Test Suite', () => {
       return Promise.resolve({ ok: true, data: { items: updated, total: updated.length } });
     });
 
-    // Bấm nút "Gỡ"
-    const removeBtn = within(assignedSection).getByRole('button', { name: /Gỡ/i });
+    // Bấm nút "Gỡ nhóm"
+    const removeBtn = within(assignedSection).getByRole('button', { name: /Gỡ nhóm/i });
     fireEvent.click(removeBtn);
 
     await waitFor(() => {
@@ -422,12 +416,7 @@ describe('InternGroupAssignmentPage API Integration Test Suite', () => {
       expect(screen.getByText('Nguyễn Đăng Khôi')).toBeInTheDocument();
     });
 
-    const prgSelect = screen.getByLabelText('Chọn Chương trình thực tập');
-    const deptSelect = screen.getByLabelText('Chọn Phòng ban tiếp nhận');
     const groupSelect = screen.getByLabelText('Chọn Nhóm tiếp nhận');
-
-    fireEvent.change(prgSelect, { target: { value: '1' } });
-    fireEvent.change(deptSelect, { target: { value: '1' } });
     fireEvent.change(groupSelect, { target: { value: '3' } });
 
     const internCheckbox = screen.getByRole('button', { name: /Chọn Nguyễn Đăng Khôi/i });
@@ -456,6 +445,23 @@ describe('InternGroupAssignmentPage API Integration Test Suite', () => {
       expect(
         screen.getByText('Chưa có thành viên nào trong nhóm này')
       ).toBeInTheDocument();
+    });
+  });
+
+  it('11. Chuyển sang Tab 2 "Tạo & Quản lý Nhóm Thực tập" hiển thị giao diện tạo nhóm riêng biệt', async () => {
+    render(<InternGroupAssignmentPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Phân công thực tập sinh')).toBeInTheDocument();
+    });
+
+    const createTabBtn = screen.getByRole('tab', { name: /Tạo & Quản lý Nhóm Thực tập/i });
+    expect(createTabBtn).toBeInTheDocument();
+    fireEvent.click(createTabBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Tạo & Quản lý Danh mục Nhóm Thực tập theo Phòng ban/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Lưu & Tạo nhóm thực tập/i })).toBeInTheDocument();
     });
   });
 });

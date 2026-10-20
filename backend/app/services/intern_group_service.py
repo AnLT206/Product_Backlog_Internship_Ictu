@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.core.cache import portal_cache
 from app.models.intern_profile import InternProfile
+from app.models.internship_group import InternProfileGroup, InternshipGroup
 from app.models.program_member import ProgramMember
 from app.models.user import User
 from app.models.user_profile import UserProfile
@@ -104,21 +105,108 @@ class InternGroupService:
         group_detail: GroupDetail | None = None
         members_list: list[GroupMemberItem] = []
 
-        if pm and pm.program:
-            prog = pm.program
+        # 3.1. Kiểm tra xem TTS có thuộc nhóm thực tập thực tế (InternshipGroup) không
+        ipg = None
+        if intern_prof:
+            ipg = (
+                self.db.query(InternProfileGroup)
+                .options(
+                    joinedload(InternProfileGroup.group).joinedload(InternshipGroup.department),
+                    joinedload(InternProfileGroup.group).joinedload(InternshipGroup.program),
+                )
+                .filter(
+                    InternProfileGroup.intern_profile_id == intern_prof.id,
+                    InternProfileGroup.status == "active",
+                )
+                .first()
+            )
 
-            # Truy vấn danh sách các thành viên cùng nhóm/chương trình
-            all_members = (
+        if ipg and ipg.group:
+            actual_group = ipg.group
+            active_memberships = (
+                self.db.query(InternProfileGroup)
+                .options(
+                    joinedload(InternProfileGroup.intern_profile).joinedload(InternProfile.user)
+                )
+                .filter(
+                    InternProfileGroup.group_id == actual_group.id,
+                    InternProfileGroup.status == "active",
+                )
+                .order_by(InternProfileGroup.id.asc())
+                .all()
+            )
+
+            for idx, gm in enumerate(active_memberships):
+                prof = gm.intern_profile
+                u = prof.user if prof else None
+                is_me = (u.id == intern_user_id) if u else False
+                role_title = gm.role or ("Nhóm trưởng TTS" if idx == 0 else "Thành viên")
+                phone_num = prof.phone_number if prof else None
+
+                members_list.append(
+                    GroupMemberItem(
+                        id=u.id if u else gm.id,
+                        code=u.code if u else f"TTS{gm.id:04d}",
+                        full_name=u.full_name if u else "Thực tập sinh",
+                        role=role_title,
+                        is_current_user=is_me,
+                        is_me=is_me,
+                        email=u.email if u else None,
+                        phone=phone_num,
+                        phone_number=phone_num,
+                        university=prof.university if prof else "Đại học CNTT & TT (ICTU)",
+                        major=prof.major if prof else "Công nghệ thông tin",
+                        avatar_url=None,
+                        joined_date=(
+                            gm.assigned_at.strftime("%d/%m/%Y")
+                            if gm.assigned_at
+                            else None
+                        ),
+                    )
+                )
+
+            prog_name_val = (
+                actual_group.program.name
+                if actual_group.program
+                else (pm.program.name if pm and pm.program else None)
+            )
+            dept_name_val = (
+                actual_group.department.name
+                if actual_group.department
+                else (pm.program.department if pm and pm.program else "Khoa CNTT - ICTU")
+            )
+
+            group_detail = GroupDetail(
+                id=actual_group.id,
+                code=actual_group.code or f"GRP-{actual_group.id:02d}",
+                name=actual_group.name,
+                program_name=prog_name_val,
+                department_name=dept_name_val,
+                mentor_id=mentor_user.id if mentor_user else None,
+                mentor_name=mentor_user.full_name if mentor_user else None,
+                total_members=len(members_list),
+                max_slots=actual_group.max_members,
+                status=actual_group.status,
+                description=actual_group.description or "Nhóm dự án thực tập chuyên sâu.",
+                members=members_list,
+            )
+        elif pm and pm.program and mentor_user:
+            # Fallback khi chưa có nhóm riêng nhưng đã có mentor phụ trách trong kỳ thực tập
+            prog = pm.program
+            all_mentor_members = (
                 self.db.query(ProgramMember)
                 .options(
                     joinedload(ProgramMember.intern).joinedload(User.intern_profile)
                 )
-                .filter(ProgramMember.program_id == prog.id)
+                .filter(
+                    ProgramMember.program_id == prog.id,
+                    ProgramMember.mentor_user_id == mentor_user.id,
+                )
                 .order_by(ProgramMember.id.asc())
                 .all()
             )
 
-            for idx, m in enumerate(all_members):
+            for idx, m in enumerate(all_mentor_members):
                 u = m.intern
                 p = u.intern_profile if u else None
                 is_me = (u.id == intern_user_id) if u else False
@@ -147,24 +235,24 @@ class InternGroupService:
                     )
                 )
 
-            total_members = len(all_members)
             group_detail = GroupDetail(
                 id=prog.id,
                 code=f"GRP-{prog.id:02d}",
-                name=f"Nhóm thực tập: {prog.name}",
+                name=f"Nhóm hướng dẫn {prog.name}",
                 program_name=prog.name,
                 department_name=prog.department or "Khoa CNTT - ICTU",
-                mentor_id=mentor_user.id if mentor_user else None,
-                mentor_name=mentor_user.full_name if mentor_user else None,
-                total_members=total_members,
+                mentor_id=mentor_user.id,
+                mentor_name=mentor_user.full_name,
+                total_members=len(members_list),
                 max_slots=prog.max_interns,
                 status=prog.status,
-                description=(
-                    prog.description
-                    or "Nhóm thực tập theo kỳ phân công từ nhà trường và doanh nghiệp."
-                ),
+                description=prog.description or "Nhóm thực tập theo mentor phụ trách.",
                 members=members_list,
             )
+        else:
+            # Chưa được phân vào nhóm cụ thể và chưa có mentor: group_detail = None
+            group_detail = None
+            members_list = []
 
         if not mentor_detail and not group_detail:
             status_text = "unassigned"

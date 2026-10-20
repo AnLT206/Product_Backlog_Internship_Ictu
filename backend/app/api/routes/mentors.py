@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_roles
@@ -45,9 +45,10 @@ def list_mentors(db: Session = Depends(get_db)) -> list[MentorResponse]:
     dependencies=[Depends(require_roles("hr", "admin"))],
 )
 def get_mentor_workload(
+    program_id: int | None = Query(None, description="Lọc tải công việc theo kỳ thực tập"),
     db: Session = Depends(get_db),
 ) -> list[MentorWorkloadResponse]:
-    return MentorService(db).get_workload()
+    return MentorService(db).get_workload(program_id=program_id)
 
 
 @router.patch(

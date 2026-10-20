@@ -9,6 +9,7 @@ class InternshipGroupBase(BaseModel):
     code: str | None = Field(None, max_length=50, description="Mã nhóm thực tập")
     department_id: int | None = Field(None, description="ID phòng ban gắn với nhóm")
     program_id: int | None = Field(None, description="ID chương trình thực tập gắn với nhóm")
+    leader_user_id: int | None = Field(None, description="ID của Mentor / Người hướng dẫn phụ trách nhóm")
     description: str | None = Field(None, max_length=500, description="Mô tả nhóm")
     max_members: int = Field(20, ge=1, le=500, description="Số lượng thành viên tối đa")
 
@@ -22,6 +23,7 @@ class InternshipGroupUpdate(BaseModel):
     code: str | None = Field(None, max_length=50)
     department_id: int | None = None
     program_id: int | None = None
+    leader_user_id: int | None = None
     description: str | None = Field(None, max_length=500)
     max_members: int | None = Field(None, ge=1, le=500)
     status: str | None = Field(None, pattern="^(active|inactive|closed)$")
@@ -50,6 +52,8 @@ class InternshipGroupResponse(BaseModel):
     department_name: str | None = None
     program_id: int | None = None
     program_name: str | None = None
+    leader_user_id: int | None = None
+    leader_name: str | None = None
     description: str | None = None
     max_members: int
     current_members_count: int = 0

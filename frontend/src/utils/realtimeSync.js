@@ -434,7 +434,10 @@ export function getRealtimeSyncState() {
     const raw = localStorage.getItem(STORAGE_SYNC_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.applicants)) {
+      if (parsed) {
+        if (!Array.isArray(parsed.applicants)) {
+          parsed.applicants = [...DEFAULT_INITIAL_DATA.applicants];
+        }
         // Lọc bỏ triệt để mọi tài khoản HR, Admin, Mentor bị lẫn vào danh sách applicants
         const NON_INTERN_EMAILS = new Set([
           'hr@ictu.edu.vn', 'hr2@ictu.edu.vn',
@@ -471,24 +474,23 @@ export function getRealtimeSyncState() {
           }
         }
 
-        // 3. Chuẩn hóa danh sách phân công Mentor: Chỉ giữ đúng các phân công thuộc 4 TTS và hồ sơ mới
+        // 3. Chuẩn hóa danh sách phân công Mentor: Tôn trọng unassigned_intern_ids và hỗ trợ mọi Mentor
+        const unassignedSet = new Set((parsed.unassigned_intern_ids || []).map(Number));
+
         parsed.mentorAssignments = (parsed.mentorAssignments || []).filter(
-          (m) => (VALID_INTERN_IDS.has(Number(m.intern_id)) || Number(m.intern_id) > 9) && (m.mentor_id === 3 || m.mentor_id === 4)
+          (m) => !unassignedSet.has(Number(m.intern_id))
         );
         const seenAssigned = new Set();
         parsed.mentorAssignments = parsed.mentorAssignments.filter((m) => {
-          if (seenAssigned.has(m.intern_id)) return false;
-          seenAssigned.add(m.intern_id);
+          const numId = Number(m.intern_id);
+          if (seenAssigned.has(numId)) return false;
+          seenAssigned.add(numId);
           return true;
         });
-        // Xóa bất kỳ intern_id nào khỏi unassigned_intern_ids nếu intern đó đang có mặt trong mentorAssignments
-        if (parsed.unassigned_intern_ids && Array.isArray(parsed.unassigned_intern_ids)) {
-          const currentlyAssigned = new Set(parsed.mentorAssignments.map((m) => m.intern_id));
-          parsed.unassigned_intern_ids = parsed.unassigned_intern_ids.filter((id) => !currentlyAssigned.has(id));
-        }
-        const unassignedSet = new Set(parsed.unassigned_intern_ids || []);
+
         for (const defAssign of DEFAULT_INITIAL_DATA.mentorAssignments) {
-          if (!unassignedSet.has(defAssign.intern_id) && !parsed.mentorAssignments.some((m) => m.intern_id === defAssign.intern_id)) {
+          const defInternId = Number(defAssign.intern_id);
+          if (!unassignedSet.has(defInternId) && !parsed.mentorAssignments.some((m) => Number(m.intern_id) === defInternId)) {
             parsed.mentorAssignments.push(defAssign);
           }
         }
@@ -1333,9 +1335,11 @@ export function syncMentorAssignment(mentorId, mentorName, internIds, projectNam
     state.unassigned_intern_ids = state.unassigned_intern_ids.filter((id) => !internIds.includes(id));
   }
 
-  // Bỏ các phân công cũ của mentor này nếu sinh viên không còn nằm trong internIds
-  state.mentorAssignments = state.mentorAssignments.filter(
-    (m) => m.mentor_id !== mentorId || internIds.includes(m.intern_id)
+  // Loại bỏ bản ghi phân công trước đó của chính những internId này (để tránh trùng lặp khi re-assign),
+  // tuyệt đối KHÔNG xoá các TTS khác của cùng Mentor thuộc nhóm khác (1 Mentor có thể phụ trách nhiều nhóm).
+  const internIdSet = new Set(internIds.map(Number));
+  state.mentorAssignments = (state.mentorAssignments || []).filter(
+    (m) => !internIdSet.has(Number(m.intern_id))
   );
 
   const resolvedProgName =
@@ -1388,6 +1392,7 @@ export function syncMentorAssignment(mentorId, mentorName, internIds, projectNam
         mentor_id: mentorId,
         mentor_name: mentorName,
         department_name: resolvedDeptName,
+        group_id: options.groupId ? String(options.groupId) : null,
         group_name: resolvedGroupName,
       };
     }
@@ -1404,22 +1409,120 @@ export function syncMentorAssignment(mentorId, mentorName, internIds, projectNam
 }
 
 /**
+ * 6.0 HR tạo nhóm thực tập mới (đồng bộ realtime giữa HR, Mentor và Intern)
+ */
+export function syncCreateInternshipGroup(groupData) {
+  if (!groupData || !groupData.name) return;
+  const state = getRealtimeSyncState();
+  if (!state.groups) {
+    state.groups = [];
+  }
+  const newGroup = {
+    id: groupData.id || Date.now(),
+    name: groupData.name,
+    code: groupData.code || `GRP-${Date.now().toString().slice(-4)}`,
+    department_id: groupData.department_id ? Number(groupData.department_id) : undefined,
+    department_name: groupData.department_name || '',
+    program_id: groupData.program_id ? Number(groupData.program_id) : 1,
+    program_name: groupData.program_name || 'Khóa K20 - Kỳ Thu 2026',
+    leader_user_id: groupData.leader_user_id || groupData.mentor_id ? Number(groupData.leader_user_id || groupData.mentor_id) : undefined,
+    mentor_id: groupData.mentor_id || groupData.leader_user_id ? Number(groupData.mentor_id || groupData.leader_user_id) : undefined,
+    lead_name: groupData.lead_name || groupData.leader_name || 'Mentor',
+    leader_name: groupData.leader_name || groupData.lead_name || 'Mentor',
+    max_members: Number(groupData.max_members) || 5,
+    max_slots: Number(groupData.max_members) || 5,
+    current_slots: 0,
+    current_members_count: 0,
+    description: groupData.description || '',
+    members: [],
+    created_at: new Date().toISOString(),
+    ...groupData,
+  };
+  const existingIdx = state.groups.findIndex((g) => String(g.id) === String(newGroup.id));
+  if (existingIdx >= 0) {
+    state.groups[existingIdx] = { ...state.groups[existingIdx], ...newGroup };
+  } else {
+    state.groups.unshift(newGroup);
+  }
+  saveRealtimeSyncState(state);
+  emitRealtimeEvent('SYNC_GROUPS_UPDATED', {
+    groupId: newGroup.id,
+    name: newGroup.name,
+    mentorId: newGroup.leader_user_id || newGroup.mentor_id,
+    group: newGroup,
+  });
+  return newGroup;
+}
+
+/**
  * 6.1 HR hủy phân công của một TTS (chuyển về trạng thái chờ phân công)
  */
 export function syncUnassignMentor(internId) {
   const state = getRealtimeSyncState();
-  state.mentorAssignments = (state.mentorAssignments || []).filter((m) => m.intern_id !== internId);
+  const numId = Number(internId);
+
+  // 1. Gỡ khỏi danh sách mentorAssignments
+  state.mentorAssignments = (state.mentorAssignments || []).filter((m) => Number(m.intern_id) !== numId);
+
+  // 2. Đưa vào danh sách unassigned_intern_ids
   if (!state.unassigned_intern_ids) {
     state.unassigned_intern_ids = [];
   }
-  if (!state.unassigned_intern_ids.includes(internId)) {
-    state.unassigned_intern_ids.push(internId);
+  const currentUnassignedNums = state.unassigned_intern_ids.map(Number);
+  if (!currentUnassignedNums.includes(numId)) {
+    state.unassigned_intern_ids.push(numId);
   }
+
+  // 3. Cập nhật applicants: Xóa sạch thông tin mentor và nhóm
+  if (Array.isArray(state.applicants)) {
+    state.applicants = state.applicants.map((a) => {
+      if (Number(a.id) === numId) {
+        return {
+          ...a,
+          mentor_id: null,
+          mentor_name: null,
+          mentor: null,
+          group_id: null,
+          group_name: null,
+          lab: null,
+          project: null,
+          status_label: 'Chờ phân công',
+        };
+      }
+      return a;
+    });
+  }
+
+  // 4. Cập nhật groups (nếu có cấu trúc nhóm trong realtime state)
+  if (Array.isArray(state.groups)) {
+    state.groups = state.groups.map((g) => ({
+      ...g,
+      members: (g.members || []).filter((m) => Number(m.id || m.intern_id) !== numId),
+      intern_ids: (g.intern_ids || []).filter((id) => Number(id) !== numId),
+      member_ids: (g.member_ids || []).filter((id) => Number(id) !== numId),
+      current_slots: Math.max(0, (g.current_slots || 0) - 1),
+    }));
+  }
+
   saveRealtimeSyncState(state);
+
+  // 5. Phát tán đa sự kiện realtime để tất cả các bên cập nhật ngay lập tức
   emitRealtimeEvent(SYNC_EVENTS.MENTOR_ASSIGNED, {
-    internId,
+    internId: numId,
     unassigned: true,
   });
+  emitRealtimeEvent('SYNC_GROUPS_UPDATED', {
+    internId: numId,
+    unassigned: true,
+  });
+  emitRealtimeEvent('SYNC_MENTOR_UNASSIGNED', {
+    internId: numId,
+  });
+
+  try {
+    window.dispatchEvent(new CustomEvent('intern_data_sync_event', { detail: { internId: numId, unassigned: true } }));
+    window.dispatchEvent(new CustomEvent('intern_data_changed'));
+  } catch {}
 }
 
 /**

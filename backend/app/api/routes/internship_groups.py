@@ -23,18 +23,20 @@ router = APIRouter(prefix="", tags=["internship-groups"])
 @router.get(
     "/hr/internship-groups",
     response_model=list[InternshipGroupResponse],
-    summary="HR lấy danh sách nhóm thực tập theo phòng ban/chương trình",
-    dependencies=[Depends(require_roles("hr", "admin"))],
+    summary="HR & Mentor lấy danh sách nhóm thực tập theo phòng ban/chương trình/mentor",
+    dependencies=[Depends(require_roles("hr", "admin", "mentor"))],
 )
 def list_internship_groups(
     department_id: int | None = Query(None, description="Lọc theo ID phòng ban"),
     program_id: int | None = Query(None, description="Lọc theo ID kỳ thực tập"),
+    leader_user_id: int | None = Query(None, description="Lọc theo ID Mentor phụ trách"),
     status: str | None = Query(None, description="Lọc theo trạng thái (active, inactive, closed)"),
     db: Session = Depends(get_db),
 ) -> list[InternshipGroupResponse]:
     return InternshipGroupService(db).list_groups(
         department_id=department_id,
         program_id=program_id,
+        leader_user_id=leader_user_id,
         status_filter=status,
     )
 
@@ -56,8 +58,8 @@ def create_internship_group(
 @router.get(
     "/hr/internship-groups/{group_id}",
     response_model=InternshipGroupResponse,
-    summary="HR xem chi tiết nhóm thực tập kèm danh sách thành viên",
-    dependencies=[Depends(require_roles("hr", "admin"))],
+    summary="HR & Mentor xem chi tiết nhóm thực tập kèm danh sách thành viên",
+    dependencies=[Depends(require_roles("hr", "admin", "mentor"))],
 )
 def get_internship_group_detail(
     group_id: int,
@@ -184,8 +186,8 @@ def assign_interns_to_department_path(
 @router.get(
     "/hr/interns/{intern_profile_id}/groups",
     response_model=InternGroupsDepartmentsResponse,
-    summary="HR xem thông tin nhóm và phòng ban của một thực tập sinh",
-    dependencies=[Depends(require_roles("hr", "admin"))],
+    summary="HR, Mentor & TTS xem thông tin nhóm và phòng ban của một thực tập sinh",
+    dependencies=[Depends(require_roles("hr", "admin", "mentor", "intern"))],
 )
 def get_intern_groups_departments(
     intern_profile_id: int,

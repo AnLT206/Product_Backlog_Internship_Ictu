@@ -60,6 +60,26 @@ class MentorAssignmentService:
                     detail=f"Không tìm thấy thực tập sinh có ID {i_id}.",
                 )
 
+        # 2.1 Kiểm tra giới hạn tải công việc của Mentor (Tối đa 5 TTS/Mentor để cân bằng tải)
+        MAX_INTERNS_PER_MENTOR = 5
+        current_mentor_interns = (
+            self.db.query(ProgramMember.intern_user_id)
+            .join(InternshipProgram, ProgramMember.program_id == InternshipProgram.id)
+            .filter(
+                ProgramMember.mentor_user_id == mentor.id,
+                ProgramMember.intern_user_id.notin_(unique_intern_ids),
+                InternshipProgram.deleted_at.is_(None),
+            )
+            .distinct()
+            .count()
+        )
+        if current_mentor_interns + len(unique_intern_ids) > MAX_INTERNS_PER_MENTOR:
+            remaining_slots = max(0, MAX_INTERNS_PER_MENTOR - current_mentor_interns)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Mentor '{mentor.full_name}' chỉ còn nhận tối đa {remaining_slots} thực tập sinh (Hạn mức: {MAX_INTERNS_PER_MENTOR} TTS/Mentor để đảm bảo cân bằng tải). Vui lòng phân bổ cho Mentor khác.",
+            )
+
         # 3. Phân công theo kỳ thực tập (Program)
         if program_id is not None:
             program = (
@@ -236,7 +256,12 @@ class MentorAssignmentService:
     def unassign_intern(
         self, mentor_id: int, intern_id: int, program_id: int | None = None
     ) -> dict[str, str]:
-        """Hủy phân công một thực tập sinh khỏi Mentor."""
+        """Hủy phân công một thực tập sinh khỏi Mentor và đồng bộ toàn diện CSDL."""
+        from app.models.intern_profile import InternProfile
+        from app.models.mentor_intern import MentorIntern
+        from app.models.internship_group import InternshipGroup, InternProfileGroup
+        from app.services.intern_group_service import InternGroupService
+
         query = self.db.query(ProgramMember).filter(
             ProgramMember.mentor_user_id == mentor_id,
             ProgramMember.intern_user_id == intern_id,
@@ -255,13 +280,81 @@ class MentorAssignmentService:
                 fallback_query = fallback_query.filter(ProgramMember.program_id == program_id)
             member = fallback_query.first()
 
-        if not member:
+        resolved_mentor_id = member.mentor_user_id if member and member.mentor_user_id else mentor_id
+
+        # Kiểm tra xem có bất kỳ liên kết nào trong hệ thống không
+        profile = self.db.query(InternProfile).filter(InternProfile.user_id == intern_id).first()
+        mi = self.db.query(MentorIntern).filter(MentorIntern.intern_id == intern_id).first()
+
+        if not member and not profile and not mi:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Không tìm thấy liên kết phân công giữa Mentor và thực tập sinh này.",
             )
 
-        member.mentor_user_id = None
+        # 1. Hủy phân công trên các bản ghi ProgramMember
+        pm_query = self.db.query(ProgramMember).filter(ProgramMember.intern_user_id == intern_id)
+        if program_id is not None:
+            pm_records = pm_query.filter(ProgramMember.program_id == program_id).all()
+        else:
+            pm_records = pm_query.filter(
+                (ProgramMember.mentor_user_id == mentor_id)
+                | (ProgramMember.mentor_user_id == resolved_mentor_id)
+                | (ProgramMember.mentor_user_id.isnot(None))
+            ).all()
+
+        for pm in pm_records:
+            pm.mentor_user_id = None
+
+        # 2. Kiểm tra xem còn bất kỳ ProgramMember nào còn mentor không
+        remaining_pm = (
+            self.db.query(ProgramMember)
+            .filter(
+                ProgramMember.intern_user_id == intern_id,
+                ProgramMember.mentor_user_id.isnot(None),
+            )
+            .first()
+        )
+
+        if not remaining_pm:
+            if profile:
+                profile.mentor_id = None
+            self.db.query(MentorIntern).filter(
+                MentorIntern.intern_id == intern_id,
+            ).delete(synchronize_session=False)
+        else:
+            if profile:
+                profile.mentor_id = remaining_pm.mentor_user_id
+            self.db.query(MentorIntern).filter(
+                MentorIntern.intern_id == intern_id,
+                (MentorIntern.mentor_id == mentor_id) | (MentorIntern.mentor_id == resolved_mentor_id),
+            ).delete(synchronize_session=False)
+
+        # 3. Gỡ thực tập sinh khỏi các Nhóm thực tập (InternProfileGroup) liên quan
+        if profile:
+            if program_id is not None:
+                group_ids = [
+                    g.id
+                    for g in self.db.query(InternshipGroup)
+                    .filter(InternshipGroup.program_id == program_id)
+                    .all()
+                ]
+                if group_ids:
+                    self.db.query(InternProfileGroup).filter(
+                        InternProfileGroup.intern_profile_id == profile.id,
+                        InternProfileGroup.group_id.in_(group_ids),
+                    ).delete(synchronize_session=False)
+            else:
+                self.db.query(InternProfileGroup).filter(
+                    InternProfileGroup.intern_profile_id == profile.id,
+                ).delete(synchronize_session=False)
+
         self.db.commit()
+
+        # 5. Xóa cache của Portal TTS
+        try:
+            InternGroupService.invalidate_cache(intern_id)
+        except Exception:
+            pass
 
         return {"message": "Đã hủy phân công thực tập sinh khỏi Mentor thành công."}

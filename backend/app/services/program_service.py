@@ -550,6 +550,95 @@ class ProgramService:
                 detail="Không thể xóa thực tập sinh khỏi kỳ thực tập.",
             ) from None
 
+    def unassign_intern_from_program(self, program_id: int, intern_id: int) -> dict[str, str]:
+        """Gỡ hoàn toàn một thực tập sinh khỏi kỳ thực tập và dọn dẹp các liên kết nhóm/mentor liên quan."""
+        from app.models.intern_profile import InternProfile
+        from app.models.mentor_intern import MentorIntern
+        from app.models.internship_group import InternshipGroup, InternProfileGroup
+        from app.services.intern_group_service import InternGroupService
+
+        program = self._get_or_404(program_id)
+
+        # 1. Tìm bản ghi ProgramMember
+        pm = (
+            self.db.query(ProgramMember)
+            .filter(
+                ProgramMember.program_id == program_id,
+                ProgramMember.intern_user_id == intern_id,
+            )
+            .first()
+        )
+        if not pm:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Thực tập sinh ID {intern_id} không có trong kỳ thực tập '{program.name}'.",
+            )
+
+        mentor_id = pm.mentor_user_id
+        self.db.delete(pm)
+
+        # 2. Gỡ khỏi các nhóm thuộc kỳ này
+        profile = (
+            self.db.query(InternProfile)
+            .filter(InternProfile.user_id == intern_id)
+            .first()
+        )
+        if profile:
+            group_ids = [
+                g.id
+                for g in self.db.query(InternshipGroup)
+                .filter(InternshipGroup.program_id == program_id)
+                .all()
+            ]
+            if group_ids:
+                self.db.query(InternProfileGroup).filter(
+                    InternProfileGroup.intern_profile_id == profile.id,
+                    InternProfileGroup.group_id.in_(group_ids),
+                ).delete(synchronize_session=False)
+
+            # 3. Kiểm tra xem TTS còn ở kỳ nào khác không
+            remaining_pm = (
+                self.db.query(ProgramMember)
+                .filter(ProgramMember.intern_user_id == intern_id)
+                .first()
+            )
+            if not remaining_pm:
+                profile.mentor_id = None
+                self.db.query(MentorIntern).filter(MentorIntern.intern_id == intern_id).delete(synchronize_session=False)
+            elif mentor_id:
+                still_has_same_mentor = (
+                    self.db.query(ProgramMember)
+                    .filter(
+                        ProgramMember.intern_user_id == intern_id,
+                        ProgramMember.mentor_user_id == mentor_id,
+                    )
+                    .first()
+                )
+                if not still_has_same_mentor:
+                    self.db.query(MentorIntern).filter(
+                        MentorIntern.intern_id == intern_id,
+                        MentorIntern.mentor_id == mentor_id,
+                    ).delete(synchronize_session=False)
+
+        try:
+            self.db.commit()
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Không thể gỡ thực tập sinh khỏi kỳ thực tập.",
+            ) from None
+
+        try:
+            InternGroupService.invalidate_cache(intern_id)
+        except Exception:
+            pass
+
+        return {
+            "message": f"Đã gỡ thực tập sinh khỏi kỳ thực tập '{program.name}' thành công.",
+            "program_id": str(program_id),
+            "intern_id": str(intern_id),
+        }
     def assign_groups(
         self,
         payload: ProgramGroupBatchAssignRequest,

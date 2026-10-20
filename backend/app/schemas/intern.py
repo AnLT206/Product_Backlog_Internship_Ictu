@@ -86,6 +86,8 @@ class InternListItem(BaseModel):
     avatar: str | None = None
     mentor_id: int | None = None
     mentor_name: str | None = None
+    group_id: int | None = None
+    group_name: str | None = None
     program_id: int | None = None
     program_name: str | None = None
     created_at: datetime | None = None

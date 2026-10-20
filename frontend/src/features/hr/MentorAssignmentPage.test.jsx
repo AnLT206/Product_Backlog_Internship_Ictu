@@ -71,4 +71,36 @@ describe('MentorAssignmentPage Component Test Suite', () => {
       expect(screen.getByText('Nguyễn Văn An')).toBeInTheDocument();
     });
   });
+
+  it('hiển thị 4 thẻ KPI cân bằng tải và thực hiện Tự động Cân bằng Tải công việc', async () => {
+    render(<MentorAssignmentPage />);
+
+    // Kiểm tra các thẻ KPI cân bằng tải
+    await waitFor(() => {
+      expect(screen.getByText(/Độ cân bằng tải hệ thống/i)).toBeInTheDocument();
+      expect(screen.getByText(/Tải trung bình \/ Mentor/i)).toBeInTheDocument();
+      expect(screen.getByText(/Trạng thái an toàn/i)).toBeInTheDocument();
+    });
+
+    // Nút Tự động Cân bằng Tải Công việc
+    const autoBalanceButton = screen.getByRole('button', { name: /Tự động Cân bằng Tải Công việc/i });
+    expect(autoBalanceButton).toBeInTheDocument();
+
+    // Hủy gán 1 sinh viên để có sinh viên chờ phân công
+    const unassignButtons = screen.getAllByRole('button', { name: /Hủy gán/i });
+    fireEvent.click(unassignButtons[0]);
+
+    // Chờ quá trình hủy gán hoàn tất và đưa TTS vào danh sách chờ
+    await waitFor(() => {
+      expect(screen.getByText(/Hồ sơ đã chuyển về danh sách chờ phân công/i)).toBeInTheDocument();
+    });
+
+    // Bấm nút Tự động Cân bằng Tải
+    fireEvent.click(autoBalanceButton);
+
+    // Hệ thống tự động phân bổ cân bằng và hiển thị thông báo thành công
+    await waitFor(() => {
+      expect(screen.getByText(/Đã tự động cân bằng tải thành công/i)).toBeInTheDocument();
+    });
+  });
 });

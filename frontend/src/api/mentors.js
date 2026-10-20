@@ -144,6 +144,18 @@ export async function unassignInternFromMentor(mentorId, internId, programId = n
 }
 
 /**
+ * Lấy tải công việc (Workload) của tất cả Mentor, có thể lọc theo Kỳ thực tập.
+ * Route: GET /api/hr/mentors/workload?program_id=...
+ *
+ * @param {number|string|null} [programId=null]
+ * @returns {Promise<{ ok: boolean, status: number, data: object }>}
+ */
+export async function getMentorWorkload(programId = null) {
+  const qs = programId ? `?program_id=${programId}` : '';
+  return apiFetch(`/api/hr/mentors/workload${qs}`, { method: 'GET' });
+}
+
+/**
  * Thống kê tổng hợp 4 chiều (Khối / Lớp / Khóa / Ban) và trạng thái gán Mentor.
  * Route: GET /api/hr/mentor-assignments/dimensions-summary
  *
@@ -265,5 +277,3 @@ export async function updateSingleMentorRole(payload) {
     body: JSON.stringify(payload),
   });
 }
-
-

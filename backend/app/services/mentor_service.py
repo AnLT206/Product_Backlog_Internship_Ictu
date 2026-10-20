@@ -48,8 +48,9 @@ class MentorService:
         )
 
         counts = dict(
-            self.db.query(ProgramMember.mentor_user_id, func.count(ProgramMember.id))
-            .filter(ProgramMember.mentor_user_id.isnot(None))
+            self.db.query(ProgramMember.mentor_user_id, func.count(func.distinct(ProgramMember.intern_user_id)))
+            .join(InternshipProgram, ProgramMember.program_id == InternshipProgram.id)
+            .filter(ProgramMember.mentor_user_id.isnot(None), InternshipProgram.deleted_at.is_(None))
             .group_by(ProgramMember.mentor_user_id)
             .all()
         )
@@ -70,7 +71,7 @@ class MentorService:
             for user, profile, dept_name in mentor_rows
         ]
 
-    def get_workload(self) -> list[MentorWorkloadResponse]:
+    def get_workload(self, program_id: int | None = None) -> list[MentorWorkloadResponse]:
         mentor_user = aliased(User)
         mentor_role = aliased(Role)
         intern_user = aliased(User)
@@ -143,6 +144,9 @@ class MentorService:
             .order_by(mentor_user.id, InternshipProgram.id)
             .all()
         )
+        all_rows = rows
+        if program_id is not None:
+            all_rows = [r for r in rows if r.program_id == program_id]
 
         return [
             MentorWorkloadResponse(
@@ -153,7 +157,7 @@ class MentorService:
                 active_intern_count=row.active_intern_count,
                 quota=row.quota,
             )
-            for row in rows
+            for row in all_rows
         ]
 
     def get_mentor_interns(self, mentor_id: int) -> list[MentorInternItemResponse]:

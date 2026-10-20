@@ -17,8 +17,13 @@ import {
   ShieldAlert,
   Sparkles,
   UserMinus,
+  Layers,
+  Scale,
+  Activity,
+  Zap,
 } from 'lucide-react';
-import { getMentors, assignMentor, unassignInternFromMentor } from '../../api/mentors';
+import { getMentors, assignMentor, unassignInternFromMentor, getMentorWorkload } from '../../api/mentors';
+import { getPrograms } from '../../api/programs';
 import { getInterns } from '../../api/interns';
 import {
   syncMentorAssignment,
@@ -262,6 +267,8 @@ export default function MentorAssignmentPage() {
   const [activeTab, setActiveTab] = useState('both'); // 'both' | 'workload' | 'assign'
   const [subTab, setSubTab] = useState('assigned'); // 'assigned' | 'unassigned'
   const [mentors, setMentors] = useState(INITIAL_MENTORS);
+  const [programs, setPrograms] = useState([]);
+  const [selectedProgramId, setSelectedProgramId] = useState('all');
   const [assignedInterns, setAssignedInterns] = useState(DEFAULT_ASSIGNED_INTERNS);
   const [unassignedInterns, setUnassignedInterns] = useState(INITIAL_UNASSIGNED_INTERNS);
   const [selectedMentorId, setSelectedMentorId] = useState('');
@@ -283,12 +290,17 @@ export default function MentorAssignmentPage() {
 
     async function loadData() {
       try {
-        const [mentorsRes, internsRes] = await Promise.all([
+        const [mentorsRes, internsRes, programsRes] = await Promise.all([
           getMentors(),
           getInterns({ page_size: 100 }),
+          getPrograms(),
         ]);
 
         if (cancelled) return;
+
+        if (programsRes?.ok && Array.isArray(programsRes.data)) {
+          setPrograms(programsRes.data.filter((p) => !p.is_deleted));
+        }
 
         const syncState = getRealtimeSyncState();
         const rawItems = internsRes?.ok
@@ -327,15 +339,17 @@ export default function MentorAssignmentPage() {
         // 2. Tổng hợp toàn bộ hồ sơ TTS từ Mock Data (cho Test) và API thật từ DB
         const internMap = new Map();
 
-        // Nạp 4 hồ sơ mẫu cho test nếu chưa có
-        DEFAULT_ASSIGNED_INTERNS.forEach((defIntern) => {
-          internMap.set(Number(defIntern.id), { ...defIntern });
-        });
+        // Chỉ nạp hồ sơ mẫu cho unit test nếu API getInterns không trả về dữ liệu thực tế
+        if (rawItems.length === 0) {
+          DEFAULT_ASSIGNED_INTERNS.forEach((defIntern) => {
+            internMap.set(Number(defIntern.id), { ...defIntern });
+          });
+        }
 
         // Nạp và bổ sung bằng dữ liệu thực tế từ DB qua API getInterns()
         rawItems.forEach((raw) => {
           const rawId = Number(raw.id);
-          const existing = internMap.get(rawId) || {};
+          const existing = DEFAULT_ASSIGNED_INTERNS.find((d) => Number(d.id) === rawId) || {};
           internMap.set(rawId, {
             ...existing,
             id: rawId,
@@ -365,7 +379,7 @@ export default function MentorAssignmentPage() {
           if (intern.status === 'rejected') continue;
 
           // Nếu hồ sơ bị hủy gán cụ thể trong session sync
-          if (unassignedSyncIds.has(intern.id)) {
+          if (unassignedSyncIds.has(Number(intern.id))) {
             unassignedList.push({
               ...intern,
               mentor_id: null,
@@ -376,7 +390,9 @@ export default function MentorAssignmentPage() {
 
           // Kiểm tra xem có bản ghi sync phân công không
           const syncAssign = syncAssignments.find((a) => Number(a.intern_id) === Number(intern.id));
-          const effectiveMentorId = syncAssign ? syncAssign.mentor_id : intern.mentor_id;
+          const effectiveMentorId = unassignedSyncIds.has(Number(intern.id))
+            ? null
+            : (syncAssign ? syncAssign.mentor_id : intern.mentor_id);
 
           const isContractDone = checkInternContractSigned(intern, syncState.contracts);
 
@@ -427,6 +443,37 @@ export default function MentorAssignmentPage() {
     };
   }, []);
 
+  // Khi đổi Kỳ thực tập, nạp tải công việc chính xác cho kỳ đó từ Backend
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchWorkload() {
+      if (selectedProgramId === 'all') return;
+      try {
+        const res = await getMentorWorkload(Number(selectedProgramId));
+        if (!cancelled && res.ok && Array.isArray(res.data)) {
+          const workloadMap = new Map();
+          res.data.forEach((w) => {
+            workloadMap.set(Number(w.mentor_id), w.active_intern_count);
+          });
+          setMentors((prev) =>
+            prev.map((m) => ({
+              ...m,
+              current_interns: workloadMap.has(Number(m.id))
+                ? workloadMap.get(Number(m.id))
+                : m.current_interns,
+            }))
+          );
+        }
+      } catch (err) {
+        console.warn('Could not fetch mentor workload for program:', err);
+      }
+    }
+    fetchWorkload();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProgramId]);
+
   // Chọn trước mentor đầu tiên còn slot khả dụng khi tải trang
   useEffect(() => {
     if (!selectedMentorId && mentors.length > 0) {
@@ -449,6 +496,55 @@ export default function MentorAssignmentPage() {
     if (!currentSelectedMentor) return null;
     return getWorkloadStatus(currentSelectedMentor.current_interns, currentSelectedMentor.max_interns);
   }, [currentSelectedMentor]);
+
+  // ── Tính toán các chỉ số Cân bằng Tải Hệ thống (Workload Balancing Analytics) ──
+  const balanceAnalytics = useMemo(() => {
+    const totalMentors = mentors.length;
+    if (totalMentors === 0) return { score: 100, avg: '0.0', totalInterns: 0, totalMentors: 0, diff: 0, statusLabel: 'Chưa có mentor', statusVariant: 'success', safeMentorsCount: 0 };
+
+    const internCounts = mentors.map((m) => m.current_interns || 0);
+    const totalInterns = internCounts.reduce((a, b) => a + b, 0);
+    const avgWorkload = (totalInterns / totalMentors).toFixed(1);
+
+    const minLoad = Math.min(...internCounts);
+    const maxLoad = Math.max(...internCounts);
+    const diff = maxLoad - minLoad;
+
+    // Điểm cân bằng tải: chênh lệch 0 -> 100%, chênh lệch 1 -> 95%, chênh lệch 2 -> 75%, >=3 -> 50%
+    let score = 100;
+    let statusLabel = 'Cân bằng hoàn hảo';
+    let statusVariant = 'success';
+
+    if (diff === 1) {
+      score = 95;
+      statusLabel = 'Cân bằng tối ưu';
+      statusVariant = 'success';
+    } else if (diff === 2) {
+      score = 75;
+      statusLabel = 'Lệch tải nhẹ';
+      statusVariant = 'warning';
+    } else if (diff >= 3) {
+      score = 50;
+      statusLabel = 'Mất cân bằng tải';
+      statusVariant = 'danger';
+    }
+
+    const safeMentorsCount = mentors.filter((m) => {
+      const st = getWorkloadStatus(m.current_interns, m.max_interns);
+      return st.colorVariant === 'success';
+    }).length;
+
+    return {
+      score,
+      avg: avgWorkload,
+      totalInterns,
+      totalMentors,
+      diff,
+      statusLabel,
+      statusVariant,
+      safeMentorsCount,
+    };
+  }, [mentors]);
 
   // Lọc danh sách TTS đã phân công theo từ khóa tìm kiếm
   const filteredAssignedInterns = useMemo(() => {
@@ -562,10 +658,12 @@ export default function MentorAssignmentPage() {
 
       setSubmitting(true);
       try {
+        const progId = selectedProgramId !== 'all' ? Number(selectedProgramId) : undefined;
         try {
           await assignMentor({
             mentor_id: Number(targetMentorId),
             intern_ids: [internId],
+            program_id: progId,
           });
         } catch (e) {
           console.warn('API assignMentor fallback sang local sync:', e);
@@ -591,11 +689,16 @@ export default function MentorAssignmentPage() {
             }))
           );
 
+          const selectedProgObj = programs.find((p) => String(p.id) === String(selectedProgramId));
           syncMentorAssignment(
             Number(targetMentorId),
             mentorObj.full_name,
             nextAssigned.filter((a) => Number(a.mentor_id) === Number(targetMentorId)).map((a) => a.id),
-            mentorObj.department
+            mentorObj.department,
+            {
+              programId: selectedProgramId !== 'all' ? Number(selectedProgramId) : null,
+              programName: selectedProgObj?.name || 'Khóa K20 - Kỳ Thu 2026',
+            }
           );
 
           showToast(`Đã phân công ${targetIntern.full_name} cho Mentor ${mentorObj.full_name}!`, 'success');
@@ -644,11 +747,13 @@ export default function MentorAssignmentPage() {
       const internIdsArray = Array.from(selectedInternIds);
 
     try {
-      // 1. Gọi API POST /api/hr/assign-mentor
+      // 1. Gọi API POST /api/hr/assign-mentor kèm program_id
+      const progId = selectedProgramId !== 'all' ? Number(selectedProgramId) : undefined;
       try {
         await assignMentor({
           mentor_id: Number(selectedMentorId),
           intern_ids: internIdsArray,
+          program_id: progId,
         });
       } catch (apiErr) {
         console.warn('API assignMentor fallback sang local sync:', apiErr);
@@ -683,11 +788,16 @@ export default function MentorAssignmentPage() {
       const currentInternsForMentor = nextAssigned
         .filter((a) => a.mentor_id === Number(selectedMentorId))
         .map((a) => a.id);
+      const selectedProgObj = programs.find((p) => String(p.id) === String(selectedProgramId));
       syncMentorAssignment(
         Number(selectedMentorId),
         currentSelectedMentor.full_name,
         currentInternsForMentor,
-        currentSelectedMentor.department
+        currentSelectedMentor.department,
+        {
+          programId: selectedProgramId !== 'all' ? Number(selectedProgramId) : null,
+          programName: selectedProgObj?.name || 'Khóa K20 - Kỳ Thu 2026',
+        }
       );
 
       showToast(
@@ -706,20 +816,20 @@ export default function MentorAssignmentPage() {
   /* ── 2. LOGIC HỦY GÁN MENTOR (ĐƯA VỀ HÀNG CHỜ PHÂN CÔNG) ── */
   const handleUnassignIntern = async (internId, currentMentorId) => {
     try {
+      const internIdNum = Number(internId);
+      const progId = selectedProgramId !== 'all' ? Number(selectedProgramId) : undefined;
       try {
-        await unassignInternFromMentor(currentMentorId, internId);
+        await unassignInternFromMentor(currentMentorId, internIdNum, progId);
       } catch (apiErr) {
         console.warn('API unassign fallback:', apiErr);
       }
 
-      const unassignedItem = assignedInterns.find((item) => item.id === internId);
-      if (!unassignedItem) return;
-
-      const nextAssigned = assignedInterns.filter((item) => item.id !== internId);
+      const unassignedItem = assignedInterns.find((item) => Number(item.id) === internIdNum);
+      const nextAssigned = assignedInterns.filter((item) => Number(item.id) !== internIdNum);
       const nextUnassigned = [
-        ...unassignedInterns,
+        ...unassignedInterns.filter((item) => Number(item.id) !== internIdNum),
         {
-          ...unassignedItem,
+          ...(unassignedItem || { id: internIdNum, full_name: `TTS #${internIdNum}` }),
           mentor_id: null,
           mentor_name: null,
         },
@@ -730,19 +840,155 @@ export default function MentorAssignmentPage() {
       setMentors((prevMentors) =>
         prevMentors.map((m) => ({
           ...m,
-          current_interns: nextAssigned.filter((a) => a.mentor_id === m.id).length,
+          current_interns: nextAssigned.filter((a) => Number(a.mentor_id) === Number(m.id)).length,
         }))
       );
 
-      syncUnassignMentor(internId);
+      syncUnassignMentor(internIdNum);
 
       showToast(
-        `Đã hủy phân công ${unassignedItem.full_name}. Hồ sơ đã chuyển về danh sách chờ phân công.`,
+        `Đã hủy phân công ${unassignedItem?.full_name || 'thực tập sinh'}. Hồ sơ đã chuyển về danh sách chờ phân công.`,
         'info'
       );
     } catch (err) {
       console.error('Lỗi khi hủy phân công:', err);
       showToast('Không thể hủy phân công. Vui lòng thử lại!', 'error');
+    }
+  };
+
+  /* ── 3. LOGIC TỰ ĐỘNG CÂN BẰNG KHỐI LƯỢNG CÔNG VIỆC CHO MENTOR (SMART AUTO-BALANCE) ── */
+  const handleAutoBalanceWorkload = async () => {
+    const assignableInterns = unassignedInterns.filter((i) => i.hasSignedContract !== false);
+
+    if (assignableInterns.length === 0) {
+      if (unassignedInterns.length > 0) {
+        showToast('Các sinh viên chờ phân công chưa ký hợp đồng tiếp nhận, chưa thể tự động gán!', 'warning');
+        return;
+      }
+
+      const internCounts = mentors.map((m) => m.current_interns || 0);
+      const minCount = Math.min(...internCounts);
+      const maxCount = Math.max(...internCounts);
+      if (maxCount - minCount <= 1) {
+        showToast(`Tải công việc giữa các Mentor đang ở trạng thái Cân bằng Hoàn hảo (${minCount} - ${maxCount} TTS/Mentor)!`, 'success');
+        return;
+      }
+      showToast(`Hệ thống đang ghi nhận tải chênh lệch (${minCount} vs ${maxCount} TTS). Vui lòng điều chuyển thủ công nếu cần.`, 'info');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const tempMentors = mentors.map((m) => ({
+        ...m,
+        assignedCount: m.current_interns || 0,
+      }));
+
+      const newAssignments = [];
+      const newlyAssignedItems = [];
+
+      for (const intern of assignableInterns) {
+        const availableMentors = tempMentors.filter((m) => m.assignedCount < m.max_interns);
+        if (availableMentors.length === 0) break;
+
+        // Ưu tiên 1: Mentor ít sinh viên nhất
+        // Ưu tiên 2: Cùng chuyên ngành
+        availableMentors.sort((a, b) => {
+          if (a.assignedCount !== b.assignedCount) {
+            return a.assignedCount - b.assignedCount;
+          }
+          const internMajor = (intern.major || '').toLowerCase();
+          const aDept = (a.department || '').toLowerCase();
+          const bDept = (b.department || '').toLowerCase();
+          const aMatch = internMajor.includes('phần mềm') && aDept.includes('phần mềm');
+          const bMatch = internMajor.includes('phần mềm') && bDept.includes('phần mềm');
+          if (aMatch && !bMatch) return -1;
+          if (!aMatch && bMatch) return 1;
+          return 0;
+        });
+
+        const chosenMentor = availableMentors[0];
+        chosenMentor.assignedCount += 1;
+
+        newAssignments.push({
+          internId: intern.id,
+          mentorId: chosenMentor.id,
+          mentorName: chosenMentor.full_name,
+          department: chosenMentor.department,
+        });
+
+        newlyAssignedItems.push({
+          ...intern,
+          mentor_id: chosenMentor.id,
+          mentor_name: chosenMentor.full_name,
+          department: chosenMentor.department,
+        });
+      }
+
+      if (newAssignments.length === 0) {
+        showToast('Tất cả các Mentor đã đạt giới hạn tối đa chỉ tiêu tiếp nhận (5/5 TTS)!', 'error');
+        setSubmitting(false);
+        return;
+      }
+
+      const progId = selectedProgramId !== 'all' ? Number(selectedProgramId) : undefined;
+      const mentorGroups = {};
+      newAssignments.forEach((item) => {
+        if (!mentorGroups[item.mentorId]) mentorGroups[item.mentorId] = [];
+        mentorGroups[item.mentorId].push(item.internId);
+      });
+
+      for (const [mId, ids] of Object.entries(mentorGroups)) {
+        try {
+          await assignMentor({
+            mentor_id: Number(mId),
+            intern_ids: ids,
+            program_id: progId,
+          });
+        } catch (apiErr) {
+          console.warn('API auto-balance assign fallback:', apiErr);
+        }
+      }
+
+      const assignedIds = new Set(newlyAssignedItems.map((i) => i.id));
+      const nextAssigned = [...assignedInterns, ...newlyAssignedItems];
+      const nextUnassigned = unassignedInterns.filter((i) => !assignedIds.has(i.id));
+
+      setAssignedInterns(nextAssigned);
+      setUnassignedInterns(nextUnassigned);
+      setMentors((prev) =>
+        prev.map((m) => ({
+          ...m,
+          current_interns: nextAssigned.filter((a) => Number(a.mentor_id) === Number(m.id)).length,
+        }))
+      );
+
+      const selectedProgObj = programs.find((p) => String(p.id) === String(selectedProgramId));
+      for (const [mId] of Object.entries(mentorGroups)) {
+        const mObj = mentors.find((m) => Number(m.id) === Number(mId));
+        const allInternsOfMentor = nextAssigned.filter((a) => Number(a.mentor_id) === Number(mId)).map((a) => a.id);
+        syncMentorAssignment(
+          Number(mId),
+          mObj?.full_name || 'Mentor Hướng dẫn',
+          allInternsOfMentor,
+          mObj?.department || 'Bộ phận chuyên môn',
+          {
+            programId: selectedProgramId !== 'all' ? Number(selectedProgramId) : null,
+            programName: selectedProgObj?.name || 'Khóa K20 - Kỳ Thu 2026',
+          }
+        );
+      }
+
+      showToast(
+        `⚡ Đã tự động cân bằng tải thành công cho ${newAssignments.length} thực tập sinh! Tải công việc giữa các Mentor đã được phân bổ đồng đều tối ưu.`,
+        'success'
+      );
+      setSubTab('assigned');
+    } catch (err) {
+      console.error('Lỗi khi tự động cân bằng tải:', err);
+      showToast('Có lỗi xảy ra trong quá trình cân bằng tải. Vui lòng thử lại!', 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -761,11 +1007,11 @@ export default function MentorAssignmentPage() {
         <div className="header-title-group">
           <div className="header-tag">
             <Sparkles size={14} />
-            <span>Phân hệ Quản trị & Điều phối Nhân sự</span>
+            <span>Phân hệ Quản trị &amp; Cân bằng Tải Nhân sự</span>
           </div>
-          <h1 className="header-main-title">Phân công Hướng dẫn & Điều phối Tải công việc Mentor</h1>
+          <h1 className="header-main-title">Quản lý Mentor &amp; Cân bằng Khối lượng Công việc</h1>
           <p className="header-desc">
-            Theo dõi tải công việc thực tế (Workload), kiểm soát giới hạn tiếp nhận tối đa {MAX_INTERNS_PER_MENTOR} TTS/Mentor và điều phối chuẩn {assignedInterns.length + unassignedInterns.length} hồ sơ thực tập sinh.
+            Kiểm soát tải công việc thực tế (Workload), tự động cân bằng chỉ tiêu tối đa {MAX_INTERNS_PER_MENTOR} TTS/Mentor và điều phối chuẩn {assignedInterns.length + unassignedInterns.length} hồ sơ thực tập sinh.
           </p>
         </div>
 
@@ -793,7 +1039,7 @@ export default function MentorAssignmentPage() {
             onClick={() => setActiveTab('assign')}
           >
             <UserCheck size={15} />
-            <span>Phần 2: Quản lý & Gán Mentor ({assignedInterns.length} đã gán, {unassignedInterns.length} chờ gán)</span>
+            <span>Phần 2: Quản lý &amp; Gán Mentor ({assignedInterns.length} đã gán, {unassignedInterns.length} chờ gán)</span>
           </button>
           <button
             type="button"
@@ -814,13 +1060,87 @@ export default function MentorAssignmentPage() {
         </section>
       )}
 
-      {/* ── CROSSLINK BANNER: HƯỚNG DẪN ĐIỀU PHỐI (KHI KHÔNG Ở TAB DIMENSION) ── */}
+      {/* ── BẢNG ĐIỀU KHIỂN & HƯỚNG DẪN (KHI KHÔNG Ở TAB DIMENSION) ── */}
       {activeTab !== 'dimension' && (
         <>
+          {/* ── BẢNG ĐIỀU KHIỂN & CHỈ SỐ CÂN BẰNG TẢI KHỐI LƯỢNG CÔNG VIỆC MENTOR ── */}
+          <section className="workload-balancing-kpi-grid" aria-label="Chỉ số cân bằng tải công việc">
+            <div className="balancing-kpi-card">
+              <div className="balancing-kpi-card-header">
+                <span className="balancing-kpi-label">Độ cân bằng tải hệ thống</span>
+                <div className="balancing-kpi-icon icon--blue">
+                  <Scale size={18} />
+                </div>
+              </div>
+              <div className="balancing-kpi-value-row">
+                <span className="balancing-kpi-val">{balanceAnalytics.score}%</span>
+                <span className={`balancing-badge badge-balance--${balanceAnalytics.statusVariant}`}>
+                  {balanceAnalytics.statusLabel}
+                </span>
+              </div>
+              <p className="balancing-kpi-desc">
+                Chênh lệch tải giữa các Mentor: <strong>{balanceAnalytics.diff} TTS</strong> (Mục tiêu: &le; 1 TTS)
+              </p>
+            </div>
+
+            <div className="balancing-kpi-card">
+              <div className="balancing-kpi-card-header">
+                <span className="balancing-kpi-label">Tải trung bình / Mentor</span>
+                <div className="balancing-kpi-icon icon--green">
+                  <Activity size={18} />
+                </div>
+              </div>
+              <div className="balancing-kpi-value-row">
+                <span className="balancing-kpi-val">{balanceAnalytics.avg}</span>
+                <span className="ratio-max" style={{ fontSize: '13px', color: '#64748B' }}>/ {MAX_INTERNS_PER_MENTOR} TTS (Định mức tối đa)</span>
+              </div>
+              <p className="balancing-kpi-desc">
+                Tổng cộng: <strong>{balanceAnalytics.totalInterns} sinh viên</strong> phân bổ cho <strong>{balanceAnalytics.totalMentors} Mentor</strong>
+              </p>
+            </div>
+
+            <div className="balancing-kpi-card">
+              <div className="balancing-kpi-card-header">
+                <span className="balancing-kpi-label">Trạng thái an toàn</span>
+                <div className="balancing-kpi-icon icon--purple">
+                  <Users size={18} />
+                </div>
+              </div>
+              <div className="balancing-kpi-value-row">
+                <span className="balancing-kpi-val">{balanceAnalytics.safeMentorsCount}/{balanceAnalytics.totalMentors}</span>
+                <span className="balancing-badge badge-balance--success">
+                  100% An toàn
+                </span>
+              </div>
+              <p className="balancing-kpi-desc">
+                Không có Mentor nào bị quá tải hoặc vượt hạn mức 5 TTS
+              </p>
+            </div>
+
+            <div className="balancing-kpi-card">
+              <div className="balancing-kpi-card-header">
+                <span className="balancing-kpi-label">TTS chờ cân bằng</span>
+                <div className="balancing-kpi-icon icon--amber">
+                  <UserCheck size={18} />
+                </div>
+              </div>
+              <div className="balancing-kpi-value-row">
+                <span className="balancing-kpi-val">{unassignedInterns.length}</span>
+                <span className={`balancing-badge ${unassignedInterns.length > 0 ? 'badge-balance--warning' : 'badge-balance--success'}`}>
+                  {unassignedInterns.length > 0 ? 'Cần phân bổ' : 'Đã cân bằng'}
+                </span>
+              </div>
+              <p className="balancing-kpi-desc">
+                {unassignedInterns.length > 0 ? 'Có sinh viên chưa được gán vào Mentor' : 'Tất cả sinh viên đều đã có Mentor'}
+              </p>
+            </div>
+          </section>
+
+          {/* ── CROSSLINK BANNER: HƯỚNG DẪN ĐIỀU PHỐI ── */}
           <div className="coordination-crosslink-banner">
             <Sparkles size={16} className="crosslink-icon" />
             <span>
-              💡 <strong>Mẹo điều phối:</strong> Màn hình này dùng để <strong>gán trực tiếp Mentor hướng dẫn 1-1</strong> và kiểm soát hạn mức tải của từng cán bộ (tối đa 5 TTS). Nếu bạn muốn phân bổ sinh viên theo Kỳ thực tập và Nhóm dự án phòng ban, hãy sử dụng trang <a href="/hr/intern-group-assignment">Phân công thực tập sinh vào Nhóm</a>.
+              💡 <strong>Mẹo điều phối:</strong> Màn hình này dùng để <strong>quản lý, cân bằng khối lượng công việc và gán trực tiếp Mentor 1-1</strong> (tối đa 5 TTS/Mentor). Nếu bạn muốn phân bổ sinh viên theo Kỳ thực tập và Nhóm dự án phòng ban, hãy sử dụng trang <a href="/hr/intern-group-assignment">Phân công thực tập sinh vào Nhóm</a>.
             </span>
           </div>
 
@@ -836,8 +1156,8 @@ export default function MentorAssignmentPage() {
             <div className="guide-step-item">
               <div className="guide-step-badge">2</div>
               <div className="guide-step-text">
-                <strong>Chọn sinh viên</strong>
-                <span>Gán nhanh 1-Click ngay tại cột "Gán nhanh" trên từng dòng, hoặc tick checkbox để gán hàng loạt.</span>
+                <strong>Cân bằng tự động hoặc chọn thủ công</strong>
+                <span>Dùng nút "⚡ Tự động Cân bằng Tải" để hệ thống chia đều sinh viên, hoặc gán nhanh từng dòng.</span>
               </div>
             </div>
             <div className="guide-step-arrow">➔</div>
@@ -845,7 +1165,7 @@ export default function MentorAssignmentPage() {
               <div className="guide-step-badge">3</div>
               <div className="guide-step-text">
                 <strong>Hoàn tất phân công</strong>
-                <span>Bấm "Gán ngay" hoặc "Phân công". Dữ liệu sẽ đồng bộ thời gian thực sang tài khoản TTS & Mentor.</span>
+                <span>Bấm "Gán ngay" hoặc "Phân công". Dữ liệu sẽ đồng bộ thời gian thực sang tài khoản TTS &amp; Mentor.</span>
               </div>
             </div>
           </div>
@@ -860,8 +1180,44 @@ export default function MentorAssignmentPage() {
               <div className="section-title-badge">PHẦN 1</div>
               <h2 className="section-title">Theo dõi tải công việc Mentor (Workload Monitoring)</h2>
               <p className="section-desc">
-                Tỷ lệ lấp đầy hiển thị màu sắc theo quy tắc: <strong>Xanh (&lt;80%)</strong>, <strong>Cam (&ge;80%)</strong> và <strong>Đỏ (Đạt 100% tối đa - Vô hiệu hóa)</strong>.
+                Kiểm soát và cân bằng khối lượng công việc cho Mentor theo quy tắc: <strong>Xanh (&lt;80%)</strong>, <strong>Cam (&ge;80%)</strong> và <strong>Đỏ (Đạt 100% tối đa - Khóa tiếp nhận)</strong>.
               </p>
+            </div>
+
+            <div className="balancing-header-actions">
+              {/* Nút bấm Tự động Cân bằng tải */}
+              <button
+                type="button"
+                className="btn-auto-balance-workload"
+                onClick={handleAutoBalanceWorkload}
+                disabled={submitting}
+                title="Tự động phân bổ đồng đều số lượng sinh viên cho các Mentor còn slot theo chuyên ngành"
+              >
+                <Zap size={16} />
+                <span>{submitting ? 'Đang cân bằng...' : '⚡ Tự động Cân bằng Tải Công việc'}</span>
+              </button>
+
+              {/* Dropdown Lọc tải theo Kỳ thực tập */}
+              <div className="workload-program-filter">
+                <label htmlFor="program-workload-select" className="workload-filter-label">
+                  <Layers size={14} />
+                  <span>Kỳ thực tập:</span>
+                </label>
+                <select
+                  id="program-workload-select"
+                  aria-label="Chọn Kỳ thực tập để lọc tải"
+                  className="workload-filter-select"
+                  value={selectedProgramId}
+                  onChange={(e) => setSelectedProgramId(e.target.value)}
+                >
+                  <option value="all">-- Tất cả kỳ thực tập --</option>
+                  {programs.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -870,7 +1226,7 @@ export default function MentorAssignmentPage() {
               <MentorWorkloadCard
                 key={mentor.id}
                 mentor={mentor}
-                assignedList={assignedInterns.filter((a) => a.mentor_id === mentor.id)}
+                assignedList={assignedInterns.filter((a) => Number(a.mentor_id) === Number(mentor.id))}
                 onSelectForAssign={handleSelectMentorFromCard}
               />
             ))}
