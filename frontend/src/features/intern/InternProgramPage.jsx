@@ -84,7 +84,7 @@ export default function InternProgramPage() {
       let status = 'upcoming'; // 'completed' | 'in_progress' | 'upcoming'
       let score = foundReport?.score !== undefined ? foundReport.score : null;
       let feedback = foundReport?.feedback || foundReport?.mentor_feedback || '';
-      let title = `Tuần ${w}`;
+      let title;
 
       if (w === 1) {
         status = 'completed';

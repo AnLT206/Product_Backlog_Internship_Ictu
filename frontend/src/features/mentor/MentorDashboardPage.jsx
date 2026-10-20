@@ -1487,9 +1487,8 @@ export default function MentorDashboardPage({ forcedTab }) {
       }
     })
 
-    // 2. Phân bổ từng mentee vào đúng nhóm theo group_id hoặc group_name
     mentees.forEach((m, idx) => {
-      let matchedGroup = null
+      let matchedGroup
       if (m.group_id && groupsMap[String(m.group_id)]) {
         matchedGroup = groupsMap[String(m.group_id)]
       } else {
@@ -1934,7 +1933,7 @@ export default function MentorDashboardPage({ forcedTab }) {
                                 <button
                                   type="button"
                                   className="btn-mini-chat"
-                                  onClick={() => handleOpenChat(member)}
+                                  onClick={() => handleOpenChatModal(member)}
                                   title="Nhắn tin góp ý nhanh"
                                 >
                                   Nhắn tin
@@ -3275,8 +3274,8 @@ export default function MentorDashboardPage({ forcedTab }) {
                       {/* 12 Cột tuần */}
                       {m.weeks.map((week) => {
                         const isCurrent = week.week_number === (matrixData?.current_week || 4)
-                        let badgeClass = 'matrix-cell-badge--upcoming'
-                        let label = 'Tuần ' + week.week_number
+                        let badgeClass
+                        let label
 
                         if (week.status === 'approved') {
                           badgeClass = 'matrix-cell-badge--approved'
